@@ -11,6 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: 关键文件完整性
+        run: |
+          for f in www/index.html www/js/api.js www/js/i18n.js www/js/app.js capacitor.config.json; do
+            test -f "$f" || { echo "MISSING: $f"; exit 1; }
+          done
+          echo "All key files present"
       - name: JS 语法检查
         run: |
           python -c "
@@ -20,44 +26,32 @@ jobs:
               for f in files:
                   if f.endswith(('.html','.js')):
                       path = os.path.join(root, f)
-                      with open(path) as fh:
-                          content = fh.read()
-                      scripts = re.findall(r'<script[^>]*>(.*?)</script>', content, re.DOTALL) if f.endswith('.html') else [content]
+                      c = open(path).read()
+                      scripts = re.findall(r'<script[^>]*>(.*?)</script>', c, re.DOTALL) if f.endswith('.html') else [c]
                       for i, s in enumerate(scripts):
-                          o, c = s.count('{'), s.count('}')
-                          if o != c:
-                              print(f'❌ {path} script#{i}: {{={o} }}={c}')
+                          o, c2 = s.count('{'), s.count('}')
+                          if o != c2:
+                              print('MISMATCH:', path, 'script#'+str(i))
                               errs += 1
-              else:
-                  pass
           exit(errs)
           "
-      - name: 关键文件完整性检查
-        run: |
-          for f in www/index.html www/js/api.js www/js/i18n.js www/js/app.js capacitor.config.json; do
-            if [ ! -f "$f" ]; then
-              echo "❌ 缺少文件: $f"
-              exit 1
-            fi
-          done
-          echo "✅ 关键文件完整"
 
   deploy-staging:
     needs: test
     if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     steps:
-      - name: SSH 部署 www 热更新文件
+      - name: 部署 iOS www 到测试服务器
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /opt/snail-books-staging/ios-app
+            cd /opt/snail-books-ios-staging
             git checkout develop
             git pull origin develop
-            echo "✅ iOS Staging www 已更新"
+            echo "iOS staging www updated"
 
   deploy-production:
     needs: test
@@ -65,14 +59,14 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - name: SSH 部署 www 热更新文件
+      - name: 部署 iOS www 到生产服务器
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /opt/snail-books/ios-app
+            cd /opt/snail-books-ios-prod
             git checkout main
             git pull origin main
-            echo "✅ iOS 生产 www 已更新"
+            echo "iOS production www updated"
