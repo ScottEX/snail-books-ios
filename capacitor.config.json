@@ -1,0 +1,14 @@
+{
+  "appId": "com.lanx.snailbooks",
+  "appName": "蓝姐螺蛳粉",
+  "webDir": "www",
+  "server": {
+    "url": "http://localhost:9876",
+    "cleartext": true
+  },
+  "ios": {
+    "allowsLinkPreview": false,
+    "preferredContentMode": "mobile",
+    "overrideUserInterfaceStyle": "light"
+  }
+}
