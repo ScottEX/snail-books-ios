@@ -1,4 +1,4 @@
-name: CI/CD
+name: CI
 
 on:
   push:
@@ -31,42 +31,7 @@ jobs:
                       for i, s in enumerate(scripts):
                           o, c2 = s.count('{'), s.count('}')
                           if o != c2:
-                              print('MISMATCH:', path, 'script#'+str(i))
+                              print('MISMATCH:', path)
                               errs += 1
           exit(errs)
           "
-
-  deploy-staging:
-    needs: test
-    if: github.ref == 'refs/heads/develop'
-    runs-on: ubuntu-latest
-    steps:
-      - name: 部署 iOS www 到测试服务器
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /opt/snail-books-ios-staging
-            git checkout develop
-            git pull origin develop
-            echo "iOS staging www updated"
-
-  deploy-production:
-    needs: test
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - name: 部署 iOS www 到生产服务器
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /opt/snail-books-ios-prod
-            git checkout main
-            git pull origin main
-            echo "iOS production www updated"
