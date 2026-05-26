@@ -3,3 +3,8 @@ node_modules/
 build/
 *.bak*
 Pods/
+www/
+ios/App/App/public/
+ios/App/Pods/
+*.xcworkspace
+xcuserdata/

@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build Expo web frontend
+        working-directory: ../snail-books-web
+        run: |
+          npm ci
+          npm run build:web
+
+      - name: Sync www/ from Expo dist
+        run: |
+          cp -r ../snail-books-web/dist/* www/
+          mkdir -p www/static
+
+      - name: 关键文件完整性
+        run: |
+          for f in www/index.html capacitor.config.json package.json; do
+            test -f "$f" || { echo "MISSING: $f"; exit 1; }
+          done
+          echo "All key files present"
+
+      - name: Capacitor config 合法性
+        run: |
+          python3 -c "
+          import json
+          with open('capacitor.config.json') as f:
+              c = json.load(f)
+          assert c.get('appId'), 'Missing appId'
+          assert c.get('webDir'), 'Missing webDir'
+          print('Config OK')
+          "
