@@ -32,7 +32,8 @@ function startIdleTimer() {
     if (!localStorage.getItem('user')) return;
     if (Date.now() - lastActivity > IDLE_MS) {
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      // RN has no window.location; App.tsx reads localStorage on mount and
+      // will route back to login automatically. We just clear the marker.
     }
   }, 10_000); // check every 10s
 }
