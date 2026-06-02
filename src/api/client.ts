@@ -7,12 +7,12 @@ function getApiBase(): string {
     if (saved) return saved;
   }
   // React Native: Metro only serves the JS bundle, not the API. Point
-  // directly at the Flask backend. Production server is 8.135.58.90:8600
+  // directly at the Flask backend. Production server is 8.135.58.90:8601
   // (see snail-books-web/dist/index.html). Override at runtime via
   // localStorage.setItem('api_base', 'http://...') to test against
   // localhost or a LAN dev box.
   if (typeof navigator !== 'undefined' && (navigator as any).product === 'ReactNative') {
-    return 'http://8.135.58.90:8600';
+    return 'http://8.135.58.90:8601';
   }
   // Web / production: use relative URLs (same origin)
   return '';
