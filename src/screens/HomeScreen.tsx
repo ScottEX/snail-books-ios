@@ -75,6 +75,12 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const [showExpenseHistory, setShowExpenseHistory] = useState(false);
   const [showDailyHistory, setShowDailyHistory] = useState(false);
 
+  // ── Data state for chart / supply / partner ──
+  const [chart, setChart] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [procurements, setProcurements] = useState<any[]>([]);
+  const navScaleAnims = useRef([...Array(5)].map(() => new Animated.Value(1))).current;
+
   // ── Daily revenue state ──
   const [revDate, setRevDate] = useState(todayDateStr());
   const [revDateErr, setRevDateErr] = useState(0);
@@ -117,6 +123,21 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   }, []);
 
   useEffect(() => { loadLast7(); loadYesterday(); loadWeekTotals(); }, [loadLast7, loadYesterday, loadWeekTotals]);
+
+  // ── Lazy load on tab change (chart / supply) ──
+  const loadChart = useCallback(async () => {
+    try { const d: any = await api.getChart(); setChart(d || []); } catch { setToast(t('toastLoadFailed')); }
+  }, []);
+  const loadProducts = useCallback(async () => {
+    try { const p: any = await api.getProducts(); setProducts(p || []); } catch { setToast(t('toastLoadFailed')); }
+  }, []);
+  const loadProcurements = useCallback(async () => {
+    try { const p: any = await api.getProcurements(); setProcurements(p || []); } catch { setToast(t('toastLoadFailed')); }
+  }, []);
+  useEffect(() => {
+    if (tab === 'chart') loadChart();
+    if (tab === 'supply') { loadProducts(); loadProcurements(); }
+  }, [tab, loadChart, loadProducts, loadProcurements]);
 
   // ── Daily revenue submit ──
   const submitDailyRev = async () => {
@@ -236,7 +257,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
 
         {/* Bottom nav */}
         <View style={styles.bottomNav}>
-          {NAV_ITEMS.map(({ id, labelKey, icon }) => {
+          {NAV_ITEMS.map(({ id, labelKey, icon }, i) => {
             const active = tab === id;
             const c = active ? colors.textMain : colors.textSub;
             return (
@@ -244,11 +265,19 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                 key={id}
                 style={styles.navItem}
                 activeOpacity={0.7}
-                onPress={() => setTab(id)}
+                onPress={() => {
+                  if (id !== tab) {
+                    Animated.sequence([
+                      Animated.spring(navScaleAnims[i], { toValue: 0.85, useNativeDriver: true, speed: 30, bounciness: 6 }),
+                      Animated.spring(navScaleAnims[i], { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 14 }),
+                    ]).start();
+                    setTab(id);
+                  }
+                }}
               >
-                <View style={[styles.navIconWrap, active && styles.navIconWrapActive]}>
+                <Animated.View style={[styles.navIconWrap, active && styles.navIconWrapActive, { transform: [{ scale: navScaleAnims[i] }] }]}>
                   {icon(c)}
-                </View>
+                </Animated.View>
                 <Text style={[styles.navLabel, active && styles.navLabelActive]}>{t(labelKey)}</Text>
               </TouchableOpacity>
             );
@@ -288,21 +317,33 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                 </View>
               </View>
 
-              {/* Theme picker — matches web's theme selector */}
+              {/* Theme picker — matches web's theme selector (color dots + name + description) */}
               <View>
-                <Text style={{ fontSize: 12, color: colors.textSub, marginBottom: 6 }}>{t('themePicker')}</Text>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  {allThemes.map(th => (
+                <Text style={{ fontSize: 12, color: colors.textSub, marginBottom: 8, fontWeight: '600' }}>{t('themePicker')}</Text>
+                {allThemes.map(theme => {
+                  const isActive = theme.colors.primary === colors.primary;
+                  return (
                     <TouchableOpacity
-                      key={th.id}
-                      style={[styles.themeChip, { backgroundColor: th.colors.bg, borderColor: colors.primary }, colors.id === th.id && styles.themeChipActive]}
-                      onPress={() => setTheme(th.id)}
+                      key={theme.id}
+                      onPress={() => setTheme(theme.id)}
+                      style={[
+                        styles.themePickerItem,
+                        isActive && { backgroundColor: withAlpha(colors.primary, 0.06), borderColor: colors.primary, borderWidth: 1.5 },
+                      ]}
                     >
-                      <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: th.colors.primary, marginRight: 6 }} />
-                      <Text style={{ fontSize: 12, color: th.colors.textMain, fontWeight: '600' }}>{th.nameZh}</Text>
+                      <View style={{ flexDirection: 'row', gap: 4, marginRight: 12 }}>
+                        <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: theme.colors.primary }} />
+                        <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: theme.colors.bg, borderWidth: 1, borderColor: colors.secondary }} />
+                        <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: theme.colors.accent }} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 12, fontWeight: isActive ? '700' : '500', color: colors.textSub }}>{theme.nameZh}</Text>
+                        <Text style={{ fontSize: 11, color: colors.textSub, marginTop: 1 }}>{theme.description}</Text>
+                      </View>
+                      {isActive && <Text style={{ fontSize: 14, color: colors.primary }}>✓</Text>}
                     </TouchableOpacity>
-                  ))}
-                </View>
+                  );
+                })}
               </View>
 
               {/* Action buttons */}
@@ -701,8 +742,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   opacityChipActive: { backgroundColor: withAlpha(colors.primary, 0.12), borderColor: colors.primary },
   opacityChipText: { fontSize: 11, color: colors.textSub, fontWeight: '600' },
   opacityChipTextActive: { color: colors.primary },
-  themeChip: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, borderWidth: 1 },
-  themeChipActive: { borderWidth: 2 },
+  themePickerItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12, marginBottom: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.secondary },
 
   // Daily revenue card
   revCard: { backgroundColor: withAlpha(colors.surface, 0.92), borderRadius: 14, padding: 16, marginHorizontal: 16, marginTop: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8 },
