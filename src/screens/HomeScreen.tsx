@@ -266,15 +266,52 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                 <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
             </View>
-            <View style={{ padding: 24, gap: 16 }}>
+            <View style={{ padding: 20, gap: 16 }}>
               <Text style={{ fontSize: 13, color: colors.textSub, textAlign: 'center' }}>{t('bgHint')}</Text>
-              <Text style={{ fontSize: 13, color: colors.textSub, textAlign: 'center' }}>{t('opacity')}: {(bgOpacity * 100).toFixed(0)}%</Text>
-              <View style={{ flexDirection: 'row', gap: 12 }}>
+
+              {/* Opacity row — web has a slider; iOS renders as 0/50/100% tap targets for now */}
+              <View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <Text style={{ fontSize: 12, color: colors.textSub }}>{t('opacity')}</Text>
+                  <Text style={{ fontSize: 12, color: colors.textMain, fontWeight: '600' }}>{(bgOpacity * 100).toFixed(0)}%</Text>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 6 }}>
+                  {[0, 0.25, 0.5, 0.75, 1].map(v => (
+                    <TouchableOpacity
+                      key={v}
+                      style={[styles.opacityChip, bgOpacity === v && styles.opacityChipActive]}
+                      onPress={() => { try { localStorage.setItem('bg-opacity', String(v)); } catch {} /* TODO state setter */ }}
+                    >
+                      <Text style={[styles.opacityChipText, bgOpacity === v && styles.opacityChipTextActive]}>{(v * 100).toFixed(0)}%</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Theme picker — matches web's theme selector */}
+              <View>
+                <Text style={{ fontSize: 12, color: colors.textSub, marginBottom: 6 }}>{t('themePicker')}</Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {allThemes.map(th => (
+                    <TouchableOpacity
+                      key={th.id}
+                      style={[styles.themeChip, { backgroundColor: th.colors.bg, borderColor: colors.primary }, colors.id === th.id && styles.themeChipActive]}
+                      onPress={() => setTheme(th.id)}
+                    >
+                      <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: th.colors.primary, marginRight: 6 }} />
+                      <Text style={{ fontSize: 12, color: th.colors.textMain, fontWeight: '600' }}>{th.nameZh}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Action buttons */}
+              <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
                 <TouchableOpacity style={[styles.modalBtn, { borderWidth: 1, borderColor: colors.secondary }]} onPress={() => closeModal(() => setShowBgModal(false))}>
                   <Text style={{ color: colors.textSub, fontSize: 14, fontWeight: '600' }}>{t('cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.modalBtn, { backgroundColor: colors.primary }]} onPress={() => closeModal(() => setShowBgModal(false))}>
-                  <Text style={{ color: colors.surface, fontSize: 14, fontWeight: '600' }}>{t('resetDefault')}</Text>
+                  <Text style={{ color: colors.surface, fontSize: 14, fontWeight: '600' }}>{t('chooseImage') || t('resetDefault')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -384,15 +421,18 @@ function DailyRevenueView(p: DailyRevProps) {
           <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
             <RevInputCard
               title={t('revRevenue')} sub={t('revRevenueSub')} symbol="¥"
-              value={p.revRevenue} onChangeText={p.setRevRevenue} colors={colors} styles={styles}
+              value={p.revRevenue} onChangeText={p.setRevRevenue}
+              yesterdayValue={p.yesterdayRev?.revenue} colors={colors} styles={styles}
             />
             <RevInputCard
               title={t('revTurnover')} sub={t('revTurnoverSub')} symbol="¥"
-              value={p.revTurnover} onChangeText={p.setRevTurnover} colors={colors} styles={styles}
+              value={p.revTurnover} onChangeText={p.setRevTurnover}
+              yesterdayValue={p.yesterdayRev?.turnover} colors={colors} styles={styles}
             />
             <RevInputCard
               title={t('revJD')} sub={t('revJDSub')} symbol="¥"
-              value={p.revJD} onChangeText={p.setRevJD} colors={colors} styles={styles}
+              value={p.revJD} onChangeText={p.setRevJD}
+              yesterdayValue={p.yesterdayRev?.jd_revenue} colors={colors} styles={styles}
             />
           </View>
 
@@ -524,9 +564,9 @@ function DailyRevenueView(p: DailyRevProps) {
   );
 }
 
-function RevInputCard({ title, sub, symbol, value, onChangeText, colors, styles }: {
+function RevInputCard({ title, sub, symbol, value, onChangeText, yesterdayValue, colors, styles }: {
   title: string; sub: string; symbol: string; value: string; onChangeText: (v: string) => void;
-  colors: ThemeColors; styles: ReturnType<typeof getStyles>;
+  yesterdayValue: number | undefined; colors: ThemeColors; styles: ReturnType<typeof getStyles>;
 }) {
   return (
     <View style={styles.revInputCard}>
@@ -540,6 +580,10 @@ function RevInputCard({ title, sub, symbol, value, onChangeText, colors, styles 
           keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={colors.textSub}
         />
       </View>
+      <Text style={styles.revInputCardFooter}>
+        {t('revYesterdayLabel')}{' '}
+        {yesterdayValue ? `¥${yesterdayValue.toFixed(2)}` : t('revYesterdayNA')}
+      </Text>
     </View>
   );
 }
@@ -651,6 +695,14 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   modalTitle: { fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: colors.textMain },
   modalClose: { fontSize: 18, color: colors.textSub, padding: 4 },
   modalBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+
+  // BG settings modal extras
+  opacityChip: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: colors.bg, alignItems: 'center', borderWidth: 1, borderColor: 'transparent' },
+  opacityChipActive: { backgroundColor: withAlpha(colors.primary, 0.12), borderColor: colors.primary },
+  opacityChipText: { fontSize: 11, color: colors.textSub, fontWeight: '600' },
+  opacityChipTextActive: { color: colors.primary },
+  themeChip: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, borderWidth: 1 },
+  themeChipActive: { borderWidth: 2 },
 
   // Daily revenue card
   revCard: { backgroundColor: withAlpha(colors.surface, 0.92), borderRadius: 14, padding: 16, marginHorizontal: 16, marginTop: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8 },
