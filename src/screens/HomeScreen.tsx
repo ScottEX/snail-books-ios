@@ -131,13 +131,6 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
 
   useEffect(() => { loadLast7(); loadYesterday(); loadWeekTotals(); }, [loadLast7, loadYesterday, loadWeekTotals]);
 
-  // TEMP DEBUG: switch to list tab, open date picker, wait, screenshot
-  useEffect(() => {
-    const t1 = setTimeout(() => setTab('list'), 800);
-    const t2 = setTimeout(() => setShowDatePicker(true), 1500);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, []);
-
   // ── Lazy load on tab change (chart / supply) ──
   const loadChart = useCallback(async () => {
     try { const d: any = await api.getChart(); setChart(d || []); } catch { setToast(t('toastLoadFailed')); }
