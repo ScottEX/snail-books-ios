@@ -344,12 +344,12 @@ export default function ProcurementScreen() {
   const [orderDate, setOrderDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [payMethod, setPayMethod] = useState<PayMethod>('微信');
   const [orderNote, setOrderNote] = useState('');
-  const [receipts, setReceipts] = useState<File[]>([]);
+  const [receipts, setReceipts] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const [showImgTip, setShowImgTip] = useState(false);
-  const fileRef = useRef<HTMLInputElement | null>(null);
+  const fileRef = useRef<any>(null);
 
   const [showItemsModal, setShowItemsModal] = useState(false);
   const [detailItems, setDetailItems] = useState<Array<{ name: string; quantity: number; subtotal: number }>>([]);
@@ -474,35 +474,8 @@ export default function ProcurementScreen() {
 
   const todayStr = () => new Date().toISOString().slice(0, 10);
 
-  // ── Image compression (matching ExpenseScreen) ──
-  const compressImage = (file: File): Promise<File> => {
-    return new Promise((resolve) => {
-      if (file.size < 500 * 1024) return resolve(file);
-      const img = document.createElement('img');
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-        const MAX = 1920;
-        let { width, height } = img;
-        if (width > MAX || height > MAX) {
-          if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
-          else { width = Math.round(width * MAX / height); height = MAX; }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = width; canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return resolve(file);
-        ctx.drawImage(img, 0, 0, width, height);
-        canvas.toBlob((blob) => {
-          if (!blob) return resolve(file);
-          const compressed = new File([blob], file.name, { type: 'image/jpeg' });
-          resolve(compressed.size < file.size ? compressed : file);
-        }, 'image/jpeg', 0.8);
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
-      img.src = url;
-    });
-  };
+  // ── Image compression — no-op on RN (use expo-image-manipulator instead) ──
+  const compressImage = (file: any): Promise<any> => Promise.resolve(file);
 
   // ── Suppliers ──
   const suppliers = useMemo(() => {
@@ -615,37 +588,34 @@ export default function ProcurementScreen() {
 
   // ── File upload (matching ExpenseScreen pattern) ──
   const handleFileSelect = async (e: any) => {
-    const files = e.target?.files || e.nativeEvent?.target?.files;
+    const files: any[] = e?.files || e?.target?.files || e?.nativeEvent?.target?.files || [];
     if (!files || files.length === 0) return;
-    const newFiles: File[] = [];
+    const newFiles: any[] = [];
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
       if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) continue;
       if (f.size > 10 * 1024 * 1024) continue;
-      if (receipts.some(r => r.name === f.name && r.size === f.size)) continue;
+      if (receipts.some((r: any) => r.name === f.name && r.size === f.size)) continue;
       const compressed = await compressImage(f);
       newFiles.push(compressed);
     }
-    setReceipts(prev => [...prev, ...newFiles]);
-    if (fileRef.current) fileRef.current.value = '';
+    setReceipts((prev: any[]) => [...prev, ...newFiles]);
+    if (fileRef.current?.value !== undefined) fileRef.current.value = '';
   };
 
-  const urlCache = useRef<Map<File, string>>(new Map());
-  const orderDateInputRef = useRef<HTMLInputElement>(null);
-  const getPreviewUrl = (file: File) => {
-    if (!urlCache.current.has(file)) {
-      urlCache.current.set(file, URL.createObjectURL(file));
-    }
-    return urlCache.current.get(file)!;
+  const urlCache = useRef<Map<any, string>>(new Map());
+  const orderDateInputRef = useRef<any>(null);
+  const getPreviewUrl = (file: any) => {
+    // RN: expo-image-picker returns { uri, type, name, size }
+    return file?.uri || '';
   };
-  const revokePreviewUrl = (file: File) => {
+  const revokePreviewUrl = (file: any) => {
     const url = urlCache.current.get(file);
     if (url) { URL.revokeObjectURL(url); urlCache.current.delete(file); }
   };
   // Cleanup all object URLs on unmount
   useEffect(() => {
     return () => {
-      urlCache.current.forEach(url => URL.revokeObjectURL(url));
       urlCache.current.clear();
     };
   }, []);
@@ -1051,12 +1021,7 @@ export default function ProcurementScreen() {
                   <Text style={styles.dateCatLabel}>{t('procOrderDate')}</Text>
                   <View style={styles.dateCatValue}>
                     <Text style={{ fontSize: FONTS.sub.size, color: c.textSub }}>{formatDateLocale(orderDate)}</Text>
-                    {React.createElement('input', {
-                      ref: orderDateInputRef,
-                      type: 'date', defaultValue: orderDate, max: todayStr(),
-                      onChange: (e: any) => setOrderDate(e.target.value),
-                      style: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, opacity: 0.01, cursor: 'pointer', width: '100%' },
-                    })}
+                    {/* TODO: open DatePickerModal on tap */}
                   </View>
                   <Text style={styles.dateCatLabel}>{t('expenseCategory')}</Text>
                   <Text style={{ fontSize: FONTS.sub.size, color: c.textSub }}>{t('procPurchase')}</Text>
@@ -1096,19 +1061,15 @@ export default function ProcurementScreen() {
                 )}
               </View>
               <View style={styles.imgRow}>
-                {React.createElement('input', {
-                  ref: fileRef, type: 'file', accept: 'image/jpeg,image/png,image/webp', multiple: true,
-                  onChange: handleFileSelect, style: { display: 'none' },
-                })}
-                <TouchableOpacity style={styles.imgAddBtn} onPress={() => fileRef.current?.click()} activeOpacity={0.7}>
+                {/* TODO: expo-image-picker.launchImageLibraryAsync */}
+                <View style={{ display: 'none' }} ref={fileRef as any} />
+                <TouchableOpacity style={styles.imgAddBtn} onPress={() => {/* TODO: open image picker */}} activeOpacity={0.7}>
                   <CameraIcon color={c.textSub} />
                   <Text style={styles.imgAddText}>{t('addImage')}</Text>
                 </TouchableOpacity>
-                {receipts.map((file, i) => (
+                {receipts.map((file: any, i: number) => (
                   <View key={`rec-${i}`} style={styles.imgPreview}>
-                    {React.createElement('img', {
-                      src: getPreviewUrl(file), style: { width: 92, height: 92, borderRadius: 12, objectFit: 'cover' } as any,
-                    })}
+                    <Image source={{ uri: getPreviewUrl(file) }} style={{ width: 92, height: 92, borderRadius: 12 }} />
                     <TouchableOpacity style={styles.imgRemove} onPress={() => removeReceipt(i)} activeOpacity={0.7}>
                       <Svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.5} strokeLinecap="round">
                         <Path d="M18 6L6 18M6 6l12 12" />
