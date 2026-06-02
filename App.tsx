@@ -6,13 +6,13 @@ import { ThemeProvider } from './src/theme';
 import { initStorageCache } from './src/platform';
 
 export default function App() {
-  const [page, setPage] = useState<'login' | 'home'>('home');
+  const [page, setPage] = useState<'login' | 'home'>('login');
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     initStorageCache().then(() => {
       const user = localStorage.getItem('user');
-      localStorage.setItem("user", "test"); setPage("home");
+      setPage(user ? 'home' : 'login');
       setReady(true);
     });
   }, []);
