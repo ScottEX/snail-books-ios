@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, useReducer } from 'react';
 import {
-  View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated, Dimensions,
+  View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated, Dimensions, Image,
 } from 'react-native';
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
 import { t, getLang } from '../i18n';
@@ -146,16 +146,16 @@ function DateErrorHint({ trigger, message, colors, textAlign = 'right' }: { trig
    ═══════════════════════════════════════════════════════════ */
 export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { onReconHistory?: () => void; onExpenseHistory?: () => void }) {
   const { colors } = useTheme();
-  const urlCache = useRef<Map<File, string>>(new Map());
-  const getPreviewUrl = (file: File) => {
-    if (!urlCache.current.has(file)) urlCache.current.set(file, URL.createObjectURL(file));
-    return urlCache.current.get(file)!;
+  const urlCache = useRef<Map<any, string>>(new Map());
+  const getPreviewUrl = (file: any) => {
+    // RN: expo-image-picker returns { uri, type, name, size }
+    return file?.uri || '';
   };
-  const revokePreviewUrl = (file: File) => {
+  const revokePreviewUrl = (file: any) => {
     const url = urlCache.current.get(file);
-    if (url) { URL.revokeObjectURL(url); urlCache.current.delete(file); }
+    if (url) urlCache.current.delete(file);
   };
-  const clearUrlCache = () => { urlCache.current.forEach(u => URL.revokeObjectURL(u)); urlCache.current.clear(); };
+  const clearUrlCache = () => { urlCache.current.clear(); };
   useEffect(() => { return () => clearUrlCache(); }, []);
   const [activeTab, setActiveTabState] = useState<number>(() => {
     try {
@@ -173,43 +173,10 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollElRef = useRef<HTMLElement | null>(null);
 
-  // Inject scroll-snap CSS + native scroll listener (RN Web onScroll unreliable with CSS snap)
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = `
-      [data-testid="snap-scroll"] { scroll-snap-type: x mandatory; }
-      [data-testid="snap-card"] { scroll-snap-align: start; scroll-snap-stop: always; }
-    `;
-    document.head.appendChild(style);
-
-    // Native DOM scroll listener — more reliable than RN synthetic onScroll with CSS snap
-    const el = document.querySelector('[data-testid="snap-scroll"]') as HTMLElement | null;
-    scrollElRef.current = el;
-    const onNativeScroll = () => {
-      if (!scrollElRef.current) return;
-      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
-      scrollTimerRef.current = setTimeout(() => {
-        const idx = Math.round(scrollElRef.current!.scrollLeft / 310);
-        setActiveTab(Math.min(2, Math.max(0, idx)));
-      }, 150);
-    };
-    el?.addEventListener('scroll', onNativeScroll, { passive: true });
-
-    return () => {
-      document.head.removeChild(style);
-      el?.removeEventListener('scroll', onNativeScroll);
-    };
-  }, []);
-
-  // Auto-scroll to active card when activeTab changes (click or swipe)
-  useEffect(() => {
-    const el = document.querySelector('[data-testid="snap-scroll"]') as HTMLElement;
-    if (el) {
-      requestAnimationFrame(() => {
-        el.scrollLeft = activeTab * 310;
-      });
-    }
-  }, [activeTab]);
+  // Snap-scroll effects are web-only (CSS scroll-snap + DOM scroll listener).
+  // RN FlatList handles horizontal swiping natively; no-op here.
+  useEffect(() => { /* no-op on RN */ }, []);
+  useEffect(() => { /* no-op on RN */ }, [activeTab]);
 
   /* ── 模块一：对账 ── */
   const [recDate, setRecDate] = useState(yesterdayStr());
@@ -401,7 +368,7 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
   const [expCategory, setExpCategory] = useState('日常');
   const [payMethod, setPayMethod] = useState('微信');
   const [expNote, setExpNote] = useState('');
-  const [expImages, setExpImages] = useState<File[]>([]);
+  const [expImages, setExpImages] = useState<any[]>([]);
   const [uploadingImg, setUploadingImg] = useState(false);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [expCatTotals, setExpCatTotals] = useState({ daily: 0, rent: 0, salary: 0, goods: 0 });
@@ -442,59 +409,29 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
   useEffect(() => { if (feeDateInputRef.current) feeDateInputRef.current.value = feeEntryDate; }, [feeEntryDate]);
 
   // Image upload handlers
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const recDateInputRef = useRef<HTMLInputElement>(null);
-  const expDateInputRef = useRef<HTMLInputElement>(null);
-  const feeDateInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<any>(null);
+  const recDateInputRef = useRef<any>(null);
+  const expDateInputRef = useRef<any>(null);
+  const feeDateInputRef = useRef<any>(null);
   const [showImgTip, setShowImgTip] = useState(false);
 
-  // Compress image via Canvas: max 1920px, JPEG quality 0.8
-  const compressImage = (file: File): Promise<File> => {
-    return new Promise((resolve, reject) => {
-      // Only compress JPEG/PNG > 500KB
-      if (file.size < 500 * 1024) return resolve(file);
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-        const MAX = 1920;
-        let { width, height } = img;
-        if (width > MAX || height > MAX) {
-          if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
-          else { width = Math.round(width * MAX / height); height = MAX; }
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return resolve(file);
-        ctx.drawImage(img, 0, 0, width, height);
-        canvas.toBlob((blob) => {
-          if (!blob) return resolve(file);
-          const compressed = new File([blob], file.name, { type: 'image/jpeg' });
-          resolve(compressed.size < file.size ? compressed : file);
-        }, 'image/jpeg', 0.8);
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
-      img.src = url;
-    });
-  };
+  // Compress image — no-op on RN. (RN uses expo-image-manipulator instead.)
+  const compressImage = (file: any): Promise<any> => Promise.resolve(file);
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-    const newFiles: File[] = [];
+  const handleImageSelect = async (e: any) => {
+    const files: any[] = e?.files || e?.target?.files || [];
+    if (!files || files.length === 0) return;
+    const newFiles: any[] = [];
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
       if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) continue;
       if (f.size > 10 * 1024 * 1024) continue;
-      if (expImages.some(e => e.name === f.name && e.size === f.size)) continue;
-      // Compress before adding
+      if (expImages.some((e: any) => e.name === f.name && e.size === f.size)) continue;
       const compressed = await compressImage(f);
       newFiles.push(compressed);
     }
-    setExpImages(prev => [...prev, ...newFiles]);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    setExpImages((prev: any[]) => [...prev, ...newFiles]);
+    if (fileInputRef.current?.value !== undefined) fileInputRef.current.value = '';
   };
 
   const removeImage = (idx: number) => {
@@ -998,13 +935,9 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
                   <Text style={st.imgAddText}>{t('addImage')}</Text>
                 </TouchableOpacity>
                 {/* Image previews */}
-                {expImages.map((file, i) => (
+                {expImages.map((file: any, i: number) => (
                   <View key={`img-${i}`} style={st.imgPreview}>
-                    {React.createElement('img', {
-                      src: getPreviewUrl(file),
-                      style: { width: 92, height: 92, borderRadius: 12, objectFit: 'cover' },
-                      alt: file.name,
-                    })}
+                    <Image source={{ uri: getPreviewUrl(file) }} style={{ width: 92, height: 92, borderRadius: 12 }} />
                     <TouchableOpacity style={st.imgRemove}
                       onPress={() => removeImage(i)}
                       activeOpacity={0.7}>
