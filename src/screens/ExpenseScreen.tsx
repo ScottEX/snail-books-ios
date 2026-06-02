@@ -686,15 +686,7 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
                   })()}
                 </Text>
                 <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transform: [{ translateY: 0 }] }}><Path d="M10 6l6 6-6 6"/></Svg>
-                {React.createElement('input', {
-                  ref: recDateInputRef,
-                  type: 'date',
-                  key: recDateKey,
-                  defaultValue: recDate,
-                  max: todayStr(),
-                  onChange: (e: any) => { if (isFuture(e.target.value)) { recDateInputRef.current!.value = recDate; setRecDateKey(k => k + 1); setRecDateErr(c => c + 1); } else { setRecDate(e.target.value); } },
-                  style: { position: 'absolute', top: -6, right: 0, bottom: -6, left: 0, opacity: 0.01, cursor: 'pointer', fontSize: FONTS.sub.size },
-                })}
+                {/* TODO: @react-native-community/datetimepicker */}
               </View>
             </View>
             <DateErrorHint trigger={recDateErr} message={t('errDateFuture')} colors={colors} />
@@ -993,15 +985,8 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
                 )}
               </View>
               <View style={st.imgRow}>
-                {/* Hidden file input */}
-                {React.createElement('input', {
-                  ref: fileInputRef,
-                  type: 'file',
-                  accept: 'image/jpeg,image/png,image/webp',
-                  multiple: true,
-                  onChange: handleImageSelect,
-                  style: { display: 'none' },
-                })}
+                {/* Hidden file input — TODO: expo-image-picker */}
+                <View style={{ display: 'none' }} ref={fileInputRef as any} />
                 {/* Add button */}
                 <TouchableOpacity style={st.imgAddBtn}
                   onPress={() => fileInputRef.current?.click()}
@@ -1054,14 +1039,7 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
                       })()}
                     </Text>
                     <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transform: [{ translateY: 0 }] }}><Path d="M10 6l6 6-6 6"/></Svg>
-                    {React.createElement('input', {
-                      ref: expDateInputRef,
-                      type: 'date',
-                      defaultValue: expDate,
-                      max: todayStr(),
-                      onChange: (e: any) => { if (isFuture(e.target.value)) { expDateInputRef.current!.value = expDate; setExpDateErr(c => c + 1); } else { setExpDate(e.target.value); } },
-                      style: { position: 'absolute', top: -6, right: 0, bottom: -6, left: 0, opacity: 0.01, cursor: 'pointer', fontSize: FONTS.sub.size },
-                    })}
+                    {/* TODO: @react-native-community/datetimepicker */}
                   </View>
                   <DateErrorHint trigger={expDateErr} message={t('errDateFuture')} colors={colors} textAlign="left" />
                 </View>
@@ -1165,12 +1143,7 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
                       {(() => { return fmtLocalDate(feeEntryDate); })()}
                     </Text>
                     <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 4, transform: [{ translateY: -1 }] }}><Path d="M10 6l6 6-6 6"/></Svg>
-                    {React.createElement('input', {
-                      ref: feeDateInputRef,
-                      type: 'date', defaultValue: feeEntryDate, max: todayStr(),
-                      onChange: (e: any) => { if (isFuture(e.target.value)) { feeDateInputRef.current!.value = feeEntryDate; setFeeDateErr(c => c + 1); } else { setFeeEntryDate(e.target.value); } },
-                      style: { position: 'absolute', top: -6, right: 0, bottom: -6, left: 0, opacity: 0.01, cursor: 'pointer', fontSize: FONTS.sub.size },
-                    })}
+                    {/* TODO: @react-native-community/datetimepicker */}
                   </View>
                   <DateErrorHint trigger={feeDateErr} message={t('errDateFuture')} colors={colors} />
                 </View>

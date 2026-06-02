@@ -503,12 +503,6 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                             {revDate.replace(/-/g, '/')}
                           </Text>
                           <Text style={{ fontSize: FONTS.sub.size, color: colors.textSub }}>📅</Text>
-                          {React.createElement('input', {
-                            ref: revDateInputRef,
-                            type: 'date', defaultValue: revDate, max: todayDateStr(), key: revDateKey,
-                            onChange: (e: any) => { if (isFuture(e.target.value)) { revDateInputRef.current!.value = revDate; setRevDateKey(k => k + 1); setRevDateErr(c => c + 1); } else { setRevDate(e.target.value); } },
-                            style: { position: 'absolute', top: -4, right: 0, bottom: -4, left: 0, opacity: 0.01, cursor: 'pointer' },
-                          })}
                         </View>
                         <DateErrorHint trigger={revDateErr} message={t('errDateFuture')} colors={colors} />
                       </View>
@@ -808,28 +802,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                     width: `${bgOpacity * 100}%`,
                     backgroundColor: colors.primary,
                   }} />
-                  <input
-                    type="range"
-                    className="glass-slider"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value={bgOpacity}
-                    onChange={(e: any) => {
-                      const v = parseFloat(e.target.value);
-                      setBgOpacity(v);
-                      try { localStorage.setItem('bg-opacity', String(v)); } catch {}
-                      // Debounced save to server
-                      clearTimeout((window as any).__bgOpacityTimer);
-                      (window as any).__bgOpacityTimer = setTimeout(() => {
-                        api.saveBackgroundSettings({ opacity: v }).catch(() => {});
-                      }, 500);
-                    }}
-                    style={{
-                      width: '100%', height: 32, opacity: 0, cursor: 'pointer',
-                      margin: 0, position: 'relative', zIndex: 1,
-                    }}
-                  />
+                  {/* TODO: replace with @react-native-community/slider */}
                 </View>
                 {/* tick labels */}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
@@ -922,14 +895,9 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           </TouchableOpacity>
         ))}
       </View>
-      {/* Hidden file input for background upload */}
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        style={{ display: 'none' }}
-        onChange={handleBgUpload}
-      />
+      {/* TODO: replace with expo-image-picker */
+      }
+      <View style={{ display: 'none' }} ref={fileRef as any} />
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
     </View>
   );
