@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ImageBackground, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
 import { t, setLang, getLang, langs } from '../i18n';
 import { api } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
+
+const BG_IMAGE = require('../../assets/img/bg.jpg');
+const LOGO_IMAGE = require('../../assets/img/logo.jpg');
 
 type Step = 'login' | 'register' | 'verify' | 'forgot' | 'reset';
 
@@ -25,7 +28,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [remember, setRemember] = useState(false);
-  const [devCode, setDevCode] = useState('');  // dev mode: verification code
+  const [devCode, setDevCode] = useState('');
   const codeRef = useRef<any>(null);
   const { colors } = useTheme();
 
@@ -40,7 +43,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const reset = () => { setMsg(''); setMsgOk(false); setDevCode(''); };
   const goLogin = () => {
     setStep('login'); reset();
-    // restore saved login username
     if (typeof localStorage !== 'undefined') {
       const saved = localStorage.getItem('saved_login');
       if (saved) setUsername(saved);
@@ -49,7 +51,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   const goRegister = () => {
     setStep('register'); reset();
-    setUsername(''); // don't carry over saved login
+    setUsername('');
   };
 
   const validatePassword = (pw: string): string => {
@@ -187,357 +189,354 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   return (
-    <View style={styles.container}>
-      {/* Background layers */}
-      <View style={styles.bgWrapper} />
+    <ImageBackground source={BG_IMAGE} style={styles.container} resizeMode="cover">
       <View style={styles.bgOverlay} />
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentScroll} showsVerticalScrollIndicator={false}>
-        {/* Brand */}
-        <View style={styles.brand}>
-          <View style={styles.logoWrap}>
-            <Image source={{ uri: '/img/logo.jpg' }} style={styles.logo} />
-          </View>
-          <Text style={styles.subtitle}>{t('subtitle')}</Text>
-          <View style={styles.langRow}>
-            {langs.map(([l, label]) => (
-              <TouchableOpacity key={l} onPress={() => switchLang(l)}>
-                <Text style={[styles.langBtn, lang === l && styles.langActive]}>{label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Glass Card */}
-        <View style={[styles.glassCard, shake && styles.shake]}>
-          {/* Message */}
-          {msg ? (
-            <View style={[styles.msgBox, msgOk ? styles.msgOk : styles.msgErr]}>
-              <Text style={[styles.msgText, msgOk ? styles.msgOkText : styles.msgErrText]}>{msg}</Text>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.contentScroll}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Brand */}
+          <View style={styles.brand}>
+            <View style={styles.logoWrap}>
+              <Image source={LOGO_IMAGE} style={styles.logo} resizeMode="cover" />
             </View>
-          ) : null}
-
-          {/* Login/Register tabs */}
-          {(step === 'login' || step === 'register') ? (
-            <View style={styles.tabRow}>
-              <TouchableOpacity onPress={goLogin} style={[styles.tabBtn, step === 'login' && styles.tabActive]}>
-                <Text style={[styles.tabText, step === 'login' && styles.tabActiveText]}>{t('login')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={goRegister} style={[styles.tabBtn, step === 'register' && styles.tabActive]}>
-                <Text style={[styles.tabText, step === 'register' && styles.tabActiveText]}>{t('register')}</Text>
-              </TouchableOpacity>
+            <Text style={styles.subtitle}>{t('subtitle')}</Text>
+            <View style={styles.langRow}>
+              {langs.map(([l, label]) => (
+                <TouchableOpacity key={l} onPress={() => switchLang(l)}>
+                  <Text style={[styles.langBtn, lang === l && styles.langActive]}>{label}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
-          ) : null}
+          </View>
 
-          {/* LOGIN */}
-          {step === 'login' && (
-            <View style={styles.formSection}>
-              <View style={styles.fieldWrap}>
-                <Text style={styles.fieldLabel}>{t('username')}</Text>
-                <TextInput style={styles.textInput} value={username} onChangeText={setUsername}
-                  placeholder={t('loginPlaceholder') || '用户名 / 邮箱'} placeholderTextColor="rgba(255,255,255,0.55)"
-                  onSubmitEditing={handleLogin} />
+          {/* Glass Card */}
+          <View style={[styles.glassCard, shake && styles.shake]}>
+            {msg ? (
+              <View style={[styles.msgBox, msgOk ? styles.msgOk : styles.msgErr]}>
+                <Text style={[styles.msgText, msgOk ? styles.msgOkText : styles.msgErrText]}>{msg}</Text>
               </View>
-              <View style={styles.fieldWrap}>
-                <Text style={styles.fieldLabel}>{t('password')}</Text>
-                <View style={styles.pwWrap}>
-                  <TextInput style={styles.pwInput} value={password} onChangeText={setPassword}
-                    placeholder={t('password')} placeholderTextColor="rgba(255,255,255,0.55)"
-                    secureTextEntry={!showPw} onSubmitEditing={handleLogin} />
-                  <TouchableOpacity style={styles.pwEye} onPress={() => setShowPw(!showPw)}>
-                    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-                      {showPw ? (
-                        <>
-                          <Path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                          <Path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                          <Path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
-                          <Line x1="1" y1="1" x2="23" y2="23" />
-                        </>
-                      ) : (
-                        <>
-                          <Path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                          <Circle cx="12" cy="12" r="3" />
-                        </>
-                      )}
-                    </Svg>
-                  </TouchableOpacity>
+            ) : null}
+
+            {(step === 'login' || step === 'register') ? (
+              <View style={styles.tabRow}>
+                <TouchableOpacity onPress={goLogin} style={[styles.tabBtn, step === 'login' && styles.tabActive]}>
+                  <Text style={[styles.tabText, step === 'login' && styles.tabActiveText]}>{t('login')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={goRegister} style={[styles.tabBtn, step === 'register' && styles.tabActive]}>
+                  <Text style={[styles.tabText, step === 'register' && styles.tabActiveText]}>{t('register')}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
+            {step === 'login' && (
+              <View style={styles.formSection}>
+                <View style={styles.fieldWrap}>
+                  <Text style={styles.fieldLabel}>{t('username')}</Text>
+                  <TextInput style={styles.textInput} value={username} onChangeText={setUsername}
+                    placeholder={t('loginPlaceholder') || '用户名 / 邮箱'} placeholderTextColor="rgba(255,255,255,0.55)"
+                    onSubmitEditing={handleLogin} autoCapitalize="none" />
                 </View>
-              </View>
-              <TouchableOpacity onPress={handleLogin} style={styles.btnDark} disabled={loading}>
-                <Text style={styles.btnDarkText}>{loading ? '...' : t('loginBtn')}</Text>
-              </TouchableOpacity>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <TouchableOpacity onPress={() => setRemember(!remember)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <View style={{ width: 16, height: 16, borderRadius: 4, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)', justifyContent: 'center', alignItems: 'center', backgroundColor: remember ? colors.primary : 'transparent' }}>
-                    {remember && <Text style={{ fontSize: FONTS.micro.size, color: colors.surface }}>✓</Text>}
+                <View style={styles.fieldWrap}>
+                  <Text style={styles.fieldLabel}>{t('password')}</Text>
+                  <View style={styles.pwWrap}>
+                    <TextInput style={styles.pwInput} value={password} onChangeText={setPassword}
+                      placeholder={t('password')} placeholderTextColor="rgba(255,255,255,0.55)"
+                      secureTextEntry={!showPw} onSubmitEditing={handleLogin} />
+                    <TouchableOpacity style={styles.pwEye} onPress={() => setShowPw(!showPw)}>
+                      <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                        {showPw ? (
+                          <>
+                            <Path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                            <Path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                            <Path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                            <Line x1="1" y1="1" x2="23" y2="23" />
+                          </>
+                        ) : (
+                          <>
+                            <Path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <Circle cx="12" cy="12" r="3" />
+                          </>
+                        )}
+                      </Svg>
+                    </TouchableOpacity>
                   </View>
-                  <Text style={{ fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.5)' }}>{t('rememberMe') || '记住我'}</Text>
+                </View>
+                <TouchableOpacity onPress={handleLogin} style={styles.btnDark} disabled={loading}>
+                  <Text style={styles.btnDarkText}>{loading ? '...' : t('loginBtn')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => { setStep('forgot'); reset(); }}>
-                  <Text style={styles.forgotText}>{t('forgotPassword')}</Text>
+                <View style={styles.rowBetween}>
+                  <TouchableOpacity onPress={() => setRemember(!remember)} style={styles.row}>
+                    <View style={[styles.checkbox, remember && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
+                      {remember && <Text style={styles.checkmark}>✓</Text>}
+                    </View>
+                    <Text style={styles.rememberText}>{t('rememberMe') || '记住我'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => { setStep('forgot'); reset(); }}>
+                    <Text style={styles.forgotText}>{t('forgotPassword')}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {step === 'register' && (
+              <View style={styles.formSection}>
+                <View style={styles.fieldWrap}>
+                  <Text style={styles.fieldLabel}>{t('username')}</Text>
+                  <TextInput style={styles.textInput} value={username} onChangeText={setUsername}
+                    placeholder={t('username')} placeholderTextColor="rgba(255,255,255,0.55)" autoCapitalize="none" />
+                </View>
+                <View style={styles.fieldWrap}>
+                  <Text style={styles.fieldLabel}>{t('email') || 'Email'}</Text>
+                  <TextInput style={styles.textInput} value={email} onChangeText={setEmail}
+                    placeholder={t('email') || 'Email'} placeholderTextColor="rgba(255,255,255,0.55)" keyboardType="email-address" autoCapitalize="none" />
+                </View>
+                <View style={styles.fieldWrap}>
+                  <Text style={styles.fieldLabel}>
+                    {t('password')}{' '}
+                    <Text style={styles.hintText}>{t('pwHint') || '6+ chars, letter + number'}</Text>
+                  </Text>
+                  <View style={styles.pwWrap}>
+                    <TextInput style={styles.pwInput} value={password} onChangeText={setPassword}
+                      placeholder={t('password')} placeholderTextColor="rgba(255,255,255,0.55)" secureTextEntry={!showPw} />
+                    <TouchableOpacity style={styles.pwEye} onPress={() => setShowPw(!showPw)}>
+                      <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                        {showPw ? (
+                          <>
+                            <Path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                            <Path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                            <Path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                            <Line x1="1" y1="1" x2="23" y2="23" />
+                          </>
+                        ) : (
+                          <>
+                            <Path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <Circle cx="12" cy="12" r="3" />
+                          </>
+                        )}
+                      </Svg>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <View style={styles.fieldWrap}>
+                  <Text style={styles.fieldLabel}>{t('confirmPassword')}</Text>
+                  <View style={styles.pwWrap}>
+                    <TextInput style={styles.pwInput} value={password2} onChangeText={setPassword2}
+                      placeholder={t('confirmPassword')} placeholderTextColor="rgba(255,255,255,0.55)"
+                      secureTextEntry={!showPw} onSubmitEditing={handleRegister} />
+                    <TouchableOpacity style={styles.pwEye} onPress={() => setShowPw(!showPw)}>
+                      <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                        {showPw ? (
+                          <>
+                            <Path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                            <Path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                            <Path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                            <Line x1="1" y1="1" x2="23" y2="23" />
+                          </>
+                        ) : (
+                          <>
+                            <Path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <Circle cx="12" cy="12" r="3" />
+                          </>
+                        )}
+                      </Svg>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <TouchableOpacity onPress={handleRegister} style={styles.btnDark} disabled={loading}>
+                  <Text style={styles.btnDarkText}>{loading ? '...' : t('registerBtn')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={goLogin}>
+                  <Text style={styles.forgotText}>{t('backToLogin')}</Text>
                 </TouchableOpacity>
               </View>
-            </View>
-          )}
+            )}
 
-          {/* REGISTER */}
-          {step === 'register' && (
-            <View style={styles.formSection}>
-              <View style={styles.fieldWrap}>
-                <Text style={styles.fieldLabel}>{t('username')}</Text>
-                <TextInput style={styles.textInput} value={username} onChangeText={setUsername}
-                  placeholder={t('username')} placeholderTextColor="rgba(255,255,255,0.55)" />
-              </View>
-              <View style={styles.fieldWrap}>
-                <Text style={styles.fieldLabel}>{t('email') || 'Email'}</Text>
-                <TextInput style={styles.textInput} value={email} onChangeText={setEmail}
-                  placeholder={t('email') || 'Email'} placeholderTextColor="rgba(255,255,255,0.55)" />
-              </View>
-              <View style={styles.fieldWrap}>
-                <Text style={styles.fieldLabel}>
-                  {t('password')}{' '}
-                  <Text style={styles.hintText}>{t('pwHint') || '6+ chars, letter + number'}</Text>
+            {step === 'verify' && (
+              <View style={styles.formSection}>
+                <Text style={styles.infoText}>
+                  {t('verifySent') || 'Code sent to'} <Text style={styles.infoStrong}>{email}</Text>
                 </Text>
-                <View style={styles.pwWrap}>
-                  <TextInput style={styles.pwInput} value={password} onChangeText={setPassword}
-                    placeholder={t('password')} placeholderTextColor="rgba(255,255,255,0.55)" secureTextEntry={!showPw} />
-                  <TouchableOpacity style={styles.pwEye} onPress={() => setShowPw(!showPw)}>
-                    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-                      {showPw ? (
-                        <>
-                          <Path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                          <Path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                          <Path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
-                          <Line x1="1" y1="1" x2="23" y2="23" />
-                        </>
-                      ) : (
-                        <>
-                          <Path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                          <Circle cx="12" cy="12" r="3" />
-                        </>
-                      )}
-                    </Svg>
-                  </TouchableOpacity>
+                {devCode !== '' && (
+                  <View style={styles.devCodeCard}>
+                    <Text style={styles.devCodeLabel}>{t('devCodeLabel') || '🔧 Dev Mode — Verification Code'}</Text>
+                    <Text style={styles.devCodeValue}>{devCode}</Text>
+                  </View>
+                )}
+                <View style={styles.fieldWrap}>
+                  <Text style={styles.fieldLabel}>{t('verifyCode')}</Text>
+                  <TextInput ref={codeRef} style={[styles.textInput, styles.codeInput]} maxLength={6} value={code} onChangeText={setCode}
+                    placeholder={t('verifyCode')} placeholderTextColor="rgba(255,255,255,0.55)"
+                    keyboardType="number-pad" onSubmitEditing={handleVerify} autoFocus />
                 </View>
+                <TouchableOpacity onPress={handleVerify} style={styles.btnRed} disabled={loading}>
+                  <Text style={styles.btnRedText}>{loading ? '...' : t('verifyBtn')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleResend} disabled={resendCooldown > 0}>
+                  <Text style={[styles.forgotText, resendCooldown > 0 && styles.disabledText]}>
+                    {resendCooldown > 0 ? `${resendCooldown}s` : t('resendCode')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={goLogin}>
+                  <Text style={styles.forgotText}>{t('backToLogin')}</Text>
+                </TouchableOpacity>
               </View>
-              <View style={styles.fieldWrap}>
-                <Text style={styles.fieldLabel}>{t('confirmPassword')}</Text>
-                <View style={styles.pwWrap}>
-                  <TextInput style={styles.pwInput} value={password2} onChangeText={setPassword2}
-                    placeholder={t('confirmPassword')} placeholderTextColor="rgba(255,255,255,0.55)"
-                    secureTextEntry={!showPw} onSubmitEditing={handleRegister} />
-                  <TouchableOpacity style={styles.pwEye} onPress={() => setShowPw(!showPw)}>
-                    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-                      {showPw ? (
-                        <>
-                          <Path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                          <Path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                          <Path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
-                          <Line x1="1" y1="1" x2="23" y2="23" />
-                        </>
-                      ) : (
-                        <>
-                          <Path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                          <Circle cx="12" cy="12" r="3" />
-                        </>
-                      )}
-                    </Svg>
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <TouchableOpacity onPress={handleRegister} style={styles.btnDark} disabled={loading}>
-                <Text style={styles.btnDarkText}>{loading ? '...' : t('registerBtn')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={goLogin}>
-                <Text style={styles.forgotText}>{t('backToLogin')}</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+            )}
 
-          {/* VERIFY */}
-          {step === 'verify' && (
-            <View style={styles.formSection}>
-              <Text style={styles.infoText}>
-                {t('verifySent') || 'Code sent to'} <Text style={styles.infoStrong}>{email}</Text>
-              </Text>
-              {devCode !== '' && (
-                <View style={styles.devCodeCard}>
-                  <Text style={styles.devCodeLabel}>{t('devCodeLabel') || '🔧 Dev Mode — Verification Code'}</Text>
-                  <Text style={styles.devCodeValue}>{devCode}</Text>
+            {step === 'forgot' && (
+              <View style={styles.formSection}>
+                <Text style={styles.infoText}>{t('forgotStep1') || 'Enter email'}</Text>
+                <View style={styles.fieldWrap}>
+                  <Text style={styles.fieldLabel}>{t('email') || 'Email'}</Text>
+                  <TextInput style={styles.textInput} value={email} onChangeText={setEmail}
+                    placeholder="Email" placeholderTextColor="rgba(255,255,255,0.55)"
+                    keyboardType="email-address" onSubmitEditing={handleForgot} autoCapitalize="none" />
                 </View>
-              )}
-              <View style={styles.fieldWrap}>
-                <Text style={styles.fieldLabel}>{t('verifyCode')}</Text>
-                <TextInput ref={codeRef} style={[styles.textInput, styles.codeInput]} maxLength={6} value={code} onChangeText={setCode}
-                  placeholder={t('verifyCode')} placeholderTextColor="rgba(255,255,255,0.55)"
-                  keyboardType="number-pad" onSubmitEditing={handleVerify} autoFocus />
+                <TouchableOpacity onPress={handleForgot} style={styles.btnDark} disabled={loading}>
+                  <Text style={styles.btnDarkText}>{loading ? '...' : t('forgotSendBtn') || 'Send Code'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={goLogin}>
+                  <Text style={styles.forgotText}>{t('backToLogin')}</Text>
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity onPress={handleVerify} style={styles.btnRed} disabled={loading}>
-                <Text style={styles.btnRedText}>{loading ? '...' : t('verifyBtn')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleResend} disabled={resendCooldown > 0}>
-                <Text style={[styles.forgotText, resendCooldown > 0 && styles.disabledText]}>
-                  {resendCooldown > 0 ? `${resendCooldown}s` : t('resendCode')}
+            )}
+
+            {step === 'reset' && (
+              <View style={styles.formSection}>
+                <Text style={styles.infoText}>
+                  {t('resetHint') || 'Code sent to'} <Text style={styles.infoStrong}>{email}</Text>
                 </Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={goLogin}>
-                <Text style={styles.forgotText}>{t('backToLogin')}</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* FORGOT */}
-          {step === 'forgot' && (
-            <View style={styles.formSection}>
-              <Text style={styles.infoText}>{t('forgotStep1') || 'Enter email'}</Text>
-              <View style={styles.fieldWrap}>
-                <Text style={styles.fieldLabel}>{t('email') || 'Email'}</Text>
-                <TextInput style={styles.textInput} value={email} onChangeText={setEmail}
-                  placeholder="Email" placeholderTextColor="rgba(255,255,255,0.55)"
-                  keyboardType="email-address" onSubmitEditing={handleForgot} />
-              </View>
-              <TouchableOpacity onPress={handleForgot} style={styles.btnDark} disabled={loading}>
-                <Text style={styles.btnDarkText}>{loading ? '...' : t('forgotSendBtn') || 'Send Code'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={goLogin}>
-                <Text style={styles.forgotText}>{t('backToLogin')}</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* RESET */}
-          {step === 'reset' && (
-            <View style={styles.formSection}>
-              <Text style={styles.infoText}>
-                {t('resetHint') || 'Code sent to'} <Text style={styles.infoStrong}>{email}</Text>
-              </Text>
-              {devCode !== '' && (
-                <View style={styles.devCodeCard}>
-                  <Text style={styles.devCodeLabel}>{t('devCodeLabel') || '🔧 Dev Mode — Verification Code'}</Text>
-                  <Text style={styles.devCodeValue}>{devCode}</Text>
+                {devCode !== '' && (
+                  <View style={styles.devCodeCard}>
+                    <Text style={styles.devCodeLabel}>{t('devCodeLabel') || '🔧 Dev Mode — Verification Code'}</Text>
+                    <Text style={styles.devCodeValue}>{devCode}</Text>
+                  </View>
+                )}
+                <View style={styles.fieldWrap}>
+                  <Text style={styles.fieldLabel}>{t('verifyCode')}</Text>
+                  <TextInput ref={codeRef} style={[styles.textInput, styles.codeInput]} maxLength={6} value={code} onChangeText={setCode}
+                    placeholder={t('verifyCode')} placeholderTextColor="rgba(255,255,255,0.55)" keyboardType="number-pad" autoFocus />
                 </View>
-              )}
-              <View style={styles.fieldWrap}>
-                <Text style={styles.fieldLabel}>{t('verifyCode')}</Text>
-                <TextInput ref={codeRef} style={[styles.textInput, styles.codeInput]} maxLength={6} value={code} onChangeText={setCode}
-                  placeholder={t('verifyCode')} placeholderTextColor="rgba(255,255,255,0.55)" keyboardType="number-pad" autoFocus />
-              </View>
-              <View style={styles.fieldWrap}>
-                <Text style={styles.fieldLabel}>{t('newPassword')}</Text>
-                <View style={styles.pwWrap}>
-                  <TextInput style={styles.pwInput} value={password} onChangeText={setPassword}
-                    placeholder={t('newPassword')} placeholderTextColor="rgba(255,255,255,0.55)" secureTextEntry={!showPw} />
-                  <TouchableOpacity style={styles.pwEye} onPress={() => setShowPw(!showPw)}>
-                    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-                      {showPw ? (
-                        <>
-                          <Path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                          <Path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                          <Path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
-                          <Line x1="1" y1="1" x2="23" y2="23" />
-                        </>
-                      ) : (
-                        <>
-                          <Path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                          <Circle cx="12" cy="12" r="3" />
-                        </>
-                      )}
-                    </Svg>
-                  </TouchableOpacity>
+                <View style={styles.fieldWrap}>
+                  <Text style={styles.fieldLabel}>{t('newPassword')}</Text>
+                  <View style={styles.pwWrap}>
+                    <TextInput style={styles.pwInput} value={password} onChangeText={setPassword}
+                      placeholder={t('newPassword')} placeholderTextColor="rgba(255,255,255,0.55)" secureTextEntry={!showPw} />
+                    <TouchableOpacity style={styles.pwEye} onPress={() => setShowPw(!showPw)}>
+                      <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                        {showPw ? (
+                          <>
+                            <Path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                            <Path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                            <Path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                            <Line x1="1" y1="1" x2="23" y2="23" />
+                          </>
+                        ) : (
+                          <>
+                            <Path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <Circle cx="12" cy="12" r="3" />
+                          </>
+                        )}
+                      </Svg>
+                    </TouchableOpacity>
+                  </View>
                 </View>
+                <TouchableOpacity onPress={handleReset} style={styles.btnRed} disabled={loading}>
+                  <Text style={styles.btnRedText}>{loading ? '...' : t('resetBtn')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={goLogin}>
+                  <Text style={styles.forgotText}>{t('backToLogin')}</Text>
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity onPress={handleReset} style={styles.btnRed} disabled={loading}>
-                <Text style={styles.btnRedText}>{loading ? '...' : t('resetBtn')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={goLogin}>
-                <Text style={styles.forgotText}>{t('backToLogin')}</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+            )}
 
-          {/* Copyright */}
-          <Text style={styles.copyright}>© 2026 柳味探秘 · 螺蛳粉 · 经营查询</Text>
-        </View>
-      </ScrollView>
-    </View>
+            <Text style={styles.copyright}>© 2026 柳味探秘 · 螺蛳粉 · 经营查询</Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </ImageBackground>
   );
 }
 
 const getStyles = (colors: ThemeColors) => StyleSheet.create({
-  container: { flex: 1, padding: 20, paddingTop: 24 },
-  bgWrapper: { position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0,
-    // @ts-ignore - web-only background image
-    backgroundImage: 'url(/img/bg.jpg)', backgroundSize: 'cover', backgroundPosition: 'center', zIndex: 0 },
-  bgOverlay: { position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.15)', zIndex: 1 },
-  content: { flex: 1, position: 'relative' as any, zIndex: 2, width: '100%', maxWidth: 380, alignSelf: 'center' },
-  contentScroll: { paddingBottom: 40 },
+  flex: { flex: 1 },
+  container: { flex: 1 },
+  bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)' },
+  content: { flex: 1, width: '100%' },
+  contentScroll: { padding: 20, paddingTop: 32, paddingBottom: 40, maxWidth: 380, width: '100%', alignSelf: 'center' },
   brand: { alignItems: 'center', marginBottom: 32 },
   logoWrap: {
-    width: 56, height: 56, borderRadius: 16, overflow: 'hidden' as const, marginBottom: 20,
-    // @ts-ignore - web-only boxShadow
-    boxShadow: '0 1px 3px rgba(0,0,0,.2), 0 8px 40px rgba(0,0,0,.15)',
+    width: 56, height: 56, borderRadius: 16, overflow: 'hidden', marginBottom: 20,
   },
-  logo: { width: 56, height: 56 },
+  logo: { width: 56, height: 56, borderRadius: 16 },
   subtitle: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.6)', marginTop: 6, letterSpacing: 1 },
   langRow: { flexDirection: 'row', gap: 4, marginTop: 12 },
   langBtn: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.4)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   langActive: { color: colors.surface, backgroundColor: 'rgba(255,255,255,0.15)' },
   glassCard: {
-    backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 16, padding: 28,
-    // @ts-ignore - web-only
-    backdropFilter: 'blur(24px)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(20,20,20,0.55)',
+    borderRadius: 16, padding: 28, gap: 8,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
   },
-  shake: {}, // animation handled by CSS class
-  msgBox: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16 },
+  shake: {},
+  msgBox: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 8 },
   msgOk: { backgroundColor: withAlpha(colors.success, 0.3) },
   msgErr: { backgroundColor: withAlpha(colors.danger, 0.12) },
   msgText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight },
-  msgOkText: { color: withAlpha(colors.success, 0.1) },
+  msgOkText: { color: colors.surface },
   msgErrText: { color: colors.danger },
   tabRow: {
-    flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 12, padding: 4, marginBottom: 16,
-    // @ts-ignore
-    backdropFilter: 'blur(8px)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
+    flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 12, padding: 4, marginBottom: 8,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
   },
   tabBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center' },
   tabActive: { backgroundColor: 'rgba(255,255,255,0.15)' },
   tabText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.65)' },
   tabActiveText: { color: colors.surface },
-  formSection: { gap: 16 },
+  formSection: { gap: 12, marginTop: 4 },
   fieldWrap: { gap: 6 },
   fieldLabel: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.6)' },
   hintText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.3)' },
-  pwWrap: { position: 'relative' as any },
+  pwWrap: { position: 'relative' },
   pwInput: {
     backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12,
-    paddingRight: 44, fontSize: FONTS.body.size, color: colors.surface, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
-    // @ts-ignore - web-only style
-    backdropFilter: 'blur(8px)', outlineStyle: 'none' as any,
+    paddingRight: 44, fontSize: FONTS.body.size, color: colors.surface,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
   },
   pwEye: {
-    position: 'absolute' as any, right: 0, top: 0, bottom: 0,
+    position: 'absolute', right: 0, top: 0, bottom: 0,
     paddingHorizontal: 14, justifyContent: 'center', alignItems: 'center',
   },
-  pwEyeText: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.45)' },
   textInput: {
     backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12,
-    fontSize: FONTS.body.size, color: colors.surface, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
-    // @ts-ignore - web-only style
-    backdropFilter: 'blur(8px)', outlineStyle: 'none' as any,
+    fontSize: FONTS.body.size, color: colors.surface,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
   },
   codeInput: { textAlign: 'center', letterSpacing: 6 },
   btnDark: {
-    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 12,
-    // @ts-ignore
-    backdropFilter: 'blur(8px)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 8,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
   },
   btnDarkText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.surface, letterSpacing: 1 },
   btnRed: {
-    backgroundColor: withAlpha(colors.primary, 0.7), borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 12,
-    // @ts-ignore
-    backdropFilter: 'blur(8px)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: withAlpha(colors.primary, 0.85), borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 8,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
   },
   btnRedText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.surface, letterSpacing: 1 },
+  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  checkbox: {
+    width: 16, height: 16, borderRadius: 4, borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.4)', justifyContent: 'center', alignItems: 'center',
+  },
+  checkmark: { fontSize: FONTS.micro.size, color: colors.surface, fontWeight: '700' },
+  rememberText: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.5)' },
   forgotText: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginTop: 8 },
   disabledText: { opacity: 0.3 },
   infoText: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 20 },
@@ -545,8 +544,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   devCodeCard: {
     backgroundColor: withAlpha(colors.warning, 0.15), borderRadius: 12, padding: 16,
     alignItems: 'center', borderWidth: 1, borderColor: withAlpha(colors.warning, 0.3),
-    // @ts-ignore
-    backdropFilter: 'blur(8px)',
   },
   devCodeLabel: { fontSize: FONTS.micro.size, color: colors.warning, fontWeight: FONTS.micro.weight, marginBottom: 8 },
   devCodeValue: { fontSize: FONTS.amount.size, fontWeight: FONTS.amount.weight, color: colors.surface, letterSpacing: 8 },
