@@ -10,6 +10,7 @@ import { api } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import Toast from '../components/Toast';
+import DatePickerModal from '../components/DatePickerModal';
 import SlideScreen from '../components/SlideScreen';
 import PartnerScreen from './PartnerScreen';
 import ProcurementScreen from './ProcurementScreen';
@@ -89,6 +90,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   // ── Daily revenue state ──
   const [revDate, setRevDate] = useState(todayDateStr());
   const [revDateErr, setRevDateErr] = useState(0);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [revRevenue, setRevRevenue] = useState('');
   const [revTurnover, setRevTurnover] = useState('');
   const [revJD, setRevJD] = useState('');
@@ -128,6 +130,13 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   }, []);
 
   useEffect(() => { loadLast7(); loadYesterday(); loadWeekTotals(); }, [loadLast7, loadYesterday, loadWeekTotals]);
+
+  // TEMP DEBUG: switch to list tab, open date picker, wait, screenshot
+  useEffect(() => {
+    const t1 = setTimeout(() => setTab('list'), 800);
+    const t2 = setTimeout(() => setShowDatePicker(true), 1500);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
 
   // ── Lazy load on tab change (chart / supply) ──
   const loadChart = useCallback(async () => {
@@ -259,6 +268,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
               revDate={revDate} setRevDate={setRevDate} revDateErr={revDateErr} setRevDateErr={setRevDateErr}
               pickDate={pickDate} td={td} fmtDateLabel={fmtDateLabel}
               editingRevId={editingRevId} cancelEdit={cancelEdit}
+              showDatePicker={showDatePicker} setShowDatePicker={setShowDatePicker}
               revRevenue={revRevenue} setRevRevenue={setRevRevenue}
               revTurnover={revTurnover} setRevTurnover={setRevTurnover}
               revJD={revJD} setRevJD={setRevJD}
@@ -403,6 +413,14 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         </Animated.View>
       )}
 
+      <DatePickerModal
+        visible={showDatePicker}
+        value={revDate}
+        onClose={() => setShowDatePicker(false)}
+        onSelect={(d) => { if (d <= td) { setRevDate(d); setRevDateErr(0); } }}
+        minDate={td}
+        title={t('billDate') || '选择日期'}
+      />
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
     </ImageBackground>
   );
@@ -416,6 +434,7 @@ interface DailyRevProps {
   revDate: string; setRevDate: (v: string) => void; revDateErr: number; setRevDateErr: (v: number) => void;
   pickDate: (d: string) => void; td: string; fmtDateLabel: (s: string) => string;
   editingRevId: number | null; cancelEdit: () => void;
+  showDatePicker: boolean; setShowDatePicker: (v: boolean) => void;
   revRevenue: string; setRevRevenue: (v: string) => void;
   revTurnover: string; setRevTurnover: (v: string) => void;
   revJD: string; setRevJD: (v: string) => void;
@@ -467,7 +486,7 @@ function DailyRevenueView(p: DailyRevProps) {
               ))}
             </View>
             <TouchableOpacity
-              onPress={() => p.setRevDate(p.td)}
+              onPress={() => p.setShowDatePicker(true)}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
             >
               <Text style={styles.dateLabel}>{p.fmtDateLabel(p.revDate)}</Text>
