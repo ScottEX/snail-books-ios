@@ -203,8 +203,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         {(onBack) => <ReconHistoryScreen onBack={onBack} />}
       </SlideScreen>
 
-      <View style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-        {/* Header — matches web's headerInner */}
+      <View style={[styles.root, { paddingTop: insets.top }]}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
@@ -273,33 +272,34 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         </ScrollView>
         )}
 
-        {/* Bottom nav */}
-        <View style={styles.bottomNav}>
-          {NAV_ITEMS.map(({ id, labelKey, icon }, i) => {
-            const active = tab === id;
-            const c = active ? colors.textMain : colors.textSub;
-            return (
-              <TouchableOpacity
-                key={id}
-                style={styles.navItem}
-                activeOpacity={0.7}
-                onPress={() => {
-                  if (id !== tab) {
-                    Animated.sequence([
-                      Animated.spring(navScaleAnims[i], { toValue: 0.85, useNativeDriver: true, speed: 30, bounciness: 6 }),
-                      Animated.spring(navScaleAnims[i], { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 14 }),
-                    ]).start();
-                    setTab(id);
-                  }
-                }}
-              >
-                <Animated.View style={[styles.navIconWrap, active && styles.navIconWrapActive, { transform: [{ scale: navScaleAnims[i] }] }]}>
-                  {icon(c)}
-                </Animated.View>
-                <Text style={[styles.navLabel, active && styles.navLabelActive]}>{t(labelKey)}</Text>
-              </TouchableOpacity>
-            );
-          })}
+        {/* Bottom nav — floating glass pill, icons only, matches web */}
+        <View pointerEvents="box-none" style={styles.bottomNavWrap}>
+          <View style={styles.bottomNav}>
+            {NAV_ITEMS.map(({ id, labelKey, icon }, i) => {
+              const active = tab === id;
+              const c = active ? colors.textMain : colors.textSub;
+              return (
+                <TouchableOpacity
+                  key={id}
+                  style={styles.navItem}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    if (id !== tab) {
+                      Animated.sequence([
+                        Animated.spring(navScaleAnims[i], { toValue: 0.85, useNativeDriver: true, speed: 30, bounciness: 6 }),
+                        Animated.spring(navScaleAnims[i], { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 14 }),
+                      ]).start();
+                      setTab(id);
+                    }
+                  }}
+                >
+                  <Animated.View style={[styles.navIconWrap, active && styles.navIconWrapActive, { transform: [{ scale: navScaleAnims[i] }] }]}>
+                    {icon(c)}
+                  </Animated.View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
       </View>
 
@@ -733,21 +733,25 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
 
   // Content
   content: { flex: 1 },
-  contentInner: { paddingBottom: 24, maxWidth: 520, width: '100%', alignSelf: 'center' },
+  contentInner: { paddingBottom: 110, maxWidth: 520, width: '100%', alignSelf: 'center' },
 
-  // Bottom nav
+  // Bottom nav — floating glass pill
+  bottomNavWrap: {
+    position: 'absolute', left: 0, right: 0, bottom: 0,
+    alignItems: 'center', paddingBottom: 16,
+  },
   bottomNav: {
     flexDirection: 'row',
-    backgroundColor: withAlpha(colors.surface, 0.92),
-    borderTopWidth: 1, borderTopColor: withAlpha(colors.textSub, 0.1),
-    paddingTop: 8, paddingBottom: 4,
-    shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.06, shadowRadius: 6,
+    width: '85%', maxWidth: 420,
+    backgroundColor: withAlpha(colors.surface, 0.55),
+    borderRadius: 28,
+    paddingVertical: 10, paddingHorizontal: 12,
+    borderWidth: 0.5, borderColor: withAlpha(colors.surface, 0.6),
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12,
   },
-  navItem: { flex: 1, alignItems: 'center', paddingVertical: 6 },
-  navIconWrap: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  navIconWrapActive: { backgroundColor: withAlpha(colors.textMain, 0.08) },
-  navLabel: { fontSize: 11, color: colors.textSub, fontWeight: '500', marginTop: 2 },
-  navLabelActive: { color: colors.textMain, fontWeight: '700' },
+  navItem: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  navIconWrap: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  navIconWrapActive: { backgroundColor: withAlpha(colors.textMain, 0.1) },
 
   // Modal
   modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 200, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' },
