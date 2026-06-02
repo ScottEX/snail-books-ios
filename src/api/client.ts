@@ -6,7 +6,14 @@ function getApiBase(): string {
     const saved = localStorage.getItem('api_base');
     if (saved) return saved;
   }
-  // Production: use relative URLs (same origin, auto HTTPS)
+  // React Native: Metro only serves the JS bundle, not the API. Point
+  // directly at the Flask backend on its dev port. Change here or override
+  // via localStorage.setItem('api_base', 'http://...') if your backend runs
+  // elsewhere.
+  if (typeof navigator !== 'undefined' && (navigator as any).product === 'ReactNative') {
+    return 'http://localhost:8600';
+  }
+  // Web / production: use relative URLs (same origin)
   return '';
 }
 
