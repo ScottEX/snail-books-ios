@@ -214,15 +214,28 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             <Text style={styles.headerUser}>{usr}</Text>
           </View>
           <View style={styles.headerRight}>
-            <TouchableOpacity onPress={() => openModal(() => setShowBgModal(true))} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }} style={{ marginRight: 8 }}>
+            <TouchableOpacity
+              onPress={() => openModal(() => setShowBgModal(true))}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              style={styles.headerBtn}
+            >
               <Text style={styles.headerLink}>{t('bgSettings')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => openModal(() => setShowLogoutModal(true))} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+            <TouchableOpacity
+              onPress={() => openModal(() => setShowLogoutModal(true))}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              style={styles.headerBtn}
+            >
               <Text style={styles.logoutBtn}>{t('logout')}</Text>
             </TouchableOpacity>
             <View style={styles.langRow}>
               {langs.map(([l, label]) => (
-                <TouchableOpacity key={l} onPress={() => switchLang(l)} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}>
+                <TouchableOpacity
+                  key={l}
+                  onPress={() => switchLang(l)}
+                  hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+                  style={styles.langBtnTouch}
+                >
                   <Text style={[styles.langBtn, lang === l && styles.langActive]}>{label}</Text>
                 </TouchableOpacity>
               ))}
@@ -710,11 +723,13 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   headerUser: { fontSize: FONTS.micro.size, color: withAlpha(colors.surface, 0.9), fontWeight: FONTS.micro.weight },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  headerLink: { fontSize: FONTS.micro.size, color: withAlpha(colors.surface, 0.85), fontWeight: FONTS.micro.weight },
-  logoutBtn: { fontSize: FONTS.micro.size, color: colors.surface, fontWeight: FONTS.micro.weight },
+  headerBtn: { paddingVertical: 6, paddingHorizontal: 4 },
+  headerLink: { fontSize: 13, color: withAlpha(colors.surface, 0.9), fontWeight: '600' },
+  logoutBtn: { fontSize: 13, color: colors.surface, fontWeight: '700' },
   langRow: { flexDirection: 'row', gap: 4 },
-  langBtn: { fontSize: FONTS.micro.size, color: withAlpha(colors.surface, 0.7), paddingHorizontal: 6, paddingVertical: 2, fontWeight: FONTS.micro.weight },
-  langActive: { color: colors.surface, backgroundColor: withAlpha(colors.surface, 0.18), fontWeight: FONTS.microBold.weight, borderRadius: 4 },
+  langBtnTouch: { paddingVertical: 6, paddingHorizontal: 4 },
+  langBtn: { fontSize: 13, color: withAlpha(colors.surface, 0.75), paddingHorizontal: 8, paddingVertical: 3, fontWeight: '600' },
+  langActive: { color: colors.surface, backgroundColor: withAlpha(colors.surface, 0.22), fontWeight: '800', borderRadius: 5, overflow: 'hidden' },
 
   // Content
   content: { flex: 1 },
