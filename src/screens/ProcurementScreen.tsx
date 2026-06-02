@@ -11,6 +11,7 @@ import { FONTS } from '../theme';
 import { modalCardAnimation, modalClose, uploadReceiptStyles } from '../sharedStyles';
 import Toast from '../components/Toast';
 import DatePickerModal from '../components/DatePickerModal';
+import { pickImages } from '../utils/imagePicker';
 
 type SubTab = 'new' | 'history' | 'products';
 type PayMethod = '现金' | '微信' | '支付宝';
@@ -1062,9 +1063,15 @@ export default function ProcurementScreen() {
                 )}
               </View>
               <View style={styles.imgRow}>
-                {/* TODO: expo-image-picker.launchImageLibraryAsync */}
-                <View style={{ display: 'none' }} ref={fileRef as any} />
-                <TouchableOpacity style={styles.imgAddBtn} onPress={() => {/* TODO: open image picker */}} activeOpacity={0.7}>
+                <TouchableOpacity
+                  style={styles.imgAddBtn}
+                  onPress={async () => {
+                    const imgs = await pickImages({ multiple: true }).catch(() => []);
+                    if (imgs.length === 0) return;
+                    setReceipts((prev: any[]) => [...prev, ...imgs]);
+                  }}
+                  activeOpacity={0.7}
+                >
                   <CameraIcon color={c.textSub} />
                   <Text style={styles.imgAddText}>{t('addImage')}</Text>
                 </TouchableOpacity>

@@ -372,7 +372,14 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                 <TouchableOpacity style={[styles.modalBtn, { borderWidth: 1, borderColor: colors.secondary }]} onPress={() => closeModal(() => setShowBgModal(false))}>
                   <Text style={{ color: colors.textSub, fontSize: 14, fontWeight: '600' }}>{t('cancel')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.modalBtn, { backgroundColor: colors.primary }]} onPress={() => closeModal(() => setShowBgModal(false))}>
+                <TouchableOpacity
+                  style={[styles.modalBtn, { backgroundColor: colors.primary }]}
+                  onPress={() => closeModal(() => setShowBgModal(false))}
+                >
+                  {/* TODO: plumb through ImageBackground source from localStorage / picked URI.
+                      Current <ImageBackground source={BG_IMAGE}/> is hardcoded to assets/img/bg.jpg,
+                      so pickImages result never displays. Need to switch to a state-driven <Image>
+                      with { uri } when user picks a custom image. */}
                   <Text style={{ color: colors.surface, fontSize: 14, fontWeight: '600' }}>{t('chooseImage') || t('resetDefault')}</Text>
                 </TouchableOpacity>
               </View>
