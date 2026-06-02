@@ -3,15 +3,30 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "npx cap copy ios",
-    "open": "npx cap open ios"
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "build:ios": "expo prebuild --platform ios && xcodebuild -workspace ios/*.xcworkspace -scheme app -configuration Release -quiet",
+    "prebuild": "expo prebuild --platform ios",
+    "postinstall": "patch-package"
   },
   "dependencies": {
-    "@capacitor/core": "^8.3.4",
-    "@capacitor/filesystem": "^8.1.2",
-    "@capacitor/ios": "^8.3.4"
+    "@react-native-async-storage/async-storage": "1.23.1",
+    "expo": "~52.0.0",
+    "expo-asset": "~11.0.5",
+    "expo-image-picker": "~16.0.0",
+    "expo-linking": "~7.0.0",
+    "expo-localization": "~16.0.1",
+    "react": "18.3.1",
+    "react-native": "0.76.9",
+    "react-native-safe-area-context": "4.12.0",
+    "react-native-screens": "~4.4.0",
+    "react-native-svg": "~15.8.0"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.3.4"
+    "@types/react": "~18.3.0",
+    "patch-package": "^8.0.0",
+    "typescript": "~5.3.3"
   }
 }

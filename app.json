@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "蓝姐螺蛳粉",
+    "slug": "snail-books-ios",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.lanx.snailbooks"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "newArchEnabled": false,
+    "extra": {
+      "eas": {
+        "projectId": "snail-books"
+      }
+    },
+    "plugins": [
+      "expo-asset",
+      "expo-localization"
+    ]
+  }
+}
