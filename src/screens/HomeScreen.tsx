@@ -60,7 +60,12 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
 
   // ── Background image ──
   const [bgImage] = useState(() => { try { return localStorage.getItem('bg-image') || 'bg.jpg'; } catch { return 'bg.jpg'; } });
-  const [bgOpacity] = useState(() => { try { const s = localStorage.getItem('bg-opacity'); return s !== null ? parseFloat(s) : 0.5; } catch { return 0.5; } });
+  const [bgOpacity, setBgOpacity] = useState(() => { try { const s = localStorage.getItem('bg-opacity'); return s !== null ? parseFloat(s) : 0.5; } catch { return 0.5; } });
+  const setBgOpacityPersist = (v: number) => {
+    setBgOpacity(v);
+    try { localStorage.setItem('bg-opacity', String(v)); } catch {}
+    api.saveBackgroundSettings({ opacity: v }).catch(() => {});
+  };
 
   // ── Modal state ──
   const [showBgModal, setShowBgModal] = useState(false);
@@ -298,7 +303,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             <View style={{ padding: 20, gap: 16 }}>
               <Text style={{ fontSize: 13, color: colors.textSub, textAlign: 'center' }}>{t('bgHint')}</Text>
 
-              {/* Opacity row — web has a slider; iOS renders as 0/50/100% tap targets for now */}
+              {/* Opacity row — web has a slider; iOS renders as 0/25/50/75/100% tap chips */}
               <View>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
                   <Text style={{ fontSize: 12, color: colors.textSub }}>{t('opacity')}</Text>
@@ -308,10 +313,10 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                   {[0, 0.25, 0.5, 0.75, 1].map(v => (
                     <TouchableOpacity
                       key={v}
-                      style={[styles.opacityChip, bgOpacity === v && styles.opacityChipActive]}
-                      onPress={() => { try { localStorage.setItem('bg-opacity', String(v)); } catch {} /* TODO state setter */ }}
+                      style={[styles.opacityChip, Math.abs(bgOpacity - v) < 0.01 && styles.opacityChipActive]}
+                      onPress={() => setBgOpacityPersist(v)}
                     >
-                      <Text style={[styles.opacityChipText, bgOpacity === v && styles.opacityChipTextActive]}>{(v * 100).toFixed(0)}%</Text>
+                      <Text style={[styles.opacityChipText, Math.abs(bgOpacity - v) < 0.01 && styles.opacityChipTextActive]}>{(v * 100).toFixed(0)}%</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
