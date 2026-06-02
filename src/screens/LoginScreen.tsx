@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, ImageBackground, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
 import { t, setLang, getLang, langs } from '../i18n';
 import { api } from '../api/client';
@@ -187,6 +188,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const switchLang = (l: string) => { setLang(l); setLangState(l); };
 
   const styles = useMemo(() => getStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
 
   return (
     <ImageBackground source={BG_IMAGE} style={styles.container} resizeMode="cover">
@@ -197,7 +199,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       >
         <ScrollView
           style={styles.content}
-          contentContainerStyle={styles.contentScroll}
+          contentContainerStyle={[styles.contentScroll, { paddingTop: 32 + insets.top, paddingBottom: 40 + insets.bottom }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
