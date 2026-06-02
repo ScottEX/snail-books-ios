@@ -6,6 +6,7 @@ import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
 import { t, getLang } from '../i18n';
 import { api } from '../api/client';
 import Toast from '../components/Toast';
+import DatePickerModal from '../components/DatePickerModal';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import { modalCardAnimation, modalClose, uploadReceiptStyles } from '../sharedStyles';
@@ -413,6 +414,9 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
   const recDateInputRef = useRef<any>(null);
   const expDateInputRef = useRef<any>(null);
   const feeDateInputRef = useRef<any>(null);
+  const [showRecDatePicker, setShowRecDatePicker] = useState(false);
+  const [showExpDatePicker, setShowExpDatePicker] = useState(false);
+  const [showFeeDatePicker, setShowFeeDatePicker] = useState(false);
   const [showImgTip, setShowImgTip] = useState(false);
 
   // Compress image — no-op on RN. (RN uses expo-image-manipulator instead.)
@@ -605,8 +609,10 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
             {/* 日期行 */}
             <View style={st.dateRow}>
               <Text style={{ fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.textSub }}>{t('billDate')}</Text>
-              <View
+              <TouchableOpacity
+                onPress={() => setShowRecDatePicker(true)}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 4, position: 'relative' }}
+                activeOpacity={0.7}
               >
                 <Text style={st.dateText}>
                   {(() => {
@@ -623,8 +629,7 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
                   })()}
                 </Text>
                 <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transform: [{ translateY: 0 }] }}><Path d="M10 6l6 6-6 6"/></Svg>
-                {/* TODO: @react-native-community/datetimepicker */}
-              </View>
+              </TouchableOpacity>
             </View>
             <DateErrorHint trigger={recDateErr} message={t('errDateFuture')} colors={colors} />
 
@@ -957,8 +962,10 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
                   <Line x1="3" y1="10" x2="21" y2="10"/>
                 </Svg>
                 <View style={{ flex: 1 }}>
-                  <View
+                  <TouchableOpacity
+                    onPress={() => setShowExpDatePicker(true)}
                     style={{ flexDirection: 'row', alignItems: 'center', position: 'relative' }}
+                    activeOpacity={0.7}
                   >
                     <Text style={st.dateText}>
                       {(() => {
@@ -972,8 +979,7 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
                       })()}
                     </Text>
                     <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transform: [{ translateY: 0 }] }}><Path d="M10 6l6 6-6 6"/></Svg>
-                    {/* TODO: @react-native-community/datetimepicker */}
-                  </View>
+                  </TouchableOpacity>
                   <DateErrorHint trigger={expDateErr} message={t('errDateFuture')} colors={colors} textAlign="left" />
                 </View>
               </View>
@@ -1071,13 +1077,13 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 16 }}>
                 <Text style={{ fontSize: FONTS.sub.size, color: colors.textSub, fontWeight: FONTS.sub.weight, marginTop: 2 }}>{t('entryDate')}</Text>
                 <View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', position: 'relative' }}>
+                  <TouchableOpacity onPress={() => setShowFeeDatePicker(true)} style={{ flexDirection: 'row', alignItems: 'center', position: 'relative' }} activeOpacity={0.7}>
                     <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub }}>
                       {(() => { return fmtLocalDate(feeEntryDate); })()}
+                      {/* TODO: tap to open DatePickerModal */}
                     </Text>
                     <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 4, transform: [{ translateY: -1 }] }}><Path d="M10 6l6 6-6 6"/></Svg>
-                    {/* TODO: @react-native-community/datetimepicker */}
-                  </View>
+                  </TouchableOpacity>
                   <DateErrorHint trigger={feeDateErr} message={t('errDateFuture')} colors={colors} />
                 </View>
               </View>
@@ -1317,6 +1323,31 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
           </Animated.View>
         </>
       )}
+
+      <DatePickerModal
+        visible={showRecDatePicker}
+        value={recDate}
+        onClose={() => setShowRecDatePicker(false)}
+        onSelect={(d) => { setRecDate(d); setRecDateKey(k => k + 1); setRecDateErr(0); }}
+        minDate={todayStr()}
+        title={t('billDate')}
+      />
+      <DatePickerModal
+        visible={showExpDatePicker}
+        value={expDate}
+        onClose={() => setShowExpDatePicker(false)}
+        onSelect={(d) => { if (d <= todayStr()) { setExpDate(d); setExpDateErr(0); } }}
+        minDate={undefined}
+        title={t('billDate')}
+      />
+      <DatePickerModal
+        visible={showFeeDatePicker}
+        value={feeEntryDate}
+        onClose={() => setShowFeeDatePicker(false)}
+        onSelect={(d) => { setFeeEntryDate(d); setFeeDateErr(0); }}
+        minDate={undefined}
+        title={t('entryDate')}
+      />
     </View>
   );
 }

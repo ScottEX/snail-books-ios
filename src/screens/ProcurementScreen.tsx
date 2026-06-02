@@ -10,6 +10,7 @@ import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import { modalCardAnimation, modalClose, uploadReceiptStyles } from '../sharedStyles';
 import Toast from '../components/Toast';
+import DatePickerModal from '../components/DatePickerModal';
 
 type SubTab = 'new' | 'history' | 'products';
 type PayMethod = '现金' | '微信' | '支付宝';
@@ -605,6 +606,7 @@ export default function ProcurementScreen() {
 
   const urlCache = useRef<Map<any, string>>(new Map());
   const orderDateInputRef = useRef<any>(null);
+  const [showOrderDatePicker, setShowOrderDatePicker] = useState(false);
   const getPreviewUrl = (file: any) => {
     // RN: expo-image-picker returns { uri, type, name, size }
     return file?.uri || '';
@@ -1019,10 +1021,9 @@ export default function ProcurementScreen() {
               <View style={styles.dateCatRow}>
                 <View style={styles.dateCatLine}>
                   <Text style={styles.dateCatLabel}>{t('procOrderDate')}</Text>
-                  <View style={styles.dateCatValue}>
+                  <TouchableOpacity onPress={() => setShowOrderDatePicker(true)} activeOpacity={0.7} style={styles.dateCatValue}>
                     <Text style={{ fontSize: FONTS.sub.size, color: c.textSub }}>{formatDateLocale(orderDate)}</Text>
-                    {/* TODO: open DatePickerModal on tap */}
-                  </View>
+                  </TouchableOpacity>
                   <Text style={styles.dateCatLabel}>{t('expenseCategory')}</Text>
                   <Text style={{ fontSize: FONTS.sub.size, color: c.textSub }}>{t('procPurchase')}</Text>
                 </View>
@@ -1158,6 +1159,14 @@ export default function ProcurementScreen() {
           </Animated.View>
         </Animated.View>
       )}
+      <DatePickerModal
+        visible={showOrderDatePicker}
+        value={orderDate}
+        onClose={() => setShowOrderDatePicker(false)}
+        onSelect={(d) => setOrderDate(d)}
+        minDate={undefined}
+        title={t('procOrderDate') || '选择日期'}
+      />
       <Toast message={toastMsg} visible={showToast} onDismiss={() => setShowToast(false)} />
     </View>
   );
