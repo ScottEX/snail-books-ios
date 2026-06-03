@@ -16,7 +16,7 @@ import { pickImages } from '../utils/imagePicker';
 type SubTab = 'new' | 'history' | 'products';
 type PayMethod = '现金' | '微信' | '支付宝';
 
-interface Product { id: number; name: string; spec: string; price: number; supplier: string; }
+interface Product { id: number; name: string; spec: string; price: number; supplier: string; note?: string; }
 interface CartItem { product: Product; quantity: number; subtotal: number; }
 interface BatchRecord { id: number; batch_number: number; date: string; payment_method: string; category: string; total: number; images: string[]; thumb_images?: string[]; note: string; items: any[]; }
 interface ProcStats { total_spent: number; total_income: number; batch_count: number; margin_pct: number; }
@@ -351,7 +351,6 @@ export default function ProcurementScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   const [showImgTip, setShowImgTip] = useState(false);
-  const fileRef = useRef<any>(null);
 
   const [showItemsModal, setShowItemsModal] = useState(false);
   const [detailItems, setDetailItems] = useState<Array<{ name: string; quantity: number; subtotal: number }>>([]);
@@ -371,7 +370,7 @@ export default function ProcurementScreen() {
 
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [prodForm, setProdForm] = useState({ name: '', spec: '', price: '', supplier: '' });
+  const [prodForm, setProdForm] = useState({ name: '', spec: '', price: '', supplier: '', note: '' });
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
   // ── Shared slide-from-top animation for product/delete/success modals ──
@@ -504,9 +503,6 @@ export default function ProcurementScreen() {
 
   useEffect(() => { loadProducts(); loadStats(); }, [loadProducts, loadStats]);
 
-  // Sync uncontrolled date input when orderDate changes externally
-  useEffect(() => { if (orderDateInputRef.current) orderDateInputRef.current.value = orderDate; }, [orderDate]);
-
   // Persist cart to localStorage
   useEffect(() => {
     try { localStorage.setItem('snail_proc_cart', JSON.stringify(cart)); } catch {}
@@ -602,33 +598,16 @@ export default function ProcurementScreen() {
       newFiles.push(compressed);
     }
     setReceipts((prev: any[]) => [...prev, ...newFiles]);
-    if (fileRef.current?.value !== undefined) fileRef.current.value = '';
   };
 
-  const urlCache = useRef<Map<any, string>>(new Map());
-  const orderDateInputRef = useRef<any>(null);
   const [showOrderDatePicker, setShowOrderDatePicker] = useState(false);
-  const getPreviewUrl = (file: any) => {
-    // RN: expo-image-picker returns { uri, type, name, size }
-    return file?.uri || '';
-  };
-  const revokePreviewUrl = (file: any) => {
-    const url = urlCache.current.get(file);
-    if (url) { URL.revokeObjectURL(url); urlCache.current.delete(file); }
-  };
-  // Cleanup all object URLs on unmount
-  useEffect(() => {
-    return () => {
-      urlCache.current.clear();
-    };
-  }, []);
+  // RN: expo-image-picker returns { uri, type, name, size }; <Image> reads
+  // file.uri directly. No blob URLs to manage (URL.createObjectURL /
+  // URL.revokeObjectURL don't exist in RN).
+  const getPreviewUrl = (file: any) => file?.uri || '';
 
   const removeReceipt = (i: number) => {
-    setReceipts(prev => {
-      const removed = prev[i];
-      if (removed) revokePreviewUrl(removed);
-      return prev.filter((_, idx) => idx !== i);
-    });
+    setReceipts(prev => prev.filter((_, idx) => idx !== i));
   };
 
   const submitOrder = async () => {
@@ -688,17 +667,17 @@ export default function ProcurementScreen() {
 
   const openAddProduct = () => {
     setEditingProduct(null);
-    setProdForm({ name: '', spec: '', price: '', supplier: '' });
+    setProdForm({ name: '', spec: '', price: '', supplier: '', note: '' });
     openSlideModal(() => setShowProductModal(true));
   };
   const openEditProduct = (p: Product) => {
     setEditingProduct(p);
-    setProdForm({ name: p.name, spec: p.spec, price: String(p.price), supplier: p.supplier });
+    setProdForm({ name: p.name, spec: p.spec, price: String(p.price), supplier: p.supplier, note: p.note || '' });
     openSlideModal(() => setShowProductModal(true));
   };
   const saveProduct = async () => {
     if (!prodForm.name) return;
-    const data = { name: prodForm.name, spec: prodForm.spec, price: parseFloat(prodForm.price) || 0, supplier: prodForm.supplier };
+    const data = { name: prodForm.name, spec: prodForm.spec, price: parseFloat(prodForm.price) || 0, supplier: prodForm.supplier, note: prodForm.note };
     try {
       editingProduct ? await api.updateProduct({ ...data, id: editingProduct.id }) : await api.createProduct(data);
       closeSlideModal(() => setShowProductModal(false));
@@ -961,6 +940,7 @@ export default function ProcurementScreen() {
               <TextInput style={styles.modalInput} placeholder={t('procProductSpec')} placeholderTextColor={c.textSub} value={prodForm.spec} onChangeText={v => setProdForm(p => ({ ...p, spec: v }))} />
               <TextInput style={styles.modalInput} placeholder={t('procProductSupplier')} placeholderTextColor={c.textSub} value={prodForm.supplier} onChangeText={v => setProdForm(p => ({ ...p, supplier: v }))} />
               <TextInput style={styles.modalInput} placeholder={t('procProductPrice')} placeholderTextColor={c.textSub} value={prodForm.price} onChangeText={v => setProdForm(p => ({ ...p, price: v }))} keyboardType="numeric" />
+              <TextInput style={styles.modalInput} placeholder={t('procProductNote')} placeholderTextColor={c.textSub} value={prodForm.note} onChangeText={v => setProdForm(p => ({ ...p, note: v }))} />
               <View style={styles.modalBtnRow}>
                 <TouchableOpacity style={styles.modalBtnCancel} onPress={() => closeSlideModal(() => setShowProductModal(false))}>
                   <Text style={styles.modalBtnCancelText}>{t('cancel')}</Text>

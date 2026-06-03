@@ -13,8 +13,10 @@ let _storageCache: Record<string, string> = {};
 export async function initStorageCache(): Promise<void> {
   try {
     const keys = await AsyncStorage.getAllKeys();
-    const pairs = await AsyncStorage.getMany(keys as string[]);
-    _storageCache = Object.fromEntries(Object.entries(pairs).filter(([, v]) => v != null).map(([k, v]) => [k, v!]));
+    const pairs = await AsyncStorage.multiGet(keys);
+    _storageCache = Object.fromEntries(
+      pairs.filter(([, v]) => v != null).map(([k, v]) => [k, v as string])
+    );
     _cacheReady = true;
   } catch {
     _cacheReady = true;
@@ -43,8 +45,11 @@ export const localStorage = {
   },
 };
 
-// ─── navigator.language ────────────────────────────────────────
-export const navigator = { language: 'zh-CN' };
+// ─── navigator shim (RN doesn't expose the full web Navigator) ──
+// `product: 'ReactNative'` is the standard sentinel the app code uses to
+// decide it's running under RN (vs web), so we set it here. `language` is
+// the only field web code reads off navigator directly.
+export const navigator = { language: 'zh-CN', product: 'ReactNative' } as any;
 
 // ─── document / window stubs (no-ops for RN) ───────────────────
 export const document = {

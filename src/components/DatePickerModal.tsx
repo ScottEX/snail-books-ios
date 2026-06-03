@@ -44,7 +44,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
   if (!visible) return null;
 
   const isValid = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
-  const isFuture = (s: string) => minDate && s > minDate;
+  const isFuture = (s: string) => !!minDate && s > minDate;
 
   // Calendar grid for the current draft month
   const firstDay = new Date(year, month - 1, 1);

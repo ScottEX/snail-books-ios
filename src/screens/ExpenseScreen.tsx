@@ -172,8 +172,6 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
   };
   const [showToast, setShowToast] = useState(false);
   const hideToast = () => setShowToast(false);
-  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const scrollElRef = useRef<HTMLElement | null>(null);
 
   // Snap-scroll effects are web-only (CSS scroll-snap + DOM scroll listener).
   // RN FlatList handles horizontal swiping natively; no-op here.
@@ -411,7 +409,6 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
   useEffect(() => { if (feeDateInputRef.current) feeDateInputRef.current.value = feeEntryDate; }, [feeEntryDate]);
 
   // Image upload handlers
-  const fileInputRef = useRef<any>(null);
   const recDateInputRef = useRef<any>(null);
   const expDateInputRef = useRef<any>(null);
   const feeDateInputRef = useRef<any>(null);
@@ -436,7 +433,6 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
       newFiles.push(compressed);
     }
     setExpImages((prev: any[]) => [...prev, ...newFiles]);
-    if (fileInputRef.current?.value !== undefined) fileInputRef.current.value = '';
   };
 
   const removeImage = (idx: number) => {
@@ -928,8 +924,6 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
                 )}
               </View>
               <View style={st.imgRow}>
-                {/* Hidden file input — TODO: expo-image-picker */}
-                <View style={{ display: 'none' }} ref={fileInputRef as any} />
                 {/* Add button */}
                 <TouchableOpacity style={st.imgAddBtn}
                   onPress={async () => {
@@ -1085,7 +1079,6 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
                   <TouchableOpacity onPress={() => setShowFeeDatePicker(true)} style={{ flexDirection: 'row', alignItems: 'center', position: 'relative' }} activeOpacity={0.7}>
                     <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub }}>
                       {(() => { return fmtLocalDate(feeEntryDate); })()}
-                      {/* TODO: tap to open DatePickerModal */}
                     </Text>
                     <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 4, transform: [{ translateY: -1 }] }}><Path d="M10 6l6 6-6 6"/></Svg>
                   </TouchableOpacity>

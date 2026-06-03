@@ -180,7 +180,15 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   };
 
   const styles = useMemo(() => getStyles(colors), [colors]);
-  const switchLang = (l: string) => { setLang(l); setLangState(l); };
+  const switchLang = (l: string) => {
+    setLang(l);
+    setLangState(l);
+    // Refetch any API-sourced labels that were captured at load time
+    // (recorded_by, etc.) so they pick up the new language.
+    loadLast7();
+    loadYesterday();
+    loadWeekTotals();
+  };
 
   // ── Date label formatter (localized) ──
   const fmtDateLabel = (s: string) => {
@@ -404,7 +412,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                 <TouchableOpacity style={[styles.modalBtn, { flex: 1, borderWidth: 1, borderColor: colors.secondary }]} onPress={() => closeModal(() => setShowLogoutModal(false))}>
                   <Text style={{ color: colors.textSub, fontSize: 14, fontWeight: '600' }}>{t('cancel')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.modalBtn, { flex: 1, backgroundColor: colors.primary }]} onPress={() => closeModal(() => { localStorage.removeItem('user'); onLogout(); })}>
+                <TouchableOpacity style={[styles.modalBtn, { flex: 1, backgroundColor: colors.primary }]} onPress={() => closeModal(() => { api.logout().finally(() => onLogout()); })}>
                   <Text style={{ color: colors.surface, fontSize: 14, fontWeight: '600' }}>{t('confirmLogout')}</Text>
                 </TouchableOpacity>
               </View>
@@ -806,6 +814,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   revInputCardInputWrap: { flexDirection: 'row', alignItems: 'center' },
   revInputCardSymbol: { fontSize: FONTS.body.size, color: colors.textSub, marginRight: 2 },
   revInputCardInput: { flex: 1, fontSize: FONTS.body.size, color: colors.textMain, padding: 0 },
+  revInputCardFooter: { fontSize: FONTS.micro.size, color: colors.textSub, marginTop: 4 },
   revNoteInput: { backgroundColor: withAlpha(colors.bg, 0.6), borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: FONTS.body.size, color: colors.textMain, marginBottom: 10 },
   revArchiveBtn: { backgroundColor: withAlpha(colors.textMain, 0.08), borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   revArchiveBtnDone: { backgroundColor: withAlpha(colors.success, 0.18) },

@@ -25,6 +25,12 @@ const IDLE_MS = 120 * 60_000; // 120 minutes = 2 hours
 let lastActivity = Date.now();
 let idleTimer: ReturnType<typeof setInterval> | null = null;
 
+// ── Session-expired callback ──
+// App.tsx registers a handler so the auth layer can force a route back to
+// login when a 401 comes back (RN has no window.location to redirect).
+let onSessionExpired: (() => void) | null = null;
+export function setSessionExpiredHandler(fn: () => void) { onSessionExpired = fn; }
+
 function startIdleTimer() {
   if (idleTimer) return;
   idleTimer = setInterval(() => {
@@ -32,8 +38,8 @@ function startIdleTimer() {
     if (!localStorage.getItem('user')) return;
     if (Date.now() - lastActivity > IDLE_MS) {
       localStorage.removeItem('user');
-      // RN has no window.location; App.tsx reads localStorage on mount and
-      // will route back to login automatically. We just clear the marker.
+      // Notify App so it can re-route to login
+      try { onSessionExpired?.(); } catch {}
     }
   }, 10_000); // check every 10s
 }
@@ -66,9 +72,7 @@ async function authFetch<T = any>(url: string, options?: RequestInit): Promise<T
   });
   if (resp.status === 401) {
     localStorage.removeItem('user');
-    if (window.location.pathname !== '/login') {
-      window.location.href = '/login';
-    }
+    try { onSessionExpired?.(); } catch {}
     throw new Error('Unauthorized');
   }
   if (!resp.ok) {
@@ -161,10 +165,12 @@ export const api = {
   deleteTransaction: (id: number) => authFetch(`/api/transactions/${id}`, { method: 'DELETE' }),
 
   // Expense image upload — returns { images: [...], thumb_images: [...], has_thumbs: bool }
-  uploadExpenseImages: async (files: File[]) => {
+  // Accepts the { uri, type, name } shape from utils/imagePicker (or anything
+  // with a web-compatible File shape) and forwards via RN FormData.
+  uploadExpenseImages: async (files: Array<{ uri: string; type?: string; name?: string }>) => {
     bumpActivity();
     const form = new FormData();
-    files.forEach(f => form.append('files', f));
+    files.forEach(f => form.append('files', f as any));
     const resp = await fetch(API_BASE + '/api/expenses/upload-images', {
       method: 'POST',
       headers: headers(),  // Use shared headers() for consistency
@@ -173,9 +179,7 @@ export const api = {
     });
     if (resp.status === 401) {
       localStorage.removeItem('user');
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
-      }
+      try { onSessionExpired?.(); } catch {}
       throw new Error('Unauthorized');
     }
     if (!resp.ok) throw new Error(`Upload failed (${resp.status})`);
@@ -192,15 +196,38 @@ export const api = {
 
   // Background image
   getBackground: () => authFetch('/api/settings/background'),
-  uploadBackground: async (file: File) => {
+  uploadBackground: async (file: { uri: string; type?: string; name?: string }) => {
     bumpActivity();
     const form = new FormData();
-    form.append('file', file);
+    form.append('file', file as any);
     const resp = await fetch(API_BASE + '/api/settings/background', {
       method: 'POST',
       headers: { 'X-Lang': getLang() },
       body: form,
     });
+    if (resp.status === 401) {
+      localStorage.removeItem('user');
+      try { onSessionExpired?.(); } catch {}
+      throw new Error('Unauthorized');
+    }
+    if (!resp.ok) throw new Error(`Upload failed (${resp.status})`);
+    return resp.json();
+  },
+
+  // Avatar upload — accepts a FormData (caller builds it on web with File, on
+  // RN with {uri,type,name}). Returns the JSON the backend responds with.
+  uploadAvatar: async (form: FormData) => {
+    bumpActivity();
+    const resp = await fetch(API_BASE + '/api/users/avatar', {
+      method: 'POST',
+      headers: headers(),
+      body: form,
+    });
+    if (resp.status === 401) {
+      localStorage.removeItem('user');
+      try { onSessionExpired?.(); } catch {}
+      throw new Error('Unauthorized');
+    }
     if (!resp.ok) throw new Error(`Upload failed (${resp.status})`);
     return resp.json();
   },
@@ -284,5 +311,10 @@ export const api = {
   getChart: () => authFetch('/api/chart'),
   getStats: () => authFetch('/api/stats'),
 
-  logout: () => fetch(API_BASE + '/logout').then(() => { localStorage.removeItem('user'); }),
+  logout: async () => {
+    // Backend implements POST /logout (Flask @app.route('/logout', methods=['POST'])).
+    // Use sendBeacon on web and best-effort fetch on RN; clear local session regardless.
+    try { await fetch(API_BASE + '/logout', { method: 'POST' }); } catch {}
+    localStorage.removeItem('user');
+  },
 };
