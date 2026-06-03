@@ -1,6 +1,6 @@
 const I18N: Record<string, Record<string, string>> = {
   'zh-CN': {
-    appTitle: '蓝姐螺蛳粉',
+    appTitle: '狸花猫',
     logout: '退出登录',
     logoutConfirm: '确定要退出登录吗？',
     confirmLogout: '确定退出',
@@ -151,6 +151,7 @@ const I18N: Record<string, Record<string, string>> = {
     back: '返回',
     chooseImage: '选择图片',
     resetDefault: '恢复默认',
+    bgUpdated: '背景已更新',
     // Expense screen (记账)
     billDate: '账单日期',
     physicalCount: '实盘录入',
@@ -343,7 +344,7 @@ const I18N: Record<string, Record<string, string>> = {
     procViewDetail: '查看明细',
   },
   'zh-TW': {
-    appTitle: '藍姐螺螄粉',
+    appTitle: '狸花貓',
     logout: '登出',
     logoutConfirm: '確定要登出嗎？',
     confirmLogout: '確定登出',
@@ -487,6 +488,7 @@ const I18N: Record<string, Record<string, string>> = {
     back: '返回',
     chooseImage: '選擇圖片',
     resetDefault: '恢復默認',
+    bgUpdated: '背景已更新',
     // Expense screen
     billDate: '賬單日期',
     physicalCount: '實盤錄入',
@@ -680,7 +682,7 @@ const I18N: Record<string, Record<string, string>> = {
     procViewDetail: '檢視明細',
   },
   en: {
-    appTitle: "Lan's Luosifen",
+    appTitle: 'Tabby Cat',
     logout: 'Logout',
     logoutConfirm: 'Are you sure you want to log out?',
     confirmLogout: 'Confirm Logout',
@@ -823,7 +825,8 @@ const I18N: Record<string, Record<string, string>> = {
     noRecords: 'No records yet',
     back: 'Back',
     chooseImage: 'Choose Image',
-    resetDefault: 'Reset to Default',
+    resetDefault: 'Reset Default',
+    bgUpdated: 'Background updated',
     // Expense screen
     billDate: 'Bill Date',
     physicalCount: 'Physical Count',
@@ -1040,14 +1043,12 @@ export function setLang(lang: string, callback?: () => void) {
   if (!I18N[lang]) return;
   curLang = lang;
   if (typeof localStorage !== 'undefined') localStorage.setItem('lang', lang);
-  // Save to backend so language follows the user across devices
-  try {
-    fetch('/api/settings/lang', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lang }),
-    }).catch(() => {});
-  } catch {}
+  // Save to backend so language follows the user across devices. Lazily
+  // import the api client to avoid a circular import (client.ts imports
+  // getLang from this module).
+  import('./api/client').then(({ api }) => {
+    api.saveLang(lang).catch(() => {});
+  }).catch(() => {});
   callback?.();
 }
 

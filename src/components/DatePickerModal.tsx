@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
-import { t } from '../i18n';
+import { t, getLang } from '../i18n';
 
 interface Props {
   visible: boolean;
@@ -57,8 +57,11 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
   while (cells.length % 7 !== 0) cells.push(null);
 
   const monthLabel = (() => {
-    const months = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
-    return `${year} 年 ${months[month-1]}`;
+    const monthsZh = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+    const monthsEn = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const l = getLang();
+    if (l.startsWith('en')) return `${monthsEn[month-1]} ${year}`;
+    return `${year} 年 ${monthsZh[month-1]}`;
   })();
 
   const handleSelect = (d: number) => {
@@ -77,9 +80,9 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
   };
 
   const quickChips = [
-    { label: '今天',     d: todayStr() },
-    { label: '昨天',     d: shiftDays(todayStr(), -1) },
-    { label: '前天',     d: shiftDays(todayStr(), -2) },
+    { label: getLang().startsWith('en') ? 'Today' : '今天', d: todayStr() },
+    { label: getLang().startsWith('en') ? 'Yest.' : '昨天', d: shiftDays(todayStr(), -1) },
+    { label: getLang().startsWith('en') ? '2d ago' : '前天', d: shiftDays(todayStr(), -2) },
   ];
 
   return (
@@ -112,7 +115,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
         {/* ±1 day controls */}
         <View style={styles.stepperRow}>
           <TouchableOpacity style={styles.stepBtn} onPress={() => setDraft(shiftDays(draft, -1))}>
-            <Text style={styles.stepBtnText}>-1 天</Text>
+            <Text style={styles.stepBtnText}>-1 {getLang().startsWith('en') ? 'day' : '天'}</Text>
           </TouchableOpacity>
           <TextInput
             style={styles.dateInput}
@@ -124,7 +127,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
             placeholderTextColor={colors.textSub}
           />
           <TouchableOpacity style={styles.stepBtn} onPress={() => setDraft(shiftDays(draft, 1))}>
-            <Text style={styles.stepBtnText}>+1 天</Text>
+            <Text style={styles.stepBtnText}>+1 {getLang().startsWith('en') ? 'day' : '天'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -140,7 +143,10 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
         </View>
 
         <View style={styles.weekdayRow}>
-          {['日','一','二','三','四','五','六'].map(d => (
+          {(getLang().startsWith('en')
+            ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+            : ['日','一','二','三','四','五','六']
+          ).map(d => (
             <Text key={d} style={styles.weekdayText}>{d}</Text>
           ))}
         </View>

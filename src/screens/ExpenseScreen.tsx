@@ -174,9 +174,7 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
   const hideToast = () => setShowToast(false);
 
   // Snap-scroll effects are web-only (CSS scroll-snap + DOM scroll listener).
-  // RN FlatList handles horizontal swiping natively; no-op here.
-  useEffect(() => { /* no-op on RN */ }, []);
-  useEffect(() => { /* no-op on RN */ }, [activeTab]);
+  // RN FlatList handles horizontal swiping natively — nothing to do here.
 
   /* ── 模块一：对账 ── */
   const [recDate, setRecDate] = useState(yesterdayStr());
@@ -261,7 +259,10 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
   const submitRecon = useCallback(async () => {
     if (isFuture(recDate)) { setToast(t('errDateFuture')); return; }
     try {
-      const today = new Date().toISOString().slice(0, 10); // 对账日期 = 今天
+      // Reconciliation record timestamp = now (CN local), same helper used
+      // elsewhere in this file so the "date" field matches the user's local
+      // calendar day, not UTC (which can be off-by-one in early-morning CN time).
+      const today = todayStr();
       const username = localStorage.getItem('user') || '';
       await api.createReconciliation({
         date: today,
@@ -403,15 +404,7 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
   };
   useEffect(() => { loadExpenses(); }, []);
 
-  // Sync uncontrolled date inputs when state changes externally
-  useEffect(() => { if (recDateInputRef.current) recDateInputRef.current.value = recDate; }, [recDate]);
-  useEffect(() => { if (expDateInputRef.current) expDateInputRef.current.value = expDate; }, [expDate]);
-  useEffect(() => { if (feeDateInputRef.current) feeDateInputRef.current.value = feeEntryDate; }, [feeEntryDate]);
-
   // Image upload handlers
-  const recDateInputRef = useRef<any>(null);
-  const expDateInputRef = useRef<any>(null);
-  const feeDateInputRef = useRef<any>(null);
   const [showRecDatePicker, setShowRecDatePicker] = useState(false);
   const [showExpDatePicker, setShowExpDatePicker] = useState(false);
   const [showFeeDatePicker, setShowFeeDatePicker] = useState(false);

@@ -21,6 +21,14 @@ interface CartItem { product: Product; quantity: number; subtotal: number; }
 interface BatchRecord { id: number; batch_number: number; date: string; payment_method: string; category: string; total: number; images: string[]; thumb_images?: string[]; note: string; items: any[]; }
 interface ProcStats { total_spent: number; total_income: number; batch_count: number; margin_pct: number; }
 
+// Local CN-today string. `toISOString()` returns UTC, so for a CN user at
+// 01:00 local the UTC date is the previous calendar day. Offset by +8h to
+// align with CN time, then slice the date portion. These MUST be at module
+// scope (or `function` declarations) — `const` arrows don't hoist, and the
+// component's useState initializers run before the in-body definitions.
+const cnNow = () => { const d = new Date(); return new Date(d.getTime() + 8 * 3600000); };
+const todayStr = () => cnNow().toISOString().slice(0, 10);
+
 // ═══════════════════════════════════════════════
 // SVG Icons
 // ═══════════════════════════════════════════════
@@ -343,7 +351,7 @@ export default function ProcurementScreen() {
   const [showDrawer, setShowDrawer] = useState(false);
   const drawerAnim = useRef(new Animated.Value(0)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
-  const [orderDate, setOrderDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [orderDate, setOrderDate] = useState(() => todayStr());
   const [payMethod, setPayMethod] = useState<PayMethod>('微信');
   const [orderNote, setOrderNote] = useState('');
   const [receipts, setReceipts] = useState<any[]>([]);
@@ -472,8 +480,6 @@ export default function ProcurementScreen() {
     }
     return `${y}年${+m}月${+day}日`;
   }, []);
-
-  const todayStr = () => new Date().toISOString().slice(0, 10);
 
   // ── Image compression — no-op on RN (use expo-image-manipulator instead) ──
   const compressImage = (file: any): Promise<any> => Promise.resolve(file);

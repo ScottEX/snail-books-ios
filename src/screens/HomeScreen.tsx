@@ -9,6 +9,7 @@ import { t, setLang, getLang, langs } from '../i18n';
 import { api } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
+import { pickImages } from '../utils/imagePicker';
 import Toast from '../components/Toast';
 import DatePickerModal from '../components/DatePickerModal';
 import SlideScreen from '../components/SlideScreen';
@@ -29,7 +30,6 @@ const fmtDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padSta
 const todayDateStr = () => fmtDate(new Date());
 const yesterdayStr = () => { const d = new Date(); d.setDate(d.getDate()-1); return fmtDate(d); };
 const db4Str = () => { const d = new Date(); d.setDate(d.getDate()-2); return fmtDate(d); };
-const isFuture = (d: string) => d > todayDateStr();
 
 // ── Sub-component: red error hint under date input ──
 function DateErrorHint({ trigger, message, colors }: { trigger: number; message: string; colors: ThemeColors }) {
@@ -59,13 +59,53 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const [lang, setLangState] = useState(getLang());
   const usr = useMemo(() => { try { return localStorage.getItem('user') || '用户'; } catch { return '用户'; } }, []);
 
-  // ── Background image ──
-  const [bgImage] = useState(() => { try { return localStorage.getItem('bg-image') || 'bg.jpg'; } catch { return 'bg.jpg'; } });
+  // ── Background image (state-driven so user-picked image is displayed) ──
+  const [bgImageUri, setBgImageUri] = useState<string | null>(null);
+  const [bgUploading, setBgUploading] = useState(false);
+  useEffect(() => {
+    // Fetch the persisted custom background URL from the backend. Falls
+    // back to the bundled asset if the request fails or no custom bg exists.
+    api.getBackground()
+      .then((r: any) => {
+        if (r?.url) {
+          setBgImageUri(r.url);
+          try { localStorage.setItem('bg-image', r.url); } catch {}
+        }
+      })
+      .catch(() => {
+        const cached = (() => { try { return localStorage.getItem('bg-image'); } catch { return null; } })();
+        if (cached) setBgImageUri(cached);
+      });
+  }, []);
   const [bgOpacity, setBgOpacity] = useState(() => { try { const s = localStorage.getItem('bg-opacity'); return s !== null ? parseFloat(s) : 0.5; } catch { return 0.5; } });
   const setBgOpacityPersist = (v: number) => {
     setBgOpacity(v);
     try { localStorage.setItem('bg-opacity', String(v)); } catch {}
     api.saveBackgroundSettings({ opacity: v }).catch(() => {});
+  };
+  const handlePickBg = async () => {
+    const imgs = await pickImages({ multiple: false }).catch(() => []);
+    if (imgs.length === 0) return;
+    setBgUploading(true);
+    try {
+      const r: any = await api.uploadBackground(imgs[0]);
+      if (r?.url) {
+        setBgImageUri(r.url);
+        try { localStorage.setItem('bg-image', r.url); } catch {}
+        setToast(t('bgUpdated') || '背景已更新');
+      } else {
+        setToast(t('toastSubmitFailed'));
+      }
+    } catch {
+      setToast(t('toastSubmitFailed'));
+    }
+    setBgUploading(false);
+  };
+  const handleResetBg = async () => {
+    try { await api.resetBackground(); } catch {}
+    setBgImageUri(null);
+    try { localStorage.removeItem('bg-image'); } catch {}
+    setToast(t('resetDefault') || '已恢复默认');
   };
 
   // ── Modal state ──
@@ -199,7 +239,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   };
 
   return (
-    <ImageBackground source={BG_IMAGE} style={styles.bg} resizeMode="cover">
+    <ImageBackground source={bgImageUri ? { uri: bgImageUri } : BG_IMAGE} style={styles.bg} resizeMode="cover">
       <View style={[styles.bgOverlay, { opacity: bgOpacity }]} />
 
       {/* History slide-overs */}
@@ -376,19 +416,27 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
               </View>
 
               {/* Action buttons */}
-              <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
                 <TouchableOpacity style={[styles.modalBtn, { borderWidth: 1, borderColor: colors.secondary }]} onPress={() => closeModal(() => setShowBgModal(false))}>
                   <Text style={{ color: colors.textSub, fontSize: 14, fontWeight: '600' }}>{t('cancel')}</Text>
                 </TouchableOpacity>
+                {bgImageUri ? (
+                  <TouchableOpacity
+                    style={[styles.modalBtn, { borderWidth: 1, borderColor: colors.secondary }]}
+                    onPress={handleResetBg}
+                    disabled={bgUploading}
+                  >
+                    <Text style={{ color: colors.textSub, fontSize: 14, fontWeight: '600' }}>{t('resetDefault')}</Text>
+                  </TouchableOpacity>
+                ) : null}
                 <TouchableOpacity
-                  style={[styles.modalBtn, { backgroundColor: colors.primary }]}
-                  onPress={() => closeModal(() => setShowBgModal(false))}
+                  style={[styles.modalBtn, { backgroundColor: colors.primary, flex: 1 }, bgUploading && { opacity: 0.5 }]}
+                  onPress={handlePickBg}
+                  disabled={bgUploading}
                 >
-                  {/* TODO: plumb through ImageBackground source from localStorage / picked URI.
-                      Current <ImageBackground source={BG_IMAGE}/> is hardcoded to assets/img/bg.jpg,
-                      so pickImages result never displays. Need to switch to a state-driven <Image>
-                      with { uri } when user picks a custom image. */}
-                  <Text style={{ color: colors.surface, fontSize: 14, fontWeight: '600' }}>{t('chooseImage') || t('resetDefault')}</Text>
+                  <Text style={{ color: colors.surface, fontSize: 14, fontWeight: '600' }}>
+                    {bgUploading ? (t('uploading') || '上传中…') : (t('chooseImage') || '选择图片')}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>

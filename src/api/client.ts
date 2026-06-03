@@ -69,6 +69,13 @@ async function authFetch<T = any>(url: string, options?: RequestInit): Promise<T
   const resp = await fetch(API_BASE + url, {
     ...options,
     headers: mergedHeaders,
+    // Backend uses Flask session cookies for auth. iOS sim is cross-origin
+    // (Metro at localhost:8081, API at 8.135.58.90:8601) so the default
+    // 'omit' credentials silently drops the session cookie — login would
+    // "succeed" but every subsequent call would 401. 'include' makes RN
+    // send + accept cookies cross-origin. Backend already returns
+    // Access-Control-Allow-Credentials: true (see app.py add_cors_headers).
+    credentials: 'include' as RequestCredentials,
   });
   if (resp.status === 401) {
     localStorage.removeItem('user');
@@ -89,6 +96,7 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Lang': getLang() },
       body: JSON.stringify({ username, password, remember }),
+      credentials: 'include' as RequestCredentials,
     }).then(async (r) => {
       const data = await r.json();
       if (!r.ok) throw new Error(data.message || `Login failed (${r.status})`);
@@ -101,6 +109,7 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Lang': getLang() },
       body: JSON.stringify({ username, password, email }),
+      credentials: 'include' as RequestCredentials,
     }).then(async (r) => {
       const data = await r.json();
       if (!r.ok) throw new Error(data.message || `Register failed (${r.status})`);
@@ -175,7 +184,7 @@ export const api = {
       method: 'POST',
       headers: headers(),  // Use shared headers() for consistency
       body: form,
-      credentials: 'same-origin' as RequestCredentials,
+      credentials: 'include' as RequestCredentials,
     });
     if (resp.status === 401) {
       localStorage.removeItem('user');

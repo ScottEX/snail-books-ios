@@ -79,11 +79,11 @@ export default function DailyRevenueHistory({ onBack }: Props) {
         {pages > 1 && (
           <View style={styles.pager}>
             <TouchableOpacity disabled={page <= 1} onPress={() => load(page - 1)} style={[styles.pagerBtn, page <= 1 && { opacity: 0.3 }]}>
-              <Text style={styles.pagerBtnText}>‹ 上一页</Text>
+              <Text style={styles.pagerBtnText}>‹ {getLang().startsWith('en') ? 'Prev' : '上一页'}</Text>
             </TouchableOpacity>
             <Text style={styles.pagerInfo}>{page} / {pages}</Text>
             <TouchableOpacity disabled={page >= pages} onPress={() => load(page + 1)} style={[styles.pagerBtn, page >= pages && { opacity: 0.3 }]}>
-              <Text style={styles.pagerBtnText}>下一页 ›</Text>
+              <Text style={styles.pagerBtnText}>{getLang().startsWith('en') ? 'Next' : '下一页'} ›</Text>
             </TouchableOpacity>
           </View>
         )}
