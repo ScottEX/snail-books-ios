@@ -213,6 +213,7 @@ export const api = {
       method: 'POST',
       headers: { 'X-Lang': getLang() },
       body: form,
+      credentials: 'include' as RequestCredentials,
     });
     if (resp.status === 401) {
       localStorage.removeItem('user');
@@ -231,6 +232,7 @@ export const api = {
       method: 'POST',
       headers: headers(),
       body: form,
+      credentials: 'include' as RequestCredentials,
     });
     if (resp.status === 401) {
       localStorage.removeItem('user');
@@ -322,8 +324,9 @@ export const api = {
 
   logout: async () => {
     // Backend implements POST /logout (Flask @app.route('/logout', methods=['POST'])).
-    // Use sendBeacon on web and best-effort fetch on RN; clear local session regardless.
-    try { await fetch(API_BASE + '/logout', { method: 'POST' }); } catch {}
+    // credentials: 'include' so the server can actually clear the session cookie.
+    // Best-effort: if the network call fails, still clear the local marker.
+    try { await fetch(API_BASE + '/logout', { method: 'POST', credentials: 'include' as RequestCredentials }); } catch {}
     localStorage.removeItem('user');
   },
 };
