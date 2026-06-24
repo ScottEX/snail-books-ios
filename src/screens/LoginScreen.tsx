@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, ImageBackground, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ImageBackground, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
-import { t, setLang, getLang, langs } from '../i18n';
+import { t, getLang, langs, useLang } from '../i18n';
 import { api } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
@@ -23,9 +23,22 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [code, setCode] = useState('');
   const [msg, setMsg] = useState('');
   const [msgOk, setMsgOk] = useState(false);
-  const [lang, setLangState] = useState(getLang());
+  // Per-user avatar/background. Mirrors the web LoginScreen so typing
+  // a known username instantly swaps the logo and the full-screen bg.
+  // bgUrl/avatarUrl are data URIs (RN has no Blob/Object URL).
+  const [bgUrl, setBgUrl] = useState<string>(() => {
+    try { return localStorage.getItem('bg-image') || ''; } catch { return ''; }
+  });
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
+  // Use the LangProvider hook so the lang state and t() output stay
+  // in sync within a single React render — using the legacy setLang
+  // here updates globalThis.curLang synchronously but doesn't trigger
+  // a React re-render, causing a brief "EN text but old active tab"
+  // flicker between the two state updates.
+  const { lang, setLang } = useLang();
   const [resendCooldown, setResendCooldown] = useState(0);
   const [shake, setShake] = useState(false);
+  const shakeAnim = useRef(new Animated.Value(0)).current;
   const [showPw, setShowPw] = useState(false);
   const [showPw2, setShowPw2] = useState(false);
   const [showPwNew, setShowPwNew] = useState(false);
@@ -42,6 +55,37 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       if (localStorage.getItem('user')) onLogin();
     }
   }, []);
+
+  // Debounced fetch of per-user avatar + background. Mirrors the web
+  // LoginScreen: typing a known username/email swaps the logo and the
+  // full-screen background after ~400ms of no further input. We
+  // short-circuit when the input is empty or just whitespace, and we
+  // drop the response if the user has since continued typing (race-safe).
+  const userReqId = useRef(0);
+  useEffect(() => {
+    const id = username.trim();
+    if (!id) {
+      setAvatarUrl('');
+      // Don't clear bgUrl here — localStorage's cached bg (or the
+      // default bundled bg) should remain until we know the user
+      // explicitly wants no bg. Matches web.
+      return;
+    }
+    const reqId = ++userReqId.current;
+    const timer = setTimeout(async () => {
+      const [avatar, bg] = await Promise.all([
+        api.getUserAvatarByLoginUri(id).catch(() => null),
+        api.getUserBackgroundUri(id).catch(() => null),
+      ]);
+      if (reqId !== userReqId.current) return; // a newer request superseded us
+      if (avatar) setAvatarUrl(avatar);
+      if (bg) {
+        setBgUrl(bg);
+        try { localStorage.setItem('bg-image', bg); } catch {}
+      }
+    }, 400);
+    return () => { clearTimeout(timer); };
+  }, [username]);
 
   const reset = () => { setMsg(''); setMsgOk(false); setDevCode(''); };
   const goLogin = () => {
@@ -70,7 +114,15 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   };
 
   const triggerShake = () => {
-    setShake(true); setTimeout(() => setShake(false), 400);
+    setShake(true);
+    shakeAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: 10, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -10, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 8, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -8, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 60, useNativeDriver: true }),
+    ]).start(() => setShake(false));
   };
 
   const handleLogin = async () => {
@@ -187,13 +239,13 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     }, 1000);
   };
 
-  const switchLang = (l: string) => { setLang(l); setLangState(l); };
+  const switchLang = (l: string) => { setLang(l); };
 
   const styles = useMemo(() => getStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
 
   return (
-    <ImageBackground source={BG_IMAGE} style={styles.container} resizeMode="cover">
+    <ImageBackground source={bgUrl ? { uri: bgUrl } : BG_IMAGE} style={styles.container} resizeMode="cover">
       <View style={styles.bgOverlay} />
       <KeyboardAvoidingView
         style={styles.flex}
@@ -208,7 +260,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
           {/* Brand */}
           <View style={styles.brand}>
             <View style={styles.logoWrap}>
-              <Image source={LOGO_IMAGE} style={styles.logo} resizeMode="cover" />
+              <Image source={avatarUrl ? { uri: avatarUrl } : LOGO_IMAGE} style={{ width: 80, height: 80, borderRadius: 40 }} resizeMode="cover" />
             </View>
             <Text style={styles.subtitle}>{t('subtitle')}</Text>
             <View style={styles.langRow}>
@@ -221,7 +273,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
           </View>
 
           {/* Glass Card */}
-          <View style={[styles.glassCard, shake && styles.shake]}>
+          <Animated.View style={[styles.glassCard, shake && { transform: [{ translateX: shakeAnim }] }]}>
             {msg ? (
               <View style={[styles.msgBox, msgOk ? styles.msgOk : styles.msgErr]}>
                 <Text style={[styles.msgText, msgOk ? styles.msgOkText : styles.msgErrText]}>{msg}</Text>
@@ -244,17 +296,17 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('username')}</Text>
                   <TextInput style={styles.textInput} value={username} onChangeText={setUsername}
-                    placeholder={t('loginPlaceholder') || '用户名 / 邮箱'} placeholderTextColor="rgba(255,255,255,0.55)"
+                    placeholder={t('loginPlaceholder') || '用户名 / 邮箱'} placeholderTextColor="rgba(255,255,255,0.4)"
                     onSubmitEditing={handleLogin} autoCapitalize="none" />
                 </View>
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('password')}</Text>
                   <View style={styles.pwWrap}>
                     <TextInput style={styles.pwInput} value={password} onChangeText={setPassword}
-                      placeholder={t('password')} placeholderTextColor="rgba(255,255,255,0.55)"
+                      placeholder={t('password')} placeholderTextColor="rgba(255,255,255,0.4)"
                       secureTextEntry={!showPw} onSubmitEditing={handleLogin} />
                     <TouchableOpacity style={styles.pwEye} onPress={() => setShowPw(!showPw)}>
-                      <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                      <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
                         {showPw ? (
                           <>
                             <Path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
@@ -294,12 +346,12 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('username')}</Text>
                   <TextInput style={styles.textInput} value={username} onChangeText={setUsername}
-                    placeholder={t('username')} placeholderTextColor="rgba(255,255,255,0.55)" autoCapitalize="none" />
+                    placeholder={t('username')} placeholderTextColor="rgba(255,255,255,0.4)" autoCapitalize="none" />
                 </View>
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('email') || 'Email'}</Text>
                   <TextInput style={styles.textInput} value={email} onChangeText={setEmail}
-                    placeholder={t('email') || 'Email'} placeholderTextColor="rgba(255,255,255,0.55)" keyboardType="email-address" autoCapitalize="none" />
+                    placeholder={t('email') || 'Email'} placeholderTextColor="rgba(255,255,255,0.4)" keyboardType="email-address" autoCapitalize="none" />
                 </View>
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>
@@ -308,9 +360,9 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   </Text>
                   <View style={styles.pwWrap}>
                     <TextInput style={styles.pwInput} value={password} onChangeText={setPassword}
-                      placeholder={t('password')} placeholderTextColor="rgba(255,255,255,0.55)" secureTextEntry={!showPw} />
+                      placeholder={t('password')} placeholderTextColor="rgba(255,255,255,0.4)" secureTextEntry={!showPw} />
                     <TouchableOpacity style={styles.pwEye} onPress={() => setShowPw(!showPw)}>
-                      <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                      <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
                         {showPw ? (
                           <>
                             <Path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
@@ -332,10 +384,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   <Text style={styles.fieldLabel}>{t('confirmPassword')}</Text>
                   <View style={styles.pwWrap}>
                     <TextInput style={styles.pwInput} value={password2} onChangeText={setPassword2}
-                      placeholder={t('confirmPassword')} placeholderTextColor="rgba(255,255,255,0.55)"
+                      placeholder={t('confirmPassword')} placeholderTextColor="rgba(255,255,255,0.4)"
                       secureTextEntry={!showPw2} onSubmitEditing={handleRegister} />
                     <TouchableOpacity style={styles.pwEye} onPress={() => setShowPw2(!showPw2)}>
-                      <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                      <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
                         {showPw2 ? (
                           <>
                             <Path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
@@ -364,8 +416,11 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
             {step === 'verify' && (
               <View style={styles.formSection}>
-                <Text style={styles.infoText}>
-                  {t('verifySent') || 'Code sent to'} <Text style={styles.infoStrong}>{email}</Text>
+                <Text style={styles.verifyTitle}>{t('verifyNewTitle') || '只差最后一步啦！✨'}</Text>
+                <Text style={styles.verifyBody}>
+                  {t('verifyNewBodyPre') || '欢迎加入柳味探秘科技！一封装有激活密码的邮件已经飞往您的邮箱：'}
+                  <Text style={styles.verifyEmail}>{email}</Text>
+                  {t('verifyNewBodyPost') || '。请前往查收并点击链接完成验证。'}
                 </Text>
                 {devCode !== '' && (
                   <View style={styles.devCodeCard}>
@@ -376,20 +431,25 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('verifyCode')}</Text>
                   <TextInput ref={codeRef} style={[styles.textInput, styles.codeInput]} maxLength={6} value={code} onChangeText={setCode}
-                    placeholder={t('verifyCode')} placeholderTextColor="rgba(255,255,255,0.55)"
+                    placeholder={t('verifyCode')} placeholderTextColor="rgba(255,255,255,0.4)"
                     keyboardType="number-pad" onSubmitEditing={handleVerify} autoFocus />
                 </View>
                 <TouchableOpacity onPress={handleVerify} style={styles.btnRed} disabled={loading}>
                   <Text style={styles.btnRedText}>{loading ? '...' : t('verifyBtn')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={handleResend} disabled={resendCooldown > 0}>
-                  <Text style={[styles.forgotText, resendCooldown > 0 && styles.disabledText]}>
-                    {resendCooldown > 0 ? `${resendCooldown}s` : t('resendCode')}
+                <Text style={styles.verifyHint}>
+                  {t('verifyNewNoEmail') || '一直没收到？别着急，您可以 '}
+                  <Text style={styles.verifyLink} onPress={resendCooldown > 0 ? undefined : handleResend}>
+                    {resendCooldown > 0 ? `${resendCooldown}s` : t('verifyNewResend') || '重新发送'}
                   </Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={goLogin}>
-                  <Text style={styles.forgotText}>{t('backToLogin')}</Text>
-                </TouchableOpacity>
+                  {t('verifyNewOrSpam') || ' 或检查一下垃圾箱。'}
+                </Text>
+                <Text style={styles.verifyHint}>
+                  {t('verifyNewWrongEmail') || '填错邮箱了？'}
+                  <Text style={styles.verifyLink} onPress={() => { setStep('register'); reset(); }}>
+                    {t('verifyNewEditEmail') || '修改邮箱地址'}
+                  </Text>
+                </Text>
               </View>
             )}
 
@@ -399,7 +459,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('email') || 'Email'}</Text>
                   <TextInput style={styles.textInput} value={email} onChangeText={setEmail}
-                    placeholder="Email" placeholderTextColor="rgba(255,255,255,0.55)"
+                    placeholder="Email" placeholderTextColor="rgba(255,255,255,0.4)"
                     keyboardType="email-address" onSubmitEditing={handleForgot} autoCapitalize="none" />
                 </View>
                 <TouchableOpacity onPress={handleForgot} style={styles.btnDark} disabled={loading}>
@@ -425,15 +485,15 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('verifyCode')}</Text>
                   <TextInput ref={codeRef} style={[styles.textInput, styles.codeInput]} maxLength={6} value={code} onChangeText={setCode}
-                    placeholder={t('verifyCode')} placeholderTextColor="rgba(255,255,255,0.55)" keyboardType="number-pad" autoFocus />
+                    placeholder={t('verifyCode')} placeholderTextColor="rgba(255,255,255,0.4)" keyboardType="number-pad" autoFocus />
                 </View>
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('newPassword')}</Text>
                   <View style={styles.pwWrap}>
                     <TextInput style={styles.pwInput} value={password} onChangeText={setPassword}
-                      placeholder={t('newPassword')} placeholderTextColor="rgba(255,255,255,0.55)" secureTextEntry={!showPwNew} />
+                      placeholder={t('newPassword')} placeholderTextColor="rgba(255,255,255,0.4)" secureTextEntry={!showPwNew} />
                     <TouchableOpacity style={styles.pwEye} onPress={() => setShowPwNew(!showPwNew)}>
-                      <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                      <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
                         {showPwNew ? (
                           <>
                             <Path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
@@ -460,91 +520,103 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
               </View>
             )}
 
-            <Text style={styles.copyright}>© 2026 柳味探秘 · 螺蛳粉 · 经营查询</Text>
-          </View>
+            <Text style={styles.copyright}>{t('copyright') || '© 2026 柳味探秘 · 经营查询 · 版权所有'}</Text>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
     </ImageBackground>
   );
 }
 
+// iOS glass colors — match web/src/screens/LoginScreen.tsx so the
+// login form looks identical on both platforms. iOS lacks
+// backdrop-filter, so the "glass" effect is faked with a low-opacity
+// white tint plus a stronger dark overlay so the bg still reads
+// through. Text on the glass uses light rgba whites (matching web).
+const GLASS_BG = 'rgba(255,255,255,0.10)';
+const GLASS_BG_STRONG = 'rgba(255,255,255,0.20)';
+const GLASS_BORDER = 'rgba(255,255,255,0.18)';
+
 const getStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: { flex: 1 },
   container: { flex: 1 },
-  bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)' },
+  bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.55)' },
   content: { flex: 1, width: '100%' },
   contentScroll: { padding: 20, paddingTop: 32, paddingBottom: 40, maxWidth: 380, width: '100%', alignSelf: 'center' },
   brand: { alignItems: 'center', marginBottom: 32 },
   logoWrap: {
-    width: 56, height: 56, borderRadius: 16, overflow: 'hidden', marginBottom: 20,
+    width: 80, height: 80, borderRadius: 40, overflow: 'hidden', marginBottom: 20,
   },
-  logo: { width: 56, height: 56, borderRadius: 16 },
-  subtitle: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.6)', marginTop: 6, letterSpacing: 1 },
+  subtitle: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.7)', marginTop: 6, letterSpacing: 1 },
   langRow: { flexDirection: 'row', gap: 4, marginTop: 12 },
   langBtn: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.4)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   langActive: { color: colors.surface, backgroundColor: 'rgba(255,255,255,0.15)' },
   glassCard: {
-    backgroundColor: 'rgba(20,20,20,0.55)',
+    backgroundColor: GLASS_BG,
     borderRadius: 16, padding: 28, gap: 8,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1, borderColor: GLASS_BORDER,
   },
-  shake: {},
-  msgBox: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 8 },
-  msgOk: { backgroundColor: withAlpha(colors.success, 0.3) },
-  msgErr: { backgroundColor: withAlpha(colors.danger, 0.12) },
+  msgBox: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16 },
+  msgOk: { backgroundColor: withAlpha(colors.success, 0.85) },
+  msgErr: { backgroundColor: withAlpha(colors.danger, 0.85) },
   msgText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight },
   msgOkText: { color: colors.surface },
-  msgErrText: { color: colors.danger },
+  msgErrText: { color: colors.surface },
   tabRow: {
-    flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 12, padding: 4, marginBottom: 8,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
+    flexDirection: 'row', backgroundColor: GLASS_BG, borderRadius: 12, padding: 4, marginBottom: 16,
+    borderWidth: 1, borderColor: GLASS_BORDER,
   },
   tabBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center' },
-  tabActive: { backgroundColor: 'rgba(255,255,255,0.15)' },
+  tabActive: { backgroundColor: GLASS_BG_STRONG },
   tabText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.65)' },
   tabActiveText: { color: colors.surface },
   formSection: { gap: 12, marginTop: 4 },
   fieldWrap: { gap: 6 },
   fieldLabel: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.6)' },
-  hintText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.3)' },
+  hintText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.4)' },
   pwWrap: { position: 'relative' },
   pwInput: {
-    backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12,
+    backgroundColor: GLASS_BG, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12,
     paddingRight: 44, fontSize: FONTS.body.size, color: colors.surface,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1, borderColor: GLASS_BORDER,
   },
   pwEye: {
     position: 'absolute', right: 0, top: 0, bottom: 0,
     paddingHorizontal: 14, justifyContent: 'center', alignItems: 'center',
   },
   textInput: {
-    backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12,
+    backgroundColor: GLASS_BG, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12,
     fontSize: FONTS.body.size, color: colors.surface,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1, borderColor: GLASS_BORDER,
   },
   codeInput: { textAlign: 'center', letterSpacing: 6 },
   btnDark: {
-    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 8,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 12,
+    borderWidth: 1, borderColor: GLASS_BORDER,
   },
   btnDarkText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.surface, letterSpacing: 1 },
   btnRed: {
     backgroundColor: withAlpha(colors.primary, 0.85), borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 8,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1, borderColor: GLASS_BORDER,
   },
   btnRedText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.surface, letterSpacing: 1 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   checkbox: {
     width: 16, height: 16, borderRadius: 4, borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.4)', justifyContent: 'center', alignItems: 'center',
+    borderColor: 'rgba(255,255,255,0.5)', justifyContent: 'center', alignItems: 'center',
   },
   checkmark: { fontSize: FONTS.micro.size, color: colors.surface, fontWeight: '700' },
-  rememberText: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.5)' },
-  forgotText: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginTop: 8 },
+  rememberText: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.6)' },
+  forgotText: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: 8 },
   disabledText: { opacity: 0.3 },
   infoText: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 20 },
   infoStrong: { fontWeight: FONTS.subBold.weight, color: colors.surface },
+  verifyTitle: { fontSize: FONTS.sub.size, fontWeight: FONTS.subBold.weight, color: colors.surface, textAlign: 'center', marginBottom: 12 },
+  verifyBody: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 20 },
+  verifyEmail: { fontWeight: FONTS.subBold.weight, color: colors.surface },
+  verifyHint: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.45)', textAlign: 'center', lineHeight: 18 },
+  verifyLink: { color: colors.primary, fontWeight: FONTS.micro.weight },
   devCodeCard: {
     backgroundColor: withAlpha(colors.warning, 0.15), borderRadius: 12, padding: 16,
     alignItems: 'center', borderWidth: 1, borderColor: withAlpha(colors.warning, 0.3),
