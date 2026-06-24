@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, ImageBackground, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ImageBackground, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
 import { t, getLang, langs, useLang } from '../i18n';
@@ -615,7 +615,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                       </View>
                     </View>
                     <TouchableOpacity onPress={handleLogin} style={styles.btnDark} disabled={loading}>
-                      <Text style={styles.btnDarkText}>{loading ? '...' : t('loginBtn')}</Text>
+                      <Text style={styles.btnDarkText}>{loading ? <ActivityIndicator size="small" color={colors.surface} /> : t('loginBtn')}</Text>
                     </TouchableOpacity>
                     {/* Face ID entry link — only shown when biometric is
                         available AND the typed username has any WebAuthn
@@ -730,7 +730,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   </View>
                 </View>
                 <TouchableOpacity onPress={handleRegister} style={styles.btnDark} disabled={loading}>
-                  <Text style={styles.btnDarkText}>{loading ? '...' : t('registerBtn')}</Text>
+                  <Text style={styles.btnDarkText}>{loading ? <ActivityIndicator size="small" color={colors.surface} /> : t('registerBtn')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={goLogin}>
                   <Text style={styles.forgotText}>{t('backToLogin')}</Text>
@@ -763,7 +763,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   style={[styles.btnRed, (!code || loading) && styles.btnDisabled]}
                   disabled={!code || loading}
                 >
-                  <Text style={styles.btnRedText}>{loading ? '...' : t('verifyBtn')}</Text>
+                  <Text style={styles.btnRedText}>{loading ? <ActivityIndicator size="small" color={colors.surface} /> : t('verifyBtn')}</Text>
                 </TouchableOpacity>
                 <Text style={styles.verifyHint}>
                   {t('verifyNewNoEmail') || '一直没收到？别着急，您可以 '}
@@ -791,7 +791,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                     keyboardType="email-address" onSubmitEditing={handleForgot} autoCapitalize="none" />
                 </View>
                 <TouchableOpacity onPress={handleForgot} style={styles.btnDark} disabled={loading}>
-                  <Text style={styles.btnDarkText}>{loading ? '...' : t('forgotSendBtn') || 'Send Code'}</Text>
+                  <Text style={styles.btnDarkText}>{loading ? <ActivityIndicator size="small" color={colors.surface} /> : t('forgotSendBtn') || 'Send Code'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={goLogin}>
                   <Text style={styles.forgotText}>{t('backToLogin')}</Text>
@@ -840,7 +840,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   </View>
                 </View>
                 <TouchableOpacity onPress={handleReset} style={styles.btnRed} disabled={loading}>
-                  <Text style={styles.btnRedText}>{loading ? '...' : t('resetBtn')}</Text>
+                  <Text style={styles.btnRedText}>{loading ? <ActivityIndicator size="small" color={colors.surface} /> : t('resetBtn')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={goLogin}>
                   <Text style={styles.forgotText}>{t('backToLogin')}</Text>
