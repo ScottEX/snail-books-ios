@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, ImageBackground, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ImageBackground, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
 import { t, getLang, langs, useLang } from '../i18n';
@@ -7,6 +7,7 @@ import { api } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import { BlurView } from 'expo-blur';
+import SubmitButton from '../components/SubmitButton';
 import { getWebAuthnBound, setWebAuthnBound, clearWebAuthn } from '../utils/storage';
 import {
   isBiometricAvailable, promptBiometric, saveCredential, getCredential,
@@ -614,9 +615,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                         </TouchableOpacity>
                       </View>
                     </View>
-                    <TouchableOpacity onPress={handleLogin} style={styles.btnDark} disabled={loading}>
-                      <Text style={styles.btnDarkText}>{loading ? <ActivityIndicator size="small" color={colors.surface} /> : t('loginBtn')}</Text>
-                    </TouchableOpacity>
+                    <SubmitButton onPress={handleLogin} loading={loading} label={t('loginBtn')} style={styles.btnDark} textStyle={styles.btnDarkText} />
                     {/* Face ID entry link — only shown when biometric is
                         available AND the typed username has any WebAuthn
                         credential bound server-side. */}
@@ -729,9 +728,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                     </TouchableOpacity>
                   </View>
                 </View>
-                <TouchableOpacity onPress={handleRegister} style={styles.btnDark} disabled={loading}>
-                  <Text style={styles.btnDarkText}>{loading ? <ActivityIndicator size="small" color={colors.surface} /> : t('registerBtn')}</Text>
-                </TouchableOpacity>
+                <SubmitButton onPress={handleRegister} loading={loading} label={t('registerBtn')} style={styles.btnDark} textStyle={styles.btnDarkText} />
                 <TouchableOpacity onPress={goLogin}>
                   <Text style={styles.forgotText}>{t('backToLogin')}</Text>
                 </TouchableOpacity>
@@ -758,13 +755,14 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                     placeholder={t('verifyCode')} placeholderTextColor="rgba(255,255,255,0.4)"
                     keyboardType="number-pad" onSubmitEditing={handleVerify} autoFocus />
                 </View>
-                <TouchableOpacity
+                <SubmitButton
                   onPress={handleVerify}
-                  style={[styles.btnRed, (!code || loading) && styles.btnDisabled]}
-                  disabled={!code || loading}
-                >
-                  <Text style={styles.btnRedText}>{loading ? <ActivityIndicator size="small" color={colors.surface} /> : t('verifyBtn')}</Text>
-                </TouchableOpacity>
+                  loading={loading}
+                  disabled={!code}
+                  label={t('verifyBtn')}
+                  style={[styles.btnRed, !code && styles.btnDisabled]}
+                  textStyle={styles.btnRedText}
+                />
                 <Text style={styles.verifyHint}>
                   {t('verifyNewNoEmail') || '一直没收到？别着急，您可以 '}
                   <Text style={styles.verifyLink} onPress={resendCooldown > 0 ? undefined : handleResend}>
@@ -790,9 +788,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                     placeholder="Email" placeholderTextColor="rgba(255,255,255,0.4)"
                     keyboardType="email-address" onSubmitEditing={handleForgot} autoCapitalize="none" />
                 </View>
-                <TouchableOpacity onPress={handleForgot} style={styles.btnDark} disabled={loading}>
-                  <Text style={styles.btnDarkText}>{loading ? <ActivityIndicator size="small" color={colors.surface} /> : t('forgotSendBtn') || 'Send Code'}</Text>
-                </TouchableOpacity>
+                <SubmitButton onPress={handleForgot} loading={loading} label={t('forgotSendBtn') || 'Send Code'} style={styles.btnDark} textStyle={styles.btnDarkText} />
                 <TouchableOpacity onPress={goLogin}>
                   <Text style={styles.forgotText}>{t('backToLogin')}</Text>
                 </TouchableOpacity>
@@ -839,9 +835,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                     </TouchableOpacity>
                   </View>
                 </View>
-                <TouchableOpacity onPress={handleReset} style={styles.btnRed} disabled={loading}>
-                  <Text style={styles.btnRedText}>{loading ? <ActivityIndicator size="small" color={colors.surface} /> : t('resetBtn')}</Text>
-                </TouchableOpacity>
+                <SubmitButton onPress={handleReset} loading={loading} label={t('resetBtn')} style={styles.btnRed} textStyle={styles.btnRedText} />
                 <TouchableOpacity onPress={goLogin}>
                   <Text style={styles.forgotText}>{t('backToLogin')}</Text>
                 </TouchableOpacity>
