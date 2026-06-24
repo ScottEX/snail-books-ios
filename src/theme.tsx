@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { api } from './api/client';
+import { getCurrentUserId } from './utils/storage';
 
 // ═══════════════════════════════════════════
 // 三方案主题色值定义
@@ -28,27 +29,55 @@ export interface ThemeColors {
   danger: string;
   /** 信息 */
   info: string;
+  /** 底部导航选中态图标颜色 — 柔和的主题色调，非 primary */
+  navActiveColor: string;
 }
 
 export interface Theme {
   id: string;
   name: string;
   nameZh: string;
+  nameTw: string;
+  nameEn: string;
   description: string;
+  descZh: string;
+  descTw: string;
+  descEn: string;
   colors: ThemeColors;
 }
+
+// ═══════════════════════════════════════════
+// 页面动画常量（统一控制，一处改全局生效）
+// ═══════════════════════════════════════════
+export const ENTER_DURATION = 380;
+export const EXIT_DURATION = 350;
+export const ENTER_EASING = 'cubic-bezier(0.215, 0.61, 0.355, 1)';
+export const EXIT_EASING = 'cubic-bezier(0.55, 0.055, 0.675, 0.19)';
+
+// ═══════════════════════════════════════════
+// 弹窗遮罩常量（统一控制，PDF 预览页除外）
+// ═══════════════════════════════════════════
+export const MODAL_BACKDROP_OPACITY = 0.8;
+
+/** Required indicator (*) color — same across all themes */
+export const REQUIRED_COLOR = '#E84040';
 
 // ─── 方案一：勃艮第红与暖沙白 ───
 const theme1: Theme = {
   id: 'burgundy-warm',
   name: 'Burgundy & Warm Sand',
   nameZh: '勃艮第红与暖沙白',
+  nameTw: '勃艮第紅與暖沙白',
+  nameEn: 'Burgundy & Warm Sand',
   description: '温润、沉稳、经典',
+  descZh: '温润、沉稳、经典',
+  descTw: '溫潤、沈穩、經典',
+  descEn: 'Warm, Steady, Classic',
   colors: {
     bg: '#F9F7F4',
     surface: '#FFFFFF',
     primary: '#7D2329',
-    accent: '#7D2329',
+    accent: '#EAE5E0',
     secondary: '#EAE5E0',
     textMain: '#2C2626',
     textSub: '#8C8583',
@@ -56,6 +85,7 @@ const theme1: Theme = {
     warning: '#D59A53',
     danger: '#B34149',
     info: '#4A7299',
+    navActiveColor: '#D4918A',
   },
 };
 
@@ -64,12 +94,17 @@ const theme2: Theme = {
   id: 'obsidian-gold',
   name: 'Obsidian & Gold',
   nameZh: '曜石黑与流沙金',
+  nameTw: '曜石黑與流沙金',
+  nameEn: 'Obsidian & Gold',
   description: '极简、冷峻、绝对专业',
+  descZh: '极简、冷峻、绝对专业',
+  descTw: '極簡、冷峻、絕對專業',
+  descEn: 'Minimal, Crisp, Professional',
   colors: {
     bg: '#F3F4F6',
     surface: '#FFFFFF',
-    primary: '#171A1F',
-    accent: '#C5A880',
+    primary: '#C5A880',
+    accent: '#171A1F',
     secondary: '#E5E7EB',
     textMain: '#111827',
     textSub: '#6B7280',
@@ -77,6 +112,7 @@ const theme2: Theme = {
     warning: '#D59A53',
     danger: '#B34149',
     info: '#4A7299',
+    navActiveColor: '#C5A880',
   },
 };
 
@@ -85,12 +121,17 @@ const theme3: Theme = {
   id: 'deep-teal',
   name: 'Deep Teal & Oat',
   nameZh: '深空青与燕麦色',
+  nameTw: '深空青與燕麥色',
+  nameEn: 'Deep Teal & Oat',
   description: '现代、清新、克制',
+  descZh: '现代、清新、克制',
+  descTw: '現代、清新、克制',
+  descEn: 'Modern, Fresh, Restrained',
   colors: {
     bg: '#F4F5F4',
     surface: '#FFFFFF',
     primary: '#2A4B4B',
-    accent: '#2A4B4B',
+    accent: '#D4C5B2',
     secondary: '#E1E5E4',
     textMain: '#1B2626',
     textSub: '#738080',
@@ -98,6 +139,7 @@ const theme3: Theme = {
     warning: '#D59A53',
     danger: '#B34149',
     info: '#4A7299',
+    navActiveColor: '#3AB8C8',
   },
 };
 
@@ -108,7 +150,15 @@ export const THEMES: Record<string, Theme> = {
 };
 
 export const DEFAULT_THEME_ID = 'burgundy-warm';
-export const THEME_STORAGE_KEY = 'snail-books-theme';
+
+export function getThemeKey(): string {
+  try {
+    const uid = getCurrentUserId();
+    return uid ? `snail-books-theme-${uid}` : 'snail-books-theme';
+  } catch {
+    return 'snail-books-theme';
+  }
+}
 
 /**
  * Convert hex color to rgba string.
@@ -164,7 +214,7 @@ const ThemeContext = createContext<ThemeContextValue>({
 export function ThemeProvider({ children }: { children: React.ReactNode }): React.ReactNode {
   const [theme, setThemeState] = useState<Theme>(() => {
     try {
-      const stored = localStorage.getItem(THEME_STORAGE_KEY);
+      const stored = localStorage.getItem(getThemeKey());
       if (stored && THEMES[stored]) return THEMES[stored];
     } catch {}
     return theme1;
@@ -174,24 +224,24 @@ export function ThemeProvider({ children }: { children: React.ReactNode }): Reac
     const t = THEMES[themeId];
     if (!t) return;
     setThemeState(t);
-    try { localStorage.setItem(THEME_STORAGE_KEY, themeId); } catch {}
-    // Fire-and-forget sync to server (don't block UI)
+    try { localStorage.setItem(getThemeKey(), themeId); } catch {}
     api.saveTheme(themeId).catch(() => {});
   }, []);
 
-  // On mount, pull theme from server (per-user). If not logged in yet, keep localStorage value.
   useEffect(() => {
+    // Short-circuit when no user — avoids 401 → app:user-change → remount loop
+    if (typeof localStorage === 'undefined' || !localStorage.getItem('user')) {
+      return;
+    }
     let cancelled = false;
     api.getTheme().then(resp => {
       if (cancelled) return;
       const serverThemeId = (resp as any)?.theme;
       if (serverThemeId && THEMES[serverThemeId]) {
         setThemeState(THEMES[serverThemeId]);
-        try { localStorage.setItem(THEME_STORAGE_KEY, serverThemeId); } catch {}
+        try { localStorage.setItem(getThemeKey(), serverThemeId); } catch {}
       }
-    }).catch(() => {
-      // Not logged in or network error — keep current (localStorage) theme
-    });
+    }).catch(() => {});
     return () => { cancelled = true; };
   }, []);
 

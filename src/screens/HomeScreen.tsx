@@ -461,29 +461,6 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             </View>
             <View style={styles.headerRight}>
               <TouchableOpacity
-                onPress={() => openModal(() => setShowProfile(true))}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                style={styles.headerBtn}
-              >
-                <Text style={styles.headerLink}>{t('editProfile')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => openModal(() => setShowInvoice({ filterBatchId: null }))}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                style={styles.headerBtn}
-              >
-                <Text style={styles.headerLink}>{t('invCenter')}</Text>
-              </TouchableOpacity>
-              {isAdmin && (
-                <TouchableOpacity
-                  onPress={() => openModal(() => setShowUserMgmt(true))}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                  style={styles.headerBtn}
-                >
-                  <Text style={styles.headerLink}>{t('userMgmt')}</Text>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity
                 onPress={() => openModal(() => setShowBgModal(true))}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 style={styles.headerBtn}
@@ -569,7 +546,10 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             <View style={styles.bottomNavInsetTop} pointerEvents="none" />
             {NAV_ITEMS.map(({ id, labelKey, icon }, i) => {
               const active = tab === id;
-              const c = active ? colors.textMain : colors.textSub;
+              // Active icon colour matches web's NavIcon* helpers —
+              // colors.navActiveColor (per-theme soft tint) for active,
+              // not colors.textMain which was too high-contrast.
+              const c = active ? colors.navActiveColor : colors.textSub;
               return (
                 <TouchableOpacity
                   key={id}
@@ -1082,9 +1062,13 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 function IconAdd({ c }: { c: string }) {
+  // Wallet — port of web's NavIconExpense (web/src/screens/HomeScreen.tsx
+  // NavIconExpense). The previous Plus-sign icon didn't match web.
   return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={2} strokeLinecap="round">
-      <Path d="M12 5v14M5 12h14" />
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M20 12V8H6a2 2 0 010-4h12v4" />
+      <Path d="M4 6v12a2 2 0 002 2h14v-4" />
+      <Path d="M18 12a2 2 0 100 4h4v-4h-4z" />
     </Svg>
   );
 }
