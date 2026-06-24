@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet, TextInput,
-  Animated, ImageBackground, ActivityIndicator,
+  Animated, ImageBackground, Image, ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle } from 'react-native-svg';
-import { t, setLang, getLang, langs } from '../i18n';
+import { BlurView } from 'expo-blur';
+import { t, getLang, langs, useLang } from '../i18n';
 import { api } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
@@ -19,9 +20,17 @@ import ExpenseScreen from './ExpenseScreen';
 import ReconHistoryScreen from './ReconHistoryScreen';
 import ExpenseHistoryScreen from './ExpenseHistoryScreen';
 import DailyRevenueHistory from './DailyRevenueHistory';
+import ProfileScreen from './ProfileScreen';
+import UserManagementScreen from './UserManagementScreen';
+import UserDetailScreen from './UserDetailScreen';
+import InvoiceScreen from './InvoiceScreen';
+import ProcurementDetailScreen from './ProcurementDetailScreen';
+import ExpenseDetailScreen from './ExpenseDetailScreen';
+import PdfPreviewPage from './PdfPreviewPage';
 import { modalCardAnimation, modalClose } from '../sharedStyles';
 
 const BG_IMAGE = require('../../assets/img/bg.jpg');
+const LOGO_IMAGE = require('../../assets/img/logo.jpg');
 
 type Tab = 'list' | 'expense' | 'supply' | 'chart' | 'partner';
 
@@ -56,8 +65,30 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const setTab = (t: Tab) => { setTabState(t); try { localStorage.setItem('active_tab', t); } catch {} };
 
   // ── User / lang ──
-  const [lang, setLangState] = useState(getLang());
+  // Use useLang() so the lang state and t() output stay in sync within a
+  // single React render — the legacy setLang + setLangState pair updates
+  // globalThis.curLang synchronously but doesn't trigger a React re-render
+  // on its own, causing a brief flash of mismatched state.
+  const { lang, setLang } = useLang();
   const usr = useMemo(() => { try { return localStorage.getItem('user') || '用户'; } catch { return '用户'; } }, []);
+  // Per-user avatar for the header. Mirrors web's headerLeft avatar.
+  // Mirrors LoginScreen's debounced fetch so the API isn't hit on every
+  // keystroke / re-render. Uses credentials: 'omit' so a missing user
+  // doesn't trigger session_expired.
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
+  const avatarReqId = useRef(0);
+  useEffect(() => {
+    const id = (usr || '').trim();
+    if (!id) { setAvatarUrl(''); return; }
+    const reqId = ++avatarReqId.current;
+    const timer = setTimeout(async () => {
+      try {
+        const url = await api.getUserAvatarByLoginUri(id);
+        if (reqId === avatarReqId.current && url) setAvatarUrl(url);
+      } catch {}
+    }, 300);
+    return () => { clearTimeout(timer); };
+  }, [usr]);
 
   // ── Background image (state-driven so user-picked image is displayed) ──
   const [bgImageUri, setBgImageUri] = useState<string | null>(null);
@@ -120,11 +151,21 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const [showReconHistory, setShowReconHistory] = useState(false);
   const [showExpenseHistory, setShowExpenseHistory] = useState(false);
   const [showDailyHistory, setShowDailyHistory] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showUserMgmt, setShowUserMgmt] = useState(false);
+  const [showUserDetail, setShowUserDetail] = useState<any | null>(null);
+  const [showInvoice, setShowInvoice] = useState<{ filterBatchId?: number | null } | null>(null);
+  const [showProcurementDetail, setShowProcurementDetail] = useState<any | null>(null);
+  const [showExpenseDetail, setShowExpenseDetail] = useState<any | null>(null);
+  const [showPdfPreview, setShowPdfPreview] = useState<{ id: number; number: number } | null>(null);
+  const [expenseRefreshKey, setExpenseRefreshKey] = useState(0);
+  const [userRefreshKey, setUserRefreshKey] = useState(0);
 
   // ── Data state for chart / supply / partner ──
   const [chart, setChart] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [procurements, setProcurements] = useState<any[]>([]);
+  const [businessSummary, setBusinessSummary] = useState<{ cash_on_hand?: number; cumulative_revenue?: number; cumulative_expense?: number }>({});
   const navScaleAnims = useRef([...Array(5)].map(() => new Animated.Value(1))).current;
 
   // ── Daily revenue state ──
@@ -139,6 +180,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const [revMonth] = useState(new Date().getMonth() + 1);
   const [revSaving, setRevSaving] = useState(false);
   const [editingRevId, setEditingRevId] = useState<number | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [last7Records, setLast7Records] = useState<any[]>([]);
   const [yesterdayRev, setYesterdayRev] = useState<any>(null);
   const [weekRev, setWeekRev] = useState<any>(null);
@@ -175,6 +217,12 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const loadChart = useCallback(async () => {
     try { const d: any = await api.getChart(); setChart(d || []); } catch { setToast(t('toastLoadFailed')); }
   }, []);
+  const loadBusinessSummary = useCallback(async () => {
+    try {
+      const r: any = await api.getBusinessSummary();
+      setBusinessSummary(r || {});
+    } catch { /* non-fatal: chart tab still works without summary */ }
+  }, []);
   const loadProducts = useCallback(async () => {
     try { const p: any = await api.getProducts(); setProducts(p || []); } catch { setToast(t('toastLoadFailed')); }
   }, []);
@@ -182,9 +230,16 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     try { const p: any = await api.getProcurements(); setProcurements(p || []); } catch { setToast(t('toastLoadFailed')); }
   }, []);
   useEffect(() => {
-    if (tab === 'chart') loadChart();
+    if (tab === 'chart') { loadChart(); loadBusinessSummary(); }
     if (tab === 'supply') { loadProducts(); loadProcurements(); }
-  }, [tab, loadChart, loadProducts, loadProcurements]);
+  }, [tab, loadChart, loadBusinessSummary, loadProducts, loadProcurements]);
+
+  // Check admin status (for User Management nav). Non-blocking — failure just means non-admin.
+  useEffect(() => {
+    api.admin.check().then((r: any) => {
+      if (r && (r.is_admin === true || r.admin === true)) setIsAdmin(true);
+    }).catch(() => {});
+  }, []);
 
   // ── Daily revenue submit ──
   const submitDailyRev = async () => {
@@ -222,7 +277,6 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const styles = useMemo(() => getStyles(colors), [colors]);
   const switchLang = (l: string) => {
     setLang(l);
-    setLangState(l);
     // Refetch any API-sourced labels that were captured at load time
     // (recorded_by, etc.) so they pick up the new language.
     loadLast7();
@@ -253,47 +307,142 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         {(onBack) => <ReconHistoryScreen onBack={onBack} />}
       </SlideScreen>
 
+      {/* Profile / Invoice / User Management slide-overs (full-page sub-screens) */}
+      <SlideScreen visible={showProfile} onClose={() => setShowProfile(false)}>
+        {(onBack) => (
+          <ProfileScreen
+            onBack={onBack}
+            onLogout={onLogout}
+            onManageUsers={() => { setShowProfile(false); setTimeout(() => setShowUserMgmt(true), 250); }}
+          />
+        )}
+      </SlideScreen>
+      <SlideScreen visible={!!showInvoice} onClose={() => setShowInvoice(null)}>
+        {(onBack) => <InvoiceScreen onBack={onBack} filterBatchId={showInvoice?.filterBatchId ?? null} />}
+      </SlideScreen>
+      <SlideScreen visible={showUserMgmt} onClose={() => setShowUserMgmt(false)}>
+        {(onBack) => <UserManagementScreen
+          key={userRefreshKey}
+          onBack={onBack}
+          onSelectUser={(u) => { setShowUserMgmt(false); setTimeout(() => setShowUserDetail(u), 250); }}
+        />}
+      </SlideScreen>
+      <SlideScreen visible={!!showUserDetail} onClose={() => setShowUserDetail(null)}>
+        {(onBack) => showUserDetail ? (
+          <UserDetailScreen
+            user={showUserDetail}
+            onBack={onBack}
+            onChanged={() => { setUserRefreshKey(k => k + 1); }}
+          />
+        ) : null}
+      </SlideScreen>
+      <SlideScreen visible={!!showProcurementDetail} onClose={() => setShowProcurementDetail(null)}>
+        {(onBack) => showProcurementDetail ? (
+          <ProcurementDetailScreen
+            batch={showProcurementDetail}
+            onBack={onBack}
+            onEdit={(b) => { setShowProcurementDetail(null); }}
+            onDelete={(b) => { setShowProcurementDetail(null); }}
+            onOpenInvoice={(batchId) => { setShowProcurementDetail(null); setTimeout(() => setShowInvoice({ filterBatchId: batchId }), 250); }}
+          />
+        ) : null}
+      </SlideScreen>
+      <SlideScreen visible={!!showExpenseDetail} onClose={() => setShowExpenseDetail(null)}>
+        {(onBack) => showExpenseDetail ? (
+          <ExpenseDetailScreen
+            expense={showExpenseDetail}
+            onBack={onBack}
+            onSaved={() => { setExpenseRefreshKey(k => k + 1); }}
+            onDeleted={() => { setShowExpenseDetail(null); setExpenseRefreshKey(k => k + 1); }}
+          />
+        ) : null}
+      </SlideScreen>
+      <SlideScreen visible={!!showPdfPreview} onClose={() => setShowPdfPreview(null)}>
+        {(onBack) => showPdfPreview ? (
+          <PdfPreviewPage
+            batchId={showPdfPreview.id}
+            invoiceNumber={showPdfPreview.number}
+            onBack={onBack}
+          />
+        ) : null}
+      </SlideScreen>
+
       <View style={[styles.root, { paddingTop: insets.top }]}>
+        {/* Header — fixed frosted-glass bar matching web (zIndex 200,
+            backdropFilter:blur(30px) achieved here via expo-blur). Sits
+            ABOVE the scrollable content so the avatar/user row stays
+            visible while the panels scroll under it. */}
         <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-              <Path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <Circle cx="12" cy="7" r="4" />
-            </Svg>
-            <Text style={styles.headerUser}>{usr}</Text>
-          </View>
-          <View style={styles.headerRight}>
-            <TouchableOpacity
-              onPress={() => openModal(() => setShowBgModal(true))}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              style={styles.headerBtn}
-            >
-              <Text style={styles.headerLink}>{t('bgSettings')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => openModal(() => setShowLogoutModal(true))}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              style={styles.headerBtn}
-            >
-              <Text style={styles.logoutBtn}>{t('logout')}</Text>
-            </TouchableOpacity>
-            <View style={styles.langRow}>
-              {langs.map(([l, label]) => (
+          <BlurView
+            intensity={70}
+            tint="systemUltraThinMaterialLight"
+            style={StyleSheet.absoluteFillObject}
+            pointerEvents="none"
+          />
+          <View style={styles.headerInner}>
+            <View style={styles.headerLeft}>
+              <Image
+                source={avatarUrl ? { uri: avatarUrl } : LOGO_IMAGE}
+                style={styles.headerAvatar}
+              />
+              <Text style={styles.headerUser}>{usr}</Text>
+            </View>
+            <View style={styles.headerRight}>
+              <TouchableOpacity
+                onPress={() => openModal(() => setShowProfile(true))}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={styles.headerBtn}
+              >
+                <Text style={styles.headerLink}>{t('editProfile')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => openModal(() => setShowInvoice({ filterBatchId: null }))}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={styles.headerBtn}
+              >
+                <Text style={styles.headerLink}>{t('invCenter')}</Text>
+              </TouchableOpacity>
+              {isAdmin && (
                 <TouchableOpacity
-                  key={l}
-                  onPress={() => switchLang(l)}
-                  hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
-                  style={styles.langBtnTouch}
+                  onPress={() => openModal(() => setShowUserMgmt(true))}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  style={styles.headerBtn}
                 >
-                  <Text style={[styles.langBtn, lang === l && styles.langActive]}>{label}</Text>
+                  <Text style={styles.headerLink}>{t('userMgmt')}</Text>
                 </TouchableOpacity>
-              ))}
+              )}
+              <TouchableOpacity
+                onPress={() => openModal(() => setShowBgModal(true))}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={styles.headerBtn}
+              >
+                <Text style={styles.headerLink}>{t('bgSettings')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => openModal(() => setShowLogoutModal(true))}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={styles.headerBtn}
+              >
+                <Text style={styles.logoutBtn}>{t('logout')}</Text>
+              </TouchableOpacity>
+              <View style={styles.langRow}>
+                {langs.map(([l, label]) => (
+                  <TouchableOpacity
+                    key={l}
+                    onPress={() => switchLang(l)}
+                    hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+                    style={styles.langBtnTouch}
+                  >
+                    <Text style={[styles.langBtn, lang === l && styles.langActive]}>{label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
           </View>
         </View>
 
         {/* Page content — matches web's `tab === 'partner' ? ... : tab === 'supply' ? ... : else` */}
-        {!showExpenseHistory && !showDailyHistory && !showReconHistory && (
+        {!showExpenseHistory && !showDailyHistory && !showReconHistory && !showProfile && !showUserMgmt && !showUserDetail && !showInvoice && !showProcurementDetail && !showExpenseDetail && !showPdfPreview && (
         <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false}>
 
           {tab === 'partner' ? (
@@ -302,7 +451,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             <ProcurementScreen />
           ) : tab === 'expense' ? (
             <ExpenseScreen onReconHistory={() => setShowReconHistory(true)} onExpenseHistory={() => setShowExpenseHistory(true)} />
-          ) : (
+          ) : tab === 'list' ? (
             <DailyRevenueView
               colors={colors}
               styles={styles}
@@ -319,7 +468,13 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
               yesterdayRev={yesterdayRev} weekRev={weekRev} last7Records={last7Records}
               onShowDailyHistory={() => setShowDailyHistory(true)}
             />
-          )}
+          ) : tab === 'chart' ? (
+            <ChartGlassView
+              colors={colors}
+              businessSummary={businessSummary}
+              chart={chart}
+            />
+          ) : null}
         </ScrollView>
         )}
 
@@ -482,7 +637,106 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   );
 }
 
-/* ── Daily Revenue view (matches web's tab=list/chart content) ─────── */
+/* ── Chart tab view (matches web's tab=chart content) ─────────────── */
+
+interface ChartGlassProps {
+  colors: ThemeColors;
+  businessSummary: { cash_on_hand?: number; cumulative_revenue?: number; cumulative_expense?: number };
+  chart: any[];
+}
+
+function ChartGlassView({ colors, businessSummary, chart }: ChartGlassProps) {
+  // Use the iOS white glass card (matches web's iOS-specific branch)
+  const glassBg = 'rgba(255,255,255,0.78)';
+  const glassBgStrong = 'rgba(255,255,255,0.88)';
+  const glassBorder = 'rgba(255,255,255,0.45)';
+  const card: any = {
+    backgroundColor: glassBg, borderRadius: 16, padding: 20,
+    borderWidth: 1, borderColor: glassBorder, marginBottom: 12,
+  };
+  const labelStyle = { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: 'rgba(0,0,0,0.55)' };
+  const symStyle = { fontSize: 16, fontWeight: '600' as const, color: 'rgba(0,0,0,0.7)', marginRight: 2 };
+  const valueStyle = { fontSize: FONTS.amount.size, fontWeight: FONTS.amount.weight, color: 'rgba(0,0,0,0.9)' };
+  const subCard: any = {
+    flex: 1, backgroundColor: glassBgStrong, borderRadius: 12, padding: 12,
+    borderWidth: 1, borderColor: glassBorder,
+  };
+  const subLabelStyle = { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(0,0,0,0.55)' };
+  const subValueStyle = { fontSize: 16, fontWeight: '700' as const, color: 'rgba(0,0,0,0.9)', marginTop: 4 };
+
+  return (
+    <View style={{ paddingBottom: 100, paddingTop: 4 }}>
+      <View style={card}>
+        <Text style={{ fontSize: FONTS.amount.size, fontWeight: FONTS.amount.weight, color: 'rgba(0,0,0,0.9)', marginBottom: 16 }}>
+          {t('summary')}
+        </Text>
+        <View style={{ alignItems: 'flex-start', gap: 2, marginBottom: 16 }}>
+          <Text style={labelStyle}>{t('cashOnHand')}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+            <Text style={symStyle}>¥</Text>
+            <Text style={valueStyle}>{(businessSummary.cash_on_hand || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+          </View>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <View style={subCard}>
+            <Text style={subLabelStyle}>{t('cumulativeRevenue')}</Text>
+            <Text style={subValueStyle}>¥{(businessSummary.cumulative_revenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+          </View>
+          <View style={subCard}>
+            <Text style={subLabelStyle}>{t('cumulativeExpense')}</Text>
+            <Text style={subValueStyle}>¥{(businessSummary.cumulative_expense || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={[card, { padding: 0, overflow: 'hidden' }]}>
+        <View style={{ padding: 16, paddingBottom: 8 }}>
+          <Text style={{ fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: 'rgba(0,0,0,0.9)' }}>{t('dailyTrend')}</Text>
+        </View>
+        <ChartMini chart={chart} />
+      </View>
+    </View>
+  );
+}
+
+function ChartMini({ chart }: { chart: any[] }) {
+  // Simple line chart for the monthly chart data. Falls back to an
+  // empty state when no data. Renders inline so the chart tab doesn't
+  // need a separate component file.
+  if (!chart || chart.length === 0) {
+    return (
+      <View style={{ padding: 24, alignItems: 'center' }}>
+        <Text style={{ color: 'rgba(0,0,0,0.4)', fontSize: FONTS.sub.size }}>{t('noData')}</Text>
+      </View>
+    );
+  }
+  const W = 360, H = 160, P = 24;
+  const data = chart.slice(-12); // last 12 months
+  const maxV = Math.max(1, ...data.map(d => Math.max(Number(d.income || 0), Number(d.expense || 0))));
+  const minV = Math.min(0, ...data.map(d => Math.min(Number(d.income || 0), Number(d.expense || 0))));
+  const xFor = (i: number) => P + (i * (W - P * 2)) / Math.max(1, data.length - 1);
+  const yFor = (v: number) => {
+    const range = maxV - minV || 1;
+    return H - P - ((v - minV) / range) * (H - P * 2);
+  };
+  const linePath = (key: 'income' | 'expense') =>
+    data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${xFor(i).toFixed(1)} ${yFor(Number(d[key] || 0)).toFixed(1)}`).join(' ');
+  return (
+    <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
+      <Path d={`M ${P} ${H - P} L ${W - P} ${H - P}`} stroke="rgba(0,0,0,0.10)" strokeWidth={1} />
+      <Path d={linePath('income')} fill="none" stroke="#4C7A5D" strokeWidth={2} />
+      <Path d={linePath('expense')} fill="none" stroke="#7D2329" strokeWidth={2} />
+      {data.map((d, i) => (
+        <Path key={`ri-${i}`} d={`M ${xFor(i) - 2.5} ${yFor(Number(d.income || 0))} a 2.5 2.5 0 1 0 5 0 a 2.5 2.5 0 1 0 -5 0`} fill="#4C7A5D" />
+      ))}
+      {data.map((d, i) => (
+        <Path key={`re-${i}`} d={`M ${xFor(i) - 2.5} ${yFor(Number(d.expense || 0))} a 2.5 2.5 0 1 0 5 0 a 2.5 2.5 0 1 0 -5 0`} fill="#7D2329" />
+      ))}
+    </Svg>
+  );
+}
+
+/* ── Daily Revenue view (matches web's tab=list content) ─────────── */
 
 interface DailyRevProps {
   colors: ThemeColors;
@@ -790,12 +1044,18 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)' },
   root: { flex: 1 },
 
-  // Header
+  // Header — frosted-glass bar at top of root, mirrors web's zIndex:200
+  // header with backdropFilter blur(30px) (we use expo-blur since RN has
+  // no backdrop-filter). Sits in the normal flow (after the root's
+  // insets.top padding) so the notch isn't covered.
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 10,
+    zIndex: 200, overflow: 'hidden',
+    paddingHorizontal: 20, paddingVertical: 8,
+    borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.10)',
   },
+  headerInner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  headerAvatar: { width: 32, height: 32, borderRadius: 16, marginRight: 6 },
   headerUser: { fontSize: FONTS.micro.size, color: withAlpha(colors.surface, 0.9), fontWeight: FONTS.micro.weight },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerBtn: { paddingVertical: 6, paddingHorizontal: 4 },
