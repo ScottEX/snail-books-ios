@@ -534,21 +534,35 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
                 <View style={st.tabInner}>
                   <Text style={[st.tabTitle, active && st.tabTitleActive]}>
                     {tab.title}
+                    {i === 1 && (
+                      <Text style={{ color: colors.expenseAmountColor }}>
+                        {' ¥' + fmt(expCatTotals.daily + expCatTotals.rent + expCatTotals.salary + expCatTotals.goods)}
+                      </Text>
+                    )}
                   </Text>
                   {i === 0 && (
-                    <View style={st.cardFields}>
-                      <View style={st.cardFieldRow}>
-                        <View style={st.cardFieldCol}>
+                    <View style={{ flex: 1, gap: 12 }}>
+                      {/* Hero: 账面差额 (big amount, expenseAmountColor) */}
+                      <View style={{ alignItems: 'flex-start', gap: 2, marginTop: 16 }}>
+                        <Text style={st.cardFieldLabel}>{t('bookDiff')}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                          <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.expenseAmountColor }}>
+                            {diff >= 0 ? '+' : '-'}¥
+                          </Text>
+                          <Text style={{ fontSize: FONTS.h1.size + 4, fontWeight: FONTS.h1.weight, color: colors.expenseAmountColor }}>
+                            {fmt(Math.abs(diff))}
+                          </Text>
+                        </View>
+                      </View>
+                      {/* Sub-cards row: 账面余额 | 当前结余 (success / info tinted) */}
+                      <View style={{ flexDirection: 'row', gap: 10 }}>
+                        <View style={[st.subCard, { backgroundColor: withAlpha(colors.success, 0.15), borderColor: withAlpha(colors.success, 0.30) }]}>
                           <Text style={st.cardFieldLabel}>{t('bookBalance')}</Text>
-                          <Text style={st.cardFieldVal}>{fmt(channelTotal)}</Text>
+                          <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{fmt(channelTotal)}</Text>
                         </View>
-                        <View style={st.cardFieldCol}>
+                        <View style={[st.subCard, { backgroundColor: withAlpha(colors.info, 0.15), borderColor: withAlpha(colors.info, 0.30) }]}>
                           <Text style={st.cardFieldLabel}>{t('currentBalance')}</Text>
-                          <Text style={st.cardFieldVal}>{fmt(realTotal)}</Text>
-                        </View>
-                        <View style={st.cardFieldCol}>
-                          <Text style={st.cardFieldLabel}>{t('bookDiff')}</Text>
-                          <Text style={st.cardFieldVal}>{diff >= 0 ? '+' : '-'}{fmt(Math.abs(diff))}</Text>
+                          <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{fmt(realTotal)}</Text>
                         </View>
                       </View>
                     </View>
@@ -557,8 +571,8 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
                     <View style={st.cardFields}>
                       <View style={st.cardFieldRow}>
                         <View style={st.cardFieldCol}>
-                          <Text style={st.cardFieldLabel}>{t('cumulativeExpense')}</Text>
-                          <Text style={st.cardFieldVal}>{fmt(expCatTotals.daily + expCatTotals.rent + expCatTotals.salary + expCatTotals.goods)}</Text>
+                          <Text style={st.totalExpLabel}>{t('cumulativeExpense')}</Text>
+                          <Text style={st.totalExpVal}>{fmt(expCatTotals.daily + expCatTotals.rent + expCatTotals.salary + expCatTotals.goods)}</Text>
                         </View>
                       </View>
                     </View>
@@ -1374,8 +1388,9 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
     //   width: calc(100vw - 61px), height: 210,
     //   borderRadius 14, padding 16/14, NO border (only tabCardActive
     //   has a 1px white inner glow border).
-    // The CSS backgroundImage is replaced by a <LinearGradient>
-    // child + <BlurView> in the JSX (RN can't render CSS gradients).
+    // The CSS backgroundImage (linear-gradient) is re-created with
+    // a <LinearGradient> child in the JSX (RN can't render CSS
+    // gradient strings). Web has NO backdrop-filter on tabCard.
     width: Dimensions.get('window').width - 61, height: 210,
     borderRadius: 14, overflow: 'hidden',
     paddingHorizontal: 16, paddingVertical: 14,
@@ -1431,12 +1446,23 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
     // @ts-ignore
     textShadow: '0 1px 2px rgba(0,0,0,0.1)',
   },
+  // Sub-cards inside i===0 对账 (账面余额 / 当前结余). Tinted
+  // backgrounds use success / info at 15% alpha; the 30% border
+  // alpha matches web. Padding 14, gap 6 between label + value,
+  // borderRadius 10 — exact port of web ExpenseScreen.tsx L468-498.
+  subCard: {
+    flex: 1, borderRadius: 10, padding: 14, gap: 6,
+    borderWidth: 0.5,
+  },
   totalExpLabel: {
     fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: 'rgba(255,255,255,0.70)',
     textAlign: 'center', marginBottom: 6,
   },
+  // Web uses colors.expenseAmountColor (cream/gold/cyan per theme)
+  // for the big total in the 支出 card so it pops against the dark
+  // gradient — iOS was using plain white, fixed here.
   totalExpVal: {
-    fontSize: FONTS.h1.size, fontWeight: FONTS.amount.weight, color: 'rgba(255,255,255,0.95)',
+    fontSize: FONTS.h1.size, fontWeight: FONTS.amount.weight, color: colors.expenseAmountColor,
   },
   tabStat: {
     fontSize: FONTS.amount.size, fontWeight: FONTS.amount.weight, letterSpacing: -0.5,
