@@ -481,6 +481,20 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         {/* Bottom nav — floating glass pill, icons only, matches web */}
         <View pointerEvents="box-none" style={styles.bottomNavWrap}>
           <View style={styles.bottomNav}>
+            {/* Real blur via expo-blur. Sits behind the icons, clipped
+                to the rounded pill shape by overflow:hidden on the
+                bottomNav container. */}
+            <BlurView
+              intensity={75}
+              tint="systemUltraThinMaterialLight"
+              style={[StyleSheet.absoluteFillObject, { borderRadius: 28 }]}
+              pointerEvents="none"
+            />
+            {/* Inset top highlight — mimics web's
+                boxShadow: inset 0 0.5px 0 rgba(255,255,255,0.12). RN
+                has no inset shadow so we fake it with a thin white
+                line at the top edge. */}
+            <View style={styles.bottomNavInsetTop} pointerEvents="none" />
             {NAV_ITEMS.map(({ id, labelKey, icon }, i) => {
               const active = tab === id;
               const c = active ? colors.textMain : colors.textSub;
@@ -1070,19 +1084,25 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   content: { flex: 1 },
   contentInner: { paddingBottom: 110, maxWidth: 520, width: '100%', alignSelf: 'center' },
 
-  // Bottom nav — floating glass pill
+  // Bottom nav — floating glass pill (mirrors web's center-positioned
+// saturate(220%) blur(30px) capsule).
   bottomNavWrap: {
-    position: 'absolute', left: 0, right: 0, bottom: 0,
+    position: 'absolute' as const, left: 0, right: 0, bottom: 0,
     alignItems: 'center', paddingBottom: 16,
   },
   bottomNav: {
     flexDirection: 'row',
-    width: '85%', maxWidth: 420,
-    backgroundColor: withAlpha(colors.surface, 0.55),
-    borderRadius: 28,
+    width: '80%', maxWidth: 420,
+    backgroundColor: withAlpha(colors.surface, 0.20),
+    borderRadius: 28, overflow: 'hidden',
     paddingVertical: 10, paddingHorizontal: 12,
-    borderWidth: 0.5, borderColor: withAlpha(colors.surface, 0.6),
+    borderWidth: 0.5, borderColor: withAlpha(colors.surface, 0.25),
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12,
+    zIndex: 100,
+  },
+  bottomNavInsetTop: {
+    position: 'absolute', left: 12, right: 12, top: 0, height: 1,
+    backgroundColor: 'rgba(255,255,255,0.20)',
   },
   navItem: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   navIconWrap: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
