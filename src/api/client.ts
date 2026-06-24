@@ -353,7 +353,11 @@ export const api = {
 
   // Language preference (stored per-user in user_settings)
   getLang: () => authFetch('/api/settings/lang'),
-  saveLang: (lang: string) => authFetch('/api/settings/lang', { method: 'PUT', body: JSON.stringify({ lang }) }),
+  // saveLang uses silentAuthFetch so a 401 (no session yet) doesn't
+// fire session_expired — LangProvider.setLang() calls this on every
+// language switch, and we don't want every 简/繁/EN tap to nuke the
+// LoginScreen via the remount chain.
+saveLang: (lang: string) => silentAuthFetch('/api/settings/lang', { method: 'PUT', body: JSON.stringify({ lang }) }),
 
   // Theme preference (stored per-user in user_settings)
   getTheme: () => authFetch('/api/settings/theme'),

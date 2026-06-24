@@ -477,9 +477,14 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   const styles = useMemo(() => getStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
+  // Memoize the image sources so lang-switch re-renders don't produce a
+  // fresh {uri: ...} object literal each render — RN's Image sees that
+  // as a source change and reloads the image, which looks like a flash.
+  const bgSource = useMemo(() => bgUrl ? { uri: bgUrl } : BG_IMAGE, [bgUrl]);
+  const avatarSource = useMemo(() => avatarUrl ? { uri: avatarUrl } : LOGO_IMAGE, [avatarUrl]);
 
   return (
-    <ImageBackground source={bgUrl ? { uri: bgUrl } : BG_IMAGE} style={styles.container} resizeMode="cover">
+    <ImageBackground source={bgSource} style={styles.container} resizeMode="cover">
       <View style={styles.bgOverlay} />
       <KeyboardAvoidingView
         style={styles.flex}
@@ -494,7 +499,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
           {/* Brand */}
           <View style={styles.brand}>
             <View style={styles.logoWrap}>
-              <Image source={avatarUrl ? { uri: avatarUrl } : LOGO_IMAGE} style={{ width: 80, height: 80, borderRadius: 40 }} resizeMode="cover" />
+              <Image source={avatarSource} style={{ width: 80, height: 80, borderRadius: 40 }} resizeMode="cover" />
             </View>
             <Text style={styles.subtitle}>{t('subtitle')}</Text>
             <View style={styles.langRow}>
