@@ -11,6 +11,7 @@ import { api } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import { pickImages } from '../utils/imagePicker';
+import { getCurrentUserId } from '../utils/storage';
 import Toast from '../components/Toast';
 import DatePickerModal from '../components/DatePickerModal';
 import SlideScreen from '../components/SlideScreen';
@@ -90,28 +91,72 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     return () => { clearTimeout(timer); };
   }, [usr]);
 
-  // ── Background image (state-driven so user-picked image is displayed) ──
-  const [bgImageUri, setBgImageUri] = useState<string | null>(null);
+  // ── Background image (mirrors web's two-layer approach) ──
+  // The default bg.jpg is ALWAYS rendered in the base layer so the
+  // page never flashes empty if the per-user fetch is slow or fails.
+  // The custom user bg is rendered on top (fading in once loaded) and
+  // replaced via bgVersion to bust any image cache on upload/reset.
+  // Opacity is per-user (`bg-opacity-{userId}`) so two users sharing
+  // the same device don't trample each other's preference.
+  const DEFAULT_BG = BG_IMAGE; // web uses '/img/bg.jpg?v=2'; iOS uses the bundled asset
+  const [bgImageUri, setBgImageUri] = useState<string>(DEFAULT_BG);
+  const [bgVersion, setBgVersion] = useState(0);
   const [bgUploading, setBgUploading] = useState(false);
+  const opacityKey = useMemo(() => {
+    const uid = getCurrentUserId();
+    return uid ? `bg-opacity-${uid}` : 'bg-opacity';
+  }, []);
   useEffect(() => {
-    // Fetch the persisted custom background URL from the backend. Falls
-    // back to the bundled asset if the request fails or no custom bg exists.
+    // Fetch the persisted custom background URL from the backend.
+    // Falls back to localStorage cache (instant) → default asset.
+    try {
+      const cached = localStorage.getItem('bg-image');
+      if (cached) setBgImageUri(cached);
+    } catch {}
     api.getBackground()
       .then((r: any) => {
         if (r?.url) {
           setBgImageUri(r.url);
           try { localStorage.setItem('bg-image', r.url); } catch {}
+        } else {
+          setBgImageUri(DEFAULT_BG);
+          try { localStorage.removeItem('bg-image'); } catch {}
+        }
+        // Server opacity wins (per-user)
+        if (r?.opacity !== null && r?.opacity !== undefined) {
+          setBgOpacity(r.opacity);
+          try { localStorage.setItem(opacityKey, String(r.opacity)); } catch {}
         }
       })
-      .catch(() => {
-        const cached = (() => { try { return localStorage.getItem('bg-image'); } catch { return null; } })();
-        if (cached) setBgImageUri(cached);
-      });
+      .catch(() => { /* keep cached/default */ });
+  }, [opacityKey]);
+  // Cross-screen bg sync (web uses a window event; iOS uses the same
+  // global event-bus pattern via the api module).
+  useEffect(() => {
+    const onBgChanged = (e: any) => {
+      const url = e?.detail?.url;
+      if (typeof url === 'string') {
+        setBgImageUri(url);
+        setBgVersion((v) => v + 1);
+      }
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('bg-changed', onBgChanged);
+      return () => window.removeEventListener('bg-changed', onBgChanged);
+    }
+    return undefined;
   }, []);
-  const [bgOpacity, setBgOpacity] = useState(() => { try { const s = localStorage.getItem('bg-opacity'); return s !== null ? parseFloat(s) : 0.5; } catch { return 0.5; } });
+  const [bgOpacity, setBgOpacity] = useState<number>(() => {
+    try {
+      const uid = getCurrentUserId();
+      const key = uid ? `bg-opacity-${uid}` : 'bg-opacity';
+      const s = localStorage.getItem(key);
+      return s !== null ? parseFloat(s) : 0.5;
+    } catch { return 0.5; }
+  });
   const setBgOpacityPersist = (v: number) => {
     setBgOpacity(v);
-    try { localStorage.setItem('bg-opacity', String(v)); } catch {}
+    try { localStorage.setItem(opacityKey, String(v)); } catch {}
     api.saveBackgroundSettings({ opacity: v }).catch(() => {});
   };
   const handlePickBg = async () => {
@@ -122,7 +167,9 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
       const r: any = await api.uploadBackground(imgs[0]);
       if (r?.url) {
         setBgImageUri(r.url);
+        setBgVersion((v) => v + 1);
         try { localStorage.setItem('bg-image', r.url); } catch {}
+        if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('bg-changed', { detail: { url: r.url } }));
         setToast(t('bgUpdated') || '背景已更新');
       } else {
         setToast(t('toastSubmitFailed'));
@@ -134,8 +181,10 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   };
   const handleResetBg = async () => {
     try { await api.resetBackground(); } catch {}
-    setBgImageUri(null);
+    setBgImageUri(DEFAULT_BG);
+    setBgVersion((v) => v + 1);
     try { localStorage.removeItem('bg-image'); } catch {}
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('bg-changed', { detail: { url: DEFAULT_BG } }));
     setToast(t('resetDefault') || '已恢复默认');
   };
 
@@ -293,7 +342,22 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   };
 
   return (
-    <ImageBackground source={bgImageUri ? { uri: bgImageUri } : BG_IMAGE} style={styles.bg} resizeMode="cover">
+    <View style={styles.bg}>
+      {/* Two-layer background (mirrors web). Base layer = bundled
+          bg.jpg, always at bgOpacity. Top layer = the user's custom
+          bg (or base if none set), fading in once available. bgVersion
+          is appended as a cache-buster so an upload / reset forces
+          a fresh fetch. */}
+      <ImageBackground
+        source={BG_IMAGE}
+        style={[styles.bgLayer, { opacity: bgOpacity }]}
+        resizeMode="cover"
+      />
+      <ImageBackground
+        source={bgImageUri !== DEFAULT_BG ? { uri: `${bgImageUri}?v=${bgVersion}` } : BG_IMAGE}
+        style={[styles.bgLayer, { opacity: bgImageUri !== DEFAULT_BG ? bgOpacity : 0 }]}
+        resizeMode="cover"
+      />
       <View style={[styles.bgOverlay, { opacity: bgOpacity }]} />
 
       {/* History slide-overs */}
@@ -647,7 +711,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         title={t('billDate') || '选择日期'}
       />
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
-    </ImageBackground>
+    </View>
   );
 }
 
@@ -1055,6 +1119,7 @@ function IconPartner({ c }: { c: string }) {
 
 const getStyles = (colors: ThemeColors) => StyleSheet.create({
   bg: { flex: 1 },
+  bgLayer: { ...StyleSheet.absoluteFillObject },
   bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)' },
   root: { flex: 1 },
 
