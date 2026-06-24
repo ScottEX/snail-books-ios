@@ -6,6 +6,7 @@ import { t, getLang, langs, useLang } from '../i18n';
 import { api } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
+import { BlurView } from 'expo-blur';
 import { getWebAuthnBound, setWebAuthnBound, clearWebAuthn } from '../utils/storage';
 import {
   isBiometricAvailable, promptBiometric, saveCredential, getCredential,
@@ -511,13 +512,29 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
             </View>
           </View>
 
-          {/* Glass Card — always include the transform so the style array
-              stays stable across shake on/off transitions (otherwise
-              the `[styles.glassCard, false]` vs `[..., {transform}]`
-              toggle would trigger a style-array change and a brief
-              re-render flash). shakeAnim is identity (0) when not
-              shaking, so no visual cost. */}
+          {/* Glass Card — iOS 26 Liquid Glass style.
+              Layered: outer Animated.View clips the rounded shape,
+              BlurView provides real background blur (UIVisualEffectView
+              on iOS), a top specular highlight gives the "edge of glass
+              catching light" look, and the original content sits inside
+              with the same padding as before. The transform on
+              shakeAnim is always-on (identity when not shaking) so the
+              style array stays stable across shake on/off transitions. */}
           <Animated.View style={[styles.glassCard, { transform: [{ translateX: shakeAnim }] }]}>
+            <BlurView
+              intensity={85}
+              tint="systemUltraThinMaterialLight"
+              style={[StyleSheet.absoluteFillObject, { borderRadius: 24 }]}
+              pointerEvents="none"
+            />
+            {/* Top specular highlight — thin white line that fades at
+                the ends, mimicking the iOS 26 glass edge catching
+                light. overflow:hidden on glassCard clips it to the
+                rounded top. */}
+            <View style={styles.specularTop} pointerEvents="none" />
+            {/* Bottom inner shadow — subtle dark gradient at the bottom
+                to suggest the glass has physical thickness. */}
+            <View style={styles.specularBottom} pointerEvents="none" />
             {msg ? (
               <View style={[styles.msgBox, msgOk ? styles.msgOk : styles.msgErr]}>
                 <Text style={[styles.msgText, msgOk ? styles.msgOkText : styles.msgErrText]}>{msg}</Text>
@@ -844,13 +861,15 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 }
 
 // iOS glass colors — match web/src/screens/LoginScreen.tsx so the
-// login form looks identical on both platforms. iOS lacks
-// backdrop-filter, so the "glass" effect is faked with a low-opacity
-// white tint plus a stronger dark overlay so the bg still reads
-// through. Text on the glass uses light rgba whites (matching web).
-const GLASS_BG = 'rgba(255,255,255,0.10)';
-const GLASS_BG_STRONG = 'rgba(255,255,255,0.20)';
+// login form looks identical on both platforms. iOS now uses
+// expo-blur's UIVisualEffectView for the actual blur (replacing the
+// fake flat alpha tint), with a specular highlight + soft border
+// to approximate the iOS 26 "Liquid Glass" look. Text on the glass
+// uses light rgba whites (matching web).
+const GLASS_BG = 'rgba(255,255,255,0.15)';
+const GLASS_BG_STRONG = 'rgba(255,255,255,0.25)';
 const GLASS_BORDER = 'rgba(255,255,255,0.18)';
+const GLASS_BORDER_STRONG = 'rgba(255,255,255,0.35)';
 const AVATAR_RING = 'rgba(255,255,255,0.25)';
 
 const getStyles = (colors: ThemeColors) => StyleSheet.create({
@@ -869,16 +888,33 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   langBtn: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.4)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   langActive: { color: colors.surface, backgroundColor: 'rgba(255,255,255,0.15)' },
   glassCard: {
-    backgroundColor: GLASS_BG,
-    borderRadius: 16, padding: 28, gap: 8,
-    borderWidth: 1, borderColor: GLASS_BORDER,
+    borderRadius: 24, padding: 28, gap: 8, overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: GLASS_BORDER_STRONG,
   },
-  msgBox: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16 },
-  msgOk: { backgroundColor: withAlpha(colors.success, 0.85) },
-  msgErr: { backgroundColor: withAlpha(colors.danger, 0.85) },
-  msgText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight },
-  msgOkText: { color: colors.surface },
-  msgErrText: { color: colors.surface },
+  // Top specular highlight: a thin white line across the top edge,
+  // clipped to the rounded corners by glassCard's overflow:hidden.
+  // The View spans the full width but the brightness fades at the ends
+  // via a soft alpha so the line doesn't look like a hard bar.
+  specularTop: {
+    position: 'absolute',
+    top: 0, left: 24, right: 24,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.65)',
+  },
+  // Bottom inner shadow: a very subtle dark gradient at the bottom
+  // edge to suggest the glass has physical thickness / depth.
+  specularBottom: {
+    position: 'absolute',
+    left: 0, right: 0, bottom: 0,
+    height: 24,
+    backgroundColor: 'rgba(0,0,0,0.10)',
+  },
+  msgBox: { paddingVertical: 4, marginBottom: 8 },
+  msgOk: {},
+  msgErr: {},
+  msgText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, textAlign: 'left' },
+  msgOkText: { color: colors.success },
+  msgErrText: { color: colors.danger },
   tabRow: {
     flexDirection: 'row', backgroundColor: GLASS_BG, borderRadius: 12, padding: 4, marginBottom: 16,
     borderWidth: 1, borderColor: GLASS_BORDER,
