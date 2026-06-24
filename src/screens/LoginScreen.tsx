@@ -13,6 +13,7 @@ const LOGO_IMAGE = require('../../assets/img/logo.jpg');
 type Step = 'login' | 'register' | 'verify' | 'forgot' | 'reset';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SPECIAL_RE = /[!@#$%^&*(),.?":{}|<>]/;
 
 export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [step, setStep] = useState<Step>('login');
@@ -52,9 +53,20 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     if (typeof localStorage !== 'undefined') {
       const saved = localStorage.getItem('saved_login');
       if (saved) setUsername(saved);
+      if (localStorage.getItem('remember_me') === '1') setRemember(true);
       if (localStorage.getItem('user')) onLogin();
     }
   }, []);
+
+  // Persist remember_me across launches. Web does the same in
+  // LoginScreen via localStorage; the API call already sends
+  // `remember` so this just keeps the checkbox state sticky on the
+  // device.
+  useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    if (remember) localStorage.setItem('remember_me', '1');
+    else localStorage.removeItem('remember_me');
+  }, [remember]);
 
   // Debounced fetch of per-user avatar + background. Mirrors the web
   // LoginScreen: typing a known username/email swaps the logo and the
@@ -102,9 +114,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   };
 
   const validatePassword = (pw: string): string => {
-    if (pw.length < 6) return t('errPwTooShort') || '6 chars min';
-    if (!/[A-Za-z]/.test(pw)) return t('errPwNeedLetter') || 'needs a letter';
-    if (!/[0-9]/.test(pw)) return t('errPwNeedNumber') || 'needs a number';
+    if (pw.length < 8) return t('errPwRequirements') || 'Password: 8+ chars, letters, digits, and a special character';
+    if (!/[A-Za-z]/.test(pw)) return t('errPwRequirements') || 'Password: 8+ chars, letters, digits, and a special character';
+    if (!/[0-9]/.test(pw)) return t('errPwRequirements') || 'Password: 8+ chars, letters, digits, and a special character';
+    if (!SPECIAL_RE.test(pw)) return t('errPwRequirements') || 'Password: 8+ chars, letters, digits, and a special character';
     return '';
   };
 
@@ -295,9 +308,19 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
               <View style={styles.formSection}>
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('username')}</Text>
-                  <TextInput style={styles.textInput} value={username} onChangeText={setUsername}
-                    placeholder={t('loginPlaceholder') || '用户名 / 邮箱'} placeholderTextColor="rgba(255,255,255,0.4)"
-                    onSubmitEditing={handleLogin} autoCapitalize="none" />
+                  <View style={styles.pwWrap}>
+                    <TextInput style={[styles.textInput, { paddingRight: username ? 44 : 16 }]} value={username} onChangeText={setUsername}
+                      placeholder={t('loginPlaceholder') || '用户名 / 邮箱'} placeholderTextColor="rgba(255,255,255,0.4)"
+                      onSubmitEditing={handleLogin} autoCapitalize="none" />
+                    {username ? (
+                      <TouchableOpacity style={styles.clearBtn} onPress={() => setUsername('')}>
+                        <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <Line x1="18" y1="6" x2="6" y2="18" />
+                          <Line x1="6" y1="6" x2="18" y2="18" />
+                        </Svg>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
                 </View>
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('password')}</Text>
@@ -345,8 +368,18 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
               <View style={styles.formSection}>
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('username')}</Text>
-                  <TextInput style={styles.textInput} value={username} onChangeText={setUsername}
-                    placeholder={t('username')} placeholderTextColor="rgba(255,255,255,0.4)" autoCapitalize="none" />
+                  <View style={styles.pwWrap}>
+                    <TextInput style={[styles.textInput, { paddingRight: username ? 44 : 16 }]} value={username} onChangeText={setUsername}
+                      placeholder={t('username')} placeholderTextColor="rgba(255,255,255,0.4)" autoCapitalize="none" />
+                    {username ? (
+                      <TouchableOpacity style={styles.clearBtn} onPress={() => setUsername('')}>
+                        <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <Line x1="18" y1="6" x2="6" y2="18" />
+                          <Line x1="6" y1="6" x2="18" y2="18" />
+                        </Svg>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
                 </View>
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('email') || 'Email'}</Text>
@@ -356,7 +389,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>
                     {t('password')}{' '}
-                    <Text style={styles.hintText}>{t('pwHint') || '6+ chars, letter + number'}</Text>
+                    <Text style={styles.hintText}>{t('pwHint') || '8+ chars, letter + number + special'}</Text>
                   </Text>
                   <View style={styles.pwWrap}>
                     <TextInput style={styles.pwInput} value={password} onChangeText={setPassword}
@@ -581,6 +614,10 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     borderWidth: 1, borderColor: GLASS_BORDER,
   },
   pwEye: {
+    position: 'absolute', right: 0, top: 0, bottom: 0,
+    paddingHorizontal: 14, justifyContent: 'center', alignItems: 'center',
+  },
+  clearBtn: {
     position: 'absolute', right: 0, top: 0, bottom: 0,
     paddingHorizontal: 14, justifyContent: 'center', alignItems: 'center',
   },
