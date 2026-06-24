@@ -57,6 +57,12 @@ function DateErrorHint({ trigger, message, colors }: { trigger: number; message:
 
 export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const { colors, setTheme, allThemes } = useTheme();
+  // Web's headerColor: when the bg image is fully opaque, the text
+  // sits on the image alone → white. When the bg has any transparency
+  // (≤ 0.99), the bgOverlay is partial and the image darkens, so
+  // text flips to black for legibility.
+  // Computed BEFORE the bgOpacity state declaration so the styles
+  // closure can read it.
   const insets = useSafeAreaInsets();
 
   // ── Tab state (persisted) ──
@@ -165,6 +171,11 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
       return s !== null ? parseFloat(s) : 0.5;
     } catch { return 0.5; }
   });
+  // Web's headerColor: when the bg image is fully opaque the text
+  // sits on the image alone → white. When the bg has any transparency
+  // (≤ 0.99), the bgOverlay is partial and the image darkens, so
+  // text flips to black for legibility.
+  const headerColor = bgOpacity === 1 ? '#FFFFFF' : '#000000';
   const setBgOpacityPersist = (v: number) => {
     setBgOpacity(v);
     try { localStorage.setItem(opacityKey, String(v)); } catch {}
@@ -339,7 +350,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     setRevMarkedClosed(false);
   };
 
-  const styles = useMemo(() => getStyles(colors), [colors]);
+  const styles = useMemo(() => getStyles(colors, headerColor), [colors, headerColor]);
   const switchLang = (l: string) => {
     setLang(l);
     // Refetch any API-sourced labels that were captured at load time
@@ -1117,7 +1128,7 @@ function IconPartner({ c }: { c: string }) {
 
 /* ── Styles ────────────────────────────────────────────────────────── */
 
-const getStyles = (colors: ThemeColors) => StyleSheet.create({
+const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.create({
   bg: { flex: 1 },
   bgLayer: { ...StyleSheet.absoluteFillObject },
   bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)' },
@@ -1134,16 +1145,20 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   headerInner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  // Header typography — exact port of web/src/screens/HomeScreen.tsx L914-931
+  // (web/src/theme.tsx FONTS.micro = 12px / weight 500). Web computes
+  // `headerColor` from `bgOpacity === 1 ? '#FFFFFF' : '#000000'` so
+  // text flips white when the bg is fully opaque, otherwise black.
   headerAvatar: { width: 32, height: 32, borderRadius: 16, marginRight: 6 },
-  headerUser: { fontSize: FONTS.micro.size, color: withAlpha(colors.surface, 0.9), fontWeight: FONTS.micro.weight },
+  headerUser: { fontSize: FONTS.micro.size, color: headerColor, fontWeight: FONTS.micro.weight },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  headerBtn: { paddingVertical: 6, paddingHorizontal: 4 },
-  headerLink: { fontSize: 13, color: withAlpha(colors.surface, 0.9), fontWeight: '600' },
-  logoutBtn: { fontSize: 13, color: colors.surface, fontWeight: '700' },
+  headerBtn: { /* matches web — no extra padding, label is the tap target */ },
+  headerLink: { fontSize: FONTS.micro.size, color: headerColor, fontWeight: FONTS.micro.weight },
+  logoutBtn: { fontSize: FONTS.micro.size, color: colors.danger, fontWeight: FONTS.micro.weight },
   langRow: { flexDirection: 'row', gap: 4 },
-  langBtnTouch: { paddingVertical: 6, paddingHorizontal: 4 },
-  langBtn: { fontSize: 13, color: withAlpha(colors.surface, 0.75), paddingHorizontal: 8, paddingVertical: 3, fontWeight: '600' },
-  langActive: { color: colors.surface, backgroundColor: withAlpha(colors.surface, 0.22), fontWeight: '800', borderRadius: 5, overflow: 'hidden' },
+  langBtnTouch: { /* no extra padding */ },
+  langBtn: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5 },
+  langActive: { color: colors.primary, backgroundColor: withAlpha(colors.danger, 0.1), fontWeight: FONTS.microBold.weight },
 
   // Content
   content: { flex: 1 },
