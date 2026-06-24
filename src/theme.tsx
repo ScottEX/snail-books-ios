@@ -31,6 +31,9 @@ export interface ThemeColors {
   info: string;
   /** 底部导航选中态图标颜色 — 柔和的主题色调，非 primary */
   navActiveColor: string;
+  /** 支出 / 对账 tab 卡的渐变色 — 深色调，匹配 web */
+  expenseGradientStart: string;
+  expenseGradientEnd: string;
 }
 
 export interface Theme {
@@ -86,6 +89,8 @@ const theme1: Theme = {
     danger: '#B34149',
     info: '#4A7299',
     navActiveColor: '#D4918A',
+    expenseGradientStart: '#8B1A2B',
+    expenseGradientEnd: '#4A0E16',
   },
 };
 
@@ -113,6 +118,8 @@ const theme2: Theme = {
     danger: '#B34149',
     info: '#4A7299',
     navActiveColor: '#C5A880',
+    expenseGradientStart: '#2C2C2C',
+    expenseGradientEnd: '#0F0F0F',
   },
 };
 
@@ -140,6 +147,8 @@ const theme3: Theme = {
     danger: '#B34149',
     info: '#4A7299',
     navActiveColor: '#3AB8C8',
+    expenseGradientStart: '#1A3A4A',
+    expenseGradientEnd: '#0B1F2A',
   },
 };
 

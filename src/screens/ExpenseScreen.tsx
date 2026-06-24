@@ -492,10 +492,11 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
     : 0;
   const lang = getLang();
   const tabCards = useMemo(() => [
-    { gradient: [withAlpha(colors.success, 0.22), withAlpha(colors.info, 0.22)], gradientActive: [withAlpha(colors.success, 0.48), withAlpha(colors.info, 0.48)], title: t('tabRecon'), stat: diff, statFmt: fmt(diff), statColor: diff >= 0 ? colors.success : colors.danger, prefix: diff >= 0 ? '+' : '' },
-    { gradient: [withAlpha(colors.primary, 0.22), withAlpha(colors.warning, 0.22)], gradientActive: [withAlpha(colors.primary, 0.48), withAlpha(colors.warning, 0.48)], title: t('tabRevenue'), stat: feeTotal, statFmt: fmt(feeTotal), statColor: colors.textMain, prefix: '' },
-    { gradient: [withAlpha(colors.danger, 0.22), withAlpha(colors.primary, 0.22)], gradientActive: [withAlpha(colors.danger, 0.48), withAlpha(colors.primary, 0.48)], title: t('tabExpense'), stat: expCatTotals.daily + expCatTotals.rent + expCatTotals.salary + expCatTotals.goods, statFmt: fmt(expCatTotals.daily + expCatTotals.rent + expCatTotals.salary + expCatTotals.goods), statColor: colors.textMain, prefix: '' },
-  ], [diff, feeTotal, expCatTotals.daily, expCatTotals.rent, expCatTotals.salary, expCatTotals.goods, colors, lang]);
+    // 对账 — diff between book balance and current balance
+    { gradient: [withAlpha(colors.expenseGradientStart, 0.22), withAlpha(colors.expenseGradientEnd, 0.22)], gradientActive: [withAlpha(colors.expenseGradientStart, 0.48), withAlpha(colors.expenseGradientEnd, 0.48)], title: t('tabRecon'), stat: diff, statFmt: fmt(diff), statColor: diff >= 0 ? colors.success : colors.danger, prefix: diff >= 0 ? '+' : '' },
+    // 支出 — sum of daily + rent + salary + goods
+    { gradient: [withAlpha(colors.expenseGradientStart, 0.22), withAlpha(colors.expenseGradientEnd, 0.22)], gradientActive: [withAlpha(colors.expenseGradientStart, 0.48), withAlpha(colors.expenseGradientEnd, 0.48)], title: t('tabExpense'), stat: expCatTotals.daily + expCatTotals.rent + expCatTotals.salary + expCatTotals.goods, statFmt: fmt(expCatTotals.daily + expCatTotals.rent + expCatTotals.salary + expCatTotals.goods), statColor: colors.textMain, prefix: '' },
+  ], [diff, expCatTotals.daily, expCatTotals.rent, expCatTotals.salary, expCatTotals.goods, colors, lang]);
 
   const st = useMemo(() => getSt(colors), [colors]);
 
@@ -540,7 +541,7 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
                 <View style={[st.tabCardInsetTop, active && st.tabCardInsetTopActive]} pointerEvents="none" />
                 <View style={st.tabInner}>
                   <Text style={[st.tabTitle, active && st.tabTitleActive]}>
-                    {tab.title}{i === 2 ? ' ¥' + fmtInt(expCatTotals.daily + expCatTotals.rent + expCatTotals.salary + expCatTotals.goods) : ''}
+                    {tab.title}
                   </Text>
                   {i === 0 && (
                     <View style={st.cardFields}>
@@ -1407,20 +1408,21 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: 'transparent',
   },
   tabCard: {
-    // Responsive: viewport - left padding 18 - right peek 43.
-    // The web CSS backgroundImage (linear-gradient) is moved to a
-    // <LinearGradient> child in the JSX; RN's <View> can't render
-    // CSS gradient strings. The 1px white inset top highlight
-    // (web's boxShadow inset) is moved to a child <View> since RN
-    // doesn't support inset shadows.
-    width: Dimensions.get('window').width - 61, height: 120,
+    // Web's ExpenseScreen tabCard (L1197-1212):
+    //   width: calc(100vw - 61px), height: 210,
+    //   borderRadius 14, padding 16/14, NO border (only tabCardActive
+    //   has a 1px white inner glow border).
+    // The CSS backgroundImage is replaced by a <LinearGradient>
+    // child + <BlurView> in the JSX (RN can't render CSS gradients).
+    width: Dimensions.get('window').width - 61, height: 210,
     borderRadius: 14, overflow: 'hidden',
-    borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.35)',
     paddingHorizontal: 16, paddingVertical: 14,
     justifyContent: 'flex-start',
   },
   tabCardActive: {
-    borderColor: 'rgba(255,255,255,0.55)',
+    // Active = brighter white inner border (1px, alpha 0.55),
+    // matching web's `borderColor: 'rgba(255,255,255,0.55)'`.
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.55)',
   },
   // 1px white-alpha line at the very top of the tab card — fakes
   // web's `boxShadow: inset 0 1px 0 rgba(255,255,255,0.35)` (resting
