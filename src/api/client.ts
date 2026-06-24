@@ -45,6 +45,22 @@ function getApiBase(): string {
 
 const API_BASE = getApiBase();
 
+/**
+ * Resolve an asset URL returned by the server into something RN's
+ * <Image> can load. The server returns paths like '/uploads/abc.jpg'
+ * (relative) — browsers auto-resolve them via CSS background-image,
+ * but RN's Image component does NOT, so a leading '/uploads/...' would
+ * silently fail on iOS. If the URL is missing a scheme, prepend
+ * API_BASE. data: / blob: / already-absolute https?:// URLs pass
+ * through untouched.
+ */
+export function resolveAssetUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (/^(data:|blob:|https?:|file:|content:)/i.test(url)) return url;
+  if (url.startsWith('/')) return API_BASE + url;
+  return url;
+}
+
 // ── Idle timeout: 2 hours no API call → redirect to login ──
 const IDLE_MS = 120 * 60_000; // 120 minutes = 2 hours
 let lastActivity = Date.now();

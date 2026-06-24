@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
 import { t, getLang, langs, useLang } from '../i18n';
-import { api } from '../api/client';
+import { api, resolveAssetUrl } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import { pickImages } from '../utils/imagePicker';
@@ -111,13 +111,19 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     // Falls back to localStorage cache (instant) → default asset.
     try {
       const cached = localStorage.getItem('bg-image');
-      if (cached) setBgImageUri(cached);
+      if (cached) {
+        const resolved = resolveAssetUrl(cached);
+        if (resolved) setBgImageUri(resolved);
+      }
     } catch {}
     api.getBackground()
       .then((r: any) => {
         if (r?.url) {
-          setBgImageUri(r.url);
-          try { localStorage.setItem('bg-image', r.url); } catch {}
+          // Server returns paths like '/uploads/abc.jpg' which RN
+          // can't load as-is. resolveAssetUrl prepends the API base.
+          const resolved = resolveAssetUrl(r.url) || DEFAULT_BG;
+          setBgImageUri(resolved);
+          try { localStorage.setItem('bg-image', resolved); } catch {}
         } else {
           setBgImageUri(DEFAULT_BG);
           try { localStorage.removeItem('bg-image'); } catch {}
@@ -139,7 +145,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     const onBgChanged = (e: any) => {
       const url = e?.detail?.url;
       if (typeof url === 'string') {
-        setBgImageUri(url);
+        const resolved = resolveAssetUrl(url) || DEFAULT_BG;
+        setBgImageUri(resolved);
         setBgVersion((v) => v + 1);
       }
     };
@@ -170,11 +177,12 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     try {
       const r: any = await api.uploadBackground(imgs[0]);
       if (r?.url) {
-        setBgImageUri(r.url);
+        const resolved = resolveAssetUrl(r.url) || DEFAULT_BG;
+        setBgImageUri(resolved);
         setBgVersion((v) => v + 1);
-        try { localStorage.setItem('bg-image', r.url); } catch {}
+        try { localStorage.setItem('bg-image', resolved); } catch {}
         if (typeof window !== 'undefined' && typeof (window as any).dispatchEvent === 'function') {
-          (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: r.url } }));
+          (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: resolved } }));
         }
         setToast(t('bgUpdated') || '背景已更新');
       } else {
