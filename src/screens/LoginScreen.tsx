@@ -7,6 +7,10 @@ import { api } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import { getWebAuthnBound, setWebAuthnBound, clearWebAuthn } from '../utils/storage';
+import {
+  isBiometricAvailable, promptBiometric, saveCredential, getCredential,
+  hasStoredCredential, clearCredential,
+} from '../utils/biometric';
 
 const BG_IMAGE = require('../../assets/img/bg.jpg');
 const LOGO_IMAGE = require('../../assets/img/logo.jpg');
@@ -53,6 +57,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   // link in the password form).
   const [hasFaceID, setHasFaceID] = useState(() => getWebAuthnBound().bound);
   const [pwdHasFaceID, setPwdHasFaceID] = useState(false);
+  const [faceMode, setFaceMode] = useState(false);
+  const [faceAvailable, setFaceAvailable] = useState(false);
+  const [faceEnrolling, setFaceEnrolling] = useState(false);
+  const breatheAnim = useRef(new Animated.Value(1)).current;
   const codeRef = useRef<any>(null);
   const { colors } = useTheme();
 
@@ -92,7 +100,43 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         }
       } catch {}
     })();
+    // Detect biometric hardware once on mount. Drives whether the
+    // "Face ID 登录" link / button shows up at all on this device.
+    (async () => {
+      const a = await isBiometricAvailable();
+      setFaceAvailable(a.available);
+      // If we already have a stored credential AND the typed username
+      // (from saved_login) matches, drop into face mode automatically
+      // — mirrors web's "if (webauthn_bound && pwdHasFaceID)" behaviour.
+      if (a.available && cached.bound) {
+        const stored = await hasStoredCredential();
+        if (stored) {
+          try {
+            const savedUser = localStorage.getItem('saved_login') || '';
+            if (savedUser) setUsername(savedUser);
+            setFaceMode(true);
+          } catch {}
+        }
+      }
+    })();
   }, []);
+
+  // Breathing animation for the Face ID button. 1.0 → 1.06 → 1.0 on
+  // a 2-second loop, matching web's `animation: breathe 2s infinite`.
+  useEffect(() => {
+    if (!faceMode) {
+      breatheAnim.setValue(1);
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(breatheAnim, { toValue: 1.06, duration: 2000, useNativeDriver: true }),
+        Animated.timing(breatheAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [faceMode]);
 
   // Debounced fetch of per-user avatar + background. Mirrors the web
   // LoginScreen: typing a known username/email swaps the logo and the
@@ -186,6 +230,115 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     ]).start(() => setShake(false));
   };
 
+  const handleFaceIDLogin = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      // 1. Biometric availability + prompt
+      const avail = await isBiometricAvailable();
+      if (!avail.available) {
+        setMsg(t('errFaceIDUnavailable') || 'Face ID 不可用，请使用密码登录');
+        triggerShake();
+        setLoading(false);
+        return;
+      }
+      const bio = await promptBiometric(t('faceIDPrompt') || '使用 Face ID 登录柳味探秘');
+      if (!bio.success) {
+        // User cancelled or failed — silently drop back to password mode
+        setFaceMode(false);
+        setLoading(false);
+        return;
+      }
+      // 2. Retrieve stored credential
+      const cred = await getCredential();
+      if (!cred) {
+        setMsg(t('errFaceIDNoCredential') || '未找到 Face ID 凭证，请使用密码登录');
+        setFaceMode(false);
+        setLoading(false);
+        return;
+      }
+      // 3. POST to /login so the server sets a fresh session cookie.
+      // The stored password was Keychain-protected by biometric so we
+      // can safely hand it back to the auth endpoint.
+      const r = await api.login(cred.username, cred.password, true);
+      if (r.status !== 'ok') {
+        setMsg(r.message || t('errWrongCredentials'));
+        triggerShake();
+        setFaceMode(false);
+        setLoading(false);
+        return;
+      }
+      // 4. Same post-login bookkeeping as the password path
+      if (r.token && typeof localStorage !== 'undefined') localStorage.setItem('token', r.token);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('user', r.username || cred.username);
+        localStorage.setItem('user_id', String(r.user_id || ''));
+        localStorage.setItem('saved_login', cred.username);
+        localStorage.removeItem('active_tab');
+        localStorage.removeItem('expense_active_tab');
+      }
+      try { await api.saveLang(getLang()); } catch {}
+      // Refresh WebAuthn state to match server
+      try {
+        const s = await api.webauthnStatus();
+        if (s && typeof s.has_credential === 'boolean') {
+          if (!s.has_credential) clearWebAuthn();
+          setHasFaceID(!!s.has_credential);
+        }
+      } catch {}
+      setLoading(false);
+      onLogin();
+    } catch (e: any) {
+      setLoading(false);
+      setMsg(e?.message || t('errNetworkError') || 'Face ID 登录失败');
+      setFaceMode(false);
+    }
+  };
+
+  // Called after a successful password login to offer to enable
+  // biometric unlock. We gate on the user's biometric being
+  // available and on them not already having a stored credential
+  // (so we don't re-prompt every login). The actual write is
+  // triggered by enableFaceID() which requires a biometric prompt.
+  const offerEnableFaceID = async () => {
+    if (faceEnrolling) return;
+    if (!faceAvailable) return;
+    if (await hasStoredCredential()) return;
+    // Soft prompt: ask the user via the existing msgBox. If they
+    // accept, we run enableFaceID() which gates the keychain write
+    // behind a biometric prompt. If they ignore / type more, the
+    // offer expires silently on next state change.
+    setMsg(t('offerEnableFaceID') || '是否启用 Face ID 以便下次快速登录？点击下方"启用"按钮确认');
+    setMsgOk(true);
+  };
+
+  const enableFaceID = async () => {
+    if (faceEnrolling || !faceAvailable) return;
+    setFaceEnrolling(true);
+    try {
+      const bio = await promptBiometric(t('faceIDEnrollPrompt') || '启用 Face ID 登录');
+      if (!bio.success) { setFaceEnrolling(false); return; }
+      const r = await saveCredential(username, password);
+      if (r.ok) {
+        // Also mark the local WebAuthn bound flag so the Face ID
+        // link shows up immediately on next launch.
+        setWebAuthnBound(username, 'keychain');
+        setHasFaceID(true);
+        setMsg(t('faceIDEnabled') || 'Face ID 已启用');
+        setMsgOk(true);
+      } else {
+        setMsg(t('errFaceIDEnableFailed') || 'Face ID 启用失败');
+        setMsgOk(false);
+        triggerShake();
+      }
+    } catch {
+      setMsg(t('errFaceIDEnableFailed') || 'Face ID 启用失败');
+      setMsgOk(false);
+    } finally {
+      setFaceEnrolling(false);
+    }
+  };
+
   const handleLogin = async () => {
     if (loading) return;
     if (!username || !password) { setMsg(t('errEmptyFields')); triggerShake(); return; }
@@ -215,6 +368,14 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
             setHasFaceID(!!s.has_credential);
           }
         } catch {}
+        // Offer biometric enrollment on first successful password
+        // login. Auto-confirms into Keychain if the user taps the
+        // confirmation; the actual write happens via enableFaceID()
+        // triggered from a soft prompt below. We don't gate onLogin()
+        // on this — biometric is optional.
+        if (faceAvailable && !(await hasStoredCredential())) {
+          offerEnableFaceID();
+        }
         onLogin();
       } else if (r.need_verify) {
         setEmail(r.email); setStep('verify'); setMsg('');
@@ -366,61 +527,112 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
             {step === 'login' && (
               <View style={styles.formSection}>
-                <View style={styles.fieldWrap}>
-                  <Text style={styles.fieldLabel}>{t('username')}</Text>
-                  <View style={styles.pwWrap}>
-                    <TextInput style={[styles.textInput, { paddingRight: username ? 44 : 16 }]} value={username} onChangeText={setUsername}
-                      placeholder={t('loginPlaceholder') || '用户名 / 邮箱'} placeholderTextColor="rgba(255,255,255,0.4)"
-                      onSubmitEditing={handleLogin} autoCapitalize="none" />
-                    {username ? (
-                      <TouchableOpacity style={styles.clearBtn} onPress={() => setUsername('')}>
-                        <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                          <Line x1="18" y1="6" x2="6" y2="18" />
-                          <Line x1="6" y1="6" x2="18" y2="18" />
+                {faceMode ? (
+                  /* Face ID mode: show only the biometric button + a
+                     "use password" link. Reached automatically on mount
+                     when a stored credential exists for saved_login, or
+                     by tapping the Face ID link in password mode. */
+                  <View style={styles.faceModeWrap}>
+                    <Animated.View style={{ transform: [{ scale: breatheAnim }] }}>
+                      <TouchableOpacity
+                        style={styles.faceBtn}
+                        onPress={handleFaceIDLogin}
+                        disabled={loading}
+                      >
+                        <Svg width={56} height={56} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                          <Path d="M12 2C9.24 2 7 4.24 7 7v3H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-2V7c0-2.76-2.24-5-5-5z" />
+                          <Path d="M9 7c0-1.66 1.34-3 3-3s3 1.34 3 3v3H9V7z" />
+                          <Circle cx="12" cy="15" r="1.5" fill="rgba(255,255,255,0.85)" stroke="none" />
                         </Svg>
                       </TouchableOpacity>
-                    ) : null}
-                  </View>
-                </View>
-                <View style={styles.fieldWrap}>
-                  <Text style={styles.fieldLabel}>{t('password')}</Text>
-                  <View style={styles.pwWrap}>
-                    <TextInput style={styles.pwInput} value={password} onChangeText={setPassword}
-                      placeholder={t('password')} placeholderTextColor="rgba(255,255,255,0.4)"
-                      secureTextEntry={!showPw} onSubmitEditing={handleLogin} />
-                    <TouchableOpacity style={styles.pwEye} onPress={() => setShowPw(!showPw)}>
-                      <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-                        {showPw ? (
-                          <>
-                            <Path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                            <Path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                            <Path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
-                            <Line x1="1" y1="1" x2="23" y2="23" />
-                          </>
-                        ) : (
-                          <>
-                            <Path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                            <Circle cx="12" cy="12" r="3" />
-                          </>
-                        )}
-                      </Svg>
+                    </Animated.View>
+                    <Text style={styles.faceTitle}>{t('faceIDLogin') || 'Face ID 登录'}</Text>
+                    <Text style={styles.faceHint}>{username}</Text>
+                    <TouchableOpacity onPress={() => { setFaceMode(false); setMsg(''); }}>
+                      <Text style={styles.forgotText}>{t('usePasswordLogin') || '使用密码登录'}</Text>
                     </TouchableOpacity>
                   </View>
-                </View>
-                <TouchableOpacity onPress={handleLogin} style={styles.btnDark} disabled={loading}>
-                  <Text style={styles.btnDarkText}>{loading ? '...' : t('loginBtn')}</Text>
-                </TouchableOpacity>
-                <View style={styles.rowBetween}>
-                  <TouchableOpacity onPress={() => setRemember(!remember)} style={styles.row}>
-                    <View style={[styles.checkbox, remember && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
-                      {remember && <Text style={styles.checkmark}>✓</Text>}
+                ) : (
+                  <>
+                    <View style={styles.fieldWrap}>
+                      <Text style={styles.fieldLabel}>{t('username')}</Text>
+                      <View style={styles.pwWrap}>
+                        <TextInput style={[styles.textInput, { paddingRight: username ? 44 : 16 }]} value={username} onChangeText={setUsername}
+                          placeholder={t('loginPlaceholder') || '用户名 / 邮箱'} placeholderTextColor="rgba(255,255,255,0.4)"
+                          onSubmitEditing={handleLogin} autoCapitalize="none" />
+                        {username ? (
+                          <TouchableOpacity style={styles.clearBtn} onPress={() => setUsername('')}>
+                            <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                              <Line x1="18" y1="6" x2="6" y2="18" />
+                              <Line x1="6" y1="6" x2="18" y2="18" />
+                            </Svg>
+                          </TouchableOpacity>
+                        ) : null}
+                      </View>
                     </View>
-                    <Text style={styles.rememberText}>{t('rememberMe') || '记住我'}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => { setStep('forgot'); reset(); }}>
-                    <Text style={styles.forgotText}>{t('forgotPassword')}</Text>
-                  </TouchableOpacity>
-                </View>
+                    <View style={styles.fieldWrap}>
+                      <Text style={styles.fieldLabel}>{t('password')}</Text>
+                      <View style={styles.pwWrap}>
+                        <TextInput style={styles.pwInput} value={password} onChangeText={setPassword}
+                          placeholder={t('password')} placeholderTextColor="rgba(255,255,255,0.4)"
+                          secureTextEntry={!showPw} onSubmitEditing={handleLogin} />
+                        <TouchableOpacity style={styles.pwEye} onPress={() => setShowPw(!showPw)}>
+                          <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                            {showPw ? (
+                              <>
+                                <Path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                                <Path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                                <Path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                                <Line x1="1" y1="1" x2="23" y2="23" />
+                              </>
+                            ) : (
+                              <>
+                                <Path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                <Circle cx="12" cy="12" r="3" />
+                              </>
+                            )}
+                          </Svg>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                    <TouchableOpacity onPress={handleLogin} style={styles.btnDark} disabled={loading}>
+                      <Text style={styles.btnDarkText}>{loading ? '...' : t('loginBtn')}</Text>
+                    </TouchableOpacity>
+                    {/* Face ID entry link — only shown when biometric is
+                        available AND the typed username has any WebAuthn
+                        credential bound server-side. */}
+                    {faceAvailable && pwdHasFaceID ? (
+                      <TouchableOpacity
+                        style={styles.faceLinkRow}
+                        onPress={async () => {
+                          setFaceMode(true);
+                          setMsg('');
+                          // Auto-trigger biometric as soon as we enter
+                          // face mode so a single tap = "log me in".
+                          setTimeout(() => handleFaceIDLogin(), 250);
+                        }}
+                      >
+                        <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+                          <Path d="M12 2C9.24 2 7 4.24 7 7v3H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-2V7c0-2.76-2.24-5-5-5z" />
+                          <Path d="M9 7c0-1.66 1.34-3 3-3s3 1.34 3 3v3H9V7z" />
+                          <Circle cx="12" cy="15" r="1.5" fill={colors.primary} stroke="none" />
+                        </Svg>
+                        <Text style={styles.faceLinkText}>{t('faceIDLogin') || 'Face ID 登录'}</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                    <View style={styles.rowBetween}>
+                      <TouchableOpacity onPress={() => setRemember(!remember)} style={styles.row}>
+                        <View style={[styles.checkbox, remember && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
+                          {remember && <Text style={styles.checkmark}>✓</Text>}
+                        </View>
+                        <Text style={styles.rememberText}>{t('rememberMe') || '记住我'}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => { setStep('forgot'); reset(); }}>
+                        <Text style={styles.forgotText}>{t('forgotPassword')}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
               </View>
             )}
 
@@ -681,6 +893,17 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     position: 'absolute', right: 0, top: 0, bottom: 0,
     paddingHorizontal: 14, justifyContent: 'center', alignItems: 'center',
   },
+  faceModeWrap: { alignItems: 'center', paddingVertical: 24, gap: 12 },
+  faceBtn: {
+    width: 88, height: 88, borderRadius: 44,
+    backgroundColor: 'rgba(0,0,0,0.35)', borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+    justifyContent: 'center', alignItems: 'center', marginBottom: 8,
+  },
+  faceTitle: { fontSize: FONTS.sub.size, fontWeight: FONTS.subBold.weight, color: colors.surface },
+  faceHint: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.6)', marginBottom: 8 },
+  faceLinkRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8, marginBottom: 4 },
+  faceLinkText: { fontSize: FONTS.micro.size, color: colors.primary, fontWeight: FONTS.subBold.weight },
   textInput: {
     backgroundColor: GLASS_BG, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12,
     fontSize: FONTS.body.size, color: colors.surface,
