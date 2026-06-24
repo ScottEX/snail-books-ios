@@ -1,5 +1,6 @@
-import { Text, TouchableOpacity, ActivityIndicator, type StyleProp, type ViewStyle, type TextStyle } from 'react-native';
+import { Text, TouchableOpacity, type StyleProp, type ViewStyle, type TextStyle } from 'react-native';
 import type { ReactNode } from 'react';
+import LoadingSpinner from './LoadingSpinner';
 
 /**
  * Port of web/src/components/SubmitButton.tsx — wraps a TouchableOpacity
@@ -7,6 +8,10 @@ import type { ReactNode } from 'react';
  * silently. iOS LoginScreen used to inline `loading ? '...' : label`
  * on each button (and the verify button stayed clickable while empty).
  * SubmitButton centralises both fixes.
+ *
+ * Uses the ported LoadingSpinner (custom SVG spinner, not the stock
+ * RN <ActivityIndicator>) so the look matches web's other loading
+ * surfaces (ReconHistory / ExpenseHistory / DailyRevenue).
  */
 interface SubmitButtonProps {
   onPress: () => void;
@@ -35,7 +40,7 @@ export default function SubmitButton({
       activeOpacity={0.8}
     >
       {loading ? (
-        <ActivityIndicator size="small" color="#fff" />
+        <LoadingSpinner label={false} size={20} color="#fff" />
       ) : children ? (
         children
       ) : (
