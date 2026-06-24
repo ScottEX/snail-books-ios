@@ -3,6 +3,8 @@ import {
   View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated, Dimensions, Image,
 } from 'react-native';
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { t, getLang } from '../i18n';
 import { api } from '../api/client';
 import Toast from '../components/Toast';
@@ -512,13 +514,30 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
               <TouchableOpacity
                 key={i}
                 testID="snap-card"
-                style={[st.tabCard, active && st.tabCardActive, {
-                  // @ts-ignore — 每张卡片独立渐变色
-                  backgroundImage: `linear-gradient(90deg, ${bgGrad[0]} 0%, ${bgGrad[1]} 100%)`,
-                }]}
+                style={[st.tabCard, active && st.tabCardActive]}
                 onPress={() => setActiveTab(i)}
                 activeOpacity={0.7}
               >
+                {/* Web used CSS linear-gradient for the tab card
+                    background. RN's <View> doesn't honour
+                    backgroundImage, so we use expo-linear-gradient
+                    absolute-filled behind the content. expo-blur
+                    provides the glass effect on top. */}
+                <BlurView
+                  intensity={70}
+                  tint="systemUltraThinMaterialLight"
+                  style={StyleSheet.absoluteFillObject}
+                  pointerEvents="none"
+                />
+                <LinearGradient
+                  colors={bgGrad as [string, string]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={StyleSheet.absoluteFillObject}
+                  pointerEvents="none"
+                />
+                {/* 1px white inset top — fakes web's boxShadow:inset */}
+                <View style={[st.tabCardInsetTop, active && st.tabCardInsetTopActive]} pointerEvents="none" />
                 <View style={st.tabInner}>
                   <Text style={[st.tabTitle, active && st.tabTitleActive]}>
                     {tab.title}{i === 2 ? ' ¥' + fmtInt(expCatTotals.daily + expCatTotals.rent + expCatTotals.salary + expCatTotals.goods) : ''}
@@ -1388,28 +1407,31 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: 'transparent',
   },
   tabCard: {
-    // @ts-ignore — 响应式：屏宽 - 左边距18 - 右侧peek 43
-    width: 'calc(100vw - 61px)', height: 120,
-    // @ts-ignore — 极透磨砂玻璃：渐变色在 render 中动态设置
-    backgroundImage: `linear-gradient(90deg, ${withAlpha(colors.primary, 0.22)} 0%, ${withAlpha(colors.info, 0.22)} 100%)`,
-    borderRadius: 14,
+    // Responsive: viewport - left padding 18 - right peek 43.
+    // The web CSS backgroundImage (linear-gradient) is moved to a
+    // <LinearGradient> child in the JSX; RN's <View> can't render
+    // CSS gradient strings. The 1px white inset top highlight
+    // (web's boxShadow inset) is moved to a child <View> since RN
+    // doesn't support inset shadows.
+    width: Dimensions.get('window').width - 61, height: 120,
+    borderRadius: 14, overflow: 'hidden',
     borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.35)',
     paddingHorizontal: 16, paddingVertical: 14,
     justifyContent: 'flex-start',
-    // @ts-ignore — CSS scroll-snap
-    scrollSnapAlign: 'start',
-    // @ts-ignore
-    scrollSnapStop: 'always',
-    overflow: 'hidden' as const,
-    position: 'relative' as const,
-    // @ts-ignore — 仅玻璃内边框高光，无外阴影
-    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35)',
   },
   tabCardActive: {
-    // @ts-ignore — 激活：高光更亮（渐变色由 render 动态设置）
     borderColor: 'rgba(255,255,255,0.55)',
-    // @ts-ignore — 仅玻璃内边框
-    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.55)',
+  },
+  // 1px white-alpha line at the very top of the tab card — fakes
+  // web's `boxShadow: inset 0 1px 0 rgba(255,255,255,0.35)` (resting
+  // state) and the brighter `0.55` version when active. RN has no
+  // inset shadow so we use an absolute View at the top.
+  tabCardInsetTop: {
+    position: 'absolute', top: 0, left: 12, right: 12, height: 1,
+    backgroundColor: 'rgba(255,255,255,0.35)',
+  },
+  tabCardInsetTopActive: {
+    backgroundColor: 'rgba(255,255,255,0.55)',
   },
   tabInner: {
     flex: 1, alignItems: 'stretch',
