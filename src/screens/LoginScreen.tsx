@@ -532,9 +532,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 light. overflow:hidden on glassCard clips it to the
                 rounded top. */}
             <View style={styles.specularTop} pointerEvents="none" />
-            {/* Bottom inner shadow — subtle dark gradient at the bottom
-                to suggest the glass has physical thickness. */}
-            <View style={styles.specularBottom} pointerEvents="none" />
             {msg ? (
               <View style={[styles.msgBox, msgOk ? styles.msgOk : styles.msgErr]}>
                 <Text style={[styles.msgText, msgOk ? styles.msgOkText : styles.msgErrText]}>{msg}</Text>
@@ -900,14 +897,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     top: 0, left: 24, right: 24,
     height: 1,
     backgroundColor: 'rgba(255,255,255,0.65)',
-  },
-  // Bottom inner shadow: a very subtle dark gradient at the bottom
-  // edge to suggest the glass has physical thickness / depth.
-  specularBottom: {
-    position: 'absolute',
-    left: 0, right: 0, bottom: 0,
-    height: 24,
-    backgroundColor: 'rgba(0,0,0,0.10)',
   },
   msgBox: { paddingVertical: 4, marginBottom: 8 },
   msgOk: {},
