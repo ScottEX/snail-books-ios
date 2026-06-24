@@ -758,13 +758,17 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                     placeholder={t('verifyCode')} placeholderTextColor="rgba(255,255,255,0.4)"
                     keyboardType="number-pad" onSubmitEditing={handleVerify} autoFocus />
                 </View>
-                <TouchableOpacity onPress={handleVerify} style={styles.btnRed} disabled={loading}>
+                <TouchableOpacity
+                  onPress={handleVerify}
+                  style={[styles.btnRed, (!code || loading) && styles.btnDisabled]}
+                  disabled={!code || loading}
+                >
                   <Text style={styles.btnRedText}>{loading ? '...' : t('verifyBtn')}</Text>
                 </TouchableOpacity>
                 <Text style={styles.verifyHint}>
                   {t('verifyNewNoEmail') || '一直没收到？别着急，您可以 '}
                   <Text style={styles.verifyLink} onPress={resendCooldown > 0 ? undefined : handleResend}>
-                    {resendCooldown > 0 ? `${resendCooldown}s` : t('verifyNewResend') || '重新发送'}
+                    {resendCooldown > 0 ? `${resendCooldown}s 后${t('verifyNewResend') || '重新发送'}` : t('verifyNewResend') || '重新发送'}
                   </Text>
                   {t('verifyNewOrSpam') || ' 或检查一下垃圾箱。'}
                 </Text>
@@ -942,6 +946,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     borderWidth: 1, borderColor: GLASS_BORDER,
   },
   btnRedText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.surface, letterSpacing: 1 },
+  btnDisabled: { opacity: 0.4 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   checkbox: {
