@@ -849,8 +849,14 @@ function DailyRevenueView(p: DailyRevProps) {
   return (
     <View>
       <View style={{ paddingTop: 14 }}>
-        {/* ── Daily revenue entry card ── */}
+        {/* ── Daily revenue entry card (liquid glass — web parity) ── */}
         <View style={styles.revCard}>
+          <BlurView
+            intensity={85}
+            tint="systemUltraThinMaterialLight"
+            style={[StyleSheet.absoluteFillObject, { borderRadius: 14 }]}
+            pointerEvents="none"
+          />
           <View style={styles.revHeaderRow}>
             <View style={styles.revTitleGroup}>
               <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.textMain} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -1211,8 +1217,18 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   opacityChipTextActive: { color: colors.primary },
   themePickerItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12, marginBottom: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.secondary },
 
-  // Daily revenue card
-  revCard: { backgroundColor: withAlpha(colors.surface, 0.92), borderRadius: 14, padding: 16, marginHorizontal: 16, marginTop: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8 },
+  // Daily revenue card — web parity (DailyRevenuePanel.tsx L366-376):
+  // backdrop-filter: saturate(180%) blur(20px) achieved here via expo-blur
+  // (intensity 85, tint systemUltraThinMaterialLight, layered absolutely
+  // behind the content with overflow:hidden for the rounded clip).
+  // Alpha 0.92 → 0.65 to actually let the blur show through; padding
+  // 16 → 18; add borderWidth 0.5 + subtle borderColor.
+  revCard: {
+    backgroundColor: withAlpha(colors.surface, 0.65),
+    borderRadius: 14, padding: 18, overflow: 'hidden',
+    marginHorizontal: 16, marginTop: 14,
+    borderWidth: 0.5, borderColor: withAlpha(colors.textMain, 0.08),
+  },
   revHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   revTitleGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   revTitle: { fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: colors.textMain },
@@ -1224,14 +1240,14 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   datePillText: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub },
   datePillTextActive: { color: colors.surface },
   dateLabel: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub },
-  revInputCard: { flex: 1, backgroundColor: withAlpha(colors.bg, 0.6), borderRadius: 10, padding: 10 },
+  revInputCard: { flex: 1, backgroundColor: colors.surface, borderRadius: 10, padding: 10, borderWidth: 0.5, borderColor: colors.secondary },
   revInputCardTitle: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight },
   revInputCardSub: { fontSize: 11, color: withAlpha(colors.textSub, 0.7), marginTop: 2, marginBottom: 6 },
   revInputCardInputWrap: { flexDirection: 'row', alignItems: 'center' },
   revInputCardSymbol: { fontSize: FONTS.body.size, color: colors.textSub, marginRight: 2 },
   revInputCardInput: { flex: 1, fontSize: FONTS.body.size, color: colors.textMain, padding: 0 },
   revInputCardFooter: { fontSize: FONTS.micro.size, color: colors.textSub, marginTop: 4 },
-  revNoteInput: { backgroundColor: withAlpha(colors.bg, 0.6), borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: FONTS.body.size, color: colors.textMain, marginBottom: 10 },
+  revNoteInput: { backgroundColor: colors.surface, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: FONTS.body.size, color: colors.textMain, marginBottom: 14, borderWidth: 1, borderColor: colors.secondary },
   revArchiveBtn: { backgroundColor: withAlpha(colors.textMain, 0.08), borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   revArchiveBtnDone: { backgroundColor: withAlpha(colors.success, 0.18) },
   revArchiveText: { fontSize: FONTS.sub.size, color: colors.textSub, fontWeight: FONTS.sub.weight },
