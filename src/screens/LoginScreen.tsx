@@ -527,11 +527,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
               style={[StyleSheet.absoluteFillObject, { borderRadius: 24 }]}
               pointerEvents="none"
             />
-            {/* Top specular highlight — thin white line that fades at
-                the ends, mimicking the iOS 26 glass edge catching
-                light. overflow:hidden on glassCard clips it to the
-                rounded top. */}
-            <View style={styles.specularTop} pointerEvents="none" />
             {msg ? (
               <View style={[styles.msgBox, msgOk ? styles.msgOk : styles.msgErr]}>
                 <Text style={[styles.msgText, msgOk ? styles.msgOkText : styles.msgErrText]}>{msg}</Text>
@@ -887,16 +882,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   glassCard: {
     borderRadius: 24, padding: 28, gap: 8, overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth, borderColor: GLASS_BORDER_STRONG,
-  },
-  // Top specular highlight: a thin white line across the top edge,
-  // clipped to the rounded corners by glassCard's overflow:hidden.
-  // The View spans the full width but the brightness fades at the ends
-  // via a soft alpha so the line doesn't look like a hard bar.
-  specularTop: {
-    position: 'absolute',
-    top: 0, left: 24, right: 24,
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.65)',
   },
   msgBox: { paddingVertical: 4, marginBottom: 8 },
   msgOk: {},
