@@ -1159,9 +1159,13 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   headerBtn: { /* matches web — no extra padding, label is the tap target */ },
   headerLink: { fontSize: FONTS.micro.size, color: headerColor, fontWeight: FONTS.micro.weight },
   logoutBtn: { fontSize: FONTS.micro.size, color: colors.danger, fontWeight: FONTS.micro.weight },
-  langRow: { flexDirection: 'row', gap: 4 },
+  // Lang switcher — tighter spacing (gap 4→2, paddingH 7→4, paddingV
+  // 2→1) per user feedback. Unselected inherits headerColor so it
+  // matches the rest of the header text (white over opaque bg, black
+  // otherwise). Active stays colors.primary per web.
+  langRow: { flexDirection: 'row', gap: 2 },
   langBtnTouch: { /* no extra padding */ },
-  langBtn: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5 },
+  langBtn: { fontSize: FONTS.micro.size, color: headerColor, fontWeight: FONTS.micro.weight, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 4 },
   langActive: { color: colors.primary, backgroundColor: withAlpha(colors.danger, 0.1), fontWeight: FONTS.microBold.weight },
 
   // Content
