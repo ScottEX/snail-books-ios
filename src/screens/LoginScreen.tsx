@@ -506,8 +506,13 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
             </View>
           </View>
 
-          {/* Glass Card */}
-          <Animated.View style={[styles.glassCard, shake && { transform: [{ translateX: shakeAnim }] }]}>
+          {/* Glass Card — always include the transform so the style array
+              stays stable across shake on/off transitions (otherwise
+              the `[styles.glassCard, false]` vs `[..., {transform}]`
+              toggle would trigger a style-array change and a brief
+              re-render flash). shakeAnim is identity (0) when not
+              shaking, so no visual cost. */}
+          <Animated.View style={[styles.glassCard, { transform: [{ translateX: shakeAnim }] }]}>
             {msg ? (
               <View style={[styles.msgBox, msgOk ? styles.msgOk : styles.msgErr]}>
                 <Text style={[styles.msgText, msgOk ? styles.msgOkText : styles.msgErrText]}>{msg}</Text>
@@ -841,16 +846,18 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 const GLASS_BG = 'rgba(255,255,255,0.10)';
 const GLASS_BG_STRONG = 'rgba(255,255,255,0.20)';
 const GLASS_BORDER = 'rgba(255,255,255,0.18)';
+const AVATAR_RING = 'rgba(255,255,255,0.25)';
 
 const getStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: { flex: 1 },
   container: { flex: 1 },
-  bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.55)' },
+  bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.30)' },
   content: { flex: 1, width: '100%' },
   contentScroll: { padding: 20, paddingTop: 32, paddingBottom: 40, maxWidth: 380, width: '100%', alignSelf: 'center' },
   brand: { alignItems: 'center', marginBottom: 32 },
   logoWrap: {
     width: 80, height: 80, borderRadius: 40, overflow: 'hidden', marginBottom: 20,
+    backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 2, borderColor: AVATAR_RING,
   },
   subtitle: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.7)', marginTop: 6, letterSpacing: 1 },
   langRow: { flexDirection: 'row', gap: 4, marginTop: 12 },
