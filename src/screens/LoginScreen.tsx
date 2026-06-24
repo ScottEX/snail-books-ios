@@ -6,6 +6,7 @@ import { t, getLang, langs, useLang } from '../i18n';
 import { api } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
+import { getWebAuthnBound, setWebAuthnBound, clearWebAuthn } from '../utils/storage';
 
 const BG_IMAGE = require('../../assets/img/bg.jpg');
 const LOGO_IMAGE = require('../../assets/img/logo.jpg');
@@ -46,6 +47,12 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [loading, setLoading] = useState(false);
   const [remember, setRemember] = useState(false);
   const [devCode, setDevCode] = useState('');
+  // WebAuthn/Face ID state. hasFaceID: this device has a stored
+  // credential. pwdHasFaceID: the currently typed username has any
+  // WebAuthn credential bound server-side (drives the "Face ID 登录"
+  // link in the password form).
+  const [hasFaceID, setHasFaceID] = useState(() => getWebAuthnBound().bound);
+  const [pwdHasFaceID, setPwdHasFaceID] = useState(false);
   const codeRef = useRef<any>(null);
   const { colors } = useTheme();
 
@@ -67,6 +74,25 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     if (remember) localStorage.setItem('remember_me', '1');
     else localStorage.removeItem('remember_me');
   }, [remember]);
+
+  // WebAuthn bootstrap on mount. Mirrors web LoginScreen L117-165:
+  // read the cached bound state synchronously, then refresh from
+  // server in case the user has unbound since last visit. We don't
+  // re-prompt biometric on mount — only the explicit Face ID button
+  // or the post-login sync in handleLogin touches stored credentials.
+  useEffect(() => {
+    const cached = getWebAuthnBound();
+    setHasFaceID(cached.bound);
+    (async () => {
+      try {
+        const r = await api.webauthnStatus();
+        if (r && typeof r.has_credential === 'boolean') {
+          if (!r.has_credential && cached.bound) clearWebAuthn();
+          setHasFaceID(!!r.has_credential);
+        }
+      } catch {}
+    })();
+  }, []);
 
   // Debounced fetch of per-user avatar + background. Mirrors the web
   // LoginScreen: typing a known username/email swaps the logo and the
@@ -96,6 +122,28 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         try { localStorage.setItem('bg-image', bg); } catch {}
       }
     }, 400);
+    return () => { clearTimeout(timer); };
+  }, [username]);
+
+  // Debounced check whether the typed username has any WebAuthn
+  // credential bound server-side. Mirrors web LoginScreen L237-255 —
+  // the response drives the "Face ID 登录" link that appears next to
+  // "Forgot password?" once the username matches a known Face-ID user.
+  // 500ms debounce + race-safe reqId (mirrors avatar/bg above).
+  const pwdReqId = useRef(0);
+  useEffect(() => {
+    const id = username.trim();
+    if (!id) { setPwdHasFaceID(false); return; }
+    const reqId = ++pwdReqId.current;
+    const timer = setTimeout(async () => {
+      try {
+        const r = await api.webauthnCheck(id);
+        if (reqId !== pwdReqId.current) return;
+        setPwdHasFaceID(!!(r && (r.pwdHasFaceID || r.has_credential)));
+      } catch {
+        if (reqId === pwdReqId.current) setPwdHasFaceID(false);
+      }
+    }, 500);
     return () => { clearTimeout(timer); };
   }, [username]);
 
@@ -155,6 +203,18 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
           localStorage.removeItem('expense_active_tab');
         }
         try { await api.saveLang(getLang()); } catch {}
+        // Post-login WebAuthn re-sync (mirrors web L312-325). Confirms
+        // the freshly-logged-in user has any Face ID credential bound
+        // server-side so the App.tsx post-login screen can offer to
+        // enable biometric unlock on this device. Commit 4 wires the
+        // actual Keychain write; for now we just refresh local state.
+        try {
+          const s = await api.webauthnStatus();
+          if (s && typeof s.has_credential === 'boolean') {
+            if (!s.has_credential) clearWebAuthn();
+            setHasFaceID(!!s.has_credential);
+          }
+        } catch {}
         onLogin();
       } else if (r.need_verify) {
         setEmail(r.email); setStep('verify'); setMsg('');
