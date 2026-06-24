@@ -522,7 +522,11 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           ) : tab === 'supply' ? (
             <ProcurementScreen />
           ) : tab === 'expense' ? (
-            <ExpenseScreen onReconHistory={() => setShowReconHistory(true)} onExpenseHistory={() => setShowExpenseHistory(true)} />
+            <ExpenseScreen
+              businessSummary={businessSummary}
+              onReconHistory={() => setShowReconHistory(true)}
+              onExpenseHistory={() => setShowExpenseHistory(true)}
+            />
           ) : tab === 'list' ? (
             <DailyRevenueView
               colors={colors}

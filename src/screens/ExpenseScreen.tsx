@@ -12,7 +12,7 @@ import { pickImages } from '../utils/imagePicker';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import { modalCardAnimation, modalClose, uploadReceiptStyles } from '../sharedStyles';
-import { fmtAmt as fmt } from '../utils/format';
+import { fmtAmt as fmt, toDec2Comma } from '../utils/format';
 
 /* ── helpers ── */
 const fmtInt = (n: number) => n.toLocaleString();
@@ -147,7 +147,15 @@ function DateErrorHint({ trigger, message, colors, textAlign = 'right' }: { trig
 /* ═══════════════════════════════════════════════════════════
    EXPENSE SCREEN
    ═══════════════════════════════════════════════════════════ */
-export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { onReconHistory?: () => void; onExpenseHistory?: () => void }) {
+export default function ExpenseScreen({
+  businessSummary,
+  onReconHistory,
+  onExpenseHistory,
+}: {
+  businessSummary?: { cash_on_hand?: number; cumulative_revenue?: number; cumulative_expense?: number };
+  onReconHistory?: () => void;
+  onExpenseHistory?: () => void;
+}) {
   const { colors } = useTheme();
   const urlCache = useRef<Map<any, string>>(new Map());
   const getPreviewUrl = (file: any) => {
@@ -283,8 +291,15 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
   }, [recDate, cardBalance, cashBalance, dineIn, meituan, flashSale, tuan, jd, onReconHistory]);
 
   const channelTotal = toNum(dineIn) + toNum(meituan) + toNum(flashSale) + toNum(tuan) + toNum(jd);
-  const realTotal = toNum(cardBalance) + toNum(cashBalance);
-  const diff = realTotal - channelTotal;
+  // Real total = card balance + cash balance + channel (all the
+  // revenue streams the user entered). Matches web's ExpenseScreen.tsx
+  // L255 exactly. iOS was missing channelTotal here, which threw off
+  // both realTotal and the diff calculation.
+  const realTotal = toNum(cardBalance) + toNum(cashBalance) + channelTotal;
+  // Diff = books (server's cash_on_hand) − actual (realTotal).
+  // iOS had this inverted which made positive diffs show as '-' and
+  // forced the spurious '+' prefix to fire. Web L256.
+  const diff = ((businessSummary && businessSummary.cash_on_hand) || 0) - realTotal;
 
   const hasReconChanges =
     cardBalance !== initReconValues.current.card ||
@@ -536,7 +551,7 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
                     {tab.title}
                     {i === 1 && (
                       <Text style={{ color: colors.expenseAmountColor }}>
-                        {' ¥' + fmt(expCatTotals.daily + expCatTotals.rent + expCatTotals.salary + expCatTotals.goods)}
+                        {' ¥' + toDec2Comma((businessSummary && businessSummary.cumulative_expense) || 0)}
                       </Text>
                     )}
                   </Text>
@@ -550,7 +565,7 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
                             {diff >= 0 ? '+' : '-'}¥
                           </Text>
                           <Text style={{ fontSize: FONTS.h1.size + 4, fontWeight: FONTS.h1.weight, color: colors.expenseAmountColor }}>
-                            {fmt(Math.abs(diff))}
+                            {toDec2Comma(Math.abs(diff))}
                           </Text>
                         </View>
                       </View>
@@ -558,21 +573,37 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
                       <View style={{ flexDirection: 'row', gap: 10 }}>
                         <View style={[st.subCard, { backgroundColor: withAlpha(colors.success, 0.15), borderColor: withAlpha(colors.success, 0.30) }]}>
                           <Text style={st.cardFieldLabel}>{t('bookBalance')}</Text>
-                          <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{fmt(channelTotal)}</Text>
+                          <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{'¥' + toDec2Comma((businessSummary && businessSummary.cash_on_hand) || 0)}</Text>
                         </View>
                         <View style={[st.subCard, { backgroundColor: withAlpha(colors.info, 0.15), borderColor: withAlpha(colors.info, 0.30) }]}>
                           <Text style={st.cardFieldLabel}>{t('currentBalance')}</Text>
-                          <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{fmt(realTotal)}</Text>
+                          <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{'¥' + toDec2Comma(realTotal)}</Text>
                         </View>
                       </View>
                     </View>
                   )}
                   {i === 1 && (
-                    <View style={st.cardFields}>
-                      <View style={st.cardFieldRow}>
-                        <View style={st.cardFieldCol}>
-                          <Text style={st.totalExpLabel}>{t('cumulativeExpense')}</Text>
-                          <Text style={st.totalExpVal}>{fmt(expCatTotals.daily + expCatTotals.rent + expCatTotals.salary + expCatTotals.goods)}</Text>
+                    <View style={{ transform: [{ translateY: -4 }] }}>
+                      {/* Row 1: 日常 | 采购 (gradient start/end tinted sub-cards) */}
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <View style={[st.expenseSubCard, { backgroundColor: withAlpha(colors.expenseGradientStart, 0.22), borderColor: withAlpha(colors.expenseGradientStart, 0.35) }]}>
+                          <Text style={st.cardFieldLabel}>{t('daily')}</Text>
+                          <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{'¥' + toDec2Comma(expCatTotals.daily)}</Text>
+                        </View>
+                        <View style={[st.expenseSubCard, { backgroundColor: withAlpha(colors.expenseGradientEnd, 0.22), borderColor: withAlpha(colors.expenseGradientEnd, 0.35) }]}>
+                          <Text style={st.cardFieldLabel}>{t('goods')}</Text>
+                          <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{'¥' + toDec2Comma(expCatTotals.goods)}</Text>
+                        </View>
+                      </View>
+                      {/* Row 2: 房租 | 薪资 */}
+                      <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                        <View style={[st.expenseSubCard, { backgroundColor: withAlpha(colors.expenseGradientStart, 0.22), borderColor: withAlpha(colors.expenseGradientStart, 0.35) }]}>
+                          <Text style={st.cardFieldLabel}>{t('rent')}</Text>
+                          <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{'¥' + toDec2Comma(expCatTotals.rent)}</Text>
+                        </View>
+                        <View style={[st.expenseSubCard, { backgroundColor: withAlpha(colors.expenseGradientEnd, 0.22), borderColor: withAlpha(colors.expenseGradientEnd, 0.35) }]}>
+                          <Text style={st.cardFieldLabel}>{t('salary')}</Text>
+                          <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{'¥' + toDec2Comma(expCatTotals.salary)}</Text>
                         </View>
                       </View>
                     </View>
@@ -1454,15 +1485,12 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
     flex: 1, borderRadius: 10, padding: 14, gap: 6,
     borderWidth: 0.5,
   },
-  totalExpLabel: {
-    fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: 'rgba(255,255,255,0.70)',
-    textAlign: 'center', marginBottom: 6,
-  },
-  // Web uses colors.expenseAmountColor (cream/gold/cyan per theme)
-  // for the big total in the 支出 card so it pops against the dark
-  // gradient — iOS was using plain white, fixed here.
-  totalExpVal: {
-    fontSize: FONTS.h1.size, fontWeight: FONTS.amount.weight, color: colors.expenseAmountColor,
+  // Sub-cards inside i===1 支出 (日常 / 采购 / 房租 / 薪资).
+  // Gradient-start / gradient-end tinted, 0.22 alpha bg + 0.35 alpha
+  // border. Padding 10, gap 4 (tighter than i===0 sub-cards).
+  expenseSubCard: {
+    flex: 1, borderRadius: 10, padding: 10, gap: 4,
+    borderWidth: 0.5,
   },
   tabStat: {
     fontSize: FONTS.amount.size, fontWeight: FONTS.amount.weight, letterSpacing: -0.5,
