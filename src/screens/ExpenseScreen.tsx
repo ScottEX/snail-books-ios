@@ -3,7 +3,6 @@ import {
   View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated, Dimensions, Image,
 } from 'react-native';
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { t, getLang } from '../i18n';
 import { api } from '../api/client';
@@ -519,17 +518,10 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
                 onPress={() => setActiveTab(i)}
                 activeOpacity={0.7}
               >
-                {/* Web used CSS linear-gradient for the tab card
-                    background. RN's <View> doesn't honour
-                    backgroundImage, so we use expo-linear-gradient
-                    absolute-filled behind the content. expo-blur
-                    provides the glass effect on top. */}
-                <BlurView
-                  intensity={70}
-                  tint="systemUltraThinMaterialLight"
-                  style={StyleSheet.absoluteFillObject}
-                  pointerEvents="none"
-                />
+                {/* Web uses ONLY a CSS linear-gradient for the tab card
+                    background — NO backdrop-filter. Re-creating with
+                    <LinearGradient> absolute-filled behind the content
+                    (RN's <View> can't render CSS gradient strings). */}
                 <LinearGradient
                   colors={bgGrad as [string, string]}
                   start={{ x: 0, y: 0 }}
@@ -548,15 +540,15 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
                       <View style={st.cardFieldRow}>
                         <View style={st.cardFieldCol}>
                           <Text style={st.cardFieldLabel}>{t('bookBalance')}</Text>
-                          <Text style={[st.cardFieldVal, { color: colors.textMain }]}>{fmt(channelTotal)}</Text>
+                          <Text style={st.cardFieldVal}>{fmt(channelTotal)}</Text>
                         </View>
                         <View style={st.cardFieldCol}>
                           <Text style={st.cardFieldLabel}>{t('currentBalance')}</Text>
-                          <Text style={[st.cardFieldVal, { color: colors.textMain }]}>{fmt(realTotal)}</Text>
+                          <Text style={st.cardFieldVal}>{fmt(realTotal)}</Text>
                         </View>
                         <View style={st.cardFieldCol}>
                           <Text style={st.cardFieldLabel}>{t('bookDiff')}</Text>
-                          <Text style={[st.cardFieldVal, { color: Math.abs(diff) < 0.005 ? colors.textMain : colors.primary }]}>{diff >= 0 ? '+' : '-'}{fmt(Math.abs(diff))}</Text>
+                          <Text style={st.cardFieldVal}>{diff >= 0 ? '+' : '-'}{fmt(Math.abs(diff))}</Text>
                         </View>
                       </View>
                     </View>
@@ -565,43 +557,13 @@ export default function ExpenseScreen({ onReconHistory, onExpenseHistory }: { on
                     <View style={st.cardFields}>
                       <View style={st.cardFieldRow}>
                         <View style={st.cardFieldCol}>
-                          <Text style={st.cardFieldLabel}>{t('cumulativeRevenue')}</Text>
-                          <Text style={st.cardFieldVal}>{fmt(channelTotal)}</Text>
-                        </View>
-                        <View style={st.cardFieldCol}>
                           <Text style={st.cardFieldLabel}>{t('cumulativeExpense')}</Text>
                           <Text style={st.cardFieldVal}>{fmt(expCatTotals.daily + expCatTotals.rent + expCatTotals.salary + expCatTotals.goods)}</Text>
-                        </View>
-                        <View style={st.cardFieldCol}>
-                          <Text style={st.cardFieldLabel}>{t('cashOnHand')}</Text>
-                          <Text style={[st.cardFieldVal, { color: Math.abs(realTotal) < 0.005 ? colors.textMain : colors.primary }]}>{fmt(realTotal)}</Text>
                         </View>
                       </View>
                     </View>
                   )}
                 </View>
-                {i === 2 && (
-                  <View style={st.cardFields}>
-                    <View style={st.cardFieldRow}>
-                      <View style={st.cardFieldCol}>
-                        <Text style={st.cardFieldLabel}>{t('daily')}</Text>
-                        <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{fmt(expCatTotals.daily)}</Text>
-                      </View>
-                      <View style={st.cardFieldCol}>
-                        <Text style={st.cardFieldLabel}>{t('rent')}</Text>
-                        <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{fmt(expCatTotals.rent)}</Text>
-                      </View>
-                      <View style={st.cardFieldCol}>
-                        <Text style={st.cardFieldLabel}>{t('salary')}</Text>
-                        <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{fmt(expCatTotals.salary)}</Text>
-                      </View>
-                      <View style={st.cardFieldCol}>
-                        <Text style={st.cardFieldLabel}>{t('goods')}</Text>
-                        <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{fmt(expCatTotals.goods)}</Text>
-                      </View>
-                    </View>
-                  </View>
-                )}
               </TouchableOpacity>
             );
           })}
