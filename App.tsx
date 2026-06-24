@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'react-native';
 import LoginScreen from './src/screens/LoginScreen';
@@ -15,6 +15,14 @@ export default function App() {
   const [page, setPage] = useState<'login' | 'home'>('login');
   const [appKey, setAppKey] = useState(0);
   const [ready, setReady] = useState(false);
+  // Guard against the LoginScreen <-> HomeScreen remount loop: when
+  // several API calls 401 simultaneously (common during a fresh login
+  // or after the session was kicked server-side) each one fires
+  // onUserChange + onSessionKicked + onSessionExpired, and if every
+  // handler bumps appKey the LoginScreen remounts three times per 401
+  // — and its mount-effect calls api.webauthnStatus() which can 401
+  // again, starting the cycle over. Coalesce within a 1500ms window.
+  const lastExpireAt = useRef(0);
 
   // Hydrate AsyncStorage → localStorage cache before anything reads it
   useEffect(() => {
@@ -28,20 +36,24 @@ export default function App() {
 
   // 401 / account disabled / session kicked → force back to login
   useEffect(() => {
-    const unsubKicked = onSessionKicked(() => {
-      setAppKey((k) => k + 1);
-      setPage('login');
-    });
-    // User-change bus (any module that does logout() or hits 401 fires this)
+    const handleExpire = () => {
+      const now = Date.now();
+      if (now - lastExpireAt.current < 1500) return; // coalesce bursts
+      lastExpireAt.current = now;
+      setPage((p) => {
+        if (p !== 'login') setAppKey((k) => k + 1);
+        return 'login';
+      });
+    };
+    const unsubKicked = onSessionKicked(handleExpire);
+    // User-change bus (logout / 401). Still bumps appKey so any
+    // stateful children re-initialise.
     const unsubChange = onUserChange(() => {
       setAppKey((k) => k + 1);
       try { setPage(localStorage.getItem('user') ? 'home' : 'login'); } catch {}
+      lastExpireAt.current = Date.now();
     });
-    // Also wire the api layer's manual handler (used by some 401 paths)
-    setSessionExpiredHandler(() => {
-      setAppKey((k) => k + 1);
-      setPage('login');
-    });
+    setSessionExpiredHandler(handleExpire);
     return () => { unsubKicked(); unsubChange(); };
   }, []);
 

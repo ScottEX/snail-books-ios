@@ -1,5 +1,31 @@
 import { getLang } from '../i18n';
 
+// ── Event bus ──
+// The api layer is not a React component, so it cannot render a modal directly
+// or call React state setters. Expose a tiny pub/sub so App-level components
+// (SessionKickedModal, App.tsx) can subscribe.
+type UserChangeListener = () => void;
+type SessionKickedListener = () => void;
+
+const _userChangeListeners = new Set<UserChangeListener>();
+const _sessionKickedListeners = new Set<SessionKickedListener>();
+
+export function onUserChange(fn: UserChangeListener): () => void {
+  _userChangeListeners.add(fn);
+  return () => { _userChangeListeners.delete(fn); };
+}
+function _emitUserChange() {
+  _userChangeListeners.forEach((fn) => { try { fn(); } catch { /* ignore */ } });
+}
+
+export function onSessionKicked(fn: SessionKickedListener): () => void {
+  _sessionKickedListeners.add(fn);
+  return () => { _sessionKickedListeners.delete(fn); };
+}
+function _emitSessionKicked() {
+  _sessionKickedListeners.forEach((fn) => { try { fn(); } catch { /* ignore */ } });
+}
+
 function getApiBase(): string {
   // Allow override via localStorage for development/testing
   if (typeof localStorage !== 'undefined') {
@@ -7,10 +33,9 @@ function getApiBase(): string {
     if (saved) return saved;
   }
   // React Native: Metro only serves the JS bundle, not the API. Point
-  // directly at the Flask backend. Production server is 8.135.58.90:8601
-  // (see snail-books-web/dist/index.html). Override at runtime via
-  // localStorage.setItem('api_base', 'http://...') to test against
-  // localhost or a LAN dev box.
+  // directly at the Flask backend. Production server is 8.135.58.90:8601.
+  // Override at runtime via localStorage.setItem('api_base', 'http://...') to
+  // test against localhost or a LAN dev box.
   if (typeof navigator !== 'undefined' && (navigator as any).product === 'ReactNative') {
     return 'http://8.135.58.90:8601';
   }
@@ -34,14 +59,12 @@ export function setSessionExpiredHandler(fn: () => void) { onSessionExpired = fn
 function startIdleTimer() {
   if (idleTimer) return;
   idleTimer = setInterval(() => {
-    // Only check when user is logged in (has user in localStorage)
     if (!localStorage.getItem('user')) return;
     if (Date.now() - lastActivity > IDLE_MS) {
       localStorage.removeItem('user');
-      // Notify App so it can re-route to login
       try { onSessionExpired?.(); } catch {}
     }
-  }, 10_000); // check every 10s
+  }, 10_000);
 }
 startIdleTimer();
 
@@ -50,11 +73,7 @@ function bumpActivity() {
 }
 
 function headers(): Record<string, string> {
-  const h: Record<string, string> = {
-    'X-Lang': getLang(),
-  };
-  // Only set Content-Type for requests with a body (FormData sets its own)
-  return h;
+  return { 'X-Lang': getLang() };
 }
 
 async function authFetch<T = any>(url: string, options?: RequestInit): Promise<T> {
@@ -62,31 +81,79 @@ async function authFetch<T = any>(url: string, options?: RequestInit): Promise<T
     ...headers(),
     ...(options?.headers as Record<string, string> || {}),
   };
-  // Auto-set Content-Type: application/json for requests with a JSON body
   if (options?.body && typeof options.body === 'string' && !mergedHeaders['Content-Type']) {
     mergedHeaders['Content-Type'] = 'application/json';
   }
   const resp = await fetch(API_BASE + url, {
     ...options,
     headers: mergedHeaders,
-    // Backend uses Flask session cookies for auth. iOS sim is cross-origin
-    // (Metro at localhost:8081, API at 8.135.58.90:8601) so the default
-    // 'omit' credentials silently drops the session cookie — login would
-    // "succeed" but every subsequent call would 401. 'include' makes RN
-    // send + accept cookies cross-origin. Backend already returns
-    // Access-Control-Allow-Credentials: true (see app.py add_cors_headers).
     credentials: 'include' as RequestCredentials,
   });
   if (resp.status === 401) {
+    let kickCode: string | null = null;
+    let kickMsg: string | null = null;
+    try {
+      const body = await resp.clone().json();
+      if (body?.code) kickCode = body.code;
+      if (body?.message) kickMsg = body.message;
+    } catch {}
     localStorage.removeItem('user');
+    // Drop the per-user bg-image cache so we don't keep rendering a
+    // stale data URI from a now-invalid session (this caused a
+    // bg-flicker regression after session expiry).
+    try { localStorage.removeItem('bg-image'); } catch {}
+    // Notify App-level listeners that the user was cleared (so they can
+    // re-evaluate page state, bump appKey, remount ThemeProvider, etc.)
+    _emitUserChange();
+    if (kickCode === 'session_kicked') {
+      _emitSessionKicked();
+    }
     try { onSessionExpired?.(); } catch {}
-    throw new Error('Unauthorized');
+    return Promise.reject(new Error(kickMsg || 'Unauthorized'));
+  }
+  if (resp.status === 403) {
+    localStorage.removeItem('user');
+    try { localStorage.removeItem('bg-image'); } catch {}
+    _emitUserChange();
+    try { onSessionExpired?.(); } catch {}
+    return Promise.reject(new Error('Account disabled'));
   }
   if (!resp.ok) {
-    throw new Error(`API error: ${resp.status} ${resp.statusText}`);
+    let msg = `API error: ${resp.status} ${resp.statusText}`;
+    try { const body = await resp.json(); if (body.message) msg = body.message; } catch {}
+    throw new Error(msg);
   }
   bumpActivity();
   return resp.json();
+}
+
+/**
+ * Silent variant of authFetch — does NOT fire session_expired /
+ * onUserChange / onSessionKicked events on 401. Use for optional /
+ * informational calls (e.g. LoginScreen checking webauthn status on
+ * mount) where a 401 should be silently ignored, not turn into a
+ * redirect loop. Returns null on any failure (network error or
+ * non-2xx status).
+ */
+async function silentAuthFetch<T = any>(url: string, options?: RequestInit): Promise<T | null> {
+  try {
+    const mergedHeaders: Record<string, string> = {
+      ...headers(),
+      ...(options?.headers as Record<string, string> || {}),
+    };
+    if (options?.body && typeof options.body === 'string' && !mergedHeaders['Content-Type']) {
+      mergedHeaders['Content-Type'] = 'application/json';
+    }
+    const resp = await fetch(API_BASE + url, {
+      ...options,
+      headers: mergedHeaders,
+      credentials: 'include' as RequestCredentials,
+    });
+    if (!resp.ok) return null;
+    return await resp.json();
+  } catch {
+    return null;
+  }
 }
 
 export const api = {
@@ -172,27 +239,27 @@ export const api = {
   },
   createTransaction: (data: any) => authFetch('/api/transactions', { method: 'POST', body: JSON.stringify(data) }),
   deleteTransaction: (id: number) => authFetch(`/api/transactions/${id}`, { method: 'DELETE' }),
+  updateTransaction: (id: number, data: any) => authFetch(`/api/transactions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 
-  // Expense image upload — returns { images: [...], thumb_images: [...], has_thumbs: bool }
-  // Accepts the { uri, type, name } shape from utils/imagePicker (or anything
-  // with a web-compatible File shape) and forwards via RN FormData.
+  // Expense image upload — accepts the { uri, type, name } shape from
+  // utils/imagePicker (or anything with a web-compatible File shape) and
+  // forwards via RN FormData.
   uploadExpenseImages: async (files: Array<{ uri: string; type?: string; name?: string }>) => {
     bumpActivity();
     const form = new FormData();
     files.forEach(f => form.append('files', f as any));
     const resp = await fetch(API_BASE + '/api/expenses/upload-images', {
       method: 'POST',
-      headers: headers(),  // Use shared headers() for consistency
+      headers: headers(),
       body: form,
       credentials: 'include' as RequestCredentials,
     });
-    if (resp.status === 401) {
+    if (resp.status === 401 || resp.status === 403) {
       localStorage.removeItem('user');
       try { onSessionExpired?.(); } catch {}
       throw new Error('Unauthorized');
     }
     if (!resp.ok) throw new Error(`Upload failed (${resp.status})`);
-    bumpActivity();
     const data = await resp.json();
     return data as { status: 'ok'; images: string[]; thumb_images: string[]; has_thumbs: boolean };
   },
@@ -223,6 +290,8 @@ export const api = {
     if (!resp.ok) throw new Error(`Upload failed (${resp.status})`);
     return resp.json();
   },
+  resetBackground: () => authFetch('/api/settings/background', { method: 'DELETE' }),
+  saveBackgroundSettings: (data: any) => authFetch('/api/settings/background', { method: 'PUT', body: JSON.stringify(data) }),
 
   // Avatar upload — accepts a FormData (caller builds it on web with File, on
   // RN with {uri,type,name}). Returns the JSON the backend responds with.
@@ -242,8 +311,45 @@ export const api = {
     if (!resp.ok) throw new Error(`Upload failed (${resp.status})`);
     return resp.json();
   },
-  resetBackground: () => authFetch('/api/settings/background', { method: 'DELETE' }),
-  saveBackgroundSettings: (data: any) => authFetch('/api/settings/background', { method: 'PUT', body: JSON.stringify(data) }),
+
+  // Profile cover
+  getProfileCover: () => authFetch('/api/profile/cover'),
+  uploadProfileCover: async (file: { uri: string; type?: string; name?: string }) => {
+    bumpActivity();
+    const form = new FormData();
+    form.append('file', file as any);
+    const resp = await fetch(API_BASE + '/api/profile/cover', {
+      method: 'POST',
+      headers: { 'X-Lang': getLang() },
+      body: form,
+      credentials: 'include' as RequestCredentials,
+    });
+    if (resp.status === 401) {
+      localStorage.removeItem('user');
+      try { onSessionExpired?.(); } catch {}
+      throw new Error('Unauthorized');
+    }
+    if (!resp.ok) throw new Error(`Upload failed (${resp.status})`);
+    return resp.json();
+  },
+  resetProfileCover: () => authFetch('/api/profile/cover', { method: 'DELETE' }),
+
+  // Signature
+  saveSignature: (signature: string) =>
+    authFetch('/api/users/signature', { method: 'POST', body: JSON.stringify({ signature }) }),
+
+  // Profile settings
+  changePassword: (old_password: string, new_password: string) =>
+    authFetch('/api/profile/password', { method: 'POST', body: JSON.stringify({ old_password, new_password }) }),
+  sendEmailCode: (email: string) =>
+    authFetch('/api/profile/email/send-code', { method: 'POST', body: JSON.stringify({ email }) }),
+  verifyEmailCode: (email: string, code: string) =>
+    authFetch('/api/profile/email/verify', { method: 'POST', body: JSON.stringify({ email, code }) }),
+
+  // Auth preferences
+  getAuthPrefs: () => authFetch('/api/users/me/auth-prefs'),
+  updateAuthPrefs: (data: { enforce_single_session?: number; session_timeout_hours?: number }) =>
+    authFetch('/api/users/me/auth-prefs', { method: 'PATCH', body: JSON.stringify(data) }),
 
   // Language preference (stored per-user in user_settings)
   getLang: () => authFetch('/api/settings/lang'),
@@ -268,7 +374,6 @@ export const api = {
     return authFetch(`/api/reconciliations?${params}`);
   },
 
-  // Paginated reconciliation query — returns { records, total, pages, page, per_page }
   getReconciliationsPage: (page = 1, perPage = 10, filters?: Record<string, string>) => {
     const params = new URLSearchParams();
     params.append('page', String(page));
@@ -300,10 +405,19 @@ export const api = {
   getProcurementBatches: (page = 1, perPage = 10) => authFetch(`/api/procurement-batches?page=${page}&per_page=${perPage}`),
   createProcurementBatch: (data: any) => authFetch('/api/procurement-batches', { method: 'POST', body: JSON.stringify(data) }),
   getProcurementBatchDetail: (id: number) => authFetch(`/api/procurement-batches/${id}`),
+  updateProcurementBatch: (id: number, data: any) => authFetch(`/api/procurement-batches/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteProcurementBatch: (id: number) => authFetch(`/api/procurement-batches/${id}`, { method: 'DELETE' }),
+  settleProcurementBatch: (id: number) => authFetch(`/api/procurement-batches/${id}/settle`, { method: 'POST' }),
   getProcurementStats: () => authFetch('/api/procurement-stats'),
+  getProcurementShareLink: (id: number): Promise<{ url: string }> => authFetch(`/api/procurement-batches/${id}/share-link`),
+  // Shared cart
+  getCart: () => authFetch('/api/procurement-cart'),
+  addToCart: (product_id: number, quantity: number) => authFetch('/api/procurement-cart', { method: 'POST', body: JSON.stringify({ product_id, quantity }) }),
+  removeFromCart: (product_id: number) => authFetch(`/api/procurement-cart/${product_id}`, { method: 'DELETE' }),
+  clearCart: () => authFetch('/api/procurement-cart', { method: 'DELETE' }),
 
   // Daily revenue (每日营收)
-  getDailyRevenue: (page = 1, perPage = 30, year?: number, month?: number, date?: string, days?: number) => {
+  getDailyRevenue: (page = 1, perPage = 10, year?: number, month?: number, date?: string, days?: number, dateFrom?: string, dateTo?: string) => {
     const params = new URLSearchParams();
     params.append('page', String(page));
     params.append('per_page', String(perPage));
@@ -311,6 +425,8 @@ export const api = {
     if (month) params.append('month', String(month));
     if (date) params.append('date', date);
     if (days) params.append('days', String(days));
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo) params.append('date_to', dateTo);
     const qs = params.toString();
     return authFetch('/api/daily-revenue?' + qs);
   },
@@ -318,15 +434,126 @@ export const api = {
   updateDailyRevenue: (id: number, data: any) => authFetch(`/api/daily-revenue/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteDailyRevenue: (id: number) => authFetch(`/api/daily-revenue/${id}`, { method: 'DELETE' }),
   getLast7Days: () => authFetch('/api/daily-revenue/last-7'),
+  getDailyRevenueTotal: () => authFetch('/api/daily-revenue/total'),
+  getBusinessSummary: () => authFetch('/api/business-summary'),
 
   getChart: () => authFetch('/api/chart'),
+  getChartMonthly: () => authFetch('/api/chart/monthly'),
   getStats: () => authFetch('/api/stats'),
 
   logout: async () => {
-    // Backend implements POST /logout (Flask @app.route('/logout', methods=['POST'])).
-    // credentials: 'include' so the server can actually clear the session cookie.
-    // Best-effort: if the network call fails, still clear the local marker.
     try { await fetch(API_BASE + '/logout', { method: 'POST', credentials: 'include' as RequestCredentials }); } catch {}
     localStorage.removeItem('user');
+    _emitUserChange();
+  },
+
+  // Delete account (self-deletion only, CASCADE cleans up all user data)
+  deleteAccount: (uid: number) => authFetch(`/api/users/${uid}/delete`, { method: 'POST' }),
+
+  // ── Admin ──
+  admin: {
+    check: () => authFetch('/api/admin/check'),
+    getUnreviewedCount: () => authFetch('/api/admin/users/unreviewed-count'),
+    markReviewed: (userId?: number) =>
+      authFetch('/api/admin/users/mark-reviewed', {
+        method: 'POST',
+        ...(userId != null ? { body: JSON.stringify({ user_id: userId }) } : {}),
+      }),
+    getMe: () => authFetch('/api/users/me'),
+    getUser: (id: number | string) => authFetch(`/api/admin/users/${id}`),
+    updateUser: (id: number | string, body: Record<string, any>) =>
+      authFetch(`/api/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    deleteUser: (id: number | string) => authFetch(`/api/admin/users/${id}`, { method: 'DELETE' }),
+    restoreUser: (id: number | string) => authFetch(`/api/admin/users/${id}/restore`, { method: 'POST' }),
+  },
+
+  // Invoice info (system-level)
+  getInvoice: () => authFetch('/api/admin/invoice'),
+  updateInvoice: (data: Record<string, string>) => authFetch('/api/admin/invoice', { method: 'PUT', body: JSON.stringify(data) }),
+
+  // Invoice records
+  getInvoiceRecords: (filter?: { status?: 'pending' | 'done'; type?: 'vat' | 'general'; procurement_batch_id?: number }) => {
+    const qs = new URLSearchParams();
+    if (filter?.status) qs.set('status', filter.status);
+    if (filter?.type) qs.set('type', filter.type);
+    if (filter?.procurement_batch_id) qs.set('procurement_batch_id', String(filter.procurement_batch_id));
+    const q = qs.toString();
+    return authFetch(`/api/invoice-records${q ? '?' + q : ''}`);
+  },
+  getInvoiceRecord: (id: number) => authFetch(`/api/invoice-records/${id}`),
+  createInvoiceRecord: (data: Record<string, any>) => authFetch('/api/invoice-records', { method: 'POST', body: JSON.stringify(data) }),
+  updateInvoiceRecord: (id: number, data: Record<string, any>) => authFetch(`/api/invoice-records/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteInvoiceRecord: (id: number) => authFetch(`/api/invoice-records/${id}`, { method: 'DELETE' }),
+  uploadInvoiceFile: (id: number, file: { uri: string; type?: string; name?: string }): Promise<{ status: string; file_path: string; file_type: string; file_size: number }> => {
+    const fd = new FormData();
+    fd.append('file', file as any);
+    return authFetch(`/api/invoice-records/${id}/file`, { method: 'POST', body: fd });
+  },
+  getInvoiceFileUrl: (filePath: string) => `${API_BASE}/api/invoice-files/${filePath}`,
+  getProcurementBatchesLite: () => authFetch(`/api/procurement-batches-lite`),
+
+  // WebAuthn (Face ID)
+  webauthnLoginBegin: (credentialId?: string, username?: string) =>
+    fetch(API_BASE + '/api/webauthn/login/begin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Lang': getLang() },
+      body: JSON.stringify(
+        credentialId ? { credential_id: credentialId } :
+        username ? { username } : {}
+      ),
+    }).then(async (r) => {
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.message || 'Login begin failed');
+      return data;
+    }),
+  webauthnLoginComplete: (credential: any) =>
+    fetch(API_BASE + '/api/webauthn/login/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Lang': getLang() },
+      body: JSON.stringify(credential),
+    }).then(async (r) => {
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.message || 'Login failed');
+      return data;
+    }),
+  webauthnRegisterBegin: () => authFetch('/api/webauthn/register/begin'),
+  webauthnRegisterComplete: (credential: any) =>
+    authFetch('/api/webauthn/register/complete', { method: 'POST', body: JSON.stringify(credential) }),
+  webauthnStatus: () => silentAuthFetch('/api/webauthn/status'),
+  webauthnDelete: () => authFetch('/api/webauthn/credentials', { method: 'DELETE' }),
+  webauthnCheck: (username?: string) =>
+    fetch(API_BASE + '/api/webauthn/check' + (username ? '?username=' + encodeURIComponent(username) : '')).then(r => r.json()),
+
+  // ── Per-user login-screen images (avatar + background) ──
+  // Web returns a Blob and converts to object URL; RN has no Blob
+  // URL, so we fetch and read as a data URI (base64) instead. This
+  // matches the behavior the user sees on web: typing a known
+  // username instantly swaps the avatar/background.
+  _blobToDataUri: async (resp: Response): Promise<string | null> => {
+    if (!resp.ok) return null;
+    try {
+      const blob = await resp.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(blob);
+      });
+    } catch { return null; }
+  },
+  getUserAvatarByLoginUri: async (identifier: string): Promise<string | null> => {
+    try {
+      let resp = await fetch(API_BASE + `/api/users/avatar?username=${encodeURIComponent(identifier)}`, { credentials: 'omit' as RequestCredentials });
+      if (!resp.ok && identifier.includes('@')) {
+        resp = await fetch(API_BASE + `/api/users/avatar?email=${encodeURIComponent(identifier)}`, { credentials: 'omit' as RequestCredentials });
+      }
+      return await (api as any)._blobToDataUri(resp);
+    } catch { return null; }
+  },
+  getUserBackgroundUri: async (identifier: string): Promise<string | null> => {
+    try {
+      const resp = await fetch(API_BASE + `/api/users/background?username=${encodeURIComponent(identifier)}`, { credentials: 'omit' as RequestCredentials });
+      return await (api as any)._blobToDataUri(resp);
+    } catch { return null; }
   },
 };
