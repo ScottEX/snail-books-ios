@@ -471,13 +471,17 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             pointerEvents="none"
           />
           <View style={styles.headerInner}>
-            <View style={styles.headerLeft}>
+            <TouchableOpacity
+              style={styles.headerLeft}
+              onPress={() => openModal(() => setShowProfile(true))}
+              activeOpacity={0.6}
+            >
               <Image
                 source={avatarUrl ? { uri: avatarUrl } : LOGO_IMAGE}
                 style={styles.headerAvatar}
               />
               <Text style={styles.headerUser}>{usr}</Text>
-            </View>
+            </TouchableOpacity>
             <View style={styles.headerRight}>
               <TouchableOpacity
                 onPress={() => openModal(() => setShowBgModal(true))}
