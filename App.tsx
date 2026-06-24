@@ -59,12 +59,22 @@ export default function App() {
 
   const goHome = useCallback(() => setPage('home'), []);
   const goLogin = useCallback(() => {
-    // Preserve lang across logout (per-device setting)
+    // Preserve device-level settings across logout: language, the
+    // "remember me" checkbox, and the saved username so the login
+    // form re-hydrates nicely on next launch. Everything else (user,
+    // token, webauthn state, bg-image, etc.) is per-session and gets
+    // cleared.
     let lang = '';
+    let rememberMe = '';
+    let savedLogin = '';
     try {
       lang = localStorage.getItem('lang') || '';
+      rememberMe = localStorage.getItem('remember_me') || '';
+      savedLogin = localStorage.getItem('saved_login') || '';
       localStorage.clear();
       if (lang) localStorage.setItem('lang', lang);
+      if (rememberMe) localStorage.setItem('remember_me', rememberMe);
+      if (savedLogin) localStorage.setItem('saved_login', savedLogin);
     } catch {}
     // Clear biometric-unlock credential + WebAuthn state so a logged-out
     // device can never be unlocked into another user's account.
