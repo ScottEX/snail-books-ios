@@ -132,6 +132,9 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   }, [opacityKey]);
   // Cross-screen bg sync (web uses a window event; iOS uses the same
   // global event-bus pattern via the api module).
+  // NOTE: RN's `window` shim exists but doesn't implement
+  // addEventListener, so we have to feature-test it explicitly —
+  // just `typeof window !== 'undefined'` isn't enough.
   useEffect(() => {
     const onBgChanged = (e: any) => {
       const url = e?.detail?.url;
@@ -140,9 +143,10 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         setBgVersion((v) => v + 1);
       }
     };
-    if (typeof window !== 'undefined') {
-      window.addEventListener('bg-changed', onBgChanged);
-      return () => window.removeEventListener('bg-changed', onBgChanged);
+    const w: any = typeof window !== 'undefined' ? window : undefined;
+    if (w && typeof w.addEventListener === 'function') {
+      w.addEventListener('bg-changed', onBgChanged);
+      return () => w.removeEventListener('bg-changed', onBgChanged);
     }
     return undefined;
   }, []);
@@ -169,7 +173,9 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         setBgImageUri(r.url);
         setBgVersion((v) => v + 1);
         try { localStorage.setItem('bg-image', r.url); } catch {}
-        if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('bg-changed', { detail: { url: r.url } }));
+        if (typeof window !== 'undefined' && typeof (window as any).dispatchEvent === 'function') {
+          (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: r.url } }));
+        }
         setToast(t('bgUpdated') || '背景已更新');
       } else {
         setToast(t('toastSubmitFailed'));
@@ -184,7 +190,9 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     setBgImageUri(DEFAULT_BG);
     setBgVersion((v) => v + 1);
     try { localStorage.removeItem('bg-image'); } catch {}
-    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('bg-changed', { detail: { url: DEFAULT_BG } }));
+    if (typeof window !== 'undefined' && typeof (window as any).dispatchEvent === 'function') {
+      (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: DEFAULT_BG } }));
+    }
     setToast(t('resetDefault') || '已恢复默认');
   };
 
