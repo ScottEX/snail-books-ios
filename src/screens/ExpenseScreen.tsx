@@ -399,15 +399,6 @@ export default function ExpenseScreen({
   const [loadingExp, setLoadingExp] = useState(false);
   const [showExpConfirm, setShowExpConfirm] = useState(false);
 
-  // Sync dates from server time once ready
-  useEffect(() => {
-    if (sd.ready && sd.today) {
-      setExpDate(sd.today);
-      setFeeEntryDate(sd.today);
-      if (!recDate) setRecDate(sd.yesterday || '');
-    }
-  }, [sd.ready]);
-
   const loadExpenses = async () => {
     try {
       // Load all expense transactions for complete category totals
