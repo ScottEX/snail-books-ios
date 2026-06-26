@@ -267,7 +267,12 @@ export default function ExpenseScreen({
   const submitRecon = useCallback(async () => {
     if (sd.isFuture(recDate)) { setToast(t('errDateFuture')); return; }
     try {
-      // Reconciliation record timestamp = now (CN local)
+      // 提交那一刻拉最新 businessSummary，确保 cash_on_hand 含本会话刚录的支出
+      let latestSummary: any = businessSummary;
+      try { const fresh = await api.getBusinessSummary(); if (fresh) latestSummary = fresh; } catch {}
+      const latestCashOnHand = latestSummary?.cash_on_hand || 0;
+      const latestCashOnHandCents = toCents(latestCashOnHand);
+      const latestDiff = (realTotalCents - latestCashOnHandCents) / 100;
       const today = sd.today || '';
       const username = localStorage.getItem('user') || '';
       await api.createReconciliation({
@@ -280,6 +285,8 @@ export default function ExpenseScreen({
         flash_sale: toNum(flashSale),
         jd: toNum(jd),
         tuan: toNum(tuan),
+        cash_on_hand: latestCashOnHand,
+        diff: latestDiff,
         reconciled_by: username,
       });
       setToast(t('reconComplete'));
@@ -288,15 +295,14 @@ export default function ExpenseScreen({
   }, [recDate, cardBalance, cashBalance, dineIn, meituan, flashSale, tuan, jd, onReconHistory]);
 
   const channelTotal = toNum(dineIn) + toNum(meituan) + toNum(flashSale) + toNum(tuan) + toNum(jd);
-  // Real total = card balance + cash balance + channel (all the
-  // revenue streams the user entered). Matches web's ExpenseScreen.tsx
-  // L255 exactly. iOS was missing channelTotal here, which threw off
-  // both realTotal and the diff calculation.
-  const realTotal = toNum(cardBalance) + toNum(cashBalance) + channelTotal;
-  // Diff = books (server's cash_on_hand) − actual (realTotal).
-  // iOS had this inverted which made positive diffs show as '-' and
-  // forced the spurious '+' prefix to fire. Web L256.
-  const diff = ((businessSummary && businessSummary.cash_on_hand) || 0) - realTotal;
+  // Precise arithmetic: convert to cents (integer), compute, convert back
+  // Avoids IEEE 754 float issues (e.g., 0.1 + 0.2 !== 0.3)
+  const toCents = (v: any) => Math.round((parseFloat(String(v ?? '0')) || 0) * 100);
+  const channelTotalCents = toCents(dineIn) + toCents(meituan) + toCents(flashSale) + toCents(tuan) + toCents(jd);
+  const realTotalCents = toCents(cardBalance) + toCents(cashBalance) + channelTotalCents;
+  const cashOnHandCents = toCents((businessSummary && businessSummary.cash_on_hand) || 0);
+  const realTotal = realTotalCents / 100;
+  const diff = (realTotalCents - cashOnHandCents) / 100;
 
   const hasReconChanges =
     cardBalance !== initReconValues.current.card ||
