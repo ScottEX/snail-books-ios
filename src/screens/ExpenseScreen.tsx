@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, useReducer } from 'react';
 import {
-  View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated, Dimensions, Image,
+  View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated, Dimensions, Image, Switch,
 } from 'react-native';
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -389,6 +389,7 @@ export default function ExpenseScreen({
   const [expNote, setExpNote] = useState('');
   const [expImages, setExpImages] = useState<any[]>([]);
   const [uploadingImg, setUploadingImg] = useState(false);
+  const [isRefund, setIsRefund] = useState(false);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [expCatTotals, setExpCatTotals] = useState({ daily: 0, rent: 0, salary: 0, goods: 0 });
   const [loadingExp, setLoadingExp] = useState(false);
@@ -453,20 +454,32 @@ export default function ExpenseScreen({
     });
   };
 
+  const validateImages = (files: any[]) => {
+    const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
+    return files.filter(f => {
+      if (!ALLOWED.includes(f.type || '')) return false;
+      if ((f.size || 0) > 10 * 1024 * 1024) return false;
+      return true;
+    });
+  };
+
   const handleAddExpense = async () => {
-    if (!expAmount || parseFloat(expAmount) <= 0) return;
+    const raw = parseFloat(expAmount);
+    if (!expAmount || raw === 0) return;
+    if (!isRefund && raw <= 0) return;
     if (sd.isFuture(expDate)) { setToast(t('errDateFuture')); return; }
     setLoadingExp(true);
     try {
       // Upload images first if any
       let imageUrls: string[] = [];
       let thumbUrls: string[] = [];
-      if (expImages.length > 0) {
+      const validImages = validateImages(expImages);
+      if (validImages.length > 0) {
         setUploadingImg(true);
-        const result = await api.uploadExpenseImages(expImages);
+        const result = await api.uploadExpenseImages(validImages);
         setUploadingImg(false);
         if (result.status !== 'ok') {
-          setToast(t('toastSubmitFailed'));
+          setToast(t('uploadFailed'));
           setLoadingExp(false);
           return;
         }
@@ -924,6 +937,16 @@ export default function ExpenseScreen({
                   });
                 })()}
               </View>
+              {/* 退款模式 */}
+              <View style={st.refundRow}>
+                <Text style={st.catSectionTitle}>{t('refundMode')}</Text>
+                <Switch
+                  value={isRefund}
+                  onValueChange={setIsRefund}
+                  trackColor={{ false: colors.secondary, true: colors.primary }}
+                  thumbColor={colors.surface}
+                />
+              </View>
               {/* 支出说明 */}
               <Text style={st.catSectionTitle}>{t('expenseNote')}</Text>
               <InputWithFocus inputStyle={st.noteInput}
@@ -1012,14 +1035,14 @@ export default function ExpenseScreen({
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[st.expBtn, { flex: 1 }]}
-                  onPress={() => { if (parseFloat(expAmount) > 0) setShowExpConfirm(true); }}
-                  disabled={!expAmount || parseFloat(expAmount) <= 0 || loadingExp}
+                  onPress={() => { if (isRefund || parseFloat(expAmount) > 0) setShowExpConfirm(true); }}
+                  disabled={!expAmount || (!isRefund && parseFloat(expAmount) <= 0) || loadingExp || uploadingImg}
                   activeOpacity={0.8}
                 >
                   <Text style={st.expBtnText}>
-                    {loadingExp ? '...' : t('confirmRecord')}
+                    {uploadingImg ? t('uploading') : loadingExp ? '...' : t('confirmRecord')}
                   </Text>
-                  {(!expAmount || parseFloat(expAmount) <= 0 || loadingExp) && (
+                  {(!expAmount || (!isRefund && parseFloat(expAmount) <= 0) || loadingExp || uploadingImg) && (
                     <View style={st.expBtnMask} />
                   )}
                 </TouchableOpacity>
@@ -1697,6 +1720,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   payChipActiveWechat: { backgroundColor: '#07C160' },
   payChipActiveAlipay: { backgroundColor: '#1677FF' },
   payChipText: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub },
+  refundRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4, marginBottom: 8 },
   payChipTextActive: { color: colors.surface },
   /* Chip icon circle */
   chipIconCircle: {
