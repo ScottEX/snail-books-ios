@@ -318,9 +318,8 @@ export default function ExpenseScreen({
     tuan !== initReconValues.current.tuan;
 
   /* ── 模块二：平台手续费 ── */
-  const now = new Date();
-  const thisYear = now.getFullYear();
-  const thisMonth = now.getMonth() + 1;
+  const thisYear = sd.year || new Date().getFullYear();
+  const thisMonth = sd.month || new Date().getMonth() + 1;
 
   const [feeData, setFeeData] = useState<any>(null);        // current month
   const [allFees, setAllFees] = useState<any[]>([]);         // all months for detail
@@ -399,6 +398,15 @@ export default function ExpenseScreen({
   const [expCatTotals, setExpCatTotals] = useState({ daily: 0, rent: 0, salary: 0, goods: 0 });
   const [loadingExp, setLoadingExp] = useState(false);
   const [showExpConfirm, setShowExpConfirm] = useState(false);
+
+  // Sync dates from server time once ready
+  useEffect(() => {
+    if (sd.ready && sd.today) {
+      setExpDate(sd.today);
+      setFeeEntryDate(sd.today);
+      if (!recDate) setRecDate(sd.yesterday || '');
+    }
+  }, [sd.ready]);
 
   const loadExpenses = async () => {
     try {
