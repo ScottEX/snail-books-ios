@@ -155,6 +155,7 @@ export default function ExpenseScreen({
   onExpenseHistory?: () => void;
 }) {
   const { colors } = useTheme();
+  const sd = useServerDate();
   const urlCache = useRef<Map<any, string>>(new Map());
   const getPreviewUrl = (file: any) => {
     // RN: expo-image-picker returns { uri, type, name, size }
@@ -184,7 +185,7 @@ export default function ExpenseScreen({
   // RN FlatList handles horizontal swiping natively — nothing to do here.
 
   /* ── 模块一：对账 ── */
-  const [recDate, setRecDate] = useState(yesterdayStr());
+  const [recDate, setRecDate] = useState(sd.yesterday || '');
   const [recDateKey, setRecDateKey] = useState(0);
   const [recDateErr, setRecDateErr] = useState(0);
   const [toast, setToast] = useState('');
@@ -211,7 +212,7 @@ export default function ExpenseScreen({
           const data = await api.getReconciliations(1);
           if (data && data.length > 0) {
             const last = data[0];
-            const d = last.bill_date || last.date || yesterdayStr();
+            const d = last.bill_date || last.date || sd.yesterday || '';
             setRecDate(d);
             setCardBalance(toDec2(last.card_balance));
             setCashBalance(toDec2(last.cash_balance));
@@ -264,12 +265,10 @@ export default function ExpenseScreen({
 
   // 提交对账到后端
   const submitRecon = useCallback(async () => {
-    if (isFuture(recDate)) { setToast(t('errDateFuture')); return; }
+    if (sd.isFuture(recDate)) { setToast(t('errDateFuture')); return; }
     try {
-      // Reconciliation record timestamp = now (CN local), same helper used
-      // elsewhere in this file so the "date" field matches the user's local
-      // calendar day, not UTC (which can be off-by-one in early-morning CN time).
-      const today = todayStr();
+      // Reconciliation record timestamp = now (CN local)
+      const today = sd.today || '';
       const username = localStorage.getItem('user') || '';
       await api.createReconciliation({
         date: today,
@@ -309,9 +308,8 @@ export default function ExpenseScreen({
     tuan !== initReconValues.current.tuan;
 
   /* ── 模块二：平台手续费 ── */
-  const now = new Date();
-  const thisYear = now.getFullYear();
-  const thisMonth = now.getMonth() + 1;
+  const thisYear = sd.year || new Date().getFullYear();
+  const thisMonth = sd.month || new Date().getMonth() + 1;
 
   const [feeData, setFeeData] = useState<any>(null);        // current month
   const [allFees, setAllFees] = useState<any[]>([]);         // all months for detail
@@ -321,7 +319,7 @@ export default function ExpenseScreen({
   const [showFeeHistory, setShowFeeHistory] = useState(false);
   const [feeHistoryFilter, setFeeHistoryFilter] = useState<'all' | { year: number; month: number }>('all');
   const [showFeeHistoryFilterPicker, setShowFeeHistoryFilterPicker] = useState(false);
-  const [feeEntryDate, setFeeEntryDate] = useState(todayStr());
+  const [feeEntryDate, setFeeEntryDate] = useState(sd.today || '');
   const [feeDateErr, setFeeDateErr] = useState(0);
   const [feeMc, setFeeMc] = useState('');
   const [feeMw, setFeeMw] = useState('');
@@ -352,7 +350,7 @@ export default function ExpenseScreen({
 
   const handleAddFee = async () => {
     if (feeMonth === 'all') return;
-    if (isFuture(feeEntryDate)) { setToast(t('errDateFuture')); return; }
+    if (sd.isFuture(feeEntryDate)) { setToast(t('errDateFuture')); return; }
     const mc = toNum(feeMc), mw = toNum(feeMw), ew = toNum(feeEw), mt = toNum(feeMt);
     if (mc + mw + ew + mt === 0) { setToast(t('atLeastOneFee')); return; }
     setSavingFee(true);
@@ -377,7 +375,7 @@ export default function ExpenseScreen({
   };
 
   /* ── 模块三：支出 ── */
-  const [expDate, setExpDate] = useState(todayStr());
+  const [expDate, setExpDate] = useState(sd.today || '');
   const [expDateErr, setExpDateErr] = useState(0);
   const [expAmount, setExpAmount] = useState('');
   const [expCategory, setExpCategory] = useState('日常');
@@ -451,7 +449,7 @@ export default function ExpenseScreen({
 
   const handleAddExpense = async () => {
     if (!expAmount || parseFloat(expAmount) <= 0) return;
-    if (isFuture(expDate)) { setToast(t('errDateFuture')); return; }
+    if (sd.isFuture(expDate)) { setToast(t('errDateFuture')); return; }
     setLoadingExp(true);
     try {
       // Upload images first if any
@@ -488,7 +486,7 @@ export default function ExpenseScreen({
       setExpCategory('日常');
       setPayMethod('微信');
       setExpNote('');
-      setExpDate(todayStr());
+      setExpDate(sd.today || '');
       setExpImages([]);
       await loadExpenses();
       onExpenseHistory?.();
@@ -1345,14 +1343,14 @@ export default function ExpenseScreen({
         value={recDate}
         onClose={() => setShowRecDatePicker(false)}
         onSelect={(d) => { setRecDate(d); setRecDateKey(k => k + 1); setRecDateErr(0); }}
-        minDate={todayStr()}
+        minDate={sd.today}
         title={t('billDate')}
       />
       <DatePickerModal
         visible={showExpDatePicker}
         value={expDate}
         onClose={() => setShowExpDatePicker(false)}
-        onSelect={(d) => { if (d <= todayStr()) { setExpDate(d); setExpDateErr(0); } }}
+        onSelect={(d) => { if (d <= sd.today) { setExpDate(d); setExpDateErr(0); } }}
         minDate={undefined}
         title={t('billDate')}
       />
