@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, useReducer } from 'react';
 import {
-  View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated, Dimensions, Image, Switch,
+  View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated, Dimensions, Image,
 } from 'react-native';
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -155,7 +155,6 @@ export default function ExpenseScreen({
   onExpenseHistory?: () => void;
 }) {
   const { colors } = useTheme();
-  const sd = useServerDate();
   const urlCache = useRef<Map<any, string>>(new Map());
   const getPreviewUrl = (file: any) => {
     // RN: expo-image-picker returns { uri, type, name, size }
@@ -185,7 +184,7 @@ export default function ExpenseScreen({
   // RN FlatList handles horizontal swiping natively — nothing to do here.
 
   /* ── 模块一：对账 ── */
-  const [recDate, setRecDate] = useState(sd.yesterday || '');
+  const [recDate, setRecDate] = useState(yesterdayStr());
   const [recDateKey, setRecDateKey] = useState(0);
   const [recDateErr, setRecDateErr] = useState(0);
   const [toast, setToast] = useState('');
@@ -212,7 +211,7 @@ export default function ExpenseScreen({
           const data = await api.getReconciliations(1);
           if (data && data.length > 0) {
             const last = data[0];
-            const d = last.bill_date || last.date || sd.yesterday || '';
+            const d = last.bill_date || last.date || yesterdayStr();
             setRecDate(d);
             setCardBalance(toDec2(last.card_balance));
             setCashBalance(toDec2(last.cash_balance));
@@ -265,18 +264,12 @@ export default function ExpenseScreen({
 
   // 提交对账到后端
   const submitRecon = useCallback(async () => {
-    if (sd.isFuture(recDate)) { setToast(t('errDateFuture')); return; }
+    if (isFuture(recDate)) { setToast(t('errDateFuture')); return; }
     try {
-      // 提交那一刻拉最新 businessSummary，确保 cash_on_hand 含本会话刚录的支出
-      let latestSummary: any = businessSummary;
-      try {
-        const fresh = await api.getBusinessSummary();
-        if (fresh) latestSummary = fresh;
-      } catch {}
-      const latestCashOnHand = latestSummary?.cash_on_hand || 0;
-      const latestCashOnHandCents = toCents(latestCashOnHand);
-      const latestDiff = Math.round((realTotalCents - latestCashOnHandCents) * 100) / 10000;
-      const today = sd.today || '';
+      // Reconciliation record timestamp = now (CN local), same helper used
+      // elsewhere in this file so the "date" field matches the user's local
+      // calendar day, not UTC (which can be off-by-one in early-morning CN time).
+      const today = todayStr();
       const username = localStorage.getItem('user') || '';
       await api.createReconciliation({
         date: today,
@@ -288,8 +281,6 @@ export default function ExpenseScreen({
         flash_sale: toNum(flashSale),
         jd: toNum(jd),
         tuan: toNum(tuan),
-        cash_on_hand: latestCashOnHand,
-        diff: latestDiff,
         reconciled_by: username,
       });
       setToast(t('reconComplete'));
@@ -298,15 +289,15 @@ export default function ExpenseScreen({
   }, [recDate, cardBalance, cashBalance, dineIn, meituan, flashSale, tuan, jd, onReconHistory]);
 
   const channelTotal = toNum(dineIn) + toNum(meituan) + toNum(flashSale) + toNum(tuan) + toNum(jd);
-  // Precise arithmetic: convert to cents (integer), compute, convert back
-  // Avoids IEEE 754 float issues
-  const toCents = (v: any) => Math.round((parseFloat(String(v ?? '0')) || 0) * 100);
-  const channelTotalCents = toCents(dineIn) + toCents(meituan) + toCents(flashSale) + toCents(tuan) + toCents(jd);
-  const realTotalCents = toCents(cardBalance) + toCents(cashBalance) + channelTotalCents;
-  const cashOnHandCents = toCents((businessSummary && businessSummary.cash_on_hand) || 0);
-  // keep channelTotal for display
-  const realTotal = realTotalCents / 100;
-  const diff = (realTotalCents - cashOnHandCents) / 100;
+  // Real total = card balance + cash balance + channel (all the
+  // revenue streams the user entered). Matches web's ExpenseScreen.tsx
+  // L255 exactly. iOS was missing channelTotal here, which threw off
+  // both realTotal and the diff calculation.
+  const realTotal = toNum(cardBalance) + toNum(cashBalance) + channelTotal;
+  // Diff = books (server's cash_on_hand) − actual (realTotal).
+  // iOS had this inverted which made positive diffs show as '-' and
+  // forced the spurious '+' prefix to fire. Web L256.
+  const diff = ((businessSummary && businessSummary.cash_on_hand) || 0) - realTotal;
 
   const hasReconChanges =
     cardBalance !== initReconValues.current.card ||
@@ -318,8 +309,9 @@ export default function ExpenseScreen({
     tuan !== initReconValues.current.tuan;
 
   /* ── 模块二：平台手续费 ── */
-  const thisYear = sd.year || new Date().getFullYear();
-  const thisMonth = sd.month || new Date().getMonth() + 1;
+  const now = new Date();
+  const thisYear = now.getFullYear();
+  const thisMonth = now.getMonth() + 1;
 
   const [feeData, setFeeData] = useState<any>(null);        // current month
   const [allFees, setAllFees] = useState<any[]>([]);         // all months for detail
@@ -329,7 +321,7 @@ export default function ExpenseScreen({
   const [showFeeHistory, setShowFeeHistory] = useState(false);
   const [feeHistoryFilter, setFeeHistoryFilter] = useState<'all' | { year: number; month: number }>('all');
   const [showFeeHistoryFilterPicker, setShowFeeHistoryFilterPicker] = useState(false);
-  const [feeEntryDate, setFeeEntryDate] = useState(sd.today || '');
+  const [feeEntryDate, setFeeEntryDate] = useState(todayStr());
   const [feeDateErr, setFeeDateErr] = useState(0);
   const [feeMc, setFeeMc] = useState('');
   const [feeMw, setFeeMw] = useState('');
@@ -360,7 +352,7 @@ export default function ExpenseScreen({
 
   const handleAddFee = async () => {
     if (feeMonth === 'all') return;
-    if (sd.isFuture(feeEntryDate)) { setToast(t('errDateFuture')); return; }
+    if (isFuture(feeEntryDate)) { setToast(t('errDateFuture')); return; }
     const mc = toNum(feeMc), mw = toNum(feeMw), ew = toNum(feeEw), mt = toNum(feeMt);
     if (mc + mw + ew + mt === 0) { setToast(t('atLeastOneFee')); return; }
     setSavingFee(true);
@@ -385,7 +377,7 @@ export default function ExpenseScreen({
   };
 
   /* ── 模块三：支出 ── */
-  const [expDate, setExpDate] = useState(sd.today || '');
+  const [expDate, setExpDate] = useState(todayStr());
   const [expDateErr, setExpDateErr] = useState(0);
   const [expAmount, setExpAmount] = useState('');
   const [expCategory, setExpCategory] = useState('日常');
@@ -393,7 +385,6 @@ export default function ExpenseScreen({
   const [expNote, setExpNote] = useState('');
   const [expImages, setExpImages] = useState<any[]>([]);
   const [uploadingImg, setUploadingImg] = useState(false);
-  const [isRefund, setIsRefund] = useState(false);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [expCatTotals, setExpCatTotals] = useState({ daily: 0, rent: 0, salary: 0, goods: 0 });
   const [loadingExp, setLoadingExp] = useState(false);
@@ -458,32 +449,20 @@ export default function ExpenseScreen({
     });
   };
 
-  const validateImages = (files: any[]) => {
-    const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
-    return files.filter(f => {
-      if (!ALLOWED.includes(f.type || '')) return false;
-      if ((f.size || 0) > 10 * 1024 * 1024) return false;
-      return true;
-    });
-  };
-
   const handleAddExpense = async () => {
-    const raw = parseFloat(expAmount);
-    if (!expAmount || raw === 0) return;
-    if (!isRefund && raw <= 0) return;
-    if (sd.isFuture(expDate)) { setToast(t('errDateFuture')); return; }
+    if (!expAmount || parseFloat(expAmount) <= 0) return;
+    if (isFuture(expDate)) { setToast(t('errDateFuture')); return; }
     setLoadingExp(true);
     try {
       // Upload images first if any
       let imageUrls: string[] = [];
       let thumbUrls: string[] = [];
-      const validImages = validateImages(expImages);
-      if (validImages.length > 0) {
+      if (expImages.length > 0) {
         setUploadingImg(true);
-        const result = await api.uploadExpenseImages(validImages);
+        const result = await api.uploadExpenseImages(expImages);
         setUploadingImg(false);
         if (result.status !== 'ok') {
-          setToast(t('uploadFailed'));
+          setToast(t('toastSubmitFailed'));
           setLoadingExp(false);
           return;
         }
@@ -509,7 +488,7 @@ export default function ExpenseScreen({
       setExpCategory('日常');
       setPayMethod('微信');
       setExpNote('');
-      setExpDate(sd.today || '');
+      setExpDate(todayStr());
       setExpImages([]);
       await loadExpenses();
       onExpenseHistory?.();
@@ -941,16 +920,6 @@ export default function ExpenseScreen({
                   });
                 })()}
               </View>
-              {/* 退款模式 */}
-              <View style={st.refundRow}>
-                <Text style={st.catSectionTitle}>{t('refundMode')}</Text>
-                <Switch
-                  value={isRefund}
-                  onValueChange={setIsRefund}
-                  trackColor={{ false: colors.secondary, true: colors.primary }}
-                  thumbColor={colors.surface}
-                />
-              </View>
               {/* 支出说明 */}
               <Text style={st.catSectionTitle}>{t('expenseNote')}</Text>
               <InputWithFocus inputStyle={st.noteInput}
@@ -1039,14 +1008,14 @@ export default function ExpenseScreen({
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[st.expBtn, { flex: 1 }]}
-                  onPress={() => { if (isRefund || parseFloat(expAmount) > 0) setShowExpConfirm(true); }}
-                  disabled={!expAmount || (!isRefund && parseFloat(expAmount) <= 0) || loadingExp || uploadingImg}
+                  onPress={() => { if (parseFloat(expAmount) > 0) setShowExpConfirm(true); }}
+                  disabled={!expAmount || parseFloat(expAmount) <= 0 || loadingExp}
                   activeOpacity={0.8}
                 >
                   <Text style={st.expBtnText}>
-                    {uploadingImg ? t('uploading') : loadingExp ? '...' : t('confirmRecord')}
+                    {loadingExp ? '...' : t('confirmRecord')}
                   </Text>
-                  {(!expAmount || (!isRefund && parseFloat(expAmount) <= 0) || loadingExp || uploadingImg) && (
+                  {(!expAmount || parseFloat(expAmount) <= 0 || loadingExp) && (
                     <View style={st.expBtnMask} />
                   )}
                 </TouchableOpacity>
@@ -1376,14 +1345,14 @@ export default function ExpenseScreen({
         value={recDate}
         onClose={() => setShowRecDatePicker(false)}
         onSelect={(d) => { setRecDate(d); setRecDateKey(k => k + 1); setRecDateErr(0); }}
-        minDate={sd.today}
+        minDate={todayStr()}
         title={t('billDate')}
       />
       <DatePickerModal
         visible={showExpDatePicker}
         value={expDate}
         onClose={() => setShowExpDatePicker(false)}
-        onSelect={(d) => { if (d <= sd.today) { setExpDate(d); setExpDateErr(0); } }}
+        onSelect={(d) => { if (d <= todayStr()) { setExpDate(d); setExpDateErr(0); } }}
         minDate={undefined}
         title={t('billDate')}
       />
@@ -1724,8 +1693,6 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   payChipActiveWechat: { backgroundColor: '#07C160' },
   payChipActiveAlipay: { backgroundColor: '#1677FF' },
   payChipText: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub },
-  /* Refund toggle */
-  refundRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4, marginBottom: 8 },
   payChipTextActive: { color: colors.surface },
   /* Chip icon circle */
   chipIconCircle: {
