@@ -99,31 +99,25 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
   const yearRef = useRef<ScrollView>(null!);
   const monthRef = useRef<ScrollView>(null!);
 
-  const [mounted, setMounted] = useState(false);
   const anim = useRef(new Animated.Value(0)).current;
 
   const close = useCallback((afterClose?: () => void) => {
-    const timer = Animated.timing(anim, { toValue: 0, duration: 200, useNativeDriver: true });
-    timer.start(() => {
-      setMounted(false);
+    Animated.timing(anim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
       afterClose?.();
     });
-    return () => timer.stop();
   }, [anim]);
 
   useEffect(() => {
     if (visible) {
-      setMounted(true);
       const spring = Animated.spring(anim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 });
       spring.start();
       return () => spring.stop();
     } else {
       anim.setValue(0);
-      setMounted(false);
     }
   }, [visible, anim]);
 
-  if (!mounted) return null;
+  if (!visible) return null;
 
   const w = 'rgba(255,255,255,0.92)';
   const wSub = 'rgba(255,255,255,0.55)';
