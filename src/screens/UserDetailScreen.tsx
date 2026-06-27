@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { t, getLang } from '../i18n';
-import { api } from '../api/client';
+import { api, resolveAssetUrl } from '../api/client';
 import { useTheme, withAlpha, ThemeColors, FONTS } from '../theme';
 import ConfirmModal from '../components/ConfirmModal';
 import Toast from '../components/Toast';
@@ -250,7 +250,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
           {/* Avatar + username row */}
           <View style={s.avatarSection}>
             <Image
-              source={{ uri: detail.avatar || 'https://placehold.co/120x120/EAE5E0/8C8583?text=U' }}
+              source={{ uri: resolveAssetUrl(detail.avatar) || 'https://placehold.co/120x120/EAE5E0/8C8583?text=U' }}
               style={s.avatar}
             />
             <View style={{ flex: 1, gap: 6 }}>
