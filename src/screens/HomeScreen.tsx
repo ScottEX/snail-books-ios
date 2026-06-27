@@ -295,7 +295,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     } catch {}
   }, []);
 
-  useEffect(() => { loadLast7(); loadYesterday(); loadWeekTotals(); }, [loadLast7, loadYesterday, loadWeekTotals]);
+  useEffect(() => { loadLast7(); loadYesterday(); loadWeekTotals(); loadBusinessSummary(); }, [loadLast7, loadYesterday, loadWeekTotals, loadBusinessSummary]);
 
   // ── Lazy load on tab change (chart / supply) ──
   const loadChart = useCallback(async () => {
