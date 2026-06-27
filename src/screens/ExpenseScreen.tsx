@@ -182,12 +182,12 @@ export default function ExpenseScreen({
   const [activeTab, setActiveTabState] = useState<number>(() => {
     try {
       const saved = localStorage.getItem('expense_active_tab');
-      return saved !== null ? parseInt(saved, 10) : 1; // default to 营业 (index 1)
-    } catch { return 1; }
+      return saved !== null ? parseInt(saved, 10) : 0;
+    } catch { return 0; }
   });
   const setActiveTab = (i: number) => {
     setActiveTabState(i);
-    if (i === 2) setExpDateErr(0);
+    if (i === 1) setExpDateErr(0);
     try { localStorage.setItem('expense_active_tab', String(i)); } catch {}
   };
   const [showToast, setShowToast] = useState(false);
@@ -760,32 +760,8 @@ export default function ExpenseScreen({
               rightDisabled={!hasReconChanges}
             />
           </View>
-        </FadeInView>
-        )}
-
-        {/* ── 模块二：平台手续费 ── */}
-        {activeTab === 1 && (
-        <FadeInView style={st.moduleWrap}>
-          {/* Revenue KPI cards */}
-          <View style={st.card}>
-            <View style={st.kpiRow}>
-              <View style={st.kpiCard}>
-                <Text style={st.kpiLabel}>{t('actualReceived')}</Text>
-                <Text style={[st.kpiVal, { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight }]}>¥0.00</Text>
-              </View>
-              <View style={st.kpiCard}>
-                <Text style={st.kpiLabel}>{t('receivable')}</Text>
-                <Text style={[st.kpiVal, { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight }]}>¥0.00</Text>
-              </View>
-              <View style={st.kpiCard}>
-                <Text style={st.kpiLabel}>{t('discountAmount')}</Text>
-                <Text style={[st.kpiVal, { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight }]}>¥0.00</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Platform fees card */}
-          <View style={[st.card, { marginTop: 12 }]}>
+          {/* Platform fees card (inside tab 0, matching web) */}
+          <View style={[st.card, { marginTop: 16 }]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
                 <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.textMain }}>{t('platformFee')}</Text>
@@ -794,7 +770,6 @@ export default function ExpenseScreen({
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 2, position: 'relative', paddingTop: 2 }}
                   onPress={() => {
                     if (!showFeeMonthPicker) {
-                      // Measure trigger position for dropdown placement
                       if (pickerTriggerRef.current && typeof (pickerTriggerRef.current as any).measure === 'function') {
                         (pickerTriggerRef.current as any).measure((_x: number, _y: number, _w: number, _h: number, px: number, py: number) => {
                           setPickerPos({ top: py + 30, left: px });
@@ -867,8 +842,8 @@ export default function ExpenseScreen({
         </FadeInView>
         )}
 
-        {/* ── 模块三：支出明细 ── */}
-        {activeTab === 2 && (
+        {/* ── 模块二：支出明细 ── */}
+        {activeTab === 1 && (
         <FadeInView style={st.moduleWrap}>
           <View style={st.card}>
             {/* 录入台 */}
