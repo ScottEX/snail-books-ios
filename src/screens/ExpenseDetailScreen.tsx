@@ -20,6 +20,7 @@ import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { pickImages, PickedImage } from '../utils/imagePicker';
 import { parseImages } from '../utils/parseImages';
 import ImagePreviewModal from '../components/ImagePreviewModal';
+import ReceiptUpload from '../components/ReceiptUpload';
 
 /* ── Date helpers ── */
 const fmtLocalDate = (s: string, lang: string) => {
@@ -410,37 +411,15 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
             <ExpenseNoteInput value={note} onChangeText={setNote} />
 
             {/* Images */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('receiptExpenseLabel')}</Text>
-              <View style={styles.thumbRow}>
-                {images.map((url: string, i: number) => (
-                  <View key={`e-${i}`} style={[styles.thumbWrap, { width: thumbSize, height: thumbSize }]}>
-                    <Image source={{ uri: url }} style={[styles.thumb, { width: thumbSize, height: thumbSize }]} />
-                    <TouchableOpacity style={styles.thumbRemove} onPress={() => removeImage(i)}>
-                      <Text style={styles.thumbRemoveText}>×</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-                {newFiles.map((file, i) => (
-                  <View key={`n-${i}`} style={[styles.thumbWrap, { width: thumbSize, height: thumbSize }]}>
-                    <Image source={{ uri: file.uri }} style={[styles.thumb, { width: thumbSize, height: thumbSize }]} />
-                    <TouchableOpacity style={styles.thumbRemove} onPress={() => removeNewFile(i)}>
-                      <Text style={styles.thumbRemoveText}>×</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-                <TouchableOpacity
-                  style={[styles.addThumb, { width: thumbSize, height: thumbSize }]}
-                  onPress={handleAddImages}
-                  activeOpacity={0.7}
-                >
-                  <Svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                    <Rect x="3" y="3" width="18" height="18" rx="2" />
-                    <Path d="M12 8v8M8 12h8" />
-                  </Svg>
-                </TouchableOpacity>
-              </View>
-            </View>
+            <ReceiptUpload
+              existingImages={images}
+              newFiles={newFiles}
+              onAdd={(files: PickedImage[]) => setNewFiles(prev => [...prev, ...files])}
+              onRemoveExisting={removeImage}
+              onRemoveNew={removeNewFile}
+              getPreviewUrl={(f: PickedImage) => f.uri}
+              maxThumbSize={thumbSize}
+            />
             <View style={{ height: 100 }} />
           </View>
         )}
