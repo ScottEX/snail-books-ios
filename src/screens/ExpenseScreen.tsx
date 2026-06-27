@@ -704,7 +704,13 @@ export default function ExpenseScreen({
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 4, position: 'relative' }}
                 activeOpacity={0.7}
               >
-                <Text style={{ fontSize: FONTS.sub.size, fontWeight: FONTS.subBold.weight, color: colors.primary }}>
+                <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={1.5}>
+                  <Rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <Line x1="16" y1="2" x2="16" y2="6"/>
+                  <Line x1="8" y1="2" x2="8" y2="6"/>
+                  <Line x1="3" y1="10" x2="21" y2="10"/>
+                </Svg>
+                <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary }}>
                   {(() => {
                     const l = getLang();
                     const [y, m, d] = recDate.split('-');
@@ -864,7 +870,7 @@ export default function ExpenseScreen({
               />
               {/* 日期选择 */}
               <View style={st.expDateRow}>
-                <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={1.5}>
+                <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={1.5}>
                   <Rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
                   <Line x1="16" y1="2" x2="16" y2="6"/>
                   <Line x1="8" y1="2" x2="8" y2="6"/>
@@ -876,7 +882,7 @@ export default function ExpenseScreen({
                     style={{ flexDirection: 'row', alignItems: 'center', position: 'relative' }}
                     activeOpacity={0.7}
                   >
-                    <Text style={st.dateText}>
+                    <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary }}>
                       {(() => {
                         const l = getLang();
                         const [y, m, d] = expDate.split('-');
@@ -887,7 +893,7 @@ export default function ExpenseScreen({
                         return `${y}年${m}月${d}日`;
                       })()}
                     </Text>
-                    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transform: [{ translateY: 0 }] }}><Path d="M10 6l6 6-6 6"/></Svg>
+                    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><Path d="M8 5l8 7-8 7"/></Svg>
                   </TouchableOpacity>
                   <DateErrorHint trigger={expDateErr} message={t('errDateFuture')} colors={colors} textAlign="left" />
                 </View>
