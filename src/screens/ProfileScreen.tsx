@@ -594,6 +594,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                 onValueChange={toggleEnforceSingleSession}
                 trackColor={{ false: withAlpha(colors.textMain, 0.18), true: colors.primary }}
                 thumbColor="#fff"
+                ios_backgroundColor={withAlpha(colors.textMain, 0.18)}
               />
             </View>
             <Text style={st.authDesc}>{t('ssoDesc')}</Text>
