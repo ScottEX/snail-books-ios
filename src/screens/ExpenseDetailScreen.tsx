@@ -17,7 +17,7 @@ import ExpenseNoteInput from '../components/ExpenseNoteInput';
 import DatePicker from '../components/DatePicker';
 import HistoryHeader from '../components/HistoryHeader';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
-import { pickImages, PickedImage } from '../utils/imagePicker';
+import { PickedImage } from '../utils/imagePicker';
 import { parseImages } from '../utils/parseImages';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 import ReceiptUpload from '../components/ReceiptUpload';
@@ -196,16 +196,6 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
     setThumbImages(prev => prev.filter((_, i) => i !== idx));
   };
   const removeNewFile = (idx: number) => setNewFiles(prev => prev.filter((_, i) => i !== idx));
-
-  const handleAddImages = async () => {
-    try {
-      const picked = await pickImages({ multiple: true });
-      if (!picked || picked.length === 0) return;
-      setNewFiles(prev => [...prev, ...picked]);
-    } catch {
-      // user cancelled or denied permission
-    }
-  };
 
   const thumbImgs = parseImages(expense?.thumb_images);
   const displayImgs = thumbImgs.length > 0 ? thumbImgs : parseImages(expense?.images);
