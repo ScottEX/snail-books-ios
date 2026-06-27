@@ -1164,7 +1164,7 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   // insets.top padding) so the notch isn't covered.
   header: {
     zIndex: 200, overflow: 'hidden',
-    paddingLeft: 30, paddingRight: 16, paddingVertical: 8,
+    paddingLeft: 16, paddingRight: 16, paddingVertical: 8,
     borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.10)',
   },
   headerInner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

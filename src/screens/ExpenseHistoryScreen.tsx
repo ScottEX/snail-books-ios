@@ -22,13 +22,10 @@ const todayStr = () => cnNow().toISOString().slice(0, 10);
 const offsetDate = (days: number) => { const d = cnNow(); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); };
 const fmtDate = (d: string) => { if (!d) return ''; const [y, m, day] = d.split('-'); const l = getLang(); if (l.startsWith('en')) { const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return `${months[+m-1]} ${+day}, ${y}`; } return `${y}年${m}月${day}日`; };
 const monthsBetween = (from: string, to: string): number => { const [fy, fm] = from.split('-').map(Number); const [ty, tm] = to.split('-').map(Number); return (ty - fy) * 12 + (tm - fm); };
-const localeCat = (cat: string): string => {
-  const m: Record<string, string> = { daily: '日常', rent: '房租', salary: '薪资', goods: '采购' };
-  return getLang().startsWith('en') ? cat : (m[cat] || cat);
-};
+const localeCat = (cat: string): string => t(cat);
 const localePay = (pay: string): string => {
-  const m: Record<string, string> = { cash: '现金', wechat: '微信', alipay: '支付宝', bank: '银行卡', other: '其他' };
-  return getLang().startsWith('en') ? pay : (m[pay] || pay);
+  const keyMap: Record<string, string> = { cash: 'payCash', wechat: 'payWechat', alipay: 'payAlipay', bank: 'payBank', other: 'payOther' };
+  return t(keyMap[pay] || pay);
 };
 
 function ExpenseEmptyIcon({ color }: { color: string }) {
