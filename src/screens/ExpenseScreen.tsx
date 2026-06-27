@@ -1275,24 +1275,14 @@ function ModalOverlay({ children, onClose }: {
   children: React.ReactNode;
   onClose: () => void;
 }) {
-  const fade = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(fade, { toValue: 1, duration: 200, useNativeDriver: true }).start();
-  }, []);
-
-  const close = () => {
-    Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => {
-      onClose();
-    });
-  };
-
   return (
-    <Modal transparent animationType="none" visible onRequestClose={close}>
-      <Animated.View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16, opacity: fade }}>
-        <TouchableOpacity style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)' }} onPress={close} activeOpacity={1} />
-        <View style={{ alignSelf: 'stretch' as any, alignItems: 'center', justifyContent: 'center' }}>{children}</View>
-      </Animated.View>
+    <Modal transparent animationType="none" visible onRequestClose={onClose}>
+      <View style={{ flex: 1 }}>
+        <TouchableOpacity style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)' }} onPress={onClose} activeOpacity={1} />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }} pointerEvents="box-none">
+          {children}
+        </View>
+      </View>
     </Modal>
   );
 }
