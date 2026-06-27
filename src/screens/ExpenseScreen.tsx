@@ -1399,7 +1399,6 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
     paddingTop: 18, paddingHorizontal: 18, paddingBottom: 12,
     gap: 14,
     backgroundColor: colors.surface,
-    borderWidth: 0.5, borderColor: colors.secondary,
   },
 
   /* ── Date ── */
