@@ -363,7 +363,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   payBadgeText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.textSub },
   amount: { fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: colors.danger },
   expAmountWrap: { position: 'relative' as any },
-  expSealWrap: { position: 'absolute' as any, top: -16, right: -6 },
+  expSealWrap: { position: 'absolute' as any, top: -24, right: 0 },
   filledBy: { fontSize: 10, color: colors.textSub, marginTop: 2 },
   rowBottom: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   dateText: { fontSize: FONTS.sub.size, color: colors.textSub, flexShrink: 0 },
