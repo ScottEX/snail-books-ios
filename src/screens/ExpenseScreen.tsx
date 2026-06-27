@@ -196,9 +196,10 @@ export default function ExpenseScreen({
   // Auto-scroll to active card when activeTab changes (tap on card)
   useEffect(() => {
     if (scrollRef.current) {
-      const cardWidth = Dimensions.get('window').width - 61;
-      const gap = 14;
-      scrollRef.current.scrollTo({ x: activeTab * (cardWidth + gap), animated: true });
+      const w = Dimensions.get('window').width;
+      // Card 0 width = w-61, gap=14 → card1 offset = (w-61) + 14 = w-47
+      const offsets = [0, w - 47];
+      scrollRef.current.scrollTo({ x: offsets[activeTab] || 0, animated: true });
     }
   }, [activeTab]);
 
@@ -412,38 +413,23 @@ export default function ExpenseScreen({
   const [expImages, setExpImages] = useState<any[]>([]);
   const [uploadingImg, setUploadingImg] = useState(false);
   const [isRefund, setIsRefund] = useState(false);
-  const [expCatTotals, setExpCatTotals] = useState({ daily: 0, rent: 0, salary: 0, goods: 0 });
   const [loadingExp, setLoadingExp] = useState(false);
   const [showExpConfirm, setShowExpConfirm] = useState(false);
+
+  // Fast glass-card totals from business-summary API (matching web)
+  const glassCatTotals = useMemo(() => ({
+    daily: (businessSummary as any)?.expense_by_category?.daily ?? 0,
+    rent: (businessSummary as any)?.expense_by_category?.rent ?? 0,
+    salary: (businessSummary as any)?.expense_by_category?.salary ?? 0,
+    goods: (businessSummary as any)?.expense_by_category?.goods ?? 0,
+  }), [(businessSummary as any)?.expense_by_category]);
 
   const isAmountInvalid = !expAmount || parseFloat(expAmount.replace(/,/g, '')) === 0 || loadingExp;
 
   const loadExpenses = async () => {
-    try {
-      // Load all expense transactions for complete category totals
-      const allExpenses: any[] = [];
-      let page = 1;
-      while (true) {
-        const tx: any = await api.getTransactions(page, 100);
-        const exps = (tx.transactions || []).filter((t: any) => t.type === 'expense');
-        allExpenses.push(...exps);
-        if (page >= (tx.pages || 1)) break;
-        page++;
-      }
-      // Compute category totals
-      let daily = 0, rent = 0, salary = 0, goods = 0;
-      allExpenses.forEach((e: any) => {
-        const cat = e.category || '';
-        const amt = Math.abs(e.amount || 0);
-        if (cat === 'daily') daily += amt;
-        else if (cat === 'rent') rent += amt;
-        else if (cat === 'salary') salary += amt;
-        else if (cat === 'goods') goods += amt;
-      });
-      setExpCatTotals({ daily, rent, salary, goods });
-    } catch { setToast(t('toastLoadFailed')); }
+    // Category totals now come from businessSummary.expense_by_category (web-aligned).
+    // No longer loading all transactions client-side.
   };
-  useEffect(() => { loadExpenses(); }, []);
 
   // Image upload handlers
   const [showRecDatePicker, setShowRecDatePicker] = useState(false);
@@ -542,13 +528,17 @@ export default function ExpenseScreen({
           testID="snap-scroll"
           ref={scrollRef}
           pagingEnabled={false}
-          snapToOffsets={[0, Dimensions.get('window').width - 36 - 14]}
+          snapToOffsets={(() => {
+            const w = Dimensions.get('window').width;
+            // Card 0 width = w - 61, gap = 14 → offset for card 1 = (w - 61) + 14
+            return [0, w - 47];
+          })()}
           decelerationRate="fast"
           onMomentumScrollEnd={(e) => {
             const offset = e.nativeEvent.contentOffset.x;
-            const cardWidth = Dimensions.get('window').width - 61;
-            const gap = 14;
-            const idx = Math.round(offset / (cardWidth + gap));
+            const w = Dimensions.get('window').width;
+            // Card 0 width = w-61, gap = 14; switch at (w-61) + gap/2 = w-54
+            const idx = offset < w - 54 ? 0 : 1;
             if (idx >= 0 && idx < tabCards.length) setActiveTab(idx);
           }}
           contentContainerStyle={st.tabScroll}>
@@ -559,7 +549,10 @@ export default function ExpenseScreen({
               <TouchableOpacity
                 key={i}
                 testID="snap-card"
-                style={[st.tabCard, active && st.tabCardActive]}
+                style={[st.tabCard, active && st.tabCardActive,
+                  // @ts-ignore — 支出卡片更宽 (web: calc(100vw - 36px))
+                  i === 1 && { width: Dimensions.get('window').width - 36 },
+                ]}
                 onPress={() => setActiveTab(i)}
                 activeOpacity={0.7}
               >
@@ -586,7 +579,7 @@ export default function ExpenseScreen({
                     )}
                   </Text>
                   {i === 0 && (
-                    <View style={{ flex: 1, gap: 12 }}>
+                    <View style={{ flex: 1, justifyContent: 'space-between' }}>
                       {/* Hero: 账面差额 (big amount, expenseAmountColor) */}
                       <View style={{ alignItems: 'flex-start', gap: 2, marginTop: 16 }}>
                         <Text style={st.cardFieldLabel}>{t('bookDiff')}</Text>
@@ -613,27 +606,27 @@ export default function ExpenseScreen({
                     </View>
                   )}
                   {i === 1 && (
-                    <View style={{ transform: [{ translateY: -4 }] }}>
+                    <View style={{ flex: 1, justifyContent: 'flex-end' }}>
                       {/* Row 1: 日常 | 采购 (gradient start/end tinted sub-cards) */}
-                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <View style={{ flexDirection: 'row', gap: 10 }}>
                         <View style={[st.expenseSubCard, { backgroundColor: withAlpha(colors.expenseGradientStart, 0.22), borderColor: withAlpha(colors.expenseGradientStart, 0.35) }]}>
                           <Text style={st.cardFieldLabel}>{t('daily')}</Text>
-                          <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{'¥' + toDec2Comma(expCatTotals.daily)}</Text>
+                          <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{'¥' + toDec2Comma(glassCatTotals.daily)}</Text>
                         </View>
                         <View style={[st.expenseSubCard, { backgroundColor: withAlpha(colors.expenseGradientEnd, 0.22), borderColor: withAlpha(colors.expenseGradientEnd, 0.35) }]}>
                           <Text style={st.cardFieldLabel}>{t('goods')}</Text>
-                          <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{'¥' + toDec2Comma(expCatTotals.goods)}</Text>
+                          <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{'¥' + toDec2Comma(glassCatTotals.goods)}</Text>
                         </View>
                       </View>
                       {/* Row 2: 房租 | 薪资 */}
-                      <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                      <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
                         <View style={[st.expenseSubCard, { backgroundColor: withAlpha(colors.expenseGradientStart, 0.22), borderColor: withAlpha(colors.expenseGradientStart, 0.35) }]}>
                           <Text style={st.cardFieldLabel}>{t('rent')}</Text>
-                          <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{'¥' + toDec2Comma(expCatTotals.rent)}</Text>
+                          <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{'¥' + toDec2Comma(glassCatTotals.rent)}</Text>
                         </View>
                         <View style={[st.expenseSubCard, { backgroundColor: withAlpha(colors.expenseGradientEnd, 0.22), borderColor: withAlpha(colors.expenseGradientEnd, 0.35) }]}>
                           <Text style={st.cardFieldLabel}>{t('salary')}</Text>
-                          <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{'¥' + toDec2Comma(expCatTotals.salary)}</Text>
+                          <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{'¥' + toDec2Comma(glassCatTotals.salary)}</Text>
                         </View>
                       </View>
                     </View>
@@ -1311,7 +1304,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
 
   /* ── Tab Bar ── */
   tabBar: {
-    paddingTop: 12, paddingBottom: 8,
+    paddingTop: 4, paddingBottom: 8,
     // @ts-ignore — 确保容器透明，让底层背景透出
     backgroundColor: 'transparent',
   },
@@ -1374,7 +1367,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
     flex: 1, alignItems: 'center', gap: 2,
   },
   cardFieldLabel: {
-    fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: 'rgba(255,255,255,0.70)',
+    fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.70)',
     // @ts-ignore
     textShadow: '0 1px 2px rgba(0,0,0,0.1)',
   },
@@ -1408,7 +1401,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   /* ── Content ── */
   contentScroll: { flex: 1 },
   contentInner: {
-    paddingHorizontal: 18, paddingBottom: 150, gap: 0,
+    paddingHorizontal: 0, paddingBottom: 100, gap: 0,
   },
   moduleWrap: {
     width: '100%',
@@ -1419,10 +1412,8 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
     borderRadius: 14,
     paddingTop: 18, paddingHorizontal: 18, paddingBottom: 12,
     gap: 14,
-    backgroundColor: colors.bg,
+    backgroundColor: colors.surface,
     borderWidth: 0.5, borderColor: colors.secondary,
-    // @ts-ignore
-    boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
   },
 
   /* ── Date ── */
@@ -1452,7 +1443,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   inputGroup: { flex: 1 },
   inputLabel: { fontSize: FONTS.micro.size, lineHeight: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight, marginBottom: 4 },
   input: {
-    backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.secondary,
+    backgroundColor: colors.bg,
     borderRadius: 10, paddingVertical: 12, paddingHorizontal: 12,
     fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub, fontFamily: undefined,
     // @ts-ignore
@@ -1466,7 +1457,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   channelChip: {
     flex: 1, minWidth: 60,
     backgroundColor: colors.bg,
-    borderRadius: 10, borderWidth: 1, borderColor: colors.secondary,
+    borderRadius: 10,
     paddingVertical: 4, paddingHorizontal: 4,
     alignItems: 'center',
     gap: 2,
