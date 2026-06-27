@@ -12,7 +12,16 @@ import { clearCredential } from './src/utils/biometric';
 import { clearWebAuthn } from './src/utils/storage';
 
 export default function App() {
-  const [page, setPage] = useState<'login' | 'home'>('login');
+  const [_page, _setPage] = useState<'login' | 'home'>('login');
+  // ── DEBUG: wrap setPage to log every transition to 'login'
+  const setPage = (v: 'login' | 'home' | ((p: 'login' | 'home') => 'login' | 'home')) => {
+    const next = typeof v === 'function' ? v(_page) : v;
+    if (next === 'login' && _page !== 'login') {
+      console.error(new Error('[AUTH DEBUG] setPage → login (stack trace)'));
+    }
+    _setPage(v);
+  };
+  const page = _page;
   const [appKey, setAppKey] = useState(0);
   const [ready, setReady] = useState(false);
   // Guard against the LoginScreen <-> HomeScreen remount loop: when
