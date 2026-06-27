@@ -1094,7 +1094,7 @@ export default function ExpenseScreen({
               </TouchableOpacity>
             </View>
             {/* Scrollable list area — use overflow:scroll on View instead of ScrollView */}
-            <ScrollView style={{ flex: 1, paddingHorizontal: 12 }} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
+            <ScrollView style={{ flex: 1, paddingHorizontal: 12 }} contentContainerStyle={{ paddingBottom: 80 }} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
               {(feeHistoryFilter === 'all' ? allFees : allFees.filter((f: any) => f.year === feeHistoryFilter.year && f.month === feeHistoryFilter.month)).map((f: any, idx: number) => {
                 const monthTotal = (f.meituan_cashier || 0) + (f.meituan_waimai || 0) + (f.shangou_waimai || 0) + (f.meituan_tuan || 0);
                 const platforms = [
