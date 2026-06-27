@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Animated, PanResponder } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Svg, { Path } from 'react-native-svg';
 import { t, getLang } from '../i18n';
@@ -14,11 +14,28 @@ import { fmtAmtFull } from '../utils/format';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DatePickerModal from '../components/DatePickerModal';
 import HistoryHeader from '../components/HistoryHeader';
+import DateErrorHint from '../components/DateErrorHint';
+import { useServerDate } from '../hooks/useServerDate';
 
 /* ── Helpers ── */
-const cnNow = () => { const d = new Date(); return new Date(d.getTime() + 8 * 3600000); };
-const todayStr = () => cnNow().toISOString().slice(0, 10);
-const offsetDate = (days: number) => { const d = cnNow(); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); };
+/** Strict calendar months between two ISO dates */
+function monthsBetween(from: string, to: string): number {
+  const [fy, fm, fd] = from.split('-').map(Number);
+  const [ty, tm, td] = to.split('-').map(Number);
+  let m = (ty - fy) * 12 + (tm - fm);
+  if (td < fd) m -= 1;
+  return m;
+}
+
+/** Swipe-right-from-left-edge to go back. Native PanResponder version. */
+function useSwipeBack(onBack: () => void) {
+  const pan = useRef(PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gs) =>
+      gs.dx > 15 && Math.abs(gs.dy) < 15 && gs.moveX < 36,
+    onPanResponderRelease: (_, gs) => { if (gs.dx > 80) onBack(); },
+  })).current;
+  return pan.panHandlers;
+}
 
 function ReconEmptyIcon({ color }: { color: string }) {
   return (
@@ -32,6 +49,9 @@ function ReconEmptyIcon({ color }: { color: string }) {
 interface Props { onBack: () => void }
 
 export default function ReconHistoryScreen({ onBack }: Props) {
+  const sd = useServerDate();
+  const swipeBack = useSwipeBack(onBack);
+
   const [selected, setSelected] = useState<any>(null);
   const detailAnim = useRef(new Animated.Value(0)).current;
   const [detailOpen, setDetailOpen] = useState(false);
@@ -48,12 +68,17 @@ export default function ReconHistoryScreen({ onBack }: Props) {
 
   const openFilter = () => { setFilterVisible(true); setShowFilter(true); Animated.spring(filterAnim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 }).start(); };
   const closeFilter = () => { Animated.timing(filterAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => { setFilterVisible(false); setShowFilter(false); }); setShowUserPick(false); };
-  const [filDateFrom, setFilDateFrom] = useState(offsetDate(-30));
-  const [filDateTo, setFilDateTo] = useState(todayStr());
+
+  // ── Filter state — use server time defaults ──
+  const initFrom = sd.offset(-30);
+  const initTo = sd.today;
+  const [filDateFrom, setFilDateFrom] = useState(initFrom);
+  const [filDateTo, setFilDateTo] = useState(initTo);
   const [filBy, setFilBy] = useState('');
-  const [appliedFrom, setAppliedFrom] = useState(offsetDate(-30));
-  const [appliedTo, setAppliedTo] = useState(todayStr());
+  const [appliedFrom, setAppliedFrom] = useState(initFrom);
+  const [appliedTo, setAppliedTo] = useState(initTo);
   const [appliedBy, setAppliedBy] = useState('');
+  const [filterDateError, setFilterDateError] = useState(0);
   const [users, setUsers] = useState<{ id: number; username: string }[]>([]);
   const [datePickTarget, setDatePickTarget] = useState<'from' | 'to' | null>(null);
   const [showUserPick, setShowUserPick] = useState(false);
@@ -61,6 +86,17 @@ export default function ReconHistoryScreen({ onBack }: Props) {
 
   const openUserDrop = () => { setShowUserPick(true); Animated.timing(userDropAnim, { toValue: 1, duration: 180, useNativeDriver: true }).start(); };
   const closeUserDrop = () => { Animated.timing(userDropAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowUserPick(false)); };
+
+  // Reset error when filter panel opens
+  useEffect(() => { if (showFilter) setFilterDateError(0); }, [showFilter]);
+
+  // Date range validation
+  const rangeInvalid = useMemo(() =>
+    (!!filDateFrom && !!filDateTo && filDateFrom > filDateTo),
+    [filDateFrom, filDateTo]);
+  const rangeTooLong = useMemo(() =>
+    (!!filDateFrom && !!filDateTo && !rangeInvalid && monthsBetween(filDateFrom, filDateTo) > 24),
+    [filDateFrom, filDateTo, rangeInvalid]);
 
   useEffect(() => { if (showFilter && users.length === 0) { api.getUsers().then(data => setUsers(data || [])).catch(() => { }); } }, [showFilter]);
 
@@ -141,13 +177,16 @@ export default function ReconHistoryScreen({ onBack }: Props) {
   );
 
   const resetFilters = () => {
-    const dFrom = offsetDate(-30); const dTo = todayStr();
+    const dFrom = sd.offset(-30);
+    const dTo = sd.today;
     setFilDateFrom(dFrom); setFilDateTo(dTo); setFilBy('');
     setAppliedFrom(dFrom); setAppliedTo(dTo); setAppliedBy('');
   };
 
+  const todayISO = sd.today;
+
   return (
-    <View style={st.root}>
+    <View style={st.root} {...swipeBack}>
       <HistoryHeader
         onBack={onBack}
         title={`${t('reconHistory')} (${records.length}/${total})`}
@@ -161,6 +200,10 @@ export default function ReconHistoryScreen({ onBack }: Props) {
           <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' }} activeOpacity={1} onPress={closeFilter} />
           <Animated.View style={{ position: 'absolute', top: 0, left: 12, right: 12, borderRadius: 16, overflow: 'hidden', boxShadow: '0 8px 30px rgba(0,0,0,0.12)', transform: [{ translateY: filterAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0], extrapolate: 'clamp' }) }], opacity: filterAnim } as any}>
             <BlurView intensity={45} tint="dark" style={{ padding: 16, borderRadius: 16 }}>
+            {/* Date error hints */}
+            <DateErrorHint trigger={filterDateError} message={t('errDateFuture')} color={colors.danger} />
+            {rangeInvalid && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right', marginTop: 2 }}>{t('errDateRange')}</Text>}
+            {rangeTooLong && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right', marginTop: 2 }}>{t('errDateRangeTooLong')}</Text>}
             <View style={st.filterField}>
               <Text style={st.filterLabel}>{t('reconDate')}</Text>
               <View style={st.filterDateRange}>
@@ -185,13 +228,20 @@ export default function ReconHistoryScreen({ onBack }: Props) {
               <TouchableOpacity style={st.filterResetBtn} onPress={resetFilters} activeOpacity={0.7}>
                 <Text style={st.filterResetBtnText}>{t('reset')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={st.filterApplyBtn} onPress={() => { setAppliedFrom(filDateFrom); setAppliedTo(filDateTo); setAppliedBy(filBy); closeFilter(); }} activeOpacity={0.8}>
-                <Text style={st.filterApplyBtnText}>{t('apply')}</Text>
+              <TouchableOpacity
+                style={[st.filterApplyBtn, (rangeInvalid || rangeTooLong) && st.filterApplyBtnDisabled]}
+                disabled={rangeInvalid || rangeTooLong}
+                onPress={() => { setAppliedFrom(filDateFrom); setAppliedTo(filDateTo); setAppliedBy(filBy); closeFilter(); }}
+                activeOpacity={0.8}
+              >
+                <Text style={[st.filterApplyBtnText, (rangeInvalid || rangeTooLong) && st.filterApplyBtnTextDisabled]}>
+                  {t('apply')}
+                </Text>
               </TouchableOpacity>
             </View>
             </BlurView>
           </Animated.View>
-          {/* User dropdown — outside filter box, won't be clipped */}
+          {/* User dropdown */}
           {showUserPick && (
             <Animated.View style={{ position: 'absolute', top: 96, left: 100, width: 160, zIndex: 10, opacity: userDropAnim, transform: [{ translateY: userDropAnim.interpolate({ inputRange: [0, 1], outputRange: [-6, 0], extrapolate: 'clamp' }) }] }}>
               <View style={{ backgroundColor: 'rgba(44,44,46,0.96)', borderRadius: 10, overflow: 'hidden' }}>
@@ -357,4 +407,6 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   filterResetBtnText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.textSub },
   filterApplyBtn: { flex: 1, height: 34, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.primary },
   filterApplyBtnText: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.surface },
+  filterApplyBtnDisabled: { opacity: 0.4 },
+  filterApplyBtnTextDisabled: { color: colors.surface },
 } as any);
