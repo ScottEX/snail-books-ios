@@ -630,7 +630,87 @@ export default function ExpenseScreen({
         {/* ── 模块一：每日对账 ── */}
         {activeTab === 0 && (
         <FadeInView style={st.moduleWrap}>
-          <View style={st.card}>
+          {/* Platform fees card */}
+          <View style={[st.card]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+                <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.textMain }}>{t('platformFee')}</Text>
+                <TouchableOpacity
+                  ref={pickerTriggerRef}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 2, position: 'relative', paddingTop: 2 }}
+                  onPress={() => {
+                    if (!showFeeMonthPicker) {
+                      if (pickerTriggerRef.current && typeof (pickerTriggerRef.current as any).measure === 'function') {
+                        (pickerTriggerRef.current as any).measure((_x: number, _y: number, _w: number, _h: number, px: number, py: number) => {
+                          setPickerPos({ top: py + 30, left: px });
+                        });
+                      }
+                      pickerAnim.setValue(0);
+                      Animated.spring(pickerAnim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 }).start();
+                      setShowFeeMonthPicker(true);
+                    } else {
+                      Animated.timing(pickerAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => {
+                        setShowFeeMonthPicker(false);
+                      });
+                    }
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontSize: FONTS.microBold.size, color: colors.primary, fontWeight: FONTS.microBold.weight }}>
+                    {feeMonth === 'all' ? t('feeAllMonths') : fmtMonth(feeMonth.year, feeMonth.month)}
+                  </Text>
+                  <Text style={{ fontSize: FONTS.micro.size, color: colors.primary }}>▼</Text>
+                </TouchableOpacity>
+              </View>
+              {(feeMonth !== 'all' || allFees.length > 0) && (
+              <TouchableOpacity
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
+                onPress={() => {
+                  if (feeMonth === 'all') {
+                    setShowFeeHistory(true); setFeeHistoryFilter('all');
+                  } else {
+                    setFeeMc(''); setFeeMw(''); setFeeEw(''); setFeeMt('');
+                    setFeeDateErr(0); loadFeeData(); setShowFeeSheet(true);
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: FONTS.subBold.size, color: colors.primary, fontWeight: FONTS.subBold.weight }}>
+                  {feeMonth === 'all' ? t('feeViewDetail') : t('feeDetail')}
+                </Text>
+                <Text style={{ fontSize: FONTS.body.size, color: colors.primary, fontWeight: FONTS.h2.weight }}>→</Text>
+              </TouchableOpacity>
+              )}
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginBottom: 14 }}>
+              <Text style={{ fontSize: FONTS.amount.size, fontWeight: FONTS.amount.weight, color: colors.primary, marginRight: 6 }}>¥</Text>
+              <Text style={{ fontSize: FONTS.amount.size, fontWeight: FONTS.amount.weight, color: colors.textMain }}>
+                {feeTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+              {([
+                { k: 'meituanCashier', v: feeMonth === 'all' ? allFees.reduce((s: number, f: any) => s + (f.meituan_cashier || 0), 0) : (feeData?.meituan_cashier || 0), color: colors.info },
+                { k: 'meituanWaimai', v: feeMonth === 'all' ? allFees.reduce((s: number, f: any) => s + (f.meituan_waimai || 0), 0) : (feeData?.meituan_waimai || 0), color: colors.warning },
+                { k: 'shangouWaimai', v: feeMonth === 'all' ? allFees.reduce((s: number, f: any) => s + (f.eleme_waimai || 0), 0) : (feeData?.eleme_waimai || 0), color: colors.info },
+                { k: 'meituanTuan', v: feeMonth === 'all' ? allFees.reduce((s: number, f: any) => s + (f.meituan_tuan || 0), 0) : (feeData?.meituan_tuan || 0), color: colors.success },
+              ] as const).map((p) => (
+                <View key={p.k} style={{ flex: 1, minWidth: '45%', backgroundColor: colors.bg, borderRadius: 10, padding: 10 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: p.color }} />
+                    <Text style={{ fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight }}>{t(p.k)}</Text>
+                  </View>
+                  <Text style={{ fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: colors.textMain }}>
+                    ¥{p.v.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+          {/* ── 日记账 ── */}
+          <View style={[st.card, { marginTop: 16 }]}>
             {/* 日期行 */}
             <View style={st.dateRow}>
               <Text style={{ fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.textSub }}>{t('billDate')}</Text>
@@ -739,85 +819,6 @@ export default function ExpenseScreen({
               rightOnPress={() => hasReconChanges && setShowToast(true)}
               rightDisabled={!hasReconChanges}
             />
-          </View>
-          {/* Platform fees card (inside tab 0, matching web) */}
-          <View style={[st.card, { marginTop: 16 }]}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
-                <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.textMain }}>{t('platformFee')}</Text>
-                <TouchableOpacity
-                  ref={pickerTriggerRef}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 2, position: 'relative', paddingTop: 2 }}
-                  onPress={() => {
-                    if (!showFeeMonthPicker) {
-                      if (pickerTriggerRef.current && typeof (pickerTriggerRef.current as any).measure === 'function') {
-                        (pickerTriggerRef.current as any).measure((_x: number, _y: number, _w: number, _h: number, px: number, py: number) => {
-                          setPickerPos({ top: py + 30, left: px });
-                        });
-                      }
-                      pickerAnim.setValue(0);
-                      Animated.spring(pickerAnim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 }).start();
-                      setShowFeeMonthPicker(true);
-                    } else {
-                      Animated.timing(pickerAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => {
-                        setShowFeeMonthPicker(false);
-                      });
-                    }
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={{ fontSize: FONTS.microBold.size, color: colors.primary, fontWeight: FONTS.microBold.weight }}>
-                    {feeMonth === 'all' ? t('feeAllMonths') : fmtMonth(feeMonth.year, feeMonth.month)}
-                  </Text>
-                  <Text style={{ fontSize: FONTS.micro.size, color: colors.primary }}>▼</Text>
-                </TouchableOpacity>
-              </View>
-              {(feeMonth !== 'all' || allFees.length > 0) && (
-              <TouchableOpacity
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
-                onPress={() => {
-                  if (feeMonth === 'all') {
-                    setShowFeeHistory(true); setFeeHistoryFilter('all');
-                  } else {
-                    setFeeMc(''); setFeeMw(''); setFeeEw(''); setFeeMt('');
-                    setFeeDateErr(0); loadFeeData(); setShowFeeSheet(true);
-                  }
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={{ fontSize: FONTS.subBold.size, color: colors.primary, fontWeight: FONTS.subBold.weight }}>
-                  {feeMonth === 'all' ? t('feeViewDetail') : t('feeDetail')}
-                </Text>
-                <Text style={{ fontSize: FONTS.body.size, color: colors.primary, fontWeight: FONTS.h2.weight }}>→</Text>
-              </TouchableOpacity>
-              )}
-            </View>
-
-            <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginBottom: 14 }}>
-              <Text style={{ fontSize: FONTS.amount.size, fontWeight: FONTS.amount.weight, color: colors.primary, marginRight: 6 }}>¥</Text>
-              <Text style={{ fontSize: FONTS.amount.size, fontWeight: FONTS.amount.weight, color: colors.textMain }}>
-                {feeTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </Text>
-            </View>
-
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-              {([
-                { k: 'meituanCashier', v: feeMonth === 'all' ? allFees.reduce((s: number, f: any) => s + (f.meituan_cashier || 0), 0) : (feeData?.meituan_cashier || 0), color: colors.info },
-                { k: 'meituanWaimai', v: feeMonth === 'all' ? allFees.reduce((s: number, f: any) => s + (f.meituan_waimai || 0), 0) : (feeData?.meituan_waimai || 0), color: colors.warning },
-                { k: 'shangouWaimai', v: feeMonth === 'all' ? allFees.reduce((s: number, f: any) => s + (f.eleme_waimai || 0), 0) : (feeData?.eleme_waimai || 0), color: colors.info },
-                { k: 'meituanTuan', v: feeMonth === 'all' ? allFees.reduce((s: number, f: any) => s + (f.meituan_tuan || 0), 0) : (feeData?.meituan_tuan || 0), color: colors.success },
-              ] as const).map((p) => (
-                <View key={p.k} style={{ flex: 1, minWidth: '45%', backgroundColor: colors.bg, borderRadius: 10, padding: 10 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: p.color }} />
-                    <Text style={{ fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight }}>{t(p.k)}</Text>
-                  </View>
-                  <Text style={{ fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: colors.textMain }}>
-                    ¥{p.v.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                  </Text>
-                </View>
-              ))}
-            </View>
           </View>
         </FadeInView>
         )}
