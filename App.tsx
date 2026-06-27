@@ -14,12 +14,16 @@ import { clearWebAuthn } from './src/utils/storage';
 export default function App() {
   const [_page, _setPage] = useState<'login' | 'home'>('login');
   const loginConfirmedAt = useRef(0);
+  const pageRef = useRef<'login' | 'home'>('login');
   // ── Prevent bounce-back: block setPage('login') for 30s after goHome
+  // Uses pageRef (not _page) so the check works correctly inside stale
+  // closures (handleExpire / onUserChange captured by useEffect with [] deps).
   const setPage = (v: 'login' | 'home' | ((p: 'login' | 'home') => 'login' | 'home')) => {
-    const next = typeof v === 'function' ? v(_page) : v;
-    if (next === 'login' && _page === 'home' && Date.now() - loginConfirmedAt.current < 30_000) {
-      return; // ignore premature bounce-back
+    const next = typeof v === 'function' ? v(pageRef.current) : v;
+    if (next === 'login' && pageRef.current === 'home' && Date.now() - loginConfirmedAt.current < 30_000) {
+      return;
     }
+    pageRef.current = next;
     _setPage(v);
   };
   const page = _page;
