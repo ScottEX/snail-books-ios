@@ -704,7 +704,7 @@ export default function ExpenseScreen({
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 4, position: 'relative' }}
                 activeOpacity={0.7}
               >
-                <Text style={st.dateText}>
+                <Text style={{ fontSize: FONTS.sub.size, fontWeight: FONTS.subBold.weight, color: colors.primary }}>
                   {(() => {
                     const l = getLang();
                     const [y, m, d] = recDate.split('-');
@@ -718,7 +718,7 @@ export default function ExpenseScreen({
                     return `${y}年${m}月${d}日`;
                   })()}
                 </Text>
-                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transform: [{ translateY: 0 }] }}><Path d="M10 6l6 6-6 6"/></Svg>
+                <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><Path d="M8 5l8 7-8 7"/></Svg>
               </TouchableOpacity>
             </View>
             <DateErrorHint trigger={recDateErr} message={t('errDateFuture')} colors={colors} />
