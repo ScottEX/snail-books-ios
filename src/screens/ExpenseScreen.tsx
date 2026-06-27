@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, useReducer } from 'react';
 import {
-  View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated, Dimensions,
+  View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated, Dimensions, Modal,
 } from 'react-native';
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -358,6 +358,7 @@ export default function ExpenseScreen({
   const pickerTriggerRef = useRef<any>(null);
   const feeHistoryFilterTriggerRef = useRef<any>(null);
   const [pickerAnim] = useState(new Animated.Value(0));
+  const [feeHistoryPickerAnim] = useState(new Animated.Value(0));
   const [pickerPos, setPickerPos] = useState({ top: 0, left: 0 });
   const [feeHistoryPickerPos, setFeeHistoryPickerPos] = useState({ top: 0, left: 0 });
 
@@ -662,10 +663,10 @@ export default function ExpenseScreen({
                         });
                       }
                       pickerAnim.setValue(0);
-                      Animated.spring(pickerAnim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 }).start();
+                      Animated.spring(pickerAnim, { toValue: 1, useNativeDriver: false, tension: 300, friction: 24 }).start();
                       setShowFeeMonthPicker(true);
                     } else {
-                      Animated.timing(pickerAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => {
+                      Animated.timing(pickerAnim, { toValue: 0, duration: 150, useNativeDriver: false }).start(() => {
                         setShowFeeMonthPicker(false);
                       });
                     }
@@ -1074,11 +1075,11 @@ export default function ExpenseScreen({
                         setFeeHistoryPickerPos({ top: y + h + 4, left: x });
                       });
                     }
-                    pickerAnim.setValue(0);
-                    Animated.spring(pickerAnim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 }).start();
+                    feeHistoryPickerAnim.setValue(0);
+                    Animated.spring(feeHistoryPickerAnim, { toValue: 1, useNativeDriver: false, tension: 300, friction: 24 }).start();
                     setShowFeeHistoryFilterPicker(true);
                   } else {
-                    Animated.timing(pickerAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => {
+                    Animated.timing(feeHistoryPickerAnim, { toValue: 0, duration: 150, useNativeDriver: false }).start(() => {
                       setShowFeeHistoryFilterPicker(false);
                     });
                   }
@@ -1126,31 +1127,33 @@ export default function ExpenseScreen({
         </ModalOverlay>
       )}
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
-      {/* Month picker dropdown */}
-      {showFeeMonthPicker && (
-        <ModalOverlay onClose={() => {
-          Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeMonthPicker(false));
+      {/* Month picker dropdown — Modal-based (like web's createPortal to body) */}
+      <Modal transparent animationType="none" visible={showFeeMonthPicker} onRequestClose={() => {
+        Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: false }).start(() => setShowFeeMonthPicker(false));
+      }}>
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => {
+          Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: false }).start(() => setShowFeeMonthPicker(false));
         }}>
-          <Animated.View style={{
-            position: 'absolute' as any,
-            top: pickerPos.top || '38%',
-            left: pickerPos.left || 10,
-            zIndex: 9999,
-            backgroundColor: colors.surface,
-            borderRadius: 14,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
-            paddingVertical: 6,
-            width: 140,
-            maxHeight: 240,
-            overflow: 'scroll' as any,
-            opacity: pickerAnim,
-            transform: [{ scale: pickerAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1], extrapolate: 'clamp' }) }, { translateY: pickerAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0], extrapolate: 'clamp' }) }],
-          }}>
+          <Animated.View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.08)', opacity: pickerAnim }} />
+        </TouchableOpacity>
+        <Animated.View style={{
+          position: 'absolute',
+          top: pickerPos.top || 100,
+          left: pickerPos.left || 10,
+          backgroundColor: colors.surface,
+          borderRadius: 14,
+          paddingVertical: 6,
+          width: 140,
+          maxHeight: 240,
+          opacity: pickerAnim,
+          transform: [{ scale: pickerAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1], extrapolate: 'clamp' }) }, { translateY: pickerAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0], extrapolate: 'clamp' }) }],
+        }}>
+          <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
             <TouchableOpacity
               style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: feeMonth === 'all' ? withAlpha(colors.danger, 0.1) : 'transparent', borderRadius: 8, marginHorizontal: 4 }}
               onPress={() => {
                 setFeeMonth('all');
-                Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeMonthPicker(false));
+                Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: false }).start(() => setShowFeeMonthPicker(false));
               }}
               activeOpacity={0.6}
             >
@@ -1165,7 +1168,7 @@ export default function ExpenseScreen({
                   style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: isSel ? withAlpha(colors.danger, 0.1) : 'transparent', borderRadius: 8, marginHorizontal: 4 }}
                   onPress={() => {
                     setFeeMonth({ year: f.year, month: f.month });
-                    Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeMonthPicker(false));
+                    Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: false }).start(() => setShowFeeMonthPicker(false));
                   }}
                   activeOpacity={0.6}
                 >
@@ -1173,34 +1176,36 @@ export default function ExpenseScreen({
                 </TouchableOpacity>
               );
             })}
-          </Animated.View>
-        </ModalOverlay>
-      )}
-      {/* Fee history filter dropdown */}
-      {showFeeHistoryFilterPicker && (
-        <ModalOverlay onClose={() => {
-          Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeHistoryFilterPicker(false));
+          </ScrollView>
+        </Animated.View>
+      </Modal>
+      {/* Fee history filter dropdown — Modal-based */}
+      <Modal transparent animationType="none" visible={showFeeHistoryFilterPicker} onRequestClose={() => {
+        Animated.timing(feeHistoryPickerAnim, { toValue: 0, duration: 120, useNativeDriver: false }).start(() => setShowFeeHistoryFilterPicker(false));
+      }}>
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => {
+          Animated.timing(feeHistoryPickerAnim, { toValue: 0, duration: 120, useNativeDriver: false }).start(() => setShowFeeHistoryFilterPicker(false));
         }}>
-          <Animated.View style={{
-            position: 'absolute' as any,
-            top: feeHistoryPickerPos.top || '38%',
-            left: feeHistoryPickerPos.left || 10,
-            zIndex: 9999,
-            backgroundColor: colors.surface,
-            borderRadius: 14,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
-            paddingVertical: 6,
-            width: 140,
-            maxHeight: 240,
-            overflow: 'scroll' as any,
-            opacity: pickerAnim,
-            transform: [{ scale: pickerAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1], extrapolate: 'clamp' }) }, { translateY: pickerAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0], extrapolate: 'clamp' }) }],
-          }}>
+          <Animated.View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.08)', opacity: feeHistoryPickerAnim }} />
+        </TouchableOpacity>
+        <Animated.View style={{
+          position: 'absolute',
+          top: feeHistoryPickerPos.top || 100,
+          left: feeHistoryPickerPos.left || 10,
+          backgroundColor: colors.surface,
+          borderRadius: 14,
+          paddingVertical: 6,
+          width: 140,
+          maxHeight: 240,
+          opacity: feeHistoryPickerAnim,
+          transform: [{ scale: feeHistoryPickerAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1], extrapolate: 'clamp' }) }, { translateY: feeHistoryPickerAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0], extrapolate: 'clamp' }) }],
+        }}>
+          <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
             <TouchableOpacity
               style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: feeHistoryFilter === 'all' ? withAlpha(colors.danger, 0.1) : 'transparent', borderRadius: 8, marginHorizontal: 4 }}
               onPress={() => {
                 setFeeHistoryFilter('all');
-                Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeHistoryFilterPicker(false));
+                Animated.timing(feeHistoryPickerAnim, { toValue: 0, duration: 120, useNativeDriver: false }).start(() => setShowFeeHistoryFilterPicker(false));
               }}
               activeOpacity={0.6}
             >
@@ -1215,7 +1220,7 @@ export default function ExpenseScreen({
                   style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: isSel ? withAlpha(colors.danger, 0.1) : 'transparent', borderRadius: 8, marginHorizontal: 4 }}
                   onPress={() => {
                     setFeeHistoryFilter({ year: f.year, month: f.month });
-                    Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeHistoryFilterPicker(false));
+                    Animated.timing(feeHistoryPickerAnim, { toValue: 0, duration: 120, useNativeDriver: false }).start(() => setShowFeeHistoryFilterPicker(false));
                   }}
                   activeOpacity={0.6}
                 >
@@ -1223,9 +1228,9 @@ export default function ExpenseScreen({
                 </TouchableOpacity>
               );
             })}
-          </Animated.View>
-        </ModalOverlay>
-      )}
+          </ScrollView>
+        </Animated.View>
+      </Modal>
 
       <DatePickerModal
         visible={showRecDatePicker}
@@ -1263,23 +1268,37 @@ function ModalOverlay({ children, onClose }: {
 }) {
   const anim = useRef(new Animated.Value(-300)).current;
   const fade = useRef(new Animated.Value(0)).current;
+  const [visible, setVisible] = useState(true);
+
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(anim, { toValue: 0, useNativeDriver: true, bounciness: 4, speed: 14 }),
-      Animated.timing(fade, { toValue: 1, duration: 200, useNativeDriver: true }),
+      Animated.spring(anim, { toValue: 0, useNativeDriver: false, bounciness: 4, speed: 14 }),
+      Animated.timing(fade, { toValue: 1, duration: 200, useNativeDriver: false }),
     ]).start();
   }, []);
+
   const close = () => {
     Animated.parallel([
-      Animated.timing(anim, { toValue: -300, duration: 180, useNativeDriver: true }),
-      Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: true }),
-    ]).start(onClose);
+      Animated.timing(anim, { toValue: -300, duration: 180, useNativeDriver: false }),
+      Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: false }),
+    ]).start(() => {
+      setVisible(false);
+      onClose();
+    });
   };
+
+  if (!visible) {
+    // After animation completes, render nothing — caller will unmount
+    return <Modal transparent animationType="none" visible={false} onRequestClose={() => {}}><View /></Modal>;
+  }
+
   return (
-    <Animated.View style={{ position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 200, justifyContent: 'center', alignItems: 'center', padding: 16, opacity: fade }}>
-      <TouchableOpacity style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)' }} onPress={close} activeOpacity={1} />
-      <Animated.View style={{ transform: [{ translateY: anim }], alignSelf: 'stretch' as any, alignItems: 'center', justifyContent: 'center' }}>{children}</Animated.View>
-    </Animated.View>
+    <Modal transparent animationType="none" visible onRequestClose={close}>
+      <Animated.View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16, opacity: fade }}>
+        <TouchableOpacity style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)' }} onPress={close} activeOpacity={1} />
+        <Animated.View style={{ transform: [{ translateY: anim }], alignSelf: 'stretch' as any, alignItems: 'center', justifyContent: 'center' }}>{children}</Animated.View>
+      </Animated.View>
+    </Modal>
   );
 }
 
