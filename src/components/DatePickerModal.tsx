@@ -111,6 +111,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
 
   useEffect(() => {
     if (visible) {
+      setDraft(value); // sync from parent each time modal opens — Modal doesn't remount children
       setMounted(true);
       const spring = Animated.spring(anim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 });
       spring.start();
@@ -119,7 +120,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
       anim.setValue(0);
       setMounted(false);
     }
-  }, [visible]);
+  }, [visible]); // eslint-disable-line react-hooks/exhaustive-deps — value sync is open-only
 
   if (!mounted) return null;
 
