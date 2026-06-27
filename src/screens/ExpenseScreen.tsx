@@ -1095,6 +1095,13 @@ export default function ExpenseScreen({
             </View>
             {/* Scrollable list area — use overflow:scroll on View instead of ScrollView */}
             <ScrollView style={{ flex: 1, paddingHorizontal: 12 }} showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
+              {/* TEMP: test data to verify scrolling */}
+              {[...Array(12)].map((_, idx) => (
+                <View key={`test-${idx}`} style={{ backgroundColor: idx % 2 === 0 ? '#f0f4ff' : '#fff', borderRadius: 12, padding: 20, marginBottom: 8, borderWidth: 1, borderColor: '#e0e0e0' }}>
+                  <Text style={{ fontSize: 16, fontWeight: '700', marginBottom: 8 }}>测试月份 {idx + 1}</Text>
+                  <Text style={{ color: '#666' }}>¥{(Math.random() * 5000).toFixed(2)}</Text>
+                </View>
+              ))}
               {(feeHistoryFilter === 'all' ? allFees : allFees.filter((f: any) => f.year === feeHistoryFilter.year && f.month === feeHistoryFilter.month)).map((f: any, idx: number) => {
                 const monthTotal = (f.meituan_cashier || 0) + (f.meituan_waimai || 0) + (f.shangou_waimai || 0) + (f.meituan_tuan || 0);
                 const platforms = [
@@ -1276,11 +1283,23 @@ function ModalOverlay({ children, onClose }: {
   children: React.ReactNode;
   onClose: () => void;
 }) {
+  const fade = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fade, { toValue: 1, duration: 200, useNativeDriver: false }).start();
+  }, []);
+
+  const close = () => {
+    Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: false }).start(() => {
+      onClose();
+    });
+  };
+
   return (
-    <View style={{ position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, justifyContent: 'center', alignItems: 'center', padding: 16, backgroundColor: 'rgba(0,0,0,0.3)' }}>
-      <TouchableOpacity style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} onPress={onClose} activeOpacity={1} />
+    <Animated.View style={{ position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, justifyContent: 'center', alignItems: 'center', padding: 16, backgroundColor: 'rgba(0,0,0,0.3)', opacity: fade }}>
+      <TouchableOpacity style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} onPress={close} activeOpacity={1} />
       <View style={{ alignSelf: 'stretch' as any, alignItems: 'center', justifyContent: 'center' }}>{children}</View>
-    </View>
+    </Animated.View>
   );
 }
 
