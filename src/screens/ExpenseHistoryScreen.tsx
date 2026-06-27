@@ -305,6 +305,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice }:
         data={records}
         keyExtractor={(e: any, i: number) => e.id != null ? `tx-${e.id}` : `tx-${i}`}
         renderItem={renderItem}
+        onEndReached={loadMore}
         onEndReachedThreshold={0.4}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: 112, paddingHorizontal: 12, paddingBottom: 100 }}
