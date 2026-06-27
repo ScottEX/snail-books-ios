@@ -1094,7 +1094,7 @@ export default function ExpenseScreen({
               </TouchableOpacity>
             </View>
             {/* Scrollable list area — use overflow:scroll on View instead of ScrollView */}
-            <View style={{ maxHeight: Dimensions.get('window').height * 0.75 - 120, paddingHorizontal: 12, overflow: 'scroll' as any }}>
+            <ScrollView style={{ maxHeight: Dimensions.get('window').height * 0.75 - 120, paddingHorizontal: 12 }} showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
               {(feeHistoryFilter === 'all' ? allFees : allFees.filter((f: any) => f.year === feeHistoryFilter.year && f.month === feeHistoryFilter.month)).map((f: any, idx: number) => {
                 const monthTotal = (f.meituan_cashier || 0) + (f.meituan_waimai || 0) + (f.shangou_waimai || 0) + (f.meituan_tuan || 0);
                 const platforms = [
@@ -1123,7 +1123,7 @@ export default function ExpenseScreen({
                   </View>
                 );
               })}
-            </View>
+            </ScrollView>
           </View>
         </ModalOverlay>
       )}
@@ -1277,7 +1277,7 @@ function ModalOverlay({ children, onClose }: {
   onClose: () => void;
 }) {
   return (
-    <Modal transparent animationType="none" visible onRequestClose={onClose}>
+    <Modal transparent animationType="none" visible onRequestClose={onClose} presentationStyle="overFullScreen">
       <View style={{ flex: 1 }}>
         <TouchableOpacity style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)' }} onPress={onClose} activeOpacity={1} />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }} pointerEvents="box-none">
