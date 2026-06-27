@@ -11,6 +11,8 @@ import { api, resolveAssetUrl } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import { getCurrentUserId } from '../utils/storage';
+import { useServerDate } from '../hooks/useServerDate';
+import { fmtDecInput } from '../utils/numbers';
 import Toast from '../components/Toast';
 import DatePickerModal from '../components/DatePickerModal';
 import ThemePickerModal from '../components/ThemePickerModal';
@@ -35,12 +37,6 @@ const LOGO_IMAGE = require('../../assets/img/logo.jpg');
 
 type Tab = 'list' | 'expense' | 'supply' | 'chart' | 'partner';
 
-// ── Date helpers ──
-const fmtDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-const todayDateStr = () => fmtDate(new Date());
-const yesterdayStr = () => { const d = new Date(); d.setDate(d.getDate()-1); return fmtDate(d); };
-const db4Str = () => { const d = new Date(); d.setDate(d.getDate()-2); return fmtDate(d); };
-
 // ── Sub-component: red error hint under date input ──
 function DateErrorHint({ trigger, message, colors }: { trigger: number; message: string; colors: ThemeColors }) {
   const [show, setShow] = useState(false);
@@ -64,6 +60,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   // Computed BEFORE the bgOpacity state declaration so the styles
   // closure can read it.
   const insets = useSafeAreaInsets();
+  const sd = useServerDate();
 
   // ── Tab state (persisted) ──
   const [tab, setTabState] = useState<Tab>(() => {
@@ -230,7 +227,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const navScaleAnims = useRef([...Array(5)].map(() => new Animated.Value(1))).current;
 
   // ── Daily revenue state ──
-  const [revDate, setRevDate] = useState(todayDateStr());
+  const [revDate, setRevDate] = useState('');
+  useEffect(() => { if (sd.ready && revDate === '') setRevDate(sd.today); }, [sd.ready, sd.today, revDate]);
   const [revDateErr, setRevDateErr] = useState(0);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [revRevenue, setRevRevenue] = useState('');
@@ -248,8 +246,31 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const [revMarkedClosed, setRevMarkedClosed] = useState(false);
   const [toast, setToast] = useState('');
 
-  const td = todayDateStr();
-  const pickDate = (d: string) => { if (d <= td) setRevDate(d); };
+  const td = sd.today;
+  const loadRevForDate = (d: string) => {
+    if (d > td) return;
+    setRevDate(d);
+    api.getDailyRevenue(1, 1, undefined, undefined, d)
+      .then((r: any) => {
+        const rec = r?.records?.[0];
+        if (rec) {
+          setEditingRevId(rec.id);
+          setRevRevenue(String(rec.revenue || ''));
+          setRevTurnover(String(rec.turnover || ''));
+          setRevJD(String(rec.jd_revenue || ''));
+          setRevNote(rec.note || '');
+          setRevMarkedClosed(!!rec.archived);
+        } else {
+          setEditingRevId(null);
+          setRevRevenue('');
+          setRevTurnover('');
+          setRevJD('');
+          setRevNote('');
+          setRevMarkedClosed(false);
+        }
+      })
+      .catch(() => {});
+  };
 
   // ── Data fetching (matches web) ──
   const loadLast7 = useCallback(async () => {
@@ -260,11 +281,11 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   }, []);
   const loadYesterday = useCallback(async () => {
     try {
-      const yd = yesterdayStr();
+      const yd = sd.yesterday;
       const r: any = await api.getDailyRevenue(1, 1, undefined, undefined, yd);
       setYesterdayRev(r.records?.[0] || null);
     } catch {}
-  }, []);
+  }, [sd.yesterday]);
   const loadWeekTotals = useCallback(async () => {
     try {
       const r: any = await api.getDailyRevenue(1, 1, undefined, undefined, undefined, 30);
@@ -290,6 +311,10 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   }, []);
 
   useEffect(() => { loadLast7(); loadYesterday(); loadWeekTotals(); loadBusinessSummary(); }, [loadLast7, loadYesterday, loadWeekTotals, loadBusinessSummary]);
+
+  useEffect(() => {
+    if (tab === 'list') { loadYesterday(); loadWeekTotals(); }
+  }, [tab, loadYesterday, loadWeekTotals]);
 
   useEffect(() => {
     if (tab === 'chart') { loadChart(); loadBusinessSummary(); }
@@ -323,6 +348,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
       }
       setToast(t('revSaveToday') || '已保存');
       // Reset form
+      setRevDate(sd.today);
       setRevRevenue(''); setRevTurnover(''); setRevJD(''); setRevNote('');
       setEditingRevId(null); setRevMarkedClosed(false);
       // Reload
@@ -519,7 +545,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
               colors={colors}
               styles={styles}
               revDate={revDate} setRevDate={setRevDate} revDateErr={revDateErr} setRevDateErr={setRevDateErr}
-              pickDate={pickDate} td={td} fmtDateLabel={fmtDateLabel}
+              loadRevForDate={loadRevForDate} td={td} sdYesterday={sd.yesterday} sdDb4={sd.offset(-2)} fmtDateLabel={fmtDateLabel}
               editingRevId={editingRevId} cancelEdit={cancelEdit}
               showDatePicker={showDatePicker} setShowDatePicker={setShowDatePicker}
               revRevenue={revRevenue} setRevRevenue={setRevRevenue}
@@ -652,7 +678,6 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         value={revDate}
         onClose={() => setShowDatePicker(false)}
         onSelect={(d) => { if (d <= td) { setRevDate(d); setRevDateErr(0); } }}
-        minDate={td}
         title={t('billDate') || '选择日期'}
       />
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
@@ -765,7 +790,7 @@ interface DailyRevProps {
   colors: ThemeColors;
   styles: ReturnType<typeof getStyles>;
   revDate: string; setRevDate: (v: string) => void; revDateErr: number; setRevDateErr: (v: number) => void;
-  pickDate: (d: string) => void; td: string; fmtDateLabel: (s: string) => string;
+  loadRevForDate: (d: string) => void; td: string; sdYesterday: string; sdDb4: string; fmtDateLabel: (s: string) => string;
   editingRevId: number | null; cancelEdit: () => void;
   showDatePicker: boolean; setShowDatePicker: (v: boolean) => void;
   revRevenue: string; setRevRevenue: (v: string) => void;
@@ -810,12 +835,12 @@ function DailyRevenueView(p: DailyRevProps) {
             <View style={{ flexDirection: 'row', gap: 6 }}>
               {[
                 { label: t('revQuickToday'), d: p.td },
-                { label: t('revQuickYesterday'), d: yesterdayStr() },
-                { label: t('revQuickDB4') || '前天', d: db4Str() },
+                { label: t('revQuickYesterday'), d: p.sdYesterday },
+                { label: t('revQuickDB4') || '前天', d: p.sdDb4 },
               ].map(pill => (
                 <TouchableOpacity
                   key={pill.d}
-                  onPress={() => p.pickDate(pill.d)}
+                  onPress={() => p.loadRevForDate(pill.d)}
                   style={[styles.datePill, p.revDate === pill.d && styles.datePillActive]}
                 >
                   <Text style={[styles.datePillText, p.revDate === pill.d && styles.datePillTextActive]}>
@@ -838,17 +863,17 @@ function DailyRevenueView(p: DailyRevProps) {
           <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
             <RevInputCard
               title={t('revRevenue')} sub={t('revRevenueSub')} symbol="¥"
-              value={p.revRevenue} onChangeText={p.setRevRevenue}
+              value={p.revRevenue} onChangeText={(v) => p.setRevRevenue(fmtDecInput(v))}
               yesterdayValue={p.yesterdayRev?.revenue} colors={colors} styles={styles}
             />
             <RevInputCard
               title={t('revTurnover')} sub={t('revTurnoverSub')} symbol="¥"
-              value={p.revTurnover} onChangeText={p.setRevTurnover}
+              value={p.revTurnover} onChangeText={(v) => p.setRevTurnover(fmtDecInput(v))}
               yesterdayValue={p.yesterdayRev?.turnover} colors={colors} styles={styles}
             />
             <RevInputCard
               title={t('revJD')} sub={t('revJDSub')} symbol="¥"
-              value={p.revJD} onChangeText={p.setRevJD}
+              value={p.revJD} onChangeText={(v) => p.setRevJD(fmtDecInput(v))}
               yesterdayValue={p.yesterdayRev?.jd_revenue} colors={colors} styles={styles}
             />
           </View>
@@ -864,7 +889,15 @@ function DailyRevenueView(p: DailyRevProps) {
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity
               style={[styles.revArchiveBtn, { flex: 2 }, p.revMarkedClosed && styles.revArchiveBtnDone]}
-              onPress={() => p.setRevMarkedClosed(!p.revMarkedClosed)}
+              onPress={() => {
+                const next = !p.revMarkedClosed;
+                p.setRevMarkedClosed(next);
+                if (next && !p.revNote.trim()) {
+                  p.setRevNote(t('revClosedReason'));
+                } else if (!next && p.revNote.trim() === t('revClosedReason')) {
+                  p.setRevNote('');
+                }
+              }}
               activeOpacity={0.7}
             >
               <Text style={[styles.revArchiveText, p.revMarkedClosed && styles.revArchiveTextDone]}>
@@ -885,8 +918,9 @@ function DailyRevenueView(p: DailyRevProps) {
                   </Svg>
                   <Text style={styles.revSubmitText}>
                     {p.editingRevId ? t('revEdit') :
-                      p.revDate === todayDateStr() ? t('revSaveToday') :
-                      p.revDate === yesterdayStr() ? t('revSaveYesterday') :
+                      p.revDate === p.td ? t('revSaveToday') :
+                      p.revDate === p.sdYesterday ? t('revSaveYesterday') :
+                      p.revDate === p.sdDb4 ? t('revSaveDayBefore') :
                       t('revSaveDayBefore')}
                   </Text>
                 </View>
@@ -936,7 +970,7 @@ function DailyRevenueView(p: DailyRevProps) {
                 <View style={styles.rev7CardTop}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={styles.rev7CardDate}>{rec.date}</Text>
-                    {rec.date === todayDateStr() && (
+                    {rec.date === p.td && (
                       <View style={styles.rev7TodayTag}>
                         <Text style={styles.rev7TodayTagText}>{t('today')}</Text>
                       </View>
