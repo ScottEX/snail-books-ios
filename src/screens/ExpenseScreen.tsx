@@ -1058,7 +1058,7 @@ export default function ExpenseScreen({
       {/* Fee history bottom sheet — "全部" detail view */}
       {showFeeHistory && (
         <ModalOverlay onClose={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }}>
-          <View style={[st.feeSheet, { height: Dimensions.get('window').height * 0.75, width: '96%', overflow: 'visible' as any }]} onStartShouldSetResponder={() => true}>
+          <View style={[st.feeSheet, { width: '96%', overflow: 'visible' as any }]} onStartShouldSetResponder={() => true}>
             <View style={st.modalHeader}>
               <Text style={st.modalTitle}>{t('feeHistory')}</Text>
               <CloseButton onPress={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }} />
@@ -1093,7 +1093,8 @@ export default function ExpenseScreen({
 
               </TouchableOpacity>
             </View>
-            <ScrollView style={{ height: Dimensions.get('window').height * 0.75 - 120, paddingHorizontal: 12 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+            {/* Scrollable list area — use overflow:scroll on View instead of ScrollView */}
+            <View style={{ maxHeight: Dimensions.get('window').height * 0.75 - 120, paddingHorizontal: 12, overflow: 'scroll' as any }}>
               {(feeHistoryFilter === 'all' ? allFees : allFees.filter((f: any) => f.year === feeHistoryFilter.year && f.month === feeHistoryFilter.month)).map((f: any, idx: number) => {
                 const monthTotal = (f.meituan_cashier || 0) + (f.meituan_waimai || 0) + (f.shangou_waimai || 0) + (f.meituan_tuan || 0);
                 const platforms = [
@@ -1122,7 +1123,7 @@ export default function ExpenseScreen({
                   </View>
                 );
               })}
-            </ScrollView>
+            </View>
           </View>
         </ModalOverlay>
       )}
