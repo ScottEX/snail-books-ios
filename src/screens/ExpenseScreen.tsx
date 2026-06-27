@@ -985,8 +985,7 @@ export default function ExpenseScreen({
         </ModalOverlay>
       )}
       {/* Platform fee entry bottom sheet */}
-      {showFeeSheet && (
-        <ModalOverlay onClose={() => setShowFeeSheet(false)}>
+      <ModalOverlay visible={showFeeSheet} onClose={() => setShowFeeSheet(false)}>
           <View style={st.feeSheet} onStartShouldSetResponder={() => true}>
             <View style={st.modalHeader}>
               <Text style={st.modalTitle}>{t('addFeeEntry')}</Text>
@@ -1053,7 +1052,6 @@ export default function ExpenseScreen({
             </View>
           </View>
         </ModalOverlay>
-      )}
 
       {/* Fee history bottom sheet — "全部" detail view */}
       <ModalOverlay visible={showFeeHistory} onClose={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }}>
