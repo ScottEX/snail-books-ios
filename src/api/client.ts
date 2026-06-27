@@ -99,7 +99,16 @@ function bumpActivity() {
 }
 
 function headers(): Record<string, string> {
-  return { 'X-Lang': getLang() };
+  const h: Record<string, string> = { 'X-Lang': getLang() };
+  // If we have a session token (set by login), send it as Bearer.
+  // This is critical for React Native: NSHTTPCookieStorage may not
+  // have stored the Set-Cookie from POST /login in time for the
+  // first few authFetch calls, so cookie-only auth fails → 401 → logout.
+  try {
+    const token = localStorage.getItem('token');
+    if (token) h['Authorization'] = `Bearer ${token}`;
+  } catch {}
+  return h;
 }
 
 async function authFetch<T = any>(url: string, options?: RequestInit): Promise<T> {
