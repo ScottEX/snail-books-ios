@@ -463,8 +463,18 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
             </View>
           )}
 
-          {/* Top scrim for nav readability */}
-          <View style={st.coverScrim} />
+          {/* Top shadow gradient for nav readability */}
+          <View style={st.coverScrim}>
+            <Svg width="100%" height="100%" viewBox="0 0 360 100" preserveAspectRatio="none">
+              <Defs>
+                <SVGGradient id="scrimGrad" x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0" stopColor="#000" stopOpacity={0.45} />
+                  <Stop offset="1" stopColor="#000" stopOpacity={0} />
+                </SVGGradient>
+              </Defs>
+              <Rect width="360" height="100" fill="url(#scrimGrad)" />
+            </Svg>
+          </View>
 
           {/* Floating nav */}
           <View style={st.coverNav}>
@@ -927,8 +937,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   coverImg: { width: '100%', height: '100%' } as any,
   coverGradient: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   coverScrim: {
-    position: 'absolute', top: 0, left: 0, right: 0, height: 80,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    position: 'absolute', top: 0, left: 0, right: 0, height: 100,
   },
   coverNav: {
     position: 'absolute', top: 0, left: 0, right: 0,
