@@ -562,6 +562,13 @@ saveLang: (lang: string) => silentAuthFetch('/api/settings/lang', { method: 'PUT
       });
     } catch { return null; }
   },
+  getUserAvatar: async (userId: number | string): Promise<string | null> => {
+    try {
+      const resp = await fetch(API_BASE + `/api/users/avatar?user_id=${userId}`, { credentials: 'omit' as RequestCredentials });
+      if (!resp.ok) return null;
+      return await (api as any)._blobToDataUri(resp);
+    } catch { return null; }
+  },
   getUserAvatarByLoginUri: async (identifier: string): Promise<string | null> => {
     try {
       let resp = await fetch(API_BASE + `/api/users/avatar?username=${encodeURIComponent(identifier)}`, { credentials: 'omit' as RequestCredentials });
