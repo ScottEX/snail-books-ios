@@ -197,8 +197,8 @@ export default function ExpenseScreen({
   useEffect(() => {
     if (scrollRef.current) {
       const w = Dimensions.get('window').width;
-      // Card0 = w-50, gap=14 → card1 offset = (w-50) + 14 = w-36
-      const offsets = [0, w - 36];
+      // Card0 = w-50, gap=14 → card1 at w-36; snap to align with content padding → w-54
+      const offsets = [0, w - 54];
       scrollRef.current.scrollTo({ x: offsets[activeTab] || 0, animated: true });
     }
   }, [activeTab]);
@@ -530,15 +530,16 @@ export default function ExpenseScreen({
           pagingEnabled={false}
           snapToOffsets={(() => {
             const w = Dimensions.get('window').width;
-            // Card0 width = w-50, gap=14 → card1 offset = (w-50) + 14 = w-36
-            return [0, w - 36];
+            // Card0 = w-50, gap=14 → card1 natural = w-36
+            // Content starts at x=18 (paddingHorizontal), so snap card1 at w-54
+            return [0, w - 54];
           })()}
           decelerationRate="fast"
           onMomentumScrollEnd={(e) => {
             const offset = e.nativeEvent.contentOffset.x;
             const w = Dimensions.get('window').width;
-            // Card0 width = w-50, gap=14 → switch at (w-50) + gap/2 = w-43
-            const idx = offset < w - 43 ? 0 : 1;
+            // Card0 center = (w-50)/2, card1 center = (w-36)+(w-36)/2 → midpoint ≈ w-40
+            const idx = offset < w - 40 ? 0 : 1;
             if (idx >= 0 && idx < tabCards.length) setActiveTab(idx);
           }}
           contentContainerStyle={st.tabScroll}>
@@ -550,7 +551,7 @@ export default function ExpenseScreen({
                 key={i}
                 testID="snap-card"
                 style={[st.tabCard, active && st.tabCardActive,
-                  i === 1 && { width: Dimensions.get('window').width - Math.round(Dimensions.get('window').width * 0.03) },
+                  i === 1 && { width: Dimensions.get('window').width - 36 },
                 ]}
                 onPress={() => setActiveTab(i)}
                 activeOpacity={0.7}
