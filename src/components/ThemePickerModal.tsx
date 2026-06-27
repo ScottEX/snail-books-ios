@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { useTheme, ThemeColors, withAlpha, FONTS } from '../theme';
 import { t } from '../i18n';
 
 import ThemePicker from './ThemePicker';
+import ThemeOpacitySlider from './ThemeOpacitySlider';
 import CloseButton from './CloseButton';
 import BgCropModal from './BgCropModal';
 import { useEffect, useRef, useState } from 'react';
@@ -33,7 +34,6 @@ function getStyles(colors: ThemeColors) {
     },
     card: {
       backgroundColor: colors.surface, borderRadius: 16, width: 340, maxWidth: '90%',
-      maxHeight: '85%',
       overflow: 'hidden' as any,
     },
     header: {
@@ -118,78 +118,61 @@ export default function ThemePickerModal({
   return (
     <Animated.View style={[styles.overlay as any, { opacity: fade }]}>
       <Animated.View style={[styles.card as any, { transform: [{ translateY: slide }] }]}>
-        <ScrollView style={{ maxHeight: '100%' }} contentContainerStyle={{ flexGrow: 1 }}>
-          <View style={styles.header}>
-            <Text style={styles.title}>{showCoverTools ? t('bgSettings') : (t('themeLabel') || '主题')}</Text>
-            <CloseButton onPress={handleClose} />
+        <View style={styles.header}>
+          <Text style={styles.title}>{showCoverTools ? t('bgSettings') : (t('themeLabel') || '主题')}</Text>
+          <CloseButton onPress={handleClose} />
+        </View>
+        <View style={styles.body}>
+
+          {/* ── Cover image tools (ProfileScreen only) ── */}
+          {showCoverTools && (
+            <Text style={styles.hint}>{t('bgHint')}</Text>
+          )}
+
+          {/* ── Theme Picker ── */}
+          <View style={{ marginTop: showCoverTools ? 12 : 0 }}>
+            <Text style={{ fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight, marginBottom: 10 }}>
+              {t('themePicker') || '主题'}
+            </Text>
+            <ThemePicker onSelect={handleClose} />
           </View>
-          <View style={styles.body}>
 
-            {/* ── Cover image tools (ProfileScreen only) ── */}
-            {showCoverTools && (
-              <Text style={styles.hint}>{t('bgHint')}</Text>
-            )}
-
-            {/* ── Theme Picker ── */}
-            <View style={{ marginTop: showCoverTools ? 12 : 0 }}>
-              <Text style={{ fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight, marginBottom: 10 }}>
-                {t('themePicker') || '主题'}
-              </Text>
-              <ThemePicker onSelect={handleClose} />
+          {/* ── Opacity slider (ProfileScreen only) — matches web track+fill+range input ── */}
+          {showCoverTools && (
+            <View style={{ marginTop: 20 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <Text style={{ fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight }}>{t('opacity')}</Text>
+                <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary }}>{opacityPct}%</Text>
+              </View>
+              <ThemeOpacitySlider value={opacityValue} onChange={onCoverOpacityChange || (() => {})} colors={colors} />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
+                <Text style={{ fontSize: FONTS.micro.size, color: colors.textSub }}>0</Text>
+                <Text style={{ fontSize: FONTS.micro.size, color: colors.textSub }}>50</Text>
+                <Text style={{ fontSize: FONTS.micro.size, color: colors.textSub }}>100</Text>
+              </View>
             </View>
+          )}
 
-            {/* ── Opacity slider (ProfileScreen only) ── */}
-            {showCoverTools && (
-              <View style={{ marginTop: 20 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <Text style={{ fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight }}>{t('opacity')}</Text>
-                  <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary }}>{opacityPct}%</Text>
-                </View>
-                {/* Opacity slider: 5 quick-set chips. Avoids needing a slider primitive. */}
-                <View style={{ flexDirection: 'row', gap: 6 }}>
-                  {[0, 0.25, 0.5, 0.75, 1].map(v => {
-                    const active = Math.abs(opacityValue - v) < 0.05;
-                    return (
-                      <TouchableOpacity
-                        key={v}
-                        onPress={() => onCoverOpacityChange?.(v)}
-                        activeOpacity={0.7}
-                        style={{
-                          flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center',
-                          backgroundColor: active ? colors.primary : withAlpha(colors.textSub, 0.10),
-                        }}
-                      >
-                        <Text style={{ fontSize: 12, color: active ? colors.surface : colors.textSub, fontWeight: '600' }}>
-                          {Math.round(v * 100)}%
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-            )}
-
-            {/* ── Image buttons (ProfileScreen only) ── */}
-            {showCoverTools && (
-              <View style={styles.btnRow}>
-                <TouchableOpacity
-                  style={[styles.bgBtn, styles.bgBtnOutline]}
-                  disabled={coverUploading}
-                  onPress={handlePickImage}
-                >
-                  <Text style={styles.bgBtnOutlineText}>{coverUploading ? t('uploading') : t('chooseImage')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.bgBtn, styles.bgBtnDanger]}
-                  disabled={coverUploading}
-                  onPress={onResetCover}
-                >
-                  <Text style={styles.bgBtnDangerText}>{t('resetDefault')}</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        </ScrollView>
+          {/* ── Image buttons (ProfileScreen only) ── */}
+          {showCoverTools && (
+            <View style={styles.btnRow}>
+              <TouchableOpacity
+                style={[styles.bgBtn, styles.bgBtnOutline]}
+                disabled={coverUploading}
+                onPress={handlePickImage}
+              >
+                <Text style={styles.bgBtnOutlineText}>{coverUploading ? t('uploading') : t('chooseImage')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.bgBtn, styles.bgBtnDanger]}
+                disabled={coverUploading}
+                onPress={onResetCover}
+              >
+                <Text style={styles.bgBtnDangerText}>{t('resetDefault')}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </Animated.View>
 
       {/* Background image crop modal (RN-native). The image picker is
