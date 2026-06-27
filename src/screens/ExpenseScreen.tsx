@@ -190,11 +190,22 @@ export default function ExpenseScreen({
     if (i === 1) setExpDateErr(0);
     try { localStorage.setItem('expense_active_tab', String(i)); } catch {}
   };
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+
+  // Auto-scroll to active card when activeTab changes (tap on card)
+  useEffect(() => {
+    if (scrollRef.current) {
+      const cardWidth = Dimensions.get('window').width - 61;
+      const gap = 14;
+      scrollRef.current.scrollTo({ x: activeTab * (cardWidth + gap), animated: true });
+    }
+  }, [activeTab]);
+
   const [showToast, setShowToast] = useState(false);
   const hideToast = () => setShowToast(false);
 
   // Snap-scroll effects are web-only (CSS scroll-snap + DOM scroll listener).
-  // RN FlatList handles horizontal swiping natively — nothing to do here.
 
   /* ── 模块一：对账 ── */
   const [recDate, setRecDate] = useState(sd.yesterday || '');
@@ -529,6 +540,17 @@ export default function ExpenseScreen({
       <View style={st.tabBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
           testID="snap-scroll"
+          ref={scrollRef}
+          pagingEnabled={false}
+          snapToOffsets={[0, Dimensions.get('window').width - 36 - 14]}
+          decelerationRate="fast"
+          onMomentumScrollEnd={(e) => {
+            const offset = e.nativeEvent.contentOffset.x;
+            const cardWidth = Dimensions.get('window').width - 61;
+            const gap = 14;
+            const idx = Math.round(offset / (cardWidth + gap));
+            if (idx >= 0 && idx < tabCards.length) setActiveTab(idx);
+          }}
           contentContainerStyle={st.tabScroll}>
           {tabCards.map((tab, i) => {
             const active = activeTab === i;
