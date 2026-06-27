@@ -385,6 +385,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
             <View style={styles.editRow}>
               <Text style={styles.sectionTitleInline}>{t('expenseDate')}</Text>
               <View style={styles.dateField}>
+                <View style={{ paddingVertical: 12, paddingHorizontal: 12 }}>
                 <DatePicker
                   date={date}
                   onChange={setDate}
@@ -396,6 +397,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
                   showCalendarIcon
                   showChevron
                 />
+                </View>
               </View>
             </View>
 
@@ -639,7 +641,6 @@ const getStyles = (c: ThemeColors) =>
     editRowValue: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textSub },
     dateField: {
       flex: 1, backgroundColor: c.bg, borderRadius: 10,
-      paddingVertical: 12, paddingHorizontal: 12,
     },
     dateText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textSub },
 
