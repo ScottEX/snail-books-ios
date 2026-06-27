@@ -197,8 +197,8 @@ export default function ExpenseScreen({
   useEffect(() => {
     if (scrollRef.current) {
       const w = Dimensions.get('window').width;
-      // Card width = w-50, gap=14 → card1 offset = (w-50) + 14 = w-36
-      const offsets = [0, w - 36];
+      // Card width = w-36, gap=14 → card1 offset = (w-36) + 14 = w-22
+      const offsets = [0, w - 22];
       scrollRef.current.scrollTo({ x: offsets[activeTab] || 0, animated: true });
     }
   }, [activeTab]);
@@ -530,15 +530,15 @@ export default function ExpenseScreen({
           pagingEnabled={false}
           snapToOffsets={(() => {
             const w = Dimensions.get('window').width;
-            // Card width = w - 50, gap = 14 → card1 offset = (w - 50) + 14 = w - 36
-            return [0, w - 36];
+            // Card width = w - 36, gap = 14 → card1 offset = (w - 36) + 14 = w - 22
+            return [0, w - 22];
           })()}
           decelerationRate="fast"
           onMomentumScrollEnd={(e) => {
             const offset = e.nativeEvent.contentOffset.x;
             const w = Dimensions.get('window').width;
-            // Card width = w-50, gap=14 → switch at (w-50) + gap/2 = w-43
-            const idx = offset < w - 43 ? 0 : 1;
+            // Card width = w-36, gap=14 → switch at (w-36) + gap/2 = w-29
+            const idx = offset < w - 29 ? 0 : 1;
             if (idx >= 0 && idx < tabCards.length) setActiveTab(idx);
           }}
           contentContainerStyle={st.tabScroll}>
@@ -1316,7 +1316,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
     // The CSS backgroundImage (linear-gradient) is re-created with
     // a <LinearGradient> child in the JSX (RN can't render CSS
     // gradient strings). Web has NO backdrop-filter on tabCard.
-    width: Dimensions.get('window').width - 50, height: 210,
+    width: Dimensions.get('window').width - 36, height: 210,
     borderRadius: 14, overflow: 'hidden',
     paddingHorizontal: 16, paddingVertical: 14,
     justifyContent: 'flex-start',
