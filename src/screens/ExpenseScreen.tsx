@@ -1058,7 +1058,7 @@ export default function ExpenseScreen({
       {/* Fee history bottom sheet — "全部" detail view */}
       {showFeeHistory && (
         <ModalOverlay onClose={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }}>
-          <View style={[st.feeSheet, { height: Dimensions.get('window').height * 0.75, width: '96%' }]} onStartShouldSetResponder={() => true}>
+          <View style={[st.feeSheet, { height: Dimensions.get('window').height * 0.75, width: '96%', overflow: 'visible' as any }]} onStartShouldSetResponder={() => true}>
             <View style={st.modalHeader}>
               <Text style={st.modalTitle}>{t('feeHistory')}</Text>
               <CloseButton onPress={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }} />
