@@ -1,11 +1,12 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, Animated, Image } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Circle } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
 import { t, getLang } from '../i18n';
 import { api, resolveAssetUrl } from '../api/client';
 import { useServerDate } from '../hooks/useServerDate';
 import { usePaginatedList } from '../hooks/usePaginatedList';
+import { getCurrentUser } from '../utils/storage';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
@@ -43,15 +44,28 @@ function ExpenseEmptyIcon({ color }: { color: string }) {
   );
 }
 
+// Stamp seal — expense (linked to procurement). Mirrors invoice 已作废 / procurement stamp.
+function IcnSealExp({ color, label }: { color: string; label: string }) {
+  return (
+    <Svg width={42} height={42} viewBox="0 0 42 42">
+      <Circle cx={21} cy={21} r={19.5} fill="none" stroke={color} strokeWidth={1.3} />
+      <Circle cx={21} cy={21} r={17} fill="none" stroke={color} strokeWidth={0.5} strokeDasharray="2.5 1.8" />
+      <text x={21} y={24} textAnchor="middle" fontSize={8} fontWeight="700" fill={color} transform="rotate(-12, 21, 21)">{label}</text>
+    </Svg>
+  );
+}
+
 interface Props {
   onBack: () => void;
   onExpDetail?: (e: any) => void;
+  onInvoice?: (batchId: number) => void;
 }
 
-export default function ExpenseHistoryScreen({ onBack, onExpDetail }: Props) {
+export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice }: Props) {
   const { colors } = useTheme();
   const st = useMemo(() => getSt(colors), [colors]);
   const sd = useServerDate();
+  const currentUser = getCurrentUser();
 
   const [showFilter, setShowFilter] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
@@ -130,8 +144,9 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail }: Props) {
     const previewImgsList = parseImages(e.images);
     const resolvedImgs = displayImgs.map((u: string) => resolveAssetUrl(u) || u);
     return (
-    <View style={st.row}>
-      <TouchableOpacity onPress={() => onExpDetail?.(e)} activeOpacity={0.7} style={{ flex: 1 }}>
+    <TouchableOpacity onPress={() => onExpDetail?.(e)} activeOpacity={0.7}>
+      <View style={st.row}>
+      <View style={{ flex: 1, minWidth: 0 }}>
         <View style={st.rowTop}>
           <View style={st.badges}>
             <View style={st.catBadge}>
@@ -140,27 +155,72 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail }: Props) {
             <View style={st.payBadge}>
               <Text style={st.payBadgeText}>{localePay(e.account || '')}</Text>
             </View>
+            {e.procurement_batch_id ? (
+              e.invoice_status ? (
+              <TouchableOpacity
+                onPress={() => onInvoice?.(e.procurement_batch_id)}
+                activeOpacity={0.7}
+                style={{ paddingHorizontal: 6, paddingVertical: 1, borderRadius: 5, backgroundColor: e.invoice_status === 'done' ? withAlpha(colors.success, 0.12) : withAlpha(colors.warning, 0.12) }}
+              >
+                <Text style={{ fontSize: 10, fontWeight: '600', color: e.invoice_status === 'done' ? colors.success : colors.warning }}>
+                  {e.invoice_status === 'done' ? t('invRecStatusDone') : t('invRecStatusPending')}
+                </Text>
+              </TouchableOpacity>
+              ) : (
+              <TouchableOpacity
+                onPress={() => onInvoice?.(e.procurement_batch_id)}
+                activeOpacity={0.7}
+                style={{ paddingHorizontal: 6, paddingVertical: 1, borderRadius: 5, backgroundColor: withAlpha(colors.primary, 0.10) }}
+              >
+                <Text style={{ fontSize: 10, fontWeight: '600', color: colors.primary }}>
+                  {t('invToInvoice')}
+                </Text>
+              </TouchableOpacity>
+              )
+            ) : null}
           </View>
-          <Text style={[st.amount, Number(e.amount) < 0 && { color: colors.success }]}>
-            {Number(e.amount) < 0 ? '+' : '-'}¥{Math.abs(Number(e.amount || 0)).toFixed(2)}
-          </Text>
+          {/* Wrap amount + seal so the seal anchors to the amount text */}
+          <View style={st.expAmountWrap}>
+            <Text style={[st.amount, Number(e.amount) < 0 && { color: colors.success }]}>
+              {Number(e.amount) < 0 ? '+' : '-'}¥{Math.abs(Number(e.amount || 0)).toFixed(2)}
+            </Text>
+            {e.proc_batch_number ? (
+              <View style={st.expSealWrap} pointerEvents="none">
+                <IcnSealExp
+                  color={e.proc_settled_at ? colors.success : colors.warning}
+                  label={e.proc_settled_at ? t('procSettled') : t('procUnsettled')}
+                />
+              </View>
+            ) : null}
+          </View>
         </View>
+        {currentUser ? (
+          <Text style={st.filledBy}>{t('filledBy')}: {currentUser}</Text>
+        ) : null}
         <View style={st.rowBottom}>
           <Text style={st.dateText}>{fmtDate(e.date || (e.created_at || '').slice(0, 10))}</Text>
-          <Text style={st.note} numberOfLines={1}>{e.note || ''}</Text>
+          {e.proc_batch_number ? (
+            <Text style={st.note} numberOfLines={1}>{t('procNowBatch').replace('{n}', String(e.proc_batch_number))}</Text>
+          ) : e.note ? (
+            <Text style={st.note} numberOfLines={1}>{e.note}</Text>
+          ) : (
+            <View style={{ flex: 1 }} />
+          )}
         </View>
-      </TouchableOpacity>
-      {resolvedImgs.length > 0 && (
-        <View style={st.imgThumbs}>
-          {resolvedImgs.map((url: string, j: number) => (
-            <TouchableOpacity key={j} onPress={() => { thumbTapRef.current = true; openPreview(previewImgsList.map((u: string) => resolveAssetUrl(u) || u), j); }} activeOpacity={0.8}>
-              <Image source={{ uri: url }} style={st.thumbImg} />
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-    </View>
-  ); }, [colors, st, onExpDetail]);
+        {/* Image thumbnails */}
+        {resolvedImgs.length > 0 && (
+          <View style={st.imgThumbs}>
+            {resolvedImgs.map((url: string, j: number) => (
+              <TouchableOpacity key={j} onPress={() => { thumbTapRef.current = true; openPreview(previewImgsList.map((u: string) => resolveAssetUrl(u) || u), j); }} activeOpacity={0.8}>
+                <Image source={{ uri: url }} style={st.thumbImg} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
+      </View>
+    </TouchableOpacity>
+  ); }, [colors, st, onExpDetail, onInvoice, currentUser]);
 
   const CATEGORIES = ['daily', 'rent', 'salary', 'goods'];
 
@@ -300,6 +360,9 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   payBadge: { backgroundColor: colors.bg, borderRadius: 4, paddingHorizontal: 8, paddingVertical: 3 },
   payBadgeText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.textSub },
   amount: { fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: colors.danger },
+  expAmountWrap: { position: 'relative' as any },
+  expSealWrap: { position: 'absolute' as any, top: -16, right: -6 },
+  filledBy: { fontSize: 10, color: colors.textSub, marginTop: 2 },
   rowBottom: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   dateText: { fontSize: FONTS.sub.size, color: colors.textSub, flexShrink: 0 },
   note: { fontSize: FONTS.sub.size, color: colors.textSub, flex: 1, textAlign: 'right', overflow: 'hidden' },

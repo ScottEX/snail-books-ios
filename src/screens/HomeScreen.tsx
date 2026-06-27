@@ -398,7 +398,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
 
       {/* History slide-overs */}
       <SlideScreen visible={showExpenseHistory} onClose={() => setShowExpenseHistory(false)}>
-        {(onBack) => <ExpenseHistoryScreen onBack={onBack} onExpDetail={(e: any) => setShowExpenseDetail(e)} />}
+        {(onBack) => <ExpenseHistoryScreen onBack={onBack} onExpDetail={(e: any) => setShowExpenseDetail(e)} onInvoice={(batchId) => setShowInvoice({ filterBatchId: batchId })} />}
       </SlideScreen>
       <SlideScreen visible={showDailyHistory} onClose={() => setShowDailyHistory(false)}>
         {(onBack) => <DailyRevenueHistory onBack={onBack} />}
