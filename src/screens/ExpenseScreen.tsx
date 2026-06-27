@@ -523,16 +523,16 @@ export default function ExpenseScreen({
           testID="snap-scroll"
           ref={scrollRef}
           pagingEnabled={false}
-          snapToOffsets={(() => {
-            const w = Dimensions.get('window').width;
-            return [0, w - 32];
-          })()}
           decelerationRate="fast"
-          disableIntervalMomentum={true}
+          onScrollEndDrag={(e) => {
+            const offset = e.nativeEvent.contentOffset.x;
+            const w = Dimensions.get('window').width;
+            const snap = offset < (w - 32) / 2 ? 0 : w - 32;
+            scrollRef.current?.scrollTo({ x: snap, animated: true });
+          }}
           onMomentumScrollEnd={(e) => {
             const offset = e.nativeEvent.contentOffset.x;
             const w = Dimensions.get('window').width;
-            // Midpoint of snap positions [0, w-18]
             const idx = offset < (w - 32) / 2 ? 0 : 1;
             if (idx >= 0 && idx < tabCards.length) setActiveTab(idx);
           }}
