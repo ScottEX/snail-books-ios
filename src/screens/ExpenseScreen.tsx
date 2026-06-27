@@ -353,7 +353,8 @@ export default function ExpenseScreen({
   const [feeEw, setFeeEw] = useState('');
   const [feeMt, setFeeMt] = useState('');
   const [savingFee, setSavingFee] = useState(false);
-  /*
+
+  const loadFeeData = async () => {
     try {
       const all = await api.getPlatformFees();
       const allArr = Array.isArray(all) ? all : [];
