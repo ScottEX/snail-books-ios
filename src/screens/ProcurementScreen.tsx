@@ -11,27 +11,32 @@ import { FONTS } from '../theme';
 import { modalCardAnimation, modalClose, uploadReceiptStyles } from '../sharedStyles';
 import Toast from '../components/Toast';
 import DatePickerModal from '../components/DatePickerModal';
-import { pickImages } from '../utils/imagePicker';
+import ReceiptUpload from '../components/ReceiptUpload';
+import type { PickedImage } from '../utils/imagePicker';
+import ConfirmModal from '../components/ConfirmModal';
+import { useServerDate } from '../hooks/useServerDate';
 
 type SubTab = 'new' | 'history' | 'products';
 type PayMethod = '现金' | '微信' | '支付宝';
 
 interface Product { id: number; name: string; spec: string; price: number; supplier: string; note?: string; }
 interface CartItem { product: Product; quantity: number; subtotal: number; }
-interface BatchRecord { id: number; batch_number: number; date: string; payment_method: string; category: string; total: number; images: string[]; thumb_images?: string[]; note: string; items: any[]; }
+interface BatchRecord { id: number; batch_number: number; date: string; payment_method: string; category: string; total: number; images: string[]; thumb_images?: string[]; note: string; items: any[]; settled_at?: string | null; settled_by?: number | null; settled_by_username?: string | null; invoice_status?: string | null; }
 interface ProcStats { total_spent: number; total_income: number; batch_count: number; margin_pct: number; }
-
-// Local CN-today string. `toISOString()` returns UTC, so for a CN user at
-// 01:00 local the UTC date is the previous calendar day. Offset by +8h to
-// align with CN time, then slice the date portion. These MUST be at module
-// scope (or `function` declarations) — `const` arrows don't hoist, and the
-// component's useState initializers run before the in-body definitions.
-const cnNow = () => { const d = new Date(); return new Date(d.getTime() + 8 * 3600000); };
-const todayStr = () => cnNow().toISOString().slice(0, 10);
 
 import { parseImages } from '../utils/parseImages';
 // SVG Icons
 // ═══════════════════════════════════════════════
+// Stamp seal — procurement settle state (mirrors invoice 已作废 style)
+function IcnSealProc({ color, label }: { color: string; label: string }) {
+  return (
+    <Svg width={48} height={48} viewBox="0 0 48 48">
+      <Circle cx={24} cy={24} r={22} fill="none" stroke={color} strokeWidth={1.4} />
+      <Circle cx={24} cy={24} r={19.5} fill="none" stroke={color} strokeWidth={0.5} strokeDasharray="3 2" />
+      <Text style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, textAlign: 'center', lineHeight: 54, fontSize: 9, fontWeight: '700', color, transform: [{ rotate: '-12deg' }] }}>{label}</Text>
+    </Svg>
+  );
+}
 function CartIcon({ color }: { color: string }) {
   return (
     <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -45,14 +50,6 @@ function PencilIcon({ color }: { color: string }) {
     <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
       <Path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-    </Svg>
-  );
-}
-function CameraIcon({ color }: { color: string }) {
-  return (
-    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round">
-      <Path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
-      <Circle cx="12" cy="13" r="4" />
     </Svg>
   );
 }
@@ -141,7 +138,9 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   statLbl: { fontSize: FONTS.micro.size, color: c.textSub, marginTop: 3 },
 
   searchSection: { paddingHorizontal: 16, paddingBottom: 8, borderTopWidth: 0.5, borderTopColor: withAlpha(c.textMain, 0.06) },
-  searchInput: { paddingHorizontal: 12, paddingVertical: 9, borderWidth: 0, borderRadius: 10, fontSize: FONTS.sub.size, color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), outline: 'none' },
+  searchRow: { position: 'relative' as const },
+  searchInput: { paddingHorizontal: 12, paddingVertical: 9, paddingRight: 36, borderWidth: 0, borderRadius: 10, fontSize: FONTS.sub.size, color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), outline: 'none' },
+  searchClear: { position: 'absolute' as const, right: 8, top: 0, bottom: 0, justifyContent: 'center' as const, alignItems: 'center' as const },
   filterRow: { flexDirection: 'row' as const, gap: 6, marginTop: 8 },
   filterChip: { paddingHorizontal: 13, paddingVertical: 5, borderRadius: 20, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.12) },
   filterChipOn: { backgroundColor: c.primary, borderColor: c.primary },
@@ -154,6 +153,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   subTabOn: { backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 10 },
   subTabText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: c.textSub },
   subTabTextOn: { color: c.primary, fontWeight: FONTS.subBold.weight },
+  subTabCount: { fontSize: 10, fontWeight: '600' as any, color: c.textSub, backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, minWidth: 18, textAlign: 'center' as any, overflow: 'hidden' as const },
 
   sectionHead: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4, fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: c.textSub, textTransform: 'uppercase' as const, letterSpacing: 1 },
   productCard: { marginHorizontal: 12, marginBottom: 6, backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06), overflow: 'hidden' as const },
@@ -188,6 +188,8 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   cartInfoText: { fontSize: FONTS.micro.size, color: c.textSub },
   cartInfoCount: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.primary },
   cartTotal: { fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: c.primary },
+  cartClearBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: withAlpha(c.primary, 0.08) },
+  cartClearBtnText: { fontSize: FONTS.micro.size, color: c.primary, fontWeight: FONTS.microBold.weight },
 
   // Drawer overlay
   overlay: { position: 'fixed' as any, inset: 0, backgroundColor: 'rgba(0,0,0,0)', zIndex: 200 },
@@ -290,6 +292,11 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   histHead: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, padding: 10, borderBottomWidth: 1, borderBottomColor: withAlpha(c.textMain, 0.05) },
   histNo: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: c.primary },
   histDate: { fontSize: FONTS.micro.size, color: c.textSub },
+  histActions: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8 },
+  histActionBtn: { width: 28, height: 28, borderRadius: 14, alignItems: 'center' as const, justifyContent: 'center' as const, backgroundColor: withAlpha(c.textMain, 0.04) },
+  histAmountRow: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, marginTop: 8, minHeight: 48, position: 'relative' as const },
+  histAmountNumberWrap: { position: 'relative' as const },
+  histAmountSealOverlay: { position: 'absolute' as const, right: 0, top: '50%', marginTop: -40, opacity: 0.75, zIndex: 2 },
   histBody: { padding: 10 },
   histRow: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, marginBottom: 4 },
   histRowLabel: { fontSize: FONTS.micro.size, color: c.textSub },
@@ -316,6 +323,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   emptyTitle: { fontSize: FONTS.body.size, fontWeight: FONTS.body.weight, color: c.textSub, marginBottom: 6 },
   emptyHint: { fontSize: FONTS.sub.size, color: c.textSub, textAlign: 'center' as const, paddingHorizontal: 40, lineHeight: 20 },
   loadingWrap: { paddingVertical: 20, alignItems: 'center' as const },
+  loadingMore: { paddingVertical: 20, alignItems: 'center' as const },
   contentArea: { flex: 1, paddingBottom: 100 },
 });
 
@@ -324,6 +332,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
 // ═══════════════════════════════════════════════
 export default function ProcurementScreen() {
   const { colors: c } = useTheme();
+  const sd = useServerDate();
   const styles = useMemo(() => getStyles(c), [c]);
 
   const [subTab, setSubTab] = useState<SubTab>(() => {
@@ -336,13 +345,11 @@ export default function ProcurementScreen() {
   useEffect(() => {
     try { localStorage.setItem('snail_proc_tab', subTab); } catch {}
   }, [subTab]);
+  // Auto-clear search when switching between sub-tabs
+  useEffect(() => { setSearch(''); }, [subTab]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [cart, setCart] = useState<Record<number, number>>(() => {
-    try {
-      const saved = localStorage.getItem('snail_proc_cart');
-      return saved ? JSON.parse(saved) : {};
-    } catch { return {}; }
-  });
+  const [productsLoaded, setProductsLoaded] = useState(false);
+  const [cart, setCart] = useState<Record<number, number>>({});
   const [search, setSearch] = useState('');
   const [supplierFilter, setSupplierFilter] = useState('全部');
   const [editingPrice, setEditingPrice] = useState<number | null>(null);
@@ -351,21 +358,36 @@ export default function ProcurementScreen() {
   const [showDrawer, setShowDrawer] = useState(false);
   const drawerAnim = useRef(new Animated.Value(0)).current;
   const overlayAnim = useRef(new Animated.Value(0)).current;
-  const [orderDate, setOrderDate] = useState(() => todayStr());
+  const [orderDate, setOrderDate] = useState('');
+  useEffect(() => { if (sd.ready && orderDate === '') setOrderDate(sd.today); }, [sd.ready, sd.today, orderDate]);
   const [payMethod, setPayMethod] = useState<PayMethod>('微信');
   const [orderNote, setOrderNote] = useState('');
-  const [receipts, setReceipts] = useState<any[]>([]);
-  const [uploading, setUploading] = useState(false);
+  const [receipts, setReceipts] = useState<PickedImage[]>([]);
   const [submitting, setSubmitting] = useState(false);
-
-  const [showImgTip, setShowImgTip] = useState(false);
+  // Edit mode: when set, the drawer is editing this batch instead of creating a new one
+  const [editingBatchId, setEditingBatchId] = useState<number | null>(null);
+  const [editingBatchNumber, setEditingBatchNumber] = useState<number>(0);
+  // True when the editing batch has been settled — locks the cart UI (no add/+/-, no 完成/添加产品)
+  const [editingBatchSettled, setEditingBatchSettled] = useState(false);
+  // Historical unit prices for the editing batch, keyed by product_id
+  const [cartUnitPrices, setCartUnitPrices] = useState<Record<number, number>>({});
+  // Server-side image URLs kept across edit (new uploads get appended)
+  const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
+  const [existingThumbUrls, setExistingThumbUrls] = useState<string[]>([]);
+  // Edit mode snapshot: serialized initial values, used to detect changes
+  const [editSnapshot, setEditSnapshot] = useState<string | null>(null);
+  // Delete confirmation target (batch record)
+  const [deleteBatchTarget, setDeleteBatchTarget] = useState<BatchRecord | null>(null);
 
   const [showItemsModal, setShowItemsModal] = useState(false);
+  const [itemsModalView, setItemsModalView] = useState<'items' | 'products' | 'detail'>('items');
+  const [productPickerSearch, setProductPickerSearch] = useState('');
   const [detailItems, setDetailItems] = useState<Array<{ name: string; quantity: number; subtotal: number }>>([]);
   const [detailTotal, setDetailTotal] = useState(0);
 
   const [successTotal, setSuccessTotal] = useState(0);
   const [successBatch, setSuccessBatch] = useState(0);
+  const [successIsEdit, setSuccessIsEdit] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
@@ -376,9 +398,14 @@ export default function ProcurementScreen() {
   const [histTotal, setHistTotal] = useState(0);
   const [loadingHist, setLoadingHist] = useState(false);
 
+  // Load all batches for search
+  const [searchBatches, setSearchBatches] = useState<BatchRecord[] | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [prodForm, setProdForm] = useState({ name: '', spec: '', price: '', supplier: '', note: '' });
+  const [prodSaving, setProdSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
   // ── Shared slide-from-top animation for product/delete/success modals ──
@@ -404,8 +431,8 @@ export default function ProcurementScreen() {
   const itemsModalAnim = useRef(new Animated.Value(0)).current;
   const itemsModalOverlayAnim = useRef(new Animated.Value(0)).current;
   const openItemsModal = () => {
-    setDetailItems(cartItems.map(i => ({ name: i.product.name, quantity: i.quantity, subtotal: i.subtotal })));
-    setDetailTotal(cartTotal);
+    setItemsModalView('items');
+    setProductPickerSearch('');
     setShowItemsModal(true);
     itemsModalAnim.setValue(-300);
     itemsModalOverlayAnim.setValue(0);
@@ -427,6 +454,7 @@ export default function ProcurementScreen() {
       subtotal: item.subtotal || item.unit_price * item.quantity || 0,
     })));
     setDetailTotal(batch.total);
+    setItemsModalView('detail');
     setShowItemsModal(true);
     itemsModalAnim.setValue(-300);
     itemsModalOverlayAnim.setValue(0);
@@ -449,7 +477,18 @@ export default function ProcurementScreen() {
     Animated.parallel([
       Animated.timing(drawerAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
       Animated.timing(overlayAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
-    ]).start(() => setShowDrawer(false));
+    ]).start(() => {
+      setShowDrawer(false);
+      // Reset edit state when drawer is closed (in any way)
+      if (editingBatchId !== null) {
+        setEditingBatchId(null); setEditingBatchNumber(0);
+        setEditingBatchSettled(false); setCartUnitPrices({});
+        setExistingImageUrls([]); setExistingThumbUrls([]);
+        setEditSnapshot(null);
+        setCart({}); setReceipts([]); setOrderNote('');
+        setOrderDate(sd.today); setPayMethod('微信');
+      }
+    });
   };
 
   const drawerTranslateY = drawerAnim.interpolate({ inputRange: [0, 1], outputRange: [400, 0] });
@@ -482,8 +521,6 @@ export default function ProcurementScreen() {
   }, []);
 
   // ── Image compression — no-op on RN (use expo-image-manipulator instead) ──
-  const compressImage = (file: any): Promise<any> => Promise.resolve(file);
-
   // ── Suppliers ──
   const suppliers = useMemo(() => {
     const set = new Set(products.map(p => p.supplier).filter(Boolean));
@@ -492,7 +529,9 @@ export default function ProcurementScreen() {
   }, [products]);
 
   const loadProducts = useCallback(() => {
-    api.getProducts().then((data: any) => { if (Array.isArray(data)) setProducts(data); }).catch(() => {});
+    api.getProducts().then((data: any) => {
+      if (Array.isArray(data)) { setProducts(data); setProductsLoaded(true); }
+    }).catch(() => { setProductsLoaded(true); });
   }, []);
   const loadStats = useCallback(() => {
     api.getProcurementStats().then((s: any) => {
@@ -509,10 +548,16 @@ export default function ProcurementScreen() {
 
   useEffect(() => { loadProducts(); loadStats(); }, [loadProducts, loadStats]);
 
-  // Persist cart to localStorage
+  // Load shared cart from server on mount
   useEffect(() => {
-    try { localStorage.setItem('snail_proc_cart', JSON.stringify(cart)); } catch {}
-  }, [cart]);
+    api.getCart().then((data: any) => {
+      if (Array.isArray(data)) {
+        const map: Record<number, number> = {};
+        data.forEach((item: any) => { map[item.product_id] = item.quantity; });
+        setCart(map);
+      }
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (subTab !== 'history') return;
@@ -521,6 +566,20 @@ export default function ProcurementScreen() {
       setBatches(data.records || []); setHistTotal(data.total || 0); setHistPage(1);
     }).catch(() => {}).finally(() => setLoadingHist(false));
   }, [subTab]);
+
+  // Search across all batches when search is active in history tab
+  useEffect(() => {
+    if (!search || subTab !== 'history') { setSearchBatches(null); return; }
+    let cancelled = false;
+    setSearchLoading(true);
+    api.getProcurementBatches(1, 9999).then((data: any) => {
+      if (cancelled) return;
+      setSearchBatches(data?.records || []);
+    }).catch(() => {}).finally(() => {
+      if (!cancelled) setSearchLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [search, subTab]);
 
   const loadMoreHistory = () => {
     if (loadingHist) return;
@@ -537,6 +596,24 @@ export default function ProcurementScreen() {
     if (search) list = list.filter(p => p.name.includes(search));
     return list;
   }, [products, supplierFilter, search]);
+
+  const filteredBatches = useMemo(() => {
+    if (!search) return batches;
+    if (searchBatches === null) return [];
+    const s = search.toLowerCase();
+    return searchBatches.filter(b => String(b.batch_number).includes(s));
+  }, [batches, search, searchBatches]);
+
+  const filteredMgmtProducts = useMemo(() => {
+    if (!search) return products;
+    const s = search.toLowerCase();
+    return products.filter(p =>
+      p.name.toLowerCase().includes(s) ||
+      (p.spec || '').toLowerCase().includes(s) ||
+      (p.supplier || '').toLowerCase().includes(s) ||
+      (p.note || '').toLowerCase().includes(s)
+    );
+  }, [products, search]);
 
   const groupedProducts = useMemo(() => {
     const map: Record<string, Product[]> = {};
@@ -559,20 +636,44 @@ export default function ProcurementScreen() {
       .map(([pid, qty]) => {
         const product = products.find(p => p.id === Number(pid));
         if (!product) return null;
-        return { product, quantity: qty, subtotal: product.price * qty };
+        // For SETTLED edits, use the snapshot (historical) unit price; otherwise current product price
+        const unitPrice = cartUnitPrices[product.id] ?? product.price;
+        return { product, quantity: qty, subtotal: unitPrice * qty };
       }).filter(Boolean) as CartItem[];
-  }, [cart, products]);
+  }, [cart, products, cartUnitPrices]);
 
   const cartTotal = useMemo(() => cartItems.reduce((s, i) => s + i.subtotal, 0), [cartItems]);
   const cartCount = cartItems.length;
 
+  // Edit mode: true when nothing has changed from the initial batch values
+  const editUnchanged = useMemo(() => {
+    if (editingBatchId === null || !editSnapshot) return false;
+    try {
+      const s = JSON.parse(editSnapshot);
+      return s.date === orderDate && s.pm === payMethod &&
+        JSON.stringify(s.cart) === JSON.stringify(cart) &&
+        s.note === orderNote && s.imgs === existingImageUrls.length &&
+        receipts.length === 0;
+    } catch { return false; }
+  }, [editingBatchId, editSnapshot, orderDate, payMethod, cart, orderNote, existingImageUrls.length, receipts.length]);
+
   const updateQty = (pid: number, delta: number) => {
-    setCart(prev => ({ ...prev, [pid]: Math.max(0, (prev[pid] || 0) + delta) }));
+    setCart(prev => {
+      const newQty = Math.max(0, (prev[pid] || 0) + delta);
+      if (newQty === 0) {
+        api.removeFromCart(pid).catch(() => {});
+        const next = { ...prev };
+        delete next[pid];
+        return next;
+      }
+      api.addToCart(pid, newQty).catch(() => {});
+      return { ...prev, [pid]: newQty };
+    });
   };
 
   const clearCart = () => {
     setCart({});
-    try { localStorage.removeItem('snail_proc_cart'); } catch {}
+    api.clearCart().catch(() => {});
   };
 
   const startEditPrice = (pid: number) => {
@@ -590,67 +691,87 @@ export default function ProcurementScreen() {
     setEditingPrice(null);
   };
 
-  // ── File upload (matching ExpenseScreen pattern) ──
-  const handleFileSelect = async (e: any) => {
-    const files: any[] = e?.files || e?.target?.files || e?.nativeEvent?.target?.files || [];
-    if (!files || files.length === 0) return;
-    const newFiles: any[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const f = files[i];
-      if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) continue;
-      if (f.size > 10 * 1024 * 1024) continue;
-      if (receipts.some((r: any) => r.name === f.name && r.size === f.size)) continue;
-      const compressed = await compressImage(f);
-      newFiles.push(compressed);
-    }
-    setReceipts((prev: any[]) => [...prev, ...newFiles]);
+  // ── File upload (using shared ReceiptUpload) ──
+  const handleAddFiles = async (files: PickedImage[]) => {
+    setReceipts(prev => [...prev, ...files]);
   };
 
-  const [showOrderDatePicker, setShowOrderDatePicker] = useState(false);
-  // RN: expo-image-picker returns { uri, type, name, size }; <Image> reads
-  // file.uri directly. No blob URLs to manage (URL.createObjectURL /
-  // URL.revokeObjectURL don't exist in RN).
-  const getPreviewUrl = (file: any) => file?.uri || '';
-
-  const removeReceipt = (i: number) => {
+  const handleRemoveNewFile = (i: number) => {
     setReceipts(prev => prev.filter((_, idx) => idx !== i));
   };
+
+  const getPreviewUrl = (file: PickedImage) => file.uri || '';
+
+  const [showOrderDatePicker, setShowOrderDatePicker] = useState(false);
 
   const submitOrder = async () => {
     if (cartItems.length === 0) return;
     setSubmitting(true);
     try {
-      // Upload images first (matching ExpenseScreen pattern)
-      let imageUrls: string[] = [];
-      let thumbUrls: string[] = [];
+      // Upload new images first (matching ExpenseScreen pattern)
+      let newImageUrls: string[] = [];
+      let newThumbUrls: string[] = [];
       if (receipts.length > 0) {
-        setUploading(true);
         const result = await api.uploadExpenseImages(receipts);
-        setUploading(false);
         if (result.status !== 'ok') {
           setSubmitting(false);
           setToastMsg(t('toastSubmitFailed'));
           setShowToast(true);
           return;
         }
-        imageUrls = result.images || [];
-        // Prefer server-generated thumb URLs; fall back to full-size images if PIL is disabled
-        thumbUrls = (result.thumb_images && result.thumb_images.length > 0)
+        newImageUrls = result.images || [];
+        newThumbUrls = (result.thumb_images && result.thumb_images.length > 0)
           ? result.thumb_images
-          : imageUrls;
+          : newImageUrls;
       }
+      // Edit mode: combine existing + new images; call update endpoint
+      if (editingBatchId !== null) {
+        const allImages = [...existingImageUrls, ...newImageUrls];
+        const allThumbs = [...existingThumbUrls, ...newThumbUrls];
+        const r = await api.updateProcurementBatch(editingBatchId, {
+          date: orderDate, payment_method: payMethod, category: 'goods',
+          items: cartItems.map(i => ({ product_id: i.product.id, quantity: i.quantity })),
+          images: allImages, thumb_images: allThumbs, note: orderNote,
+        });
+        if (r?.status === 'ok') {
+          Animated.parallel([
+            Animated.timing(drawerAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
+            Animated.timing(overlayAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
+          ]).start(() => {
+            setCart({}); setReceipts([]); setOrderNote('');
+            setExistingImageUrls([]); setExistingThumbUrls([]);
+            setEditingBatchId(null); setEditingBatchNumber(0);
+            setEditingBatchSettled(false); setCartUnitPrices({});
+            setOrderDate(sd.today); setPayMethod('微信');
+            setShowDrawer(false);
+            setSuccessTotal(r.total); setSuccessBatch(editingBatchNumber);
+            setSuccessIsEdit(true);
+            openSlideModal(() => setShowSuccess(true));
+            loadStats();
+            // Reload history
+            setSubTab('history');
+            setBatches([]);
+          });
+        } else {
+          setToastMsg(t('toastSubmitFailed'));
+          setShowToast(true);
+        }
+        setSubmitting(false);
+        return;
+      }
+      // Create mode (default)
       const r = await api.createProcurementBatch({
         date: orderDate, payment_method: payMethod, category: t('procPurchase'),
         items: cartItems.map(i => ({ product_id: i.product.id, quantity: i.quantity })),
-        images: imageUrls, thumb_images: thumbUrls, note: orderNote,
+        images: newImageUrls, thumb_images: newThumbUrls, note: orderNote,
       });
       if (r.status === 'ok') {
-        setSuccessTotal(r.total); setSuccessBatch(r.batch_number);
+        setSuccessTotal(r.total); setSuccessBatch(r.batch_number); setSuccessIsEdit(false);
         Animated.parallel([
           Animated.timing(drawerAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
           Animated.timing(overlayAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
         ]).start(() => {
-          setCart({}); try { localStorage.removeItem('snail_proc_cart'); } catch {} setReceipts([]); setOrderNote('');
+          setCart({}); api.clearCart().catch(() => {}); setReceipts([]); setOrderNote('');
           setShowDrawer(false);
           openSlideModal(() => setShowSuccess(true));
         });
@@ -664,11 +785,73 @@ export default function ProcurementScreen() {
       setToastMsg(t('toastSubmitFailed'));
       setShowToast(true);
     }
-    setSubmitting(false); setUploading(false);
+    setSubmitting(false);
   };
 
+  // Open drawer in edit mode, prefilled from the batch
+  const openEditBatch = (batch: BatchRecord) => {
+    setEditingBatchId(batch.id);
+    setEditingBatchNumber(batch.batch_number);
+    setOrderDate(batch.date);
+    setPayMethod((batch.payment_method as PayMethod) || '微信');
+    setOrderNote(batch.note || '');
+    const newCart: Record<number, number> = {};
+    const newUnitPrices: Record<number, number> = {};
+    const isSettled = !!batch.settled_at;
+    for (const it of batch.items) {
+      const pid = it.product_id;
+      const qty = it.quantity;
+      if (pid && qty > 0) newCart[pid] = qty;
+      if (isSettled && pid && typeof it.unit_price === 'number') {
+        newUnitPrices[pid] = it.unit_price;
+      }
+    }
+    setCart(newCart);
+    setCartUnitPrices(newUnitPrices);
+    setEditingBatchSettled(isSettled);
+    setReceipts([]);
+    setExistingImageUrls(batch.images || []);
+    setExistingThumbUrls(batch.thumb_images || []);
+    setEditSnapshot(JSON.stringify({ date: batch.date, pm: batch.payment_method, cart: newCart, note: batch.note || '', imgs: (batch.images || []).length }));
+    setShowDrawer(true);
+    Animated.parallel([
+      Animated.spring(drawerAnim, { toValue: 1, useNativeDriver: true, bounciness: 4, speed: 14 }),
+      Animated.timing(overlayAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+    ]).start();
+  };
+
+  // Confirm delete batch + cascade
+  const confirmDeleteBatch = async () => {
+    if (!deleteBatchTarget) return;
+    const targetId = deleteBatchTarget.id;
+    setDeleteBatchTarget(null);
+    try {
+      const r = await api.deleteProcurementBatch(targetId);
+      if (r?.status === 'ok') {
+        // Refresh history list and stats
+        setBatches([]);
+        loadStats();
+        // force reload
+        api.getProcurementBatches(1).then((data: any) => {
+          setBatches(data.records || []); setHistTotal(data.total || 0); setHistPage(1);
+        }).catch(() => {});
+      } else {
+        setToastMsg(t('toastSubmitFailed'));
+        setShowToast(true);
+      }
+    } catch (err) {
+      console.error('[procurement] delete error:', err);
+      setToastMsg(t('toastSubmitFailed'));
+      setShowToast(true);
+    }
+  };
+
+  const removeExistingImage = (i: number) => {
+    setExistingImageUrls(prev => prev.filter((_, idx) => idx !== i));
+    setExistingThumbUrls(prev => prev.filter((_, idx) => idx !== i));
+  };
   const resetOrder = () => {
-    closeSlideModal(() => { setShowSuccess(false); setOrderDate(todayStr()); setPayMethod('微信'); setOrderNote(''); setReceipts([]); });
+    closeSlideModal(() => { setShowSuccess(false); setOrderDate(sd.today); setPayMethod('微信'); setOrderNote(''); setReceipts([]); });
   };
 
   const openAddProduct = () => {
@@ -682,7 +865,8 @@ export default function ProcurementScreen() {
     openSlideModal(() => setShowProductModal(true));
   };
   const saveProduct = async () => {
-    if (!prodForm.name) return;
+    if (!prodForm.name || prodSaving) return;
+    setProdSaving(true);
     const data = { name: prodForm.name, spec: prodForm.spec, price: parseFloat(prodForm.price) || 0, supplier: prodForm.supplier, note: prodForm.note };
     try {
       editingProduct ? await api.updateProduct({ ...data, id: editingProduct.id }) : await api.createProduct(data);
@@ -692,6 +876,7 @@ export default function ProcurementScreen() {
       setToastMsg(t('toastSubmitFailed'));
       setShowToast(true);
     }
+    setProdSaving(false);
   };
   const confirmDelete = async () => {
     if (!deleteTarget) return;
@@ -732,7 +917,7 @@ export default function ProcurementScreen() {
               <Text style={styles.statLbl}>{t('procCumulative')}</Text>
             </View>
             <View style={styles.statPill}>
-              <Text style={styles.statNum}>{stats.margin_pct}%</Text>
+              <Text style={styles.statNum}>{stats.margin_pct.toFixed(2)}%</Text>
               <Text style={styles.statLbl}>{t('procMargin')}</Text>
             </View>
           </View>
@@ -740,12 +925,22 @@ export default function ProcurementScreen() {
 
         {/* Search + filters */}
         <View style={styles.searchSection}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder={t('procSearchPlaceholder')}
-            placeholderTextColor={c.textSub}
-            value={search} onChangeText={setSearch}
-          />
+          <View style={styles.searchRow}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder={subTab === 'history' ? t('procSearchHistory') : subTab === 'products' ? t('procSearchProducts') : t('procSearchPlaceholder')}
+              placeholderTextColor={c.textSub}
+              value={search} onChangeText={setSearch}
+            />
+            {search !== '' && (
+              <TouchableOpacity style={styles.searchClear} onPress={() => setSearch('')}>
+                <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth={2} strokeLinecap="round">
+                  <Path d="M18 6L6 18M6 6l12 12" />
+                </Svg>
+              </TouchableOpacity>
+            )}
+          </View>
+          {subTab === 'new' && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={{ gap: 6 }}>
             {suppliers.map(sup => (
               <TouchableOpacity key={sup} style={[styles.filterChip, supplierFilter === sup && styles.filterChipOn]} onPress={() => setSupplierFilter(sup)}>
@@ -753,18 +948,22 @@ export default function ProcurementScreen() {
               </TouchableOpacity>
             ))}
           </ScrollView>
+          )}
         </View>
 
         {/* Sub-tabs inside frosted block */}
         <View style={styles.subTabRow}>
           <TouchableOpacity style={[styles.subTab, subTab === 'new' && styles.subTabOn]} onPress={() => setSubTab('new')}>
             <Text style={[styles.subTabText, subTab === 'new' && styles.subTabTextOn]}>{t('procNewOrder')}</Text>
+            <Text style={styles.subTabCount}>{products.length}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.subTab, subTab === 'history' && styles.subTabOn]} onPress={() => setSubTab('history')}>
             <Text style={[styles.subTabText, subTab === 'history' && styles.subTabTextOn]}>{t('procHistory')}</Text>
+            <Text style={styles.subTabCount}>{histTotal}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.subTab, subTab === 'products' && styles.subTabOn]} onPress={() => setSubTab('products')}>
             <Text style={[styles.subTabText, subTab === 'products' && styles.subTabTextOn]}>{t('procProductMgmt')}</Text>
+            <Text style={styles.subTabCount}>{products.length}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -831,9 +1030,8 @@ export default function ProcurementScreen() {
                   <Text style={styles.cartInfoText}>{t('procSelected')} <Text style={styles.cartInfoCount}>{cartCount}</Text> {t('procUnit')}</Text>
                 </View>
                 <Text style={styles.cartTotal}>¥{cartTotal.toFixed(2)}</Text>
-                <TouchableOpacity onPress={clearCart} activeOpacity={0.6}
-                  style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: withAlpha(c.textMain, 0.08) }}>
-                  <Text style={{ fontSize: FONTS.micro.size, color: c.textSub, fontWeight: FONTS.micro.weight }}>{t('clear')}</Text>
+                <TouchableOpacity onPress={clearCart} activeOpacity={0.6} style={styles.cartClearBtn}>
+                  <Text style={styles.cartClearBtnText}>{t('clear')}</Text>
                 </TouchableOpacity>
               </TouchableOpacity>
             </View>
@@ -843,75 +1041,131 @@ export default function ProcurementScreen() {
 
       {/* ── History ── */}
       {subTab === 'history' && (
-        <FlatList
-          data={batches}
-          keyExtractor={item => String(item.id)}
-          contentContainerStyle={styles.historyList}
-          onEndReached={batches.length < histTotal ? loadMoreHistory : undefined}
-          onEndReachedThreshold={0.4}
-          renderItem={({ item: batch }) => (
-            <TouchableOpacity style={styles.historyCard} onPress={() => openHistoryDetail(batch)} activeOpacity={0.7}>
-              <View style={styles.histHead}>
-                <Text style={styles.histNo}>{t('procNowBatch').replace('{n}', String(batch.batch_number))}</Text>
-                <Text style={styles.histDate}>{batch.date}</Text>
-              </View>
-              <View style={styles.histBody}>
-                <View style={styles.histRow}>
-                  <Text style={styles.histRowLabel}>{t('procOrderItems')}</Text>
-                  <Text style={styles.histRowVal}>{batch.items?.length || 0} 种</Text>
-                </View>
-                <View style={styles.histRow}>
-                  <Text style={styles.histRowLabel}>{t('procPaymentMethod')}</Text>
-                  <Text style={styles.histRowVal}>{batch.payment_method}</Text>
-                </View>
-                {batch.note ? (
-                  <View style={styles.histRow}>
-                    <Text style={styles.histRowLabel}>{t('procNoteOptional')}</Text>
-                    <Text style={styles.histRowVal}>{batch.note}</Text>
+        loadingHist || (search !== '' && searchLoading) ? (
+          <View style={styles.historyList}>
+            {[...Array(6)].map((_, i) => (
+              <View key={i} style={[styles.historyCard, { pointerEvents: 'none' as any }]}>
+                <View style={styles.histHead}>
+                  <View style={{ width: 100, height: 14, backgroundColor: withAlpha(c.textSub, 0.08), borderRadius: 4 }} />
+                  <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+                    <View style={{ width: 60, height: 12, backgroundColor: withAlpha(c.textSub, 0.06), borderRadius: 4 }} />
+                    <View style={{ width: 20, height: 20, backgroundColor: withAlpha(c.textSub, 0.06), borderRadius: 4 }} />
+                    <View style={{ width: 20, height: 20, backgroundColor: withAlpha(c.textSub, 0.06), borderRadius: 4 }} />
                   </View>
-                ) : null}
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                  <Text style={{ fontSize: FONTS.micro.size, color: c.textSub }}>{t('procThisBatch')}</Text>
-                  <Text style={styles.histAmount}>¥{batch.total.toFixed(2)}</Text>
                 </View>
-                {(() => {
-                  // Prefer 128×128 thumb URLs (fast), fall back to full-size for old data
-                  const thumbImgs = (parseImages(batch.thumb_images).length ? parseImages(batch.thumb_images) : parseImages(batch.images));
-                  return thumbImgs.length > 0 && (
-                    <View style={styles.histImages}>
-                      {thumbImgs.map((img: string, i: number) => (
-                        <Image key={i} source={{ uri: img }}
-                          style={{ width: 60, height: 60, borderRadius: 6, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.08) }} />
-                      ))}
-                    </View>
-                  );
-                })()}
+                <View style={[styles.histBody, { paddingHorizontal: 18 }]}>
+                  <View style={[styles.histRow, { marginBottom: 6 }]}>
+                    <View style={{ width: 56, height: 12, backgroundColor: withAlpha(c.textSub, 0.05), borderRadius: 4 }} />
+                    <View style={{ width: 40, height: 12, backgroundColor: withAlpha(c.textSub, 0.06), borderRadius: 4 }} />
+                  </View>
+                  <View style={[styles.histRow, { marginBottom: 6 }]}>
+                    <View style={{ width: 64, height: 12, backgroundColor: withAlpha(c.textSub, 0.05), borderRadius: 4 }} />
+                    <View style={{ width: 32, height: 12, backgroundColor: withAlpha(c.textSub, 0.06), borderRadius: 4 }} />
+                  </View>
+                </View>
               </View>
-            </TouchableOpacity>
-          )}
-          ListEmptyComponent={
-            <View style={styles.emptyWrap}>
-              <Text style={styles.emptyTitle}>{t('noRecords')}</Text>
-              <Text style={styles.emptyHint}>{t('procNoHistory')}</Text>
+            ))}
+          </View>
+        ) : batches.length === 0 ? (
+          <View style={styles.emptyWrap}>
+            <Text style={styles.emptyTitle}>{t('noRecords')}</Text>
+            <Text style={styles.emptyHint}>{t('procNoHistory')}</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredBatches}
+            keyExtractor={item => String(item.id)}
+            contentContainerStyle={styles.historyList}
+            onEndReached={batches.length < histTotal ? loadMoreHistory : undefined}
+            onEndReachedThreshold={0.4}
+            renderItem={({ item: batch }) => (
+            <View style={styles.historyCard}>
+              <TouchableOpacity onPress={() => openHistoryDetail(batch)} activeOpacity={0.7}>
+                <View style={styles.histHead}>
+                  <Text style={styles.histNo}>{t('procNowBatch').replace('{n}', String(batch.batch_number))}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Text style={styles.histDate}>{batch.date}</Text>
+                    <View style={styles.histActions}>
+                      <TouchableOpacity
+                        style={styles.histActionBtn}
+                        onPress={(e) => { e.stopPropagation?.(); openEditBatch(batch); }}
+                        activeOpacity={0.7}
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                      >
+                        <PencilIcon color={c.textSub} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.histActionBtn, batch.settled_at && { opacity: 0.3 }]}
+                        onPress={(e) => { e.stopPropagation?.(); if (!batch.settled_at) openSlideModal(() => setDeleteBatchTarget(batch)); }}
+                        disabled={!!batch.settled_at}
+                        activeOpacity={batch.settled_at ? 1 : 0.7}
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                      >
+                        <TrashIcon color={c.danger} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+                <View style={[styles.histBody, { paddingHorizontal: 18 }]}>
+                  <View style={styles.histRow}>
+                    <Text style={styles.histRowLabel}>{t('procOrderItems')}</Text>
+                    <Text style={styles.histRowVal}>{batch.items?.length || 0} {t('procUnit')}</Text>
+                  </View>
+                  <View style={styles.histRow}>
+                    <Text style={styles.histRowLabel}>{t('procPaymentMethod')}</Text>
+                    <Text style={styles.histRowVal}>{batch.payment_method}</Text>
+                  </View>
+                  {batch.note ? (
+                    <View style={styles.histRow}>
+                      <Text style={styles.histRowLabel}>{t('procNoteOptional')}</Text>
+                      <Text style={styles.histRowVal}>{batch.note}</Text>
+                    </View>
+                  ) : null}
+                  <View style={styles.histAmountRow}>
+                    <Text style={{ fontSize: FONTS.micro.size, color: c.textSub }}>{t('procThisBatch')}</Text>
+                    <View style={styles.histAmountNumberWrap}>
+                      <Text style={styles.histAmount}>¥{batch.total.toFixed(2)}</Text>
+                      <View style={styles.histAmountSealOverlay} pointerEvents="none">
+                        <IcnSealProc
+                          color={batch.settled_at ? c.success : c.warning}
+                          label={batch.settled_at ? t('procSettled') : t('procUnsettled')}
+                        />
+                      </View>
+                    </View>
+                  </View>
+                  {(() => {
+                    const thumbImgs: string[] = (batch.thumb_images?.length ? batch.thumb_images : batch.images) || [];
+                    return thumbImgs.length > 0 && (
+                      <View style={styles.histImages}>
+                        {thumbImgs.map((img: string, i: number) => (
+                          <Image key={i} source={{ uri: img }}
+                            style={{ width: 60, height: 60, borderRadius: 6, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.08) }} />
+                        ))}
+                      </View>
+                    );
+                  })()}
+                </View>
+              </TouchableOpacity>
             </View>
-          }
-          ListFooterComponent={loadingHist ? <View style={styles.loadingWrap}><ActivityIndicator color={c.primary} /></View> : null}
+          )}
+          ListFooterComponent={loadingHist ? <View style={styles.loadingMore}><ActivityIndicator color={c.primary} /></View> : null}
         />
-      )}
+      ))}
 
       {/* ── Product Mgmt ── */}
       {subTab === 'products' && (
-        <ScrollView style={styles.contentArea}>
+        <>
           <TouchableOpacity style={styles.mgmtAddBtn} onPress={openAddProduct}>
             <Text style={styles.mgmtAddBtnText}>+ {t('procAddProduct')}</Text>
           </TouchableOpacity>
-          {products.length === 0 ? (
+          <ScrollView style={styles.contentArea}>
+          {filteredMgmtProducts.length === 0 ? (
             <View style={styles.emptyWrap}>
               <Text style={styles.emptyTitle}>{t('noRecords')}</Text>
               <Text style={styles.emptyHint}>{t('noProducts')}</Text>
             </View>
           ) : (
-            products.map(p => (
+            [...filteredMgmtProducts].sort((a, b) => b.id - a.id).map(p => (
               <View key={p.id} style={styles.mgmtRow}>
                 <View style={styles.mgmtInfo}>
                   <Text style={styles.mgmtName}>{p.name}</Text>
@@ -929,6 +1183,7 @@ export default function ProcurementScreen() {
             ))
           )}
         </ScrollView>
+        </>
       )}
 
       {/* ── Product Modal ── */}
@@ -998,7 +1253,11 @@ export default function ProcurementScreen() {
           <Animated.View style={[styles.drawer, { transform: [{ translateY: Animated.add(drawerTranslateY, dragY) }] }]}>
             <View style={styles.drawerHandle} {...panResponder.panHandlers} />
             <View style={styles.drawerHead} {...panResponder.panHandlers}>
-              <Text style={styles.drawerHeadTitle}>{t('procConfirmOrder')}</Text>
+              <Text style={styles.drawerHeadTitle}>
+                {editingBatchId !== null
+                  ? t('procEditBatch').replace('{n}', String(editingBatchNumber))
+                  : t('procConfirmOrder')}
+              </Text>
               <TouchableOpacity style={styles.drawerClose} onPress={closeDrawer}>
                 <Text style={styles.drawerCloseText}>×</Text>
               </TouchableOpacity>
@@ -1036,42 +1295,16 @@ export default function ProcurementScreen() {
                 })}
               </View>
 
-              {/* Upload receipts (expense page style) */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>{t('uploadImage')}</Text>
-                <TouchableOpacity onPress={() => setShowImgTip(!showImgTip)} activeOpacity={0.7} style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: c.secondary, alignItems: 'center', justifyContent: 'center' }}>
-                  <Text style={{ fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: c.textSub }}>!</Text>
-                </TouchableOpacity>
-                {showImgTip && (
-                  <View style={styles.imgTipBubble}>
-                    <Text style={styles.imgTipText}>支持 jpg/png/webp，单张最大 10MB</Text>
-                  </View>
-                )}
-              </View>
-              <View style={styles.imgRow}>
-                <TouchableOpacity
-                  style={styles.imgAddBtn}
-                  onPress={async () => {
-                    const imgs = await pickImages({ multiple: true }).catch(() => []);
-                    if (imgs.length === 0) return;
-                    setReceipts((prev: any[]) => [...prev, ...imgs]);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <CameraIcon color={c.textSub} />
-                  <Text style={styles.imgAddText}>{t('addImage')}</Text>
-                </TouchableOpacity>
-                {receipts.map((file: any, i: number) => (
-                  <View key={`rec-${i}`} style={styles.imgPreview}>
-                    <Image source={{ uri: getPreviewUrl(file) }} style={{ width: 92, height: 92, borderRadius: 12 }} />
-                    <TouchableOpacity style={styles.imgRemove} onPress={() => removeReceipt(i)} activeOpacity={0.7}>
-                      <Svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.5} strokeLinecap="round">
-                        <Path d="M18 6L6 18M6 6l12 12" />
-                      </Svg>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-                {uploading && <ActivityIndicator color={c.primary} style={{ marginLeft: 8 }} />}
+              {/* Upload receipts (shared ReceiptUpload) */}
+              <View style={{ marginTop: 12 }}>
+                <ReceiptUpload
+                  existingImages={existingImageUrls}
+                  newFiles={receipts}
+                  onAdd={handleAddFiles}
+                  onRemoveExisting={removeExistingImage}
+                  onRemoveNew={handleRemoveNewFile}
+                  getPreviewUrl={getPreviewUrl}
+                />
               </View>
 
               {/* Items row — matching 近7天 pattern: label left, theme button right */}
@@ -1080,6 +1313,13 @@ export default function ProcurementScreen() {
                 <TouchableOpacity onPress={openItemsModal} activeOpacity={0.7}>
                   <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.primary }}>{t('procViewDetail')} →</Text>
                 </TouchableOpacity>
+              </View>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>{t('procBatchLabel')}</Text>
+                <Text style={{ flex: 1, fontSize: FONTS.sub.size, color: c.textMain, fontWeight: FONTS.sub.weight }}>
+                  {t('procNowBatch').replace('{n}', String(editingBatchId !== null ? editingBatchNumber : stats.batch_count + 1))}
+                </Text>
               </View>
 
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -1094,7 +1334,7 @@ export default function ProcurementScreen() {
             <View style={styles.drawerFooter}>
               <View style={{ flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const }}>
                 <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: c.primary }}>{t('procTotal')}：¥{cartTotal.toFixed(2)}</Text>
-                <TouchableOpacity style={[styles.submitBtn, cartCount === 0 && styles.submitBtnDisabled, { marginTop: 0, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 22 }]} onPress={submitOrder} disabled={cartCount === 0 || submitting}>
+                <TouchableOpacity style={[styles.submitBtn, (cartCount === 0 || editUnchanged) && styles.submitBtnDisabled, { marginTop: 0, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 22 }]} onPress={submitOrder} disabled={cartCount === 0 || submitting || editUnchanged}>
                   {submitting ? <ActivityIndicator color={c.surface} /> : <Text style={[styles.submitBtnText, { fontSize: FONTS.sub.size }]}>{t('procSubmit')}</Text>}
                 </TouchableOpacity>
               </View>
@@ -1108,46 +1348,192 @@ export default function ProcurementScreen() {
         <Animated.View style={[styles.itemsModalOverlay, { opacity: itemsModalOverlayAnim }]}>
           <Animated.View style={[styles.itemsModalCard, { transform: [{ translateY: itemsModalAnim }] }]}>
             <View style={styles.itemsModalHeader}>
-              <Text style={styles.itemsModalTitle}>{t('procOrderItems')}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                {itemsModalView === 'products' && (
+                  <TouchableOpacity onPress={() => setItemsModalView('items')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Text style={[styles.itemsModalClose, { fontSize: 18 }]}>←</Text>
+                  </TouchableOpacity>
+                )}
+                <Text style={styles.itemsModalTitle}>
+                  {itemsModalView === 'products' ? t('procAddProduct') : t('procOrderItems')}
+                </Text>
+              </View>
               <TouchableOpacity onPress={closeItemsModal}>
                 <Text style={styles.itemsModalClose}>✕</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView style={[styles.itemsModalBody, { flex: 1 }]}>
-              {detailItems.map((item, idx) => (
-                <View key={idx} style={styles.itemsRow}>
-                  <Text style={styles.itemsRowName}>{item.name}</Text>
-                  <Text style={styles.itemsRowQty}>×{item.quantity}</Text>
-                  <Text style={styles.itemsRowAmt}>¥{item.subtotal.toFixed(2)}</Text>
+            {itemsModalView === 'detail' ? (
+              // ── Read-only history detail view ──
+              <ScrollView style={{ flex: 1, minHeight: 0, paddingHorizontal: 18 }}>
+                {detailItems.map((item, idx) => (
+                  <View key={idx} style={[styles.itemsRow, idx === detailItems.length - 1 && { borderBottomWidth: 0 }]}>
+                    <Text style={styles.itemsRowName}>{item.name}</Text>
+                    <Text style={{ fontSize: FONTS.micro.size, color: c.textSub, marginRight: 12 }}>×{item.quantity}</Text>
+                    <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.primary }}>¥{item.subtotal.toFixed(2)}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            ) : itemsModalView === 'products' ? (
+              // ── Product picker view ──
+              <>
+                <View style={{ paddingHorizontal: 18, paddingTop: 12, paddingBottom: 8 }}>
+                  <TextInput
+                    value={productPickerSearch}
+                    onChangeText={setProductPickerSearch}
+                    placeholder={t('procSearchProducts')}
+                    placeholderTextColor={c.textSub}
+                    style={{
+                      paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, fontSize: FONTS.sub.size,
+                      color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.04), outline: 'none',
+                    } as any}
+                  />
                 </View>
-              ))}
-            </ScrollView>
-            <View style={[styles.itemsTotalRow, { paddingHorizontal: 16, paddingBottom: 12 }]}>
-              <Text style={styles.itemsTotalLabel}>{t('procTotal')}</Text>
-              <Text style={styles.itemsTotal}>¥{detailTotal.toFixed(2)}</Text>
-            </View>
+                <ScrollView style={{ flex: 1, minHeight: 0, paddingHorizontal: 18 }}>
+                  {products
+                    .filter(p => !productPickerSearch || p.name.includes(productPickerSearch) || (p.supplier || '').includes(productPickerSearch))
+                    .map((p, idx, arr) => {
+                      const qty = cart[p.id] || 0;
+                      return (
+                        <View key={p.id} style={[styles.itemsRow, idx === arr.length - 1 && { borderBottomWidth: 0 }]}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.itemsRowName}>{p.name}</Text>
+                            <Text style={{ fontSize: FONTS.micro.size, color: c.textSub, marginTop: 2 }}>
+                              {p.spec} · ¥{p.price.toFixed(2)}
+                            </Text>
+                          </View>
+                          <View style={styles.qtyRow}>
+                            <TouchableOpacity
+                              style={[styles.qtyBtn, styles.qtyBtnMinus]}
+                              onPress={() => updateQty(p.id, -1)}
+                            >
+                              <Text style={styles.qtyBtnMinusText}>−</Text>
+                            </TouchableOpacity>
+                            <Text style={styles.qtyNum}>{qty}</Text>
+                            <TouchableOpacity
+                              style={[styles.qtyBtn, styles.qtyBtnPlus]}
+                              onPress={() => updateQty(p.id, 1)}
+                            >
+                              <Text style={styles.qtyBtnPlusText}>+</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  {products.filter(p => !productPickerSearch || p.name.includes(productPickerSearch) || (p.supplier || '').includes(productPickerSearch)).length === 0 && (
+                    <View style={{ padding: 24, alignItems: 'center' }}>
+                      <Text style={{ color: c.textSub, fontSize: FONTS.micro.size }}>—</Text>
+                    </View>
+                  )}
+                </ScrollView>
+                <TouchableOpacity
+                  style={{ marginHorizontal: 16, marginBottom: 16, marginTop: 4, paddingVertical: 12, borderRadius: 8, backgroundColor: c.primary, alignItems: 'center' }}
+                  onPress={() => setItemsModalView('items')}
+                >
+                  <Text style={{ fontSize: FONTS.body.size, fontWeight: '600', color: c.surface }}>{t('done') || '完成'}</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              // ── Cart edit view (with +/- qty) ──
+              <>
+                <ScrollView style={{ flex: 1, minHeight: 0, paddingHorizontal: 18 }}>
+                  {cartItems.length === 0 ? (
+                    <View style={{ padding: 24, alignItems: 'center' }}>
+                      <Text style={{ color: c.textSub, fontSize: FONTS.micro.size }}>—</Text>
+                    </View>
+                  ) : (
+                    cartItems.map((i, idx, arr) => {
+                      const unitPrice = cartUnitPrices[i.product.id] ?? i.product.price;
+                      return (
+                        <View key={i.product.id} style={[styles.itemsRow, idx === arr.length - 1 && { borderBottomWidth: 0 }]}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.itemsRowName}>{i.product.name}</Text>
+                            <Text style={{ fontSize: FONTS.micro.size, color: c.textSub, marginTop: 2 }}>
+                              ¥{unitPrice.toFixed(2)}
+                            </Text>
+                            <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.primary, marginTop: 2 }}>
+                              {t('procSubtotal')} ¥{i.subtotal.toFixed(2)}
+                            </Text>
+                          </View>
+                          <View style={styles.qtyRow}>
+                            <TouchableOpacity
+                              style={[styles.qtyBtn, styles.qtyBtnMinus, editingBatchSettled && { opacity: 0.35 }]}
+                              onPress={() => updateQty(i.product.id, -1)}
+                              disabled={editingBatchSettled}
+                              activeOpacity={editingBatchSettled ? 1 : 0.6}
+                            >
+                              <Text style={styles.qtyBtnMinusText}>−</Text>
+                            </TouchableOpacity>
+                            <Text style={styles.qtyNum}>{i.quantity}</Text>
+                            <TouchableOpacity
+                              style={[styles.qtyBtn, styles.qtyBtnPlus, editingBatchSettled && { opacity: 0.35 }]}
+                              onPress={() => updateQty(i.product.id, 1)}
+                              disabled={editingBatchSettled}
+                              activeOpacity={editingBatchSettled ? 1 : 0.6}
+                            >
+                              <Text style={styles.qtyBtnPlusText}>+</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      );
+                    })
+                  )}
+                </ScrollView>
+                <View style={styles.itemsTotalRow}>
+                  <Text style={styles.itemsTotalLabel}>{t('procTotal')}</Text>
+                  <Text style={styles.itemsTotal}>¥{cartTotal.toFixed(2)}</Text>
+                </View>
+                {!editingBatchSettled && (
+                <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 18, paddingBottom: 16, paddingTop: 4 }}>
+                  <TouchableOpacity
+                    style={{ flex: 1, paddingVertical: 12, borderRadius: 8, backgroundColor: withAlpha(c.primary, 0.08), alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 }}
+                    onPress={() => setItemsModalView('products')}
+                  >
+                    <Text style={{ fontSize: FONTS.body.size, fontWeight: '600', color: c.primary }}>+ {t('procAddProduct')}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{ flex: 1, paddingVertical: 12, borderRadius: 8, backgroundColor: c.primary, alignItems: 'center' }}
+                    onPress={closeItemsModal}
+                  >
+                    <Text style={{ fontSize: FONTS.body.size, fontWeight: '600', color: c.surface }}>{t('done') || '完成'}</Text>
+                  </TouchableOpacity>
+                </View>
+                )}
+              </>
+            )}
           </Animated.View>
         </Animated.View>
       )}
+
+      {/* ── Delete batch confirmation modal ── */}
+      <ConfirmModal
+        visible={deleteBatchTarget !== null}
+        title={t('procDeleteBatch')}
+        message={<><Text>{t('procDeleteBatchConfirm').replace('{batch}', t('procNowBatch').replace('{n}', String(deleteBatchTarget?.batch_number ?? '')))}</Text></>}
+        confirmLabel={t('delete')}
+        onConfirm={() => confirmDeleteBatch()}
+        onCancel={() => closeSlideModal(() => setDeleteBatchTarget(null))}
+      />
 
       {/* ── Success ── */}
       {showSuccess && (
         <Animated.View style={[styles.successOverlay, { opacity: modalOverlayFade }]}>
           <Animated.View style={[styles.successCard, { transform: [{ translateY: modalSlide }] }]}>
             <CheckIcon color={c.primary} />
-            <Text style={styles.successTitle}>{t('procSubmitted')}</Text>
-            <Text style={styles.successSub}>{t('procSubmittedMsg')}</Text>
+            <Text style={styles.successTitle}>{successIsEdit ? t('procUpdated') : t('procSubmitted')}</Text>
+            <Text style={styles.successSub}>{successIsEdit ? t('procUpdatedMsg') : t('procSubmittedMsg')}</Text>
             <Text style={styles.successAmount}>¥{successTotal.toFixed(2)}</Text>
             <Text style={{ fontSize: FONTS.micro.size, color: c.textSub }}>
               {t('procNowBatch').replace('{n}', String(successBatch))} · {orderDate} · {payMethod}
             </Text>
             <View style={styles.successBtns}>
-              <TouchableOpacity style={styles.successBtnView} onPress={() => { closeSlideModal(() => setShowSuccess(false)); setSubTab('history'); }}>
+              <TouchableOpacity style={[styles.successBtnView, !successIsEdit && { flex: 1 }]} onPress={() => { closeSlideModal(() => { setShowSuccess(false); setSuccessIsEdit(false); }); setSubTab('history'); }}>
                 <Text style={styles.successBtnViewText}>{t('procViewRecords')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.successBtnNew} onPress={resetOrder}>
-                <Text style={styles.successBtnNewText}>{t('procContinue')}</Text>
-              </TouchableOpacity>
+              {!successIsEdit && (
+                <TouchableOpacity style={styles.successBtnNew} onPress={resetOrder}>
+                  <Text style={styles.successBtnNewText}>{t('procContinue')}</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </Animated.View>
         </Animated.View>
