@@ -1149,7 +1149,7 @@ export default function ExpenseScreen({
         }}>
           <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
             <TouchableOpacity
-              style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: feeMonth === 'all' ? withAlpha(colors.danger, 0.1) : 'transparent', borderRadius: 8, marginHorizontal: 4 }}
+              style={{ paddingHorizontal: 12, paddingVertical: 4, backgroundColor: feeMonth === 'all' ? withAlpha(colors.danger, 0.1) : 'transparent', borderRadius: 8, marginHorizontal: 4 }}
               onPress={() => {
                 setFeeMonth('all');
                 Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeMonthPicker(false));
@@ -1164,7 +1164,7 @@ export default function ExpenseScreen({
               return (
                 <TouchableOpacity
                   key={`${f.year}-${f.month}`}
-                  style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: isSel ? withAlpha(colors.danger, 0.1) : 'transparent', borderRadius: 8, marginHorizontal: 4 }}
+                  style={{ paddingHorizontal: 12, paddingVertical: 4, backgroundColor: isSel ? withAlpha(colors.danger, 0.1) : 'transparent', borderRadius: 8, marginHorizontal: 4 }}
                   onPress={() => {
                     setFeeMonth({ year: f.year, month: f.month });
                     Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeMonthPicker(false));
