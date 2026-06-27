@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { View, PanResponder, GestureResponderEvent, PanResponderGestureState } from 'react-native';
+import { View, PanResponder } from 'react-native';
 import { ThemeColors, withAlpha } from '../theme';
 
 interface Props {
@@ -29,10 +29,10 @@ export default function ThemeOpacitySlider({ value, onChange, colors }: Props) {
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (e: GestureResponderEvent) => {
+      onPanResponderGrant: (e: any) => {
         updateFromX(e.nativeEvent.pageX);
       },
-      onPanResponderMove: (e: GestureResponderEvent, _gs: PanResponderGestureState) => {
+      onPanResponderMove: (e: any) => {
         updateFromX(e.nativeEvent.pageX);
       },
     })
