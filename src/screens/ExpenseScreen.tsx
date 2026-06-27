@@ -966,7 +966,7 @@ export default function ExpenseScreen({
       {/* Rec date picker — Modal wraps for full-screen overlay */}
       <Modal transparent animationType="none" visible={showRecDatePicker} onRequestClose={() => setShowRecDatePicker(false)}>
         <DatePickerModal
-          visible={true}
+          visible={showRecDatePicker}
           value={recDate}
           onClose={() => setShowRecDatePicker(false)}
           onSelect={(d) => { setRecDate(d); setRecDateKey(k => k + 1); setRecDateErr(0); }}
@@ -977,7 +977,7 @@ export default function ExpenseScreen({
       {/* Exp date picker — Modal wraps for full-screen overlay */}
       <Modal transparent animationType="none" visible={showExpDatePicker} onRequestClose={() => setShowExpDatePicker(false)}>
         <DatePickerModal
-          visible={true}
+          visible={showExpDatePicker}
           value={expDate}
           onClose={() => setShowExpDatePicker(false)}
           onSelect={(d) => { if (d <= sd.today) { setExpDate(d); setExpDateErr(0); } }}
@@ -988,7 +988,7 @@ export default function ExpenseScreen({
       {/* Fee date picker — wrapped in Modal to render above fee sheet Modal */}
       <Modal transparent animationType="none" visible={showFeeDatePicker} onRequestClose={() => setShowFeeDatePicker(false)}>
         <DatePickerModal
-          visible={true}
+          visible={showFeeDatePicker}
           value={feeEntryDate}
           onClose={() => setShowFeeDatePicker(false)}
           onSelect={(d) => { setFeeEntryDate(d); setFeeDateErr(0); }}
