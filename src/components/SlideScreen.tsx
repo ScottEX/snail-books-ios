@@ -1,71 +1,108 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Animated, Dimensions, Easing } from 'react-native';
+import { ENTER_DURATION, EXIT_DURATION } from '../theme';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, Dimensions, Easing, View } from 'react-native';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
   children: (close: () => void) => React.ReactNode;
+  top?: number;
+  /** Position in page stack — used for zIndex layering */
+  stackIndex?: number;
+  /** True for topmost page — pointer-events: none when false */
+  isTop?: boolean;
+  /** Optional background color. Omit for transparent. */
+  backgroundColor?: string;
 }
 
+type Phase = 'enter' | 'idle' | 'exit' | 'hidden';
+
 /**
- * iOS-style push/pop wrapper — slides in from right, slides out to left.
+ * iOS-style push/pop wrapper — slides in from right, slides out to right.
+ * Mirrors the web SlideScreen semantics (CSS keyframes -> Animated.timing).
  * Usage:
  *   <SlideScreen visible={show} onClose={() => setShow(false)}>
  *     {(onBack) => <SomeScreen onBack={onBack} />}
  *   </SlideScreen>
  */
-export default function SlideScreen({ visible, onClose, children }: Props) {
-  const translateX = useRef(new Animated.Value(0)).current;
-  const [render, setRender] = useState(false);
+export default function SlideScreen({
+  visible, onClose, children,
+  top = 0, stackIndex = 0, isTop = true,
+  backgroundColor,
+}: Props) {
   const screenWidth = Dimensions.get('window').width;
+  const [phase, setPhase] = useState<Phase>('hidden');
+  const translateX = useRef(new Animated.Value(screenWidth)).current;
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const zIndex = 100 + stackIndex * 10;
 
-  // In / Out
+  // ── visible → enter / !visible → exit ──
   useEffect(() => {
     if (visible) {
-      setRender(true);
+      setPhase('enter');
       translateX.setValue(screenWidth);
       Animated.timing(translateX, {
         toValue: 0,
-        duration: 280,
-        easing: Easing.out(Easing.cubic),
+        duration: ENTER_DURATION,
+        easing: Easing.bezier(0.215, 0.61, 0.355, 1),
         useNativeDriver: true,
       }).start();
-    } else if (render) {
-      // Animate out when parent sets visible=false
+      timer.current = setTimeout(() => setPhase(p => (p === 'enter' ? 'idle' : p)), ENTER_DURATION);
+      return () => clearTimeout(timer.current);
+    }
+    if (phase === 'enter' || phase === 'idle') {
+      setPhase('exit');
+      translateX.setValue(0);
       Animated.timing(translateX, {
         toValue: screenWidth,
-        duration: 250,
-        easing: Easing.in(Easing.cubic),
+        duration: EXIT_DURATION,
+        easing: Easing.bezier(0.55, 0.055, 0.675, 0.19),
         useNativeDriver: true,
-      }).start(() => {
-        setRender(false);
+      }).start();
+      timer.current = setTimeout(() => {
+        setPhase('hidden');
         onClose();
-      });
+      }, EXIT_DURATION);
+      return () => clearTimeout(timer.current);
     }
-  }, [visible, screenWidth]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
-  // Out
   const close = useCallback(() => {
+    if (phase === 'exit' || phase === 'hidden') return;
+    setPhase('exit');
+    translateX.setValue(0);
     Animated.timing(translateX, {
       toValue: screenWidth,
-      duration: 250,
-      easing: Easing.in(Easing.cubic),
+      duration: EXIT_DURATION,
+      easing: Easing.bezier(0.55, 0.055, 0.675, 0.19),
       useNativeDriver: true,
-    }).start(() => {
-      setRender(false);
+    }).start();
+    timer.current = setTimeout(() => {
+      setPhase('hidden');
       onClose();
-    });
-  }, [onClose, screenWidth]);
+    }, EXIT_DURATION);
+  }, [phase, onClose, translateX, screenWidth]);
 
-  if (!render) return null;
+  if (phase === 'hidden') return null;
 
   return (
-    <Animated.View style={{
-      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-      transform: [{ translateX }],
-      zIndex: 100,
-    }}>
-      {children(close)}
+    <Animated.View
+      pointerEvents={isTop ? 'auto' : 'none'}
+      style={{
+        position: 'absolute',
+        top,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex,
+        backgroundColor: backgroundColor || 'transparent',
+        transform: [{ translateX }],
+      }}
+    >
+      <View style={{ flex: 1, flexDirection: 'column' }}>
+        {children(close)}
+      </View>
     </Animated.View>
   );
 }

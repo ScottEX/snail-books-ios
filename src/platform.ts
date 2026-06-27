@@ -1,63 +1,50 @@
 /**
- * Platform abstraction layer for React Native
- * Replaces browser-only globals (localStorage, document, window, navigator)
- * with React Native equivalents.
+ * Platform abstraction layer for React Native.
+ *
+ * Re-exports the global localStorage (which is shimmed by
+ * ./polyfills/localStorage — installed as the first import in index.js)
+ * so existing code that does `import { localStorage } from '../platform'`
+ * continues to work, and `initStorageCache` awaits the polyfill's
+ * AsyncStorage warm-up promise so App.tsx can read localStorage after
+ * the real persisted state is loaded.
  */
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { storageReady } from './polyfills/localStorage';
 
-// ─── localStorage: sync cache backed by AsyncStorage ────────────
-let _cacheReady = false;
-let _storageCache: Record<string, string> = {};
-
-export async function initStorageCache(): Promise<void> {
-  try {
-    const keys = await AsyncStorage.getAllKeys();
-    const pairs = await AsyncStorage.multiGet(keys);
-    _storageCache = Object.fromEntries(
-      pairs.filter(([, v]) => v != null).map(([k, v]) => [k, v as string])
-    );
-    _cacheReady = true;
-  } catch {
-    _cacheReady = true;
-  }
-}
-
-// Sync-like localStorage facade — reads from cache once ready
-export const localStorage = {
-  getItem: (key: string): string | null => {
-    if (_cacheReady) return _storageCache[key] ?? null;
-    return null;
-  },
-  setItem: (key: string, value: string): void => {
-    _storageCache[key] = value;
-    AsyncStorage.setItem(key, value).catch(() => {});
-  },
-  removeItem: (key: string): void => {
-    delete _storageCache[key];
-    AsyncStorage.removeItem(key).catch(() => {});
-  },
-  get length() { return Object.keys(_storageCache).length; },
-  key: (index: number) => Object.keys(_storageCache)[index] ?? null,
-  clear: () => {
-    _storageCache = {};
-    AsyncStorage.clear().catch(() => {});
-  },
+const _localStorage = (globalThis as any).localStorage as {
+  getItem: (key: string) => string | null;
+  setItem: (key: string, value: string) => void;
+  removeItem: (key: string) => void;
+  clear: () => void;
+  length: number;
+  key: (index: number) => string | null;
 };
 
-// ─── navigator shim (RN doesn't expose the full web Navigator) ──
-// `product: 'ReactNative'` is the standard sentinel the app code uses to
-// decide it's running under RN (vs web), so we set it here. `language` is
-// the only field web code reads off navigator directly.
-export const navigator = { language: 'zh-CN', product: 'ReactNative' } as any;
+export const localStorage = _localStorage;
 
-// ─── document / window stubs (no-ops for RN) ───────────────────
-export const document = {
+/**
+ * Wait for the AsyncStorage → localStorage cache to finish warming.
+ * App.tsx calls this before reading localStorage for the first time,
+ * otherwise the first read might see an empty cache and miss the
+ * "user is logged in" state, sending the user to the login screen.
+ */
+export async function initStorageCache(): Promise<void> {
+  await storageReady;
+}
+
+// `navigator` shim: React Native doesn't expose the full web Navigator. We
+// use it to detect RN vs web (`navigator.product === 'ReactNative'`) and to
+// read the user's language preference.
+export const navigator = (globalThis as any).navigator || { language: 'zh-CN', product: 'ReactNative' };
+
+// `document` / `window` are exposed for any code that probes them. They are
+// stub objects — the polyfill installs a real window.location shim if you
+// need URL access.
+export const document = (globalThis as any).document || {
   getElementById: () => null,
   createElement: () => ({ style: {}, textContent: '', appendChild: () => {} }),
   querySelector: () => null,
   head: { appendChild: () => {}, removeChild: () => {} },
   documentElement: null,
 };
-
-export const window = {};
+export const window = (globalThis as any).window || {};

@@ -234,6 +234,14 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const [showProcurementDetail, setShowProcurementDetail] = useState<any | null>(null);
   const [showExpenseDetail, setShowExpenseDetail] = useState<any | null>(null);
   const [showPdfPreview, setShowPdfPreview] = useState<{ id: number; number: number } | null>(null);
+  const isHome = useMemo(() =>
+    !showExpenseHistory && !showDailyHistory && !showReconHistory && !showProfile &&
+    !showUserMgmt && !showUserDetail && !showInvoice && !showProcurementDetail &&
+    !showExpenseDetail && !showPdfPreview,
+    [showExpenseHistory, showDailyHistory, showReconHistory, showProfile,
+     showUserMgmt, showUserDetail, showInvoice, showProcurementDetail,
+     showExpenseDetail, showPdfPreview]
+  );
   const [expenseRefreshKey, setExpenseRefreshKey] = useState(0);
   const [userRefreshKey, setUserRefreshKey] = useState(0);
 
@@ -389,7 +397,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
 
       {/* History slide-overs */}
       <SlideScreen visible={showExpenseHistory} onClose={() => setShowExpenseHistory(false)}>
-        {(onBack) => <ExpenseHistoryScreen onBack={onBack} />}
+        {(onBack) => <ExpenseHistoryScreen onBack={onBack} onExpDetail={(e: any) => setShowExpenseDetail(e)} />}
       </SlideScreen>
       <SlideScreen visible={showDailyHistory} onClose={() => setShowDailyHistory(false)}>
         {(onBack) => <DailyRevenueHistory onBack={onBack} />}
@@ -463,7 +471,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             backdropFilter:blur(30px) achieved here via expo-blur). Sits
             ABOVE the scrollable content so the avatar/user row stays
             visible while the panels scroll under it. */}
-        <View style={styles.header}>
+        {isHome && <View style={styles.header}>
           <BlurView
             intensity={70}
             tint="systemUltraThinMaterialLight"
@@ -511,11 +519,11 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
               </View>
             </View>
           </View>
-        </View>
+        </View>}
 
         {/* Page content — matches web's `tab === 'partner' ? ... : tab === 'supply' ? ... : else` */}
-        {!showExpenseHistory && !showDailyHistory && !showReconHistory && !showProfile && !showUserMgmt && !showUserDetail && !showInvoice && !showProcurementDetail && !showExpenseDetail && !showPdfPreview && (
-        <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false}>
+        {isHome && (
+        <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false} bounces={false}>
 
           {tab === 'partner' ? (
             <PartnerScreen onBack={() => setTab('list')} />
@@ -1154,7 +1162,7 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   // insets.top padding) so the notch isn't covered.
   header: {
     zIndex: 200, overflow: 'hidden',
-    paddingHorizontal: 20, paddingVertical: 8,
+    paddingLeft: 30, paddingRight: 16, paddingVertical: 8,
     borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.10)',
   },
   headerInner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -1180,7 +1188,7 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
 
   // Content
   content: { flex: 1 },
-  contentInner: { paddingBottom: 110, maxWidth: 520, width: '100%', alignSelf: 'center' },
+  contentInner: { flexGrow: 1, overflow: 'hidden', maxWidth: 520, width: '100%', alignSelf: 'center' },
 
   // Bottom nav — floating glass pill (mirrors web's center-positioned
 // saturate(220%) blur(30px) capsule).

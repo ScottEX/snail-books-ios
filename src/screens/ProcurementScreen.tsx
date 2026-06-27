@@ -29,7 +29,7 @@ interface ProcStats { total_spent: number; total_income: number; batch_count: nu
 const cnNow = () => { const d = new Date(); return new Date(d.getTime() + 8 * 3600000); };
 const todayStr = () => cnNow().toISOString().slice(0, 10);
 
-// ═══════════════════════════════════════════════
+import { parseImages } from '../utils/parseImages';
 // SVG Icons
 // ═══════════════════════════════════════════════
 function CartIcon({ color }: { color: string }) {
@@ -876,7 +876,7 @@ export default function ProcurementScreen() {
                 </View>
                 {(() => {
                   // Prefer 128×128 thumb URLs (fast), fall back to full-size for old data
-                  const thumbImgs: string[] = (batch.thumb_images?.length ? batch.thumb_images : batch.images) || [];
+                  const thumbImgs = (parseImages(batch.thumb_images).length ? parseImages(batch.thumb_images) : parseImages(batch.images));
                   return thumbImgs.length > 0 && (
                     <View style={styles.histImages}>
                       {thumbImgs.map((img: string, i: number) => (

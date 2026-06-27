@@ -1,0 +1,722 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  View, Text, TouchableOpacity, ScrollView, StyleSheet,
+  TextInput, Image, useWindowDimensions, Modal, ActivityIndicator,
+} from 'react-native';
+import Svg, { Path, Rect } from 'react-native-svg';
+import { t, getLang } from '../i18n';
+import { fmtDecInput, toDec2 } from '../utils/numbers';
+import { api, resolveAssetUrl } from '../api/client';
+import { useTheme, withAlpha, ThemeColors } from '../theme';
+import { FONTS } from '../theme';
+import ButtonPair from '../components/ButtonPair';
+import Toast from '../components/Toast';
+import CategoryChips from '../components/CategoryChips';
+import PaymentMethodChips from '../components/PaymentMethodChips';
+import ExpenseNoteInput from '../components/ExpenseNoteInput';
+import DatePicker from '../components/DatePicker';
+import HistoryHeader from '../components/HistoryHeader';
+import { getCurrentUser, getCurrentUserId } from '../utils/storage';
+import { pickImages, PickedImage } from '../utils/imagePicker';
+import { parseImages } from '../utils/parseImages';
+import ImagePreviewModal from '../components/ImagePreviewModal';
+
+/* ── Date helpers ── */
+const fmtLocalDate = (s: string, lang: string) => {
+  if (!s) return '—';
+  const [y, m, d] = s.split('-');
+  if (lang.startsWith('en')) {
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    return `${months[+m - 1]} ${+d}, ${y}`;
+  }
+  return `${y}年${m}月${d}日`;
+};
+
+const todayStr = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+const fmtCreatedAt = (raw: string, lang: string) => {
+  if (!raw) return '—';
+  const d = new Date(raw.endsWith('Z') ? raw : raw + 'Z');
+  if (isNaN(d.getTime())) return raw.slice(0, 19).replace('T', ' ');
+  const cn = new Date(d.getTime() + 8 * 3600000);
+  const y = cn.getFullYear();
+  const mo = cn.getMonth() + 1;
+  const day = cn.getDate();
+  const h = String(cn.getHours()).padStart(2, '0');
+  const mi = String(cn.getMinutes()).padStart(2, '0');
+  const s = String(cn.getSeconds()).padStart(2, '0');
+  if (lang.startsWith('en')) {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${months[mo - 1]} ${day}, ${y} ${h}:${mi}:${s}`;
+  }
+  return `${y}年${mo}月${day}日 ${h}:${mi}:${s}`;
+};
+
+/* Category / payment label maps (mirrors i18nHelpers.trCategory/trPayment) */
+const CATEGORY_MAP: Record<string, string> = {
+  daily: '日常', rent: '房租', salary: '薪资', goods: '采购',
+  '日常': '日常', '房租': '房租', '薪资': '薪资', '采购': '采购',
+};
+const PAYMENT_MAP: Record<string, string> = {
+  payCash: '现金', payWechat: '微信', payAlipay: '支付宝',
+  '现金': '现金', '微信': '微信', '支付宝': '支付宝',
+};
+const trCategory = (k: string) => CATEGORY_MAP[k] || k || '—';
+const trPayment = (k: string) => PAYMENT_MAP[k] || k || '—';
+
+/* ── Props ── */
+interface Props {
+  expense: any;
+  onBack: () => void;
+  onSaved: () => void;
+  onDeleted: () => void;
+}
+
+export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDeleted }: Props) {
+  const { colors: c, theme } = useTheme();
+  const lang = getLang();
+  const { width: w } = useWindowDimensions();
+  const styles = useMemo(() => getStyles(c), [c]);
+  const thumbSize = (w - 16 * 2 - 8 * 3) / 4;
+
+  const [editMode, setEditMode] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showSavedConfirm, setShowSavedConfirm] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const [toast, setToast] = useState('');
+  const [modalImages, setModalImages] = useState<string[]>([]);
+  const [previewIdx, setPreviewIdx] = useState(0);
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const showPreview = (imgs: string[], idx: number) => { setModalImages(imgs); setPreviewIdx(idx); setPreviewVisible(true); };
+  const closePreview = () => setPreviewVisible(false);
+
+  const [category, setCategory] = useState(expense?.category || 'daily');
+  const [account, setAccount] = useState(expense?.account || 'payWechat');
+  const [amount, setAmount] = useState(toDec2(Math.abs(Number(expense?.amount || 0))));
+  const [date, setDate] = useState(expense?.date || expense?.created_at?.slice(0, 10) || todayStr());
+  const [note, setNote] = useState(expense?.note || '');
+  const [images, setImages] = useState<string[]>(parseImages(expense?.images));
+  const [thumbImages, setThumbImages] = useState<string[]>(parseImages(expense?.thumb_images));
+  const [newFiles, setNewFiles] = useState<PickedImage[]>([]);
+
+  const hasChanges =
+    category !== (expense?.category || 'daily') ||
+    account !== (expense?.account || 'payWechat') ||
+    amount !== toDec2(Math.abs(Number(expense?.amount || 0))) ||
+    date !== (expense?.date || expense?.created_at?.slice(0, 10) || todayStr()) ||
+    note !== (expense?.note || '') ||
+    JSON.stringify(images) !== JSON.stringify(parseImages(expense?.images)) ||
+    newFiles.length > 0;
+
+  const currentUser = getCurrentUser();
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
+  useEffect(() => {
+    const uid = getCurrentUserId();
+    if (!uid) return;
+    try {
+      const cached = sessionStorage.getItem('cached_avatar_b64');
+      if (cached) setAvatarUrl(cached);
+    } catch {}
+    // Avatar fetch is optional — fallback to logo if API doesn't support it
+    api.getUserAvatar(uid).then((b64: any) => {
+        if (!b64) return;
+        setAvatarUrl(b64);
+        try { sessionStorage.setItem('cached_avatar_b64', b64); } catch {}
+      }).catch(() => {});
+  }, []);
+
+  const handleSave = async () => {
+    const absAmt = parseFloat(amount) || Math.abs(Number(expense?.amount || 0));
+    if (!absAmt || absAmt <= 0) { setToast(t('enterAmount')); return; }
+    const amt = absAmt * (Number(expense?.amount || 0) < 0 ? -1 : 1);
+    setSaving(true);
+    try {
+      let finalImages = images;
+      let finalThumbs = thumbImages;
+      if (newFiles.length > 0) {
+        const uploadRes: any = await api.uploadExpenseImages(newFiles);
+        if (uploadRes?.status !== 'ok') {
+          setToast(t('uploadFailed'));
+          setSaving(false);
+          return;
+        }
+        finalImages = [...images, ...(uploadRes.images || [])];
+        finalThumbs = [...thumbImages, ...(uploadRes.thumb_images || uploadRes.images || [])];
+      }
+      await api.updateTransaction(expense.id, {
+        amount: amt, category, account, date, note,
+        images: finalImages, thumb_images: finalThumbs,
+      });
+      expense.amount = amt;
+      expense.category = category;
+      expense.account = account;
+      expense.date = date;
+      expense.note = note;
+      expense.images = JSON.stringify(finalImages);
+      expense.thumb_images = JSON.stringify(finalThumbs);
+      setImages(finalImages);
+      setThumbImages(finalThumbs);
+      setNewFiles([]);
+      setEditMode(false);
+      setShowSavedConfirm(true);
+      onSaved?.();
+    } catch (e: any) {
+      setToast(e?.message || t('errNetworkError'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await api.deleteTransaction(expense.id);
+      setShowDeleteConfirm(false);
+      setDeleting(false);
+      onDeleted?.();
+      onBack();
+    } catch (e: any) {
+      setDeleteError(e?.message || t('errNetworkError'));
+      setDeleting(false);
+    }
+  };
+
+  const removeImage = (idx: number) => {
+    setImages(prev => prev.filter((_, i) => i !== idx));
+    setThumbImages(prev => prev.filter((_, i) => i !== idx));
+  };
+  const removeNewFile = (idx: number) => setNewFiles(prev => prev.filter((_, i) => i !== idx));
+
+  const handleAddImages = async () => {
+    try {
+      const picked = await pickImages({ multiple: true });
+      if (!picked || picked.length === 0) return;
+      setNewFiles(prev => [...prev, ...picked]);
+    } catch {
+      // user cancelled or denied permission
+    }
+  };
+
+  const thumbImgs = parseImages(expense?.thumb_images);
+  const displayImgs = thumbImgs.length > 0 ? thumbImgs : parseImages(expense?.images);
+  const previewImgs = parseImages(expense?.images);
+  const resolvedPreviews = previewImgs.map((u: string) => resolveAssetUrl(u) || u);
+  const isRefundRecord = Number(expense?.amount || 0) < 0;
+
+  // theme-specific accent for amount card
+  const AMOUNT_COLORS: Record<string, string> = {
+    'burgundy-warm': '#FF6B3D',
+    'obsidian-gold': '#3B82F6',
+    'deep-teal': '#22C55E',
+  };
+  const amtColor = AMOUNT_COLORS[theme?.id || ''] || '#FF6B3D';
+  const amtBg = withAlpha(amtColor, 0.10);
+
+  return (
+    <View style={styles.container}>
+      <HistoryHeader
+        onBack={onBack}
+        title={t('expDetail')}
+        rightAction={!expense?.procurement_batch_id ? (
+          <TouchableOpacity
+            onPress={() => setShowDeleteConfirm(true)}
+            activeOpacity={0.7}
+            style={styles.actionBtn}
+            disabled={deleting}
+          >
+            <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={c.danger} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <Path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+            </Svg>
+          </TouchableOpacity>
+        ) : undefined}
+      />
+
+      {/* Body */}
+      <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false}>
+        {/* ── View mode ── */}
+        {!editMode && (
+          <View>
+            {/* Amount card */}
+            <View style={[styles.amountCard, { backgroundColor: isRefundRecord ? withAlpha(c.success, 0.10) : amtBg }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.amountLabel}>{t('expTotalAmount')}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
+                  <Text style={[styles.amountSymbol, { color: isRefundRecord ? c.success : amtColor }]}>
+                    {isRefundRecord ? '+¥' : '-¥'}
+                  </Text>
+                  <Text style={[styles.amountValue, { color: isRefundRecord ? c.success : amtColor }]}>
+                    {Number(expense?.amount || 0).toFixed(2)}
+                  </Text>
+                </View>
+              </View>
+              {currentUser ? (
+                <View style={styles.amountUser}>
+                  <Image
+                    source={{ uri: avatarUrl || resolveAssetUrl('/img/logo.jpg') || '/img/logo.jpg' }}
+                    style={styles.amountAvatar}
+                    defaultSource={undefined}
+                  />
+                  <Text style={styles.amountUsername} numberOfLines={1}>{currentUser}</Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* Info card */}
+            <View style={styles.infoCard}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>{t('expenseCategory')}</Text>
+                <Text style={styles.infoValue}>{trCategory(expense?.category)}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>{t('paymentMethod')}</Text>
+                <Text style={styles.infoValue}>{trPayment(expense?.account)}</Text>
+              </View>
+              {expense?.proc_batch_number ? (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>{t('procBatchLabel')}</Text>
+                  <Text style={styles.infoValue}>
+                    {t('procNowBatch').replace('{n}', String(expense.proc_batch_number))}
+                  </Text>
+                </View>
+              ) : null}
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>{t('expenseDate')}</Text>
+                <Text style={styles.infoValue}>{fmtLocalDate(expense?.date || '', lang)}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>{t('createdAt')}</Text>
+                <Text style={styles.infoValue}>{fmtCreatedAt(expense?.created_at || '', lang)}</Text>
+              </View>
+              <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+                <Text style={styles.infoLabel}>{t('expenseNote')}</Text>
+                <Text style={[styles.infoValue, { flex: 1, textAlign: 'right', marginLeft: 12 }]}>
+                  {expense?.note || '—'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Settlement info */}
+            {expense?.proc_settled_at ? (
+              <View style={styles.infoCard}>
+                <Text style={[styles.sectionTitle, { marginBottom: 8, color: c.success }]}>
+                  {t('procSettleInfo')}
+                </Text>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>{t('procSettleAt')}</Text>
+                  <Text style={styles.infoValue}>{expense.proc_settled_at}</Text>
+                </View>
+                <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+                  <Text style={styles.infoLabel}>{t('procSettleBy')}</Text>
+                  <Text style={styles.infoValue}>{expense.proc_settled_by_username || '—'}</Text>
+                </View>
+              </View>
+            ) : null}
+
+            {/* Receipt images */}
+            {displayImgs.length > 0 && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { marginBottom: 6 }]}>{t('receiptExpenseLabel')}</Text>
+                <View style={styles.thumbRow}>
+                  {displayImgs.map((url: string, i: number) => {
+                    const resolvedUrl = resolveAssetUrl(url) || url;
+                    return (
+                    <TouchableOpacity
+                      key={`v-${i}`}
+                      onPress={() => showPreview(resolvedPreviews, i)}
+                      activeOpacity={0.8}
+                    >
+                      <Image source={{ uri: resolvedUrl }} style={[styles.thumb, { width: thumbSize, height: thumbSize }]} />
+                    </TouchableOpacity>
+                  ); })}
+                </View>
+              </View>
+            )}
+            <View style={{ height: 80 }} />
+          </View>
+        )}
+
+        {/* ── Edit mode ── */}
+        {editMode && (
+          <View style={styles.editContainer}>
+            <Text style={styles.sectionTitle}>{t('expTotalAmount')}</Text>
+            <View style={styles.amountEditWrap}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center' }}>
+                <Text style={[styles.amountEditSymbol, { color: isRefundRecord ? c.success : amtColor }]}>
+                  {isRefundRecord ? '+¥' : '-¥'}
+                </Text>
+                {expense?.procurement_batch_id ? (
+                  <Text style={[styles.amountEditValue, { color: c.textSub }]}>{amount || '0.00'}</Text>
+                ) : (
+                  <TextInput
+                    style={[styles.amountEditValue, { color: isRefundRecord ? c.success : amtColor }]}
+                    value={amount}
+                    onChangeText={(v: string) => setAmount(fmtDecInput(v))}
+                    onBlur={() => { if (amount !== '') setAmount(toDec2(amount)); }}
+                    keyboardType="decimal-pad"
+                    placeholder="0.00"
+                    placeholderTextColor={c.textSub}
+                  />
+                )}
+              </View>
+            </View>
+
+            {/* Category */}
+            {expense?.procurement_batch_id ? (
+              <View style={styles.editRow}>
+                <Text style={styles.sectionTitleInline}>{t('expenseCategory')}</Text>
+                <Text style={styles.editRowValue}>{trCategory(category)}</Text>
+              </View>
+            ) : (
+              <CategoryChips selected={category} onSelect={setCategory} />
+            )}
+
+            <PaymentMethodChips selected={account} onSelect={setAccount} />
+
+            {expense?.proc_batch_number ? (
+              <View style={styles.editRow}>
+                <Text style={styles.sectionTitleInline}>{t('procBatchLabel')}</Text>
+                <Text style={styles.editRowValue}>
+                  {t('procNowBatch').replace('{n}', String(expense.proc_batch_number))}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Date */}
+            <View style={styles.editRow}>
+              <Text style={styles.sectionTitleInline}>{t('expenseDate')}</Text>
+              <View style={styles.dateField}>
+                <DatePicker
+                  date={date}
+                  onChange={setDate}
+                  max={todayStr()}
+                  displayDate={fmtLocalDate(date, lang)}
+                  fontSize={FONTS.sub.size}
+                  color={c.textSub}
+                  disabled={!!expense?.procurement_batch_id}
+                  showChevron
+                />
+              </View>
+            </View>
+
+            <ExpenseNoteInput value={note} onChangeText={setNote} />
+
+            {/* Images */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t('receiptExpenseLabel')}</Text>
+              <View style={styles.thumbRow}>
+                {images.map((url: string, i: number) => (
+                  <View key={`e-${i}`} style={[styles.thumbWrap, { width: thumbSize, height: thumbSize }]}>
+                    <Image source={{ uri: url }} style={[styles.thumb, { width: thumbSize, height: thumbSize }]} />
+                    <TouchableOpacity style={styles.thumbRemove} onPress={() => removeImage(i)}>
+                      <Text style={styles.thumbRemoveText}>×</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                {newFiles.map((file, i) => (
+                  <View key={`n-${i}`} style={[styles.thumbWrap, { width: thumbSize, height: thumbSize }]}>
+                    <Image source={{ uri: file.uri }} style={[styles.thumb, { width: thumbSize, height: thumbSize }]} />
+                    <TouchableOpacity style={styles.thumbRemove} onPress={() => removeNewFile(i)}>
+                      <Text style={styles.thumbRemoveText}>×</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                <TouchableOpacity
+                  style={[styles.addThumb, { width: thumbSize, height: thumbSize }]}
+                  onPress={handleAddImages}
+                  activeOpacity={0.7}
+                >
+                  <Svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                    <Rect x="3" y="3" width="18" height="18" rx="2" />
+                    <Path d="M12 8v8M8 12h8" />
+                  </Svg>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View style={{ height: 100 }} />
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Bottom bar */}
+      {editMode ? (
+        <View style={styles.bottomBar}>
+          <ButtonPair
+            leftLabel={t('cancel')}
+            leftOnPress={() => {
+              setCategory(expense?.category || 'daily');
+              setAccount(expense?.account || 'payWechat');
+              setAmount(toDec2(Math.abs(Number(expense?.amount || 0))));
+              setDate(expense?.date || expense?.created_at?.slice(0, 10) || todayStr());
+              setNote(expense?.note || '');
+              setImages(parseImages(expense?.images));
+              setThumbImages(parseImages(expense?.thumb_images));
+              setNewFiles([]);
+              setEditMode(false);
+            }}
+            rightLabel={t('confirm')}
+            rightOnPress={handleSave}
+            rightDisabled={!hasChanges || saving}
+            rightLoading={saving}
+          />
+        </View>
+      ) : (
+        <View style={styles.bottomBar}>
+          <TouchableOpacity
+            style={[styles.editBtn, { backgroundColor: c.primary }]}
+            onPress={() => setEditMode(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.editBtnText}>{t('edit')}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Delete confirm modal */}
+      <Modal visible={showDeleteConfirm} transparent animationType="fade" onRequestClose={() => !deleting && setShowDeleteConfirm(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.confirmCard}>
+            <View style={[styles.confirmHeader, { backgroundColor: c.danger }]}>
+              <Text style={styles.confirmTitle}>{t('confirmDeleteRecord')}</Text>
+            </View>
+            <View style={styles.confirmBody}>
+              {deleteError ? (
+                <Text style={{ color: c.danger, fontSize: FONTS.micro.size, textAlign: 'center' }}>{deleteError}</Text>
+              ) : (
+                <Text style={styles.confirmMsg}>确认删除该笔支出数据，将无法恢复</Text>
+              )}
+              <View style={styles.confirmBtnRow}>
+                <TouchableOpacity
+                  style={[styles.confirmCancelBtn]}
+                  onPress={() => { setShowDeleteConfirm(false); setDeleteError(''); }}
+                  disabled={deleting}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.confirmCancelText}>{t('cancel')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.confirmOkBtn, { backgroundColor: c.danger }]}
+                  onPress={handleDelete}
+                  disabled={deleting}
+                  activeOpacity={0.8}
+                >
+                  {deleting ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.confirmOkText}>{t('confirm') || t('delete')}</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Save success modal */}
+      <Modal visible={showSavedConfirm} transparent animationType="fade" onRequestClose={() => setShowSavedConfirm(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.confirmCard}>
+            <View style={[styles.confirmHeader, { backgroundColor: c.primary }]}>
+              <Text style={styles.confirmTitle}>{t('expUpdated')}</Text>
+            </View>
+            <View style={styles.confirmBody}>
+              <Text style={styles.confirmMsg}>{t('expSavedMsg')}</Text>
+              <View style={styles.confirmBtnRow}>
+                <TouchableOpacity
+                  style={styles.confirmCancelBtn}
+                  onPress={() => setShowSavedConfirm(false)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.confirmCancelText}>{t('stayPage')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.confirmOkBtn, { backgroundColor: c.primary }]}
+                  onPress={() => { setShowSavedConfirm(false); onBack(); }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.confirmOkText}>{t('backToList') || t('confirm')}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Image preview */}
+      {previewVisible && (
+        <ImagePreviewModal
+          images={modalImages}
+          initialIdx={previewIdx}
+          visible={previewVisible}
+          onClose={closePreview}
+        />
+      )}
+
+      <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
+    </View>
+  );
+}
+
+const getStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.bg },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingTop: 50,
+      paddingHorizontal: 16,
+      paddingBottom: 12,
+      gap: 10,
+      backgroundColor: withAlpha(c.bg, 0.6),
+    },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 18,
+      backgroundColor: withAlpha(c.bg, 0.30),
+      justifyContent: 'center', alignItems: 'center',
+      borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.10)',
+    },
+    title: {
+      flex: 1, fontSize: 18, fontWeight: '700', color: c.textMain,
+    },
+    actionBtn: {
+      justifyContent: 'center', alignItems: 'center', padding: 4,
+    },
+    body: { flex: 1 },
+    bodyContent: { paddingHorizontal: 16, paddingTop: 112, paddingBottom: 24 },
+
+    amountCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: 12,
+      paddingVertical: 20,
+      paddingHorizontal: 20,
+      marginBottom: 16,
+    },
+    amountLabel: {
+      fontSize: 14, fontWeight: '500', color: c.textSub,
+      textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4,
+    },
+    amountValue: { fontSize: 36, fontWeight: '700' },
+    amountSymbol: { fontSize: 20, fontWeight: '600', marginRight: 2, marginBottom: 2 },
+    amountUser: { alignItems: 'center', marginLeft: 12 },
+    amountAvatar: { width: 36, height: 36, borderRadius: 18, marginBottom: 4, backgroundColor: withAlpha(c.textMain, 0.08) },
+    amountUsername: { fontSize: 14, fontWeight: '600', color: c.textMain, maxWidth: 100 },
+
+    infoCard: {
+      backgroundColor: c.surface,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+    },
+    infoRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      minHeight: 42,
+      borderBottomWidth: 0.5,
+      borderBottomColor: withAlpha(c.textMain, 0.06),
+    },
+    infoLabel: { fontSize: 14, fontWeight: '500', color: c.textSub },
+    infoValue: { fontSize: FONTS.sub.size, fontWeight: '500', color: c.textMain },
+
+    section: { marginBottom: 16 },
+    sectionTitle: {
+      fontSize: 14, fontWeight: '500', color: c.textSub,
+      textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10,
+    },
+    sectionTitleInline: {
+      fontSize: 14, fontWeight: '500', color: c.textSub,
+      textTransform: 'uppercase', letterSpacing: 0.5, marginRight: 10,
+    },
+    thumbRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    thumb: {
+      width: 72, height: 72, borderRadius: 8,
+      borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
+      backgroundColor: withAlpha(c.textMain, 0.04),
+    },
+    thumbWrap: { position: 'relative' },
+    thumbRemove: {
+      position: 'absolute', top: -6, right: -6,
+      width: 22, height: 22, borderRadius: 11,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    thumbRemoveText: { color: '#fff', fontSize: 16, fontWeight: '700', lineHeight: 18 },
+    addThumb: {
+      borderRadius: 8, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.18),
+      borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center',
+      backgroundColor: withAlpha(c.textMain, 0.04),
+    },
+
+    editContainer: { gap: 14 },
+    amountEditWrap: { alignItems: 'center', paddingVertical: 8 },
+    amountEditSymbol: { fontSize: 20, fontWeight: '600', marginRight: 2, marginBottom: 4 },
+    amountEditValue: {
+      fontSize: 36, fontWeight: '700',
+      borderWidth: 0, backgroundColor: 'transparent',
+      textAlign: 'left', padding: 0, minWidth: 180,
+    },
+    editRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    editRowValue: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textSub },
+    dateField: {
+      flex: 1, backgroundColor: c.bg, borderRadius: 10,
+      paddingVertical: 12, paddingHorizontal: 12,
+    },
+    dateText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textSub },
+
+    bottomBar: {
+      backgroundColor: c.bg,
+      paddingHorizontal: 16, paddingBottom: 32, paddingTop: 8,
+    },
+    editBtn: {
+      borderRadius: 12, paddingVertical: 14, alignItems: 'center',
+    },
+    editBtnText: {
+      color: c.surface, fontSize: FONTS.subBold.size,
+      fontWeight: FONTS.subBold.weight,
+    },
+
+    /* Modal */
+    modalBackdrop: {
+      flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',
+      justifyContent: 'center', alignItems: 'center', padding: 16,
+    },
+    confirmCard: {
+      width: 320, maxWidth: '100%',
+      backgroundColor: c.surface, borderRadius: 14, overflow: 'hidden',
+    },
+    confirmHeader: { paddingVertical: 14, paddingHorizontal: 20, alignItems: 'center' },
+    confirmTitle: { color: '#fff', fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight },
+    confirmBody: { padding: 20, gap: 16 },
+    confirmMsg: { color: c.textSub, fontSize: FONTS.sub.size, textAlign: 'center' },
+    confirmBtnRow: { flexDirection: 'row', gap: 12 },
+    confirmCancelBtn: {
+      flex: 1, backgroundColor: withAlpha(c.textMain, 0.06),
+      borderRadius: 12, paddingVertical: 10, alignItems: 'center',
+    },
+    confirmCancelText: { color: c.textSub, fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight },
+    confirmOkBtn: {
+      flex: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center',
+    },
+    confirmOkText: { color: '#fff', fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight },
+
+    /* Image preview */
+    previewBackdrop: {
+      flex: 1, backgroundColor: 'rgba(0,0,0,0.95)',
+    },
+    previewClose: {
+      position: 'absolute', top: 50, right: 16, zIndex: 10,
+      width: 36, height: 36, borderRadius: 18,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      justifyContent: 'center', alignItems: 'center',
+    },
+    previewCloseText: { color: '#fff', fontSize: 22, fontWeight: '600', lineHeight: 24 },
+  });

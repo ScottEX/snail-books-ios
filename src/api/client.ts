@@ -456,6 +456,7 @@ saveLang: (lang: string) => silentAuthFetch('/api/settings/lang', { method: 'PUT
   getLast7Days: () => authFetch('/api/daily-revenue/last-7'),
   getDailyRevenueTotal: () => authFetch('/api/daily-revenue/total'),
   getBusinessSummary: () => authFetch('/api/business-summary'),
+  getServerDate: () => authFetch('/api/server-date'),
 
   getChart: () => authFetch('/api/chart'),
   getChartMonthly: () => authFetch('/api/chart/monthly'),

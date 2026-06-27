@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
@@ -17,7 +17,7 @@ export default function Toast({ message, visible, onDismiss, duration = 3000 }: 
   const fadeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Hold latest onDismiss in a ref so the show/hide effect can stay keyed on
   // [visible, message, duration] without re-creating the dismiss timer every
-  // time the parent re-renders (callers don't always memoize onDismiss).
+  // time the parent re-renders.
   const onDismissRef = useRef(onDismiss);
   useEffect(() => { onDismissRef.current = onDismiss; }, [onDismiss]);
 
@@ -36,8 +36,6 @@ export default function Toast({ message, visible, onDismiss, duration = 3000 }: 
     }
   }, [visible, message, duration]);
 
-  // useMemo must be called on every render — Rules of Hooks. Do the
-  // early-return AFTER all hooks, not before.
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   if (!show && !visible) return null;
