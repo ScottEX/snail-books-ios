@@ -1671,7 +1671,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
     paddingBottom: 0,
     // @ts-ignore
     display: 'flex', flexDirection: 'column',
-    width: '96%', maxWidth: 500, maxHeight: '80%',
+    width: '96%', maxWidth: 500,
     // @ts-ignore
     ...modalCardAnimation,
     // @ts-ignore
