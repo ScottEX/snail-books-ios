@@ -605,7 +605,7 @@ const getStyles = (c: ThemeColors) =>
     },
     sectionTitleInline: {
       fontSize: 14, fontWeight: '500', color: c.textSub,
-      textTransform: 'uppercase', letterSpacing: 0.5, marginRight: 10,
+      textTransform: 'uppercase', letterSpacing: 0.5, width: 64,
     },
     thumbRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     thumb: {
@@ -635,7 +635,7 @@ const getStyles = (c: ThemeColors) =>
       borderWidth: 0, backgroundColor: 'transparent',
       textAlign: 'left', padding: 0, minWidth: 180,
     },
-    editRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    editRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     editRowValue: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textSub },
     dateField: {
       flex: 1, backgroundColor: c.bg, borderRadius: 10,
