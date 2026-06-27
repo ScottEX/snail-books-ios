@@ -17,11 +17,15 @@ import { parseImages } from '../utils/parseImages';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 
 /* ── Helpers ── */
-const cnNow = () => { const d = new Date(); return new Date(d.getTime() + 8 * 3600000); };
-const todayStr = () => cnNow().toISOString().slice(0, 10);
-const offsetDate = (days: number) => { const d = cnNow(); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); };
 const fmtDate = (d: string) => { if (!d) return ''; const [y, m, day] = d.split('-'); const l = getLang(); if (l.startsWith('en')) { const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return `${months[+m-1]} ${+day}, ${y}`; } return `${y}年${m}月${day}日`; };
-const monthsBetween = (from: string, to: string): number => { const [fy, fm] = from.split('-').map(Number); const [ty, tm] = to.split('-').map(Number); return (ty - fy) * 12 + (tm - fm); };
+// Strict calendar months between two ISO dates (YYYY-MM-DD) — matches web
+const monthsBetween = (from: string, to: string): number => {
+  const [fy, fm, fd] = from.split('-').map(Number);
+  const [ty, tm, td] = to.split('-').map(Number);
+  let m = (ty - fy) * 12 + (tm - fm);
+  if (td < fd) m -= 1;
+  return m;
+};
 const localeCat = (cat: string): string => t(cat);
 const localePay = (pay: string): string => {
   const keyMap: Record<string, string> = { cash: 'payCash', wechat: 'payWechat', alipay: 'payAlipay', bank: 'payBank', other: 'payOther' };
@@ -47,6 +51,7 @@ interface Props {
 export default function ExpenseHistoryScreen({ onBack, onExpDetail }: Props) {
   const { colors } = useTheme();
   const st = useMemo(() => getSt(colors), [colors]);
+  const sd = useServerDate();
 
   const [showFilter, setShowFilter] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
@@ -56,12 +61,24 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail }: Props) {
   const openFilter = () => { setFilterVisible(true); setShowFilter(true); Animated.spring(filterAnim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 }).start(); };
   const closeFilter = () => { Animated.timing(filterAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => { setFilterVisible(false); setShowFilter(false); }); };
 
-  const [filDateFrom, setFilDateFrom] = useState(offsetDate(-30));
-  const [filDateTo, setFilDateTo] = useState(todayStr());
+  const [filDateFrom, setFilDateFrom] = useState(sd.offset ? sd.offset(-30) : '');
+  const [filDateTo, setFilDateTo] = useState(sd.today || '');
   const [filCats, setFilCats] = useState<string[]>([]);
-  const [appliedFrom, setAppliedFrom] = useState(offsetDate(-30));
-  const [appliedTo, setAppliedTo] = useState(todayStr());
+  const [appliedFrom, setAppliedFrom] = useState(sd.offset ? sd.offset(-30) : '');
+  const [appliedTo, setAppliedTo] = useState(sd.today || '');
   const [appliedCats, setAppliedCats] = useState('');
+
+  // Once server date arrives, backfill the date filter defaults (matches web)
+  useEffect(() => {
+    if (sd.ready && sd.offset && !appliedFrom) {
+      const from = sd.offset(-30);
+      const to = sd.today;
+      setFilDateFrom(from);
+      setFilDateTo(to);
+      setAppliedFrom(from);
+      setAppliedTo(to);
+    }
+  }, [sd.ready, appliedFrom, appliedTo, sd.today, sd.offset]);
   const [datePickTarget, setDatePickTarget] = useState<'from' | 'to' | null>(null);
   const [previewImgs, setPreviewImgs] = useState<string[]>([]);
   const [previewIdx, setPreviewIdx] = useState(0);
@@ -102,7 +119,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail }: Props) {
   const rangeTooLong = useMemo(() => !!(filDateFrom && filDateTo && !rangeInvalid && monthsBetween(filDateFrom, filDateTo) > 24), [filDateFrom, filDateTo, rangeInvalid]);
 
   const resetFilters = () => {
-    const dFrom = offsetDate(-30); const dTo = todayStr();
+    const dFrom = sd.offset ? sd.offset(-30) : filDateFrom; const dTo = sd.today || filDateTo;
     setFilDateFrom(dFrom); setFilDateTo(dTo); setFilCats([]);
     setAppliedFrom(dFrom); setAppliedTo(dTo); setAppliedCats('');
   };
@@ -151,7 +168,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail }: Props) {
     <View style={st.root}>
       <HistoryHeader
         onBack={onBack}
-        title={`${t('expenseHistory')} (${records.length}/${total})`}
+        title={`${t('expenseHistory')} (${total})`}
         filterActive={showFilter}
         onToggleFilter={() => showFilter ? closeFilter() : openFilter()}
       />
