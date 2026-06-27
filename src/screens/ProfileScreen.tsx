@@ -5,12 +5,13 @@ import {
 } from 'react-native';
 import Svg, { Path, Defs, LinearGradient as SVGGradient, Stop, Rect } from 'react-native-svg';
 import { t, getLang, setLang, langs } from '../i18n';
-import { api } from '../api/client';
+import { api, resolveAssetUrl } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import Toast from '../components/Toast';
 import BackArrow from '../components/icons/BackArrow';
 import CameraIcon from '../components/icons/CameraIcon';
+import ThemePickerModal from '../components/ThemePickerModal';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { pickImages } from '../utils/imagePicker';
 import { modalCardAnimation, modalClose } from '../sharedStyles';
@@ -174,6 +175,9 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   // Delete account
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteConfirmUsername, setDeleteConfirmUsername] = useState('');
+  // Sticky header on scroll (matches web)
+  const [scrollY, setScrollY] = useState(0);
+  const headerOpacity = scrollY > 220 ? Math.min(1, (scrollY - 220) / 40) : 0;
 
   const username = useMemo(() => {
     try { return getCurrentUser(); } catch { return ''; }
@@ -186,14 +190,20 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const loadAvatar = async () => {
     try {
       const data: any = await api.admin.getMe();
-      if (data?.avatar_url) setAvatarUrl(data.avatar_url + '?v=' + Date.now());
+      if (data?.avatar_url) {
+        const resolved = resolveAssetUrl(data.avatar_url) || data.avatar_url;
+        setAvatarUrl(resolved + '?v=' + Date.now());
+      }
     } catch {}
   };
 
   const loadCover = async () => {
     try {
       const data: any = await api.getProfileCover();
-      if (data?.url) setCoverUrl(data.url + '?v=' + Date.now());
+      if (data?.url) {
+        const resolved = resolveAssetUrl(data.url) || data.url;
+        setCoverUrl(resolved + '?v=' + Date.now());
+      }
     } catch {}
   };
 
@@ -423,7 +433,18 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
   return (
     <View style={st.root}>
-      <ScrollView style={st.scroll} showsVerticalScrollIndicator={false}>
+      {/* Sticky header — appears when cover scrolls out of view */}
+      {headerOpacity > 0 && (
+        <View style={[st.stickyHeader, { opacity: headerOpacity }]} pointerEvents={headerOpacity > 0.5 ? 'auto' : 'none'}>
+          <TouchableOpacity onPress={onBack} style={st.stickyBackBtn} activeOpacity={0.7}>
+            <BackArrow color={colors.textMain} />
+          </TouchableOpacity>
+          <Text style={st.stickyTitle}>{t('editProfile')}</Text>
+        </View>
+      )}
+      <ScrollView style={st.scroll} showsVerticalScrollIndicator={false}
+        onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
+        scrollEventThrottle={16}>
         {/* ── Cover ── */}
         <TouchableOpacity style={st.coverWrap} onPress={handleCoverPress} activeOpacity={0.9} disabled={uploadingCover}>
           {coverUrl ? (
@@ -463,7 +484,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
             {avatarUrl ? (
               <Image source={{ uri: avatarUrl }} style={st.avatar} />
             ) : (
-              <Image source={{ uri: '/img/logo.jpg' }} style={st.avatar} />
+              <Image source={{ uri: resolveAssetUrl('/img/logo.jpg') || '/img/logo.jpg' }} style={st.avatar} />
             )}
             <View style={st.camBadge}>
               <CameraIcon color="#fff" size={11} strokeWidth={2} />
@@ -850,48 +871,11 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         </View>
       </Modal>
 
-      {/* ══════ Theme picker modal ══════ */}
-      <Modal visible={showThemeModal} transparent animationType="fade" onRequestClose={() => setShowThemeModal(false)}>
-        <View style={mo.backdrop}>
-          <View style={mo.card}>
-            <View style={mo.header}>
-              <Text style={mo.title}>{t('themeLabel')}</Text>
-              <TouchableOpacity onPress={() => setShowThemeModal(false)}>
-                <Text style={mo.close}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={mo.body}>
-              {allThemes.map(th => {
-                const active = theme.id === th.id;
-                return (
-                  <TouchableOpacity
-                    key={th.id}
-                    style={[st.themeRow, active && st.themeRowActive]}
-                    onPress={() => setTheme(th.id)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={st.themeSwatches}>
-                      {th.id === 'obsidian-gold' || th.id === 'deep-teal' ? (
-                        <View style={[st.swatchDot, { backgroundColor: th.colors.primary }]} />
-                      ) : (
-                        <>
-                          <View style={[st.swatchDot, { backgroundColor: th.colors.primary }]} />
-                          <View style={[st.swatchDot, { backgroundColor: th.colors.surface, marginLeft: -6 }]} />
-                          <View style={[st.swatchDot, { backgroundColor: th.colors.bg, marginLeft: -6 }]} />
-                        </>
-                      )}
-                    </View>
-                    <Text style={[st.themeRowText, active && st.themeRowTextActive]}>
-                      {getThemeName(th.id)}
-                    </Text>
-                    {active ? <Text style={{ color: colors.primary, fontSize: 18 }}>✓</Text> : null}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* ══════ Theme picker — shared component ══════ */}
+      <ThemePickerModal
+        visible={showThemeModal}
+        onClose={() => setShowThemeModal(false)}
+      />
     </View>
   );
 }
@@ -930,6 +914,15 @@ function Divider({ colors }: any) {
 const getStyles = (colors: ThemeColors) => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   scroll: { flex: 1 },
+  // Sticky header (matches web: appears when cover scrolls out of view)
+  stickyHeader: {
+    position: 'absolute' as any, top: 0, left: 0, right: 0, zIndex: 10,
+    flexDirection: 'row', alignItems: 'center',
+    paddingTop: 50, paddingHorizontal: 16, paddingBottom: 12,
+    backgroundColor: colors.surface,
+  },
+  stickyBackBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
+  stickyTitle: { flex: 1, fontSize: 18, fontWeight: '700', color: colors.textMain, marginLeft: 10 },
   // Cover
   coverWrap: { height: 220, position: 'relative', overflow: 'visible' as any },
   coverImg: { width: '100%', height: '100%' } as any,
