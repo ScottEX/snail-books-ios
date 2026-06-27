@@ -1093,7 +1093,7 @@ export default function ExpenseScreen({
 
               </TouchableOpacity>
             </View>
-            <ScrollView style={{ flex: 1, paddingHorizontal: 12, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+            <ScrollView style={{ height: Dimensions.get('window').height * 0.75 - 120, paddingHorizontal: 12 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
               {(feeHistoryFilter === 'all' ? allFees : allFees.filter((f: any) => f.year === feeHistoryFilter.year && f.month === feeHistoryFilter.month)).map((f: any, idx: number) => {
                 const monthTotal = (f.meituan_cashier || 0) + (f.meituan_waimai || 0) + (f.shangou_waimai || 0) + (f.meituan_tuan || 0);
                 const platforms = [
