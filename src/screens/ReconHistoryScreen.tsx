@@ -121,7 +121,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
       ) : null}
       <View style={st.cardPairRow}>
         <View style={st.cardPairCol}>
-          <View style={st.cardPairItem}><Text style={st.cardPairLabel}>{t('bookBalance')}</Text><Text style={st.cardPairVal}>{fmtAmtFull(r.channel_total)}</Text></View>
+          <View style={st.cardPairItem}><Text style={st.cardPairLabel}>{t('bookBalance')}</Text><Text style={st.cardPairVal}>{fmtAmtFull(r.cash_on_hand)}</Text></View>
           <View style={st.cardPairDiv} />
           <View style={st.cardPairItem}><Text style={st.cardPairLabel}>{t('cardBalance')}</Text><Text style={st.cardPairVal}>{fmtAmtFull(r.card_balance)}</Text></View>
         </View>
@@ -131,7 +131,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
           <View style={st.cardPairItem}><Text style={st.cardPairLabel}>{t('cashBalance')}</Text><Text style={st.cardPairVal}>{fmtAmtFull(r.cash_balance)}</Text></View>
         </View>
         <View style={st.cardPairCol}>
-          <View style={st.cardPairItem}><Text style={st.cardPairLabel}>{t('bookDiff')}</Text><Text style={[st.cardPairVal, { color: Math.abs(r.diff) < 0.005 ? colors.textMain : colors.primary }]}>{r.diff >= 0 ? '+' : ''}{fmtAmtFull(Math.abs(r.diff))}</Text></View>
+          <View style={st.cardPairItem}><Text style={st.cardPairLabel}>{t('bookDiff')}</Text><Text style={[st.cardPairVal, { color: r.diff > 0.005 ? colors.success : r.diff < -0.005 ? colors.danger : colors.textMain }]}>{r.diff >= 0 ? '+' : '-'}{fmtAmtFull(Math.abs(r.diff))}</Text></View>
           <View style={st.cardPairDiv} />
           <View style={st.cardPairItem}><Text style={st.cardPairLabel}>{t('fundsInTransit')}</Text><Text style={[st.cardPairVal, { color: (Math.abs(r.channel_total) < 0.005) ? colors.textMain : colors.primary }]}>{fmtAmtFull(r.channel_total)}</Text></View>
         </View>
@@ -251,7 +251,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
             <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
               <View style={st.pairRow}>
                 <View style={st.pairCol}>
-                  <View style={st.pairItem}><Text style={st.pairLabel}>{t('bookBalance')}</Text><Text style={st.pairVal}>{fmtAmtFull(selected.channel_total)}</Text></View>
+                  <View style={st.pairItem}><Text style={st.pairLabel}>{t('bookBalance')}</Text><Text style={st.pairVal}>{fmtAmtFull(selected.cash_on_hand)}</Text></View>
                   <View style={st.pairDivider} />
                   <View style={st.pairItem}><Text style={st.pairLabel}>{t('cardBalance')}</Text><Text style={st.pairVal}>{fmtAmtFull(selected.card_balance)}</Text></View>
                 </View>
@@ -261,7 +261,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
                   <View style={st.pairItem}><Text style={st.pairLabel}>{t('cashBalance')}</Text><Text style={st.pairVal}>{fmtAmtFull(selected.cash_balance)}</Text></View>
                 </View>
                 <View style={st.pairCol}>
-                  <View style={st.pairItem}><Text style={st.pairLabel}>{t('bookDiff')}</Text><Text style={[st.pairVal, { color: Math.abs(selected.diff) < 0.005 ? colors.textMain : colors.primary }]}>{selected.diff >= 0 ? '+' : ''}{fmtAmtFull(Math.abs(selected.diff))}</Text></View>
+                  <View style={st.pairItem}><Text style={st.pairLabel}>{t('bookDiff')}</Text><Text style={[st.pairVal, { color: selected.diff > 0.005 ? colors.success : selected.diff < -0.005 ? colors.danger : colors.textMain }]}>{selected.diff >= 0 ? '+' : '-'}{fmtAmtFull(Math.abs(selected.diff))}</Text></View>
                   <View style={st.pairDivider} />
                   <View style={st.pairItem}><Text style={st.pairLabel}>{t('fundsInTransit')}</Text><Text style={[st.pairVal, { color: (Math.abs(selected.channel_total) < 0.005) ? colors.textMain : colors.primary }]}>{fmtAmtFull(selected.channel_total)}</Text></View>
                 </View>
@@ -309,7 +309,8 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   /* Card */
   card: {
     backgroundColor: colors.surface, borderRadius: 14, padding: 14,
-    marginBottom: 12, gap: 10,
+    marginBottom: 12, borderWidth: 1, borderColor: colors.secondary,
+    gap: 10,
   },
   dateRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2, gap: 8 },
   dateItem: { flex: 1, alignItems: 'center' },
