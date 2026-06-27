@@ -548,6 +548,7 @@ export default function ExpenseScreen({
                 key={i}
                 testID="snap-card"
                 style={[st.tabCard, active && st.tabCardActive,
+                  i === 0 && { marginRight: 14 },
                   i === 1 && { width: Dimensions.get('window').width - 36 },
                 ]}
                 onPress={() => setActiveTab(i)}
@@ -631,7 +632,7 @@ export default function ExpenseScreen({
             );
           })}
           {/* Spacer: ensure content is wide enough to scroll card1 to screen edge */}
-          <View style={{ width: 36 }} />
+          <View style={{ width: 100 }} />
         </ScrollView>
       </View>
 
@@ -1306,7 +1307,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: 'transparent',
   },
   tabScroll: {
-    paddingHorizontal: 18, gap: 14,
+    paddingHorizontal: 18,
     // @ts-ignore — 确保 ScrollView 内容区透明
     backgroundColor: 'transparent',
   },
