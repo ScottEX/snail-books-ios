@@ -44,6 +44,7 @@ function getApiBase(): string {
 }
 
 const API_BASE = getApiBase();
+export { API_BASE };
 
 /**
  * Resolve an asset URL returned by the server into something RN's
