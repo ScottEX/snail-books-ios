@@ -521,6 +521,7 @@ export default function ExpenseScreen({
 
   /* ── Render ── */
   return (
+    <>
     <View style={st.root}>
       {/* ══════ 卡片式Tab ══════ */}
       <View style={st.tabBar}>
@@ -983,143 +984,7 @@ export default function ExpenseScreen({
           </View>
         </ModalOverlay>
       )}
-      {/* Platform fee entry bottom sheet */}
-      <ModalOverlay visible={showFeeSheet} onClose={() => setShowFeeSheet(false)}>
-          <View style={st.feeSheet} onStartShouldSetResponder={() => true}>
-            <View style={st.modalHeader}>
-              <Text style={st.modalTitle}>{t('addFeeEntry')}</Text>
-              <CloseButton onPress={() => setShowFeeSheet(false)} />
-            </View>
-            <View style={{ paddingHorizontal: 14, paddingTop: 12, paddingBottom: 16 }}>
-              {/* Date */}
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 16 }}>
-                <Text style={{ fontSize: FONTS.sub.size, color: colors.textSub, fontWeight: FONTS.sub.weight, marginTop: 2 }}>{t('entryDate')}</Text>
-                <View>
-                  <TouchableOpacity onPress={() => setShowFeeDatePicker(true)} style={{ flexDirection: 'row', alignItems: 'center', position: 'relative' }} activeOpacity={0.7}>
-                    <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub }}>
-                      {(() => { return fmtLocalDate(feeEntryDate); })()}
-                    </Text>
-                    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 4, transform: [{ translateY: -1 }] }}><Path d="M10 6l6 6-6 6"/></Svg>
-                  </TouchableOpacity>
-                  <DateErrorHint trigger={feeDateErr} message={t('errDateFuture')} colors={colors} />
-                </View>
-              </View>
 
-              {/* Column headers */}
-              <View style={{ flexDirection: 'row', marginBottom: 10, gap: 4, paddingHorizontal: 2 }}>
-                <Text style={{ flex: 1.5, fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight }}></Text>
-                <Text style={{ flex: 1.5, fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight, textAlign: 'left' }}>{t('feePreview')}</Text>
-                <Text style={{ flex: 1.2, fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight, textAlign: 'left' }}>{t('feeCurrent')}</Text>
-                <Text style={{ flex: 1.2, fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight, textAlign: 'right' }}>{t('feeEntry')}</Text>
-              </View>
-
-              {/* Fee rows */}
-              {([
-                { k: 'meituanCashier', cur: feeData?.meituan_cashier || 0, val: feeMc, set: setFeeMc },
-                { k: 'meituanWaimai', cur: feeData?.meituan_waimai || 0, val: feeMw, set: setFeeMw },
-                { k: 'shangouWaimai', cur: feeData?.shangou_waimai || 0, val: feeEw, set: setFeeEw },
-                { k: 'meituanTuan', cur: feeData?.meituan_tuan || 0, val: feeMt, set: setFeeMt },
-              ] as const).map((row) => {
-                const inputNum = toNum(row.val);
-                return (
-                  <View key={row.k} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10, gap: 4 }}>
-                    <Text style={{ flex: 1.5, fontSize: FONTS.sub.size, color: colors.textSub, fontWeight: FONTS.sub.weight, marginTop: 8 }}>{t(row.k)}</Text>
-                    <Text style={{ flex: 1.5, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain, textAlign: 'left', marginTop: 8 }}>
-                      ¥{(row.cur + inputNum).toFixed(2)}
-                    </Text>
-                    <Text style={{ flex: 1.2, fontSize: FONTS.micro.size, color: colors.textSub, textAlign: 'left', marginTop: 10 }}>
-                      ¥{row.cur.toFixed(2)}
-                    </Text>
-                    <TextInput
-                      style={{ flex: 1.2, height: 38, borderWidth: 1, borderColor: colors.secondary, borderRadius: 8, paddingHorizontal: 6, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub, textAlign: 'right', backgroundColor: colors.surface, outline: 'none' } as any}
-                      value={row.val} onChangeText={(v: string) => row.set(fmtDecInput(v))}
-                      keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={colors.textSub}
-                    />
-                  </View>
-                );
-              })}
-
-              {/* Confirm */}
-              <SubmitButton
-                onPress={handleAddFee}
-                loading={savingFee}
-                disabled={toNum(feeMc) + toNum(feeMw) + toNum(feeEw) + toNum(feeMt) === 0}
-                label={t('confirm')}
-                style={{ backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 8 }}
-                textStyle={{ color: colors.surface, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight }}
-              />
-            </View>
-          </View>
-        </ModalOverlay>
-
-      {/* Fee history bottom sheet — "全部" detail view */}
-      <ModalOverlay visible={showFeeHistory} onClose={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }}>
-          <View style={[st.feeSheet, { height: Dimensions.get('window').height * 0.70, width: '96%', overflow: 'visible' as any }]}>
-            <View style={st.modalHeader}>
-              <Text style={st.modalTitle}>{t('feeHistory')}</Text>
-              <CloseButton onPress={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }} />
-            </View>
-            {/* Month filter */}
-            <View style={{ paddingHorizontal: 20, paddingBottom: 6, marginTop: -6, flexDirection: 'row', alignItems: 'center' }}>
-              <TouchableOpacity
-                ref={feeHistoryFilterTriggerRef}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 8, position: 'relative' }}
-                onPress={() => {
-                  if (!showFeeHistoryFilterPicker) {
-                    if (feeHistoryFilterTriggerRef.current && typeof (feeHistoryFilterTriggerRef.current as any).measureInWindow === 'function') {
-                      (feeHistoryFilterTriggerRef.current as any).measureInWindow((x: number, y: number, w: number, h: number) => {
-                        setFeeHistoryPickerPos({ top: y + h + 4, left: x });
-                      });
-                    }
-                    feeHistoryPickerAnim.setValue(0);
-                    Animated.spring(feeHistoryPickerAnim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 }).start();
-                    setShowFeeHistoryFilterPicker(true);
-                  } else {
-                    Animated.timing(feeHistoryPickerAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => {
-                      setShowFeeHistoryFilterPicker(false);
-                    });
-                  }
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={{ fontSize: FONTS.subBold.size, color: colors.primary, fontWeight: FONTS.subBold.weight }}>
-                  {feeHistoryFilter === 'all' ? t('feeAllMonths') : fmtMonth(feeHistoryFilter.year, feeHistoryFilter.month)}
-                </Text>
-                <Text style={{ fontSize: FONTS.micro.size, color: colors.primary, marginLeft: 2 }}>▼</Text>
-
-              </TouchableOpacity>
-            </View>
-            {/* Scrollable list area — use overflow:scroll on View instead of ScrollView */}
-            <ScrollView style={{ flex: 1, paddingHorizontal: 12 }} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
-              {(feeHistoryFilter === 'all' ? allFees : allFees.filter((f: any) => f.year === feeHistoryFilter.year && f.month === feeHistoryFilter.month)).map((f: any, idx: number) => {
-                const monthTotal = (f.meituan_cashier || 0) + (f.meituan_waimai || 0) + (f.shangou_waimai || 0) + (f.meituan_tuan || 0);
-                const platforms = [
-                  { label: t('meituanCashier'), value: f.meituan_cashier || 0, color: colors.info },
-                  { label: t('meituanWaimai'), value: f.meituan_waimai || 0, color: colors.warning },
-                  { label: t('shangouWaimai'), value: f.shangou_waimai || 0, color: colors.info },
-                  { label: t('meituanTuan'), value: f.meituan_tuan || 0, color: colors.success },
-                ];
-                return (
-                  <View key={f.id} style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: colors.secondary }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-                      <Text style={{ fontSize: FONTS.subBold.size, color: colors.textSub, fontWeight: FONTS.subBold.weight }}>{fmtMonth(f.year, f.month)}</Text>
-                      <Text style={{ fontSize: FONTS.body.size, color: colors.primary, fontWeight: FONTS.h2.weight }}>¥{monthTotal.toFixed(2)}</Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                      {platforms.map((p) => (
-                        <View key={p.label} style={{ flex: 1, minWidth: '46%', flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bg, borderRadius: 6, paddingVertical: 6, paddingHorizontal: 8, gap: 6 }}>
-                          <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: p.color }} />
-                          <Text style={{ fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight, flex: 1 }}>{p.label}</Text>
-                          <Text style={{ fontSize: FONTS.microBold.size, color: colors.textMain, fontWeight: FONTS.microBold.weight }}>¥{p.value.toFixed(2)}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                );
-              })}
-            </ScrollView>
-          </View>
-      </ModalOverlay>
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
       {/* Month picker dropdown — Modal-based (like web's createPortal to body) */}
       <Modal transparent animationType="none" visible={showFeeMonthPicker} onRequestClose={() => {
@@ -1260,6 +1125,146 @@ export default function ExpenseScreen({
         />
       </Modal>
     </View>
+      {/* Fee entry modal — full-screen via RN <Modal> */}
+      <Modal transparent animationType="none" visible={showFeeSheet} onRequestClose={() => setShowFeeSheet(false)}>
+        <ModalOverlay visible={showFeeSheet} onClose={() => setShowFeeSheet(false)}>
+          <View style={st.feeSheet}>
+            <View style={st.modalHeader}>
+              <Text style={st.modalTitle}>{t('addFeeEntry')}</Text>
+              <CloseButton onPress={() => setShowFeeSheet(false)} />
+            </View>
+            <View style={{ paddingHorizontal: 14, paddingTop: 12, paddingBottom: 16 }}>
+              {/* Date */}
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 16 }}>
+                <Text style={{ fontSize: FONTS.sub.size, color: colors.textSub, fontWeight: FONTS.sub.weight, marginTop: 2 }}>{t('entryDate')}</Text>
+                <View>
+                  <TouchableOpacity onPress={() => setShowFeeDatePicker(true)} style={{ flexDirection: 'row', alignItems: 'center', position: 'relative' }} activeOpacity={0.7}>
+                    <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub }}>
+                      {(() => { return fmtLocalDate(feeEntryDate); })()}
+                    </Text>
+                    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 4, transform: [{ translateY: -1 }] }}><Path d="M10 6l6 6-6 6"/></Svg>
+                  </TouchableOpacity>
+                  <DateErrorHint trigger={feeDateErr} message={t('errDateFuture')} colors={colors} />
+                </View>
+              </View>
+
+              {/* Column headers */}
+              <View style={{ flexDirection: 'row', marginBottom: 10, gap: 4, paddingHorizontal: 2 }}>
+                <Text style={{ flex: 1.5, fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight }}></Text>
+                <Text style={{ flex: 1.5, fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight, textAlign: 'left' }}>{t('feePreview')}</Text>
+                <Text style={{ flex: 1.2, fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight, textAlign: 'left' }}>{t('feeCurrent')}</Text>
+                <Text style={{ flex: 1.2, fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight, textAlign: 'right' }}>{t('feeEntry')}</Text>
+              </View>
+
+              {/* Fee rows */}
+              {([
+                { k: 'meituanCashier', cur: feeData?.meituan_cashier || 0, val: feeMc, set: setFeeMc },
+                { k: 'meituanWaimai', cur: feeData?.meituan_waimai || 0, val: feeMw, set: setFeeMw },
+                { k: 'shangouWaimai', cur: feeData?.shangou_waimai || 0, val: feeEw, set: setFeeEw },
+                { k: 'meituanTuan', cur: feeData?.meituan_tuan || 0, val: feeMt, set: setFeeMt },
+              ] as const).map((row) => {
+                const inputNum = toNum(row.val);
+                return (
+                  <View key={row.k} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10, gap: 4 }}>
+                    <Text style={{ flex: 1.5, fontSize: FONTS.sub.size, color: colors.textSub, fontWeight: FONTS.sub.weight, marginTop: 8 }}>{t(row.k)}</Text>
+                    <Text style={{ flex: 1.5, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain, textAlign: 'left', marginTop: 8 }}>
+                      ¥{(row.cur + inputNum).toFixed(2)}
+                    </Text>
+                    <Text style={{ flex: 1.2, fontSize: FONTS.micro.size, color: colors.textSub, textAlign: 'left', marginTop: 10 }}>
+                      ¥{row.cur.toFixed(2)}
+                    </Text>
+                    <TextInput
+                      style={{ flex: 1.2, height: 38, borderWidth: 1, borderColor: colors.secondary, borderRadius: 8, paddingHorizontal: 6, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub, textAlign: 'right', backgroundColor: colors.surface, outline: 'none' } as any}
+                      value={row.val} onChangeText={(v: string) => row.set(fmtDecInput(v))}
+                      keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={colors.textSub}
+                    />
+                  </View>
+                );
+              })}
+
+              {/* Confirm */}
+              <SubmitButton
+                onPress={handleAddFee}
+                loading={savingFee}
+                disabled={toNum(feeMc) + toNum(feeMw) + toNum(feeEw) + toNum(feeMt) === 0}
+                label={t('confirm')}
+                style={{ backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 8 }}
+                textStyle={{ color: colors.surface, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight }}
+              />
+            </View>
+          </View>
+        </ModalOverlay>
+      </Modal>
+      {/* Fee history modal — full-screen via RN <Modal> */}
+      <Modal transparent animationType="none" visible={showFeeHistory} onRequestClose={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }}>
+        <ModalOverlay visible={showFeeHistory} onClose={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }}>
+          <View style={[st.feeSheet, { height: Dimensions.get('window').height * 0.70, width: '96%', overflow: 'visible' as any }]}>
+            <View style={st.modalHeader}>
+              <Text style={st.modalTitle}>{t('feeHistory')}</Text>
+              <CloseButton onPress={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }} />
+            </View>
+            {/* Month filter */}
+            <View style={{ paddingHorizontal: 20, paddingBottom: 6, marginTop: -6, flexDirection: 'row', alignItems: 'center' }}>
+              <TouchableOpacity
+                ref={feeHistoryFilterTriggerRef}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 8, position: 'relative' }}
+                onPress={() => {
+                  if (!showFeeHistoryFilterPicker) {
+                    if (feeHistoryFilterTriggerRef.current && typeof (feeHistoryFilterTriggerRef.current as any).measureInWindow === 'function') {
+                      (feeHistoryFilterTriggerRef.current as any).measureInWindow((x: number, y: number, w: number, h: number) => {
+                        setFeeHistoryPickerPos({ top: y + h + 4, left: x });
+                      });
+                    }
+                    feeHistoryPickerAnim.setValue(0);
+                    Animated.spring(feeHistoryPickerAnim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 }).start();
+                    setShowFeeHistoryFilterPicker(true);
+                  } else {
+                    Animated.timing(feeHistoryPickerAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => {
+                      setShowFeeHistoryFilterPicker(false);
+                    });
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: FONTS.subBold.size, color: colors.primary, fontWeight: FONTS.subBold.weight }}>
+                  {feeHistoryFilter === 'all' ? t('feeAllMonths') : fmtMonth(feeHistoryFilter.year, feeHistoryFilter.month)}
+                </Text>
+                <Text style={{ fontSize: FONTS.micro.size, color: colors.primary, marginLeft: 2 }}>▼</Text>
+              </TouchableOpacity>
+            </View>
+            {/* Scrollable list area */}
+            <ScrollView style={{ flex: 1, paddingHorizontal: 12 }} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
+              {(feeHistoryFilter === 'all' ? allFees : allFees.filter((f: any) => f.year === feeHistoryFilter.year && f.month === feeHistoryFilter.month)).map((f: any, idx: number) => {
+                const monthTotal = (f.meituan_cashier || 0) + (f.meituan_waimai || 0) + (f.shangou_waimai || 0) + (f.meituan_tuan || 0);
+                const platforms = [
+                  { label: t('meituanCashier'), value: f.meituan_cashier || 0, color: colors.info },
+                  { label: t('meituanWaimai'), value: f.meituan_waimai || 0, color: colors.warning },
+                  { label: t('shangouWaimai'), value: f.shangou_waimai || 0, color: colors.info },
+                  { label: t('meituanTuan'), value: f.meituan_tuan || 0, color: colors.success },
+                ];
+                return (
+                  <View key={f.id} style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: colors.secondary }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+                      <Text style={{ fontSize: FONTS.subBold.size, color: colors.textSub, fontWeight: FONTS.subBold.weight }}>{fmtMonth(f.year, f.month)}</Text>
+                      <Text style={{ fontSize: FONTS.body.size, color: colors.primary, fontWeight: FONTS.h2.weight }}>¥{monthTotal.toFixed(2)}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                      {platforms.map((p) => (
+                        <View key={p.label} style={{ flex: 1, minWidth: '46%', flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bg, borderRadius: 6, paddingVertical: 6, paddingHorizontal: 8, gap: 6 }}>
+                          <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: p.color }} />
+                          <Text style={{ fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight, flex: 1 }}>{p.label}</Text>
+                          <Text style={{ fontSize: FONTS.microBold.size, color: colors.textMain, fontWeight: FONTS.microBold.weight }}>¥{p.value.toFixed(2)}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </ModalOverlay>
+      </Modal>
+    </>
   );
 }
 
