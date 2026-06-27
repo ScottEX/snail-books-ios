@@ -10,10 +10,10 @@ import { t, getLang, langs, useLang } from '../i18n';
 import { api, resolveAssetUrl } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
-import { pickImages } from '../utils/imagePicker';
 import { getCurrentUserId } from '../utils/storage';
 import Toast from '../components/Toast';
 import DatePickerModal from '../components/DatePickerModal';
+import ThemePickerModal from '../components/ThemePickerModal';
 import SlideScreen from '../components/SlideScreen';
 import PartnerScreen from './PartnerScreen';
 import ProcurementScreen from './ProcurementScreen';
@@ -180,29 +180,6 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     setBgOpacity(v);
     try { localStorage.setItem(opacityKey, String(v)); } catch {}
     api.saveBackgroundSettings({ opacity: v }).catch(() => {});
-  };
-  const handlePickBg = async () => {
-    const imgs = await pickImages({ multiple: false }).catch(() => []);
-    if (imgs.length === 0) return;
-    setBgUploading(true);
-    try {
-      const r: any = await api.uploadBackground(imgs[0]);
-      if (r?.url) {
-        const resolved = resolveAssetUrl(r.url) || DEFAULT_BG;
-        setBgImageUri(resolved);
-        setBgVersion((v) => v + 1);
-        try { localStorage.setItem('bg-image', resolved); } catch {}
-        if (typeof window !== 'undefined' && typeof (window as any).dispatchEvent === 'function') {
-          (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: resolved } }));
-        }
-        setToast(t('bgUpdated') || '背景已更新');
-      } else {
-        setToast(t('toastSubmitFailed'));
-      }
-    } catch {
-      setToast(t('toastSubmitFailed'));
-    }
-    setBgUploading(false);
   };
   const handleResetBg = async () => {
     try { await api.resetBackground(); } catch {}
@@ -613,95 +590,37 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         )}
       </View>
 
-      {/* BG settings modal */}
-      {showBgModal && (
-        <Animated.View style={[styles.modalOverlay, { opacity: modalFade }]}>
-          <Animated.View style={[styles.modalCard, { transform: [{ translateY: modalAnim }] }]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('bgSettings')}</Text>
-              <TouchableOpacity onPress={() => closeModal(() => setShowBgModal(false))}>
-                <Text style={styles.modalClose}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={{ padding: 20, gap: 16 }}>
-              <Text style={{ fontSize: 13, color: colors.textSub, textAlign: 'center' }}>{t('bgHint')}</Text>
-
-              {/* Opacity row — web has a slider; iOS renders as 0/25/50/75/100% tap chips */}
-              <View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <Text style={{ fontSize: 12, color: colors.textSub }}>{t('opacity')}</Text>
-                  <Text style={{ fontSize: 12, color: colors.textMain, fontWeight: '600' }}>{(bgOpacity * 100).toFixed(0)}%</Text>
-                </View>
-                <View style={{ flexDirection: 'row', gap: 6 }}>
-                  {[0, 0.25, 0.5, 0.75, 1].map(v => (
-                    <TouchableOpacity
-                      key={v}
-                      style={[styles.opacityChip, Math.abs(bgOpacity - v) < 0.01 && styles.opacityChipActive]}
-                      onPress={() => setBgOpacityPersist(v)}
-                    >
-                      <Text style={[styles.opacityChipText, Math.abs(bgOpacity - v) < 0.01 && styles.opacityChipTextActive]}>{(v * 100).toFixed(0)}%</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* Theme picker — matches web's theme selector (color dots + name + description) */}
-              <View>
-                <Text style={{ fontSize: 12, color: colors.textSub, marginBottom: 8, fontWeight: '600' }}>{t('themePicker')}</Text>
-                {allThemes.map(theme => {
-                  const isActive = theme.colors.primary === colors.primary;
-                  return (
-                    <TouchableOpacity
-                      key={theme.id}
-                      onPress={() => setTheme(theme.id)}
-                      style={[
-                        styles.themePickerItem,
-                        isActive && { backgroundColor: withAlpha(colors.primary, 0.06), borderColor: colors.primary, borderWidth: 1.5 },
-                      ]}
-                    >
-                      <View style={{ flexDirection: 'row', gap: 4, marginRight: 12 }}>
-                        <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: theme.colors.primary }} />
-                        <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: theme.colors.bg, borderWidth: 1, borderColor: colors.secondary }} />
-                        <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: theme.colors.accent }} />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 12, fontWeight: isActive ? '700' : '500', color: colors.textSub }}>{theme.nameZh}</Text>
-                        <Text style={{ fontSize: 11, color: colors.textSub, marginTop: 1 }}>{theme.description}</Text>
-                      </View>
-                      {isActive && <Text style={{ fontSize: 14, color: colors.primary }}>✓</Text>}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {/* Action buttons */}
-              <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-                <TouchableOpacity style={[styles.modalBtn, { borderWidth: 1, borderColor: colors.secondary }]} onPress={() => closeModal(() => setShowBgModal(false))}>
-                  <Text style={{ color: colors.textSub, fontSize: 14, fontWeight: '600' }}>{t('cancel')}</Text>
-                </TouchableOpacity>
-                {bgImageUri ? (
-                  <TouchableOpacity
-                    style={[styles.modalBtn, { borderWidth: 1, borderColor: colors.secondary }]}
-                    onPress={handleResetBg}
-                    disabled={bgUploading}
-                  >
-                    <Text style={{ color: colors.textSub, fontSize: 14, fontWeight: '600' }}>{t('resetDefault')}</Text>
-                  </TouchableOpacity>
-                ) : null}
-                <TouchableOpacity
-                  style={[styles.modalBtn, { backgroundColor: colors.primary, flex: 1 }, bgUploading && { opacity: 0.5 }]}
-                  onPress={handlePickBg}
-                  disabled={bgUploading}
-                >
-                  <Text style={{ color: colors.surface, fontSize: 14, fontWeight: '600' }}>
-                    {bgUploading ? (t('uploading') || '上传中…') : (t('chooseImage') || '选择图片')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Animated.View>
-        </Animated.View>
-      )}
+      {/* BG settings modal — uses shared ThemePickerModal (matches web) */}
+      <ThemePickerModal
+        visible={showBgModal}
+        onClose={() => setShowBgModal(false)}
+        showCoverTools
+        coverOpacity={bgOpacity}
+        onCoverOpacityChange={setBgOpacityPersist}
+        onCoverImagePicked={async (file: any) => {
+          setBgUploading(true);
+          try {
+            const r: any = await api.uploadBackground(file);
+            if (r?.url) {
+              const resolved = resolveAssetUrl(r.url) || DEFAULT_BG;
+              setBgImageUri(resolved);
+              setBgVersion((v) => v + 1);
+              try { localStorage.setItem('bg-image', resolved); } catch {}
+              if (typeof window !== 'undefined' && typeof (window as any).dispatchEvent === 'function') {
+                (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: resolved } }));
+              }
+              setToast(t('bgUpdated') || '背景已更新');
+            } else {
+              setToast(t('toastSubmitFailed'));
+            }
+          } catch {
+            setToast(t('toastSubmitFailed'));
+          }
+          setBgUploading(false);
+        }}
+        onResetCover={handleResetBg}
+        coverUploading={bgUploading}
+      />
 
       {/* Logout modal */}
       {showLogoutModal && (
