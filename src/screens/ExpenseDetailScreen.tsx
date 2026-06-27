@@ -412,13 +412,14 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
 
             {/* Images */}
             <ReceiptUpload
-              existingImages={images}
+              existingImages={images.map(u => resolveAssetUrl(u) || u)}
               newFiles={newFiles}
               onAdd={(files: PickedImage[]) => setNewFiles(prev => [...prev, ...files])}
               onRemoveExisting={removeImage}
               onRemoveNew={removeNewFile}
               getPreviewUrl={(f: PickedImage) => f.uri}
               maxThumbSize={thumbSize}
+              onPreviewExisting={(i: number) => showPreview(resolvedPreviews, i)}
             />
             <View style={{ height: 100 }} />
           </View>
