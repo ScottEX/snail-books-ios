@@ -210,10 +210,19 @@ export default function ExpenseScreen({
   // Snap-scroll effects are web-only (CSS scroll-snap + DOM scroll listener).
 
   /* ── 模块一：对账 ── */
-  const [recDate, setRecDate] = useState(sd.yesterday || '');
+  const [recDate, setRecDate] = useState('');
   const [recDateKey, setRecDateKey] = useState(0);
   const [recDateErr, setRecDateErr] = useState(0);
+  const [recDateReady, setRecDateReady] = useState(false);
   const [toast, setToast] = useState('');
+
+  // Sync to server yesterday once ready (matches web useDateField effect)
+  useEffect(() => {
+    if (sd.ready && sd.yesterday && !recDateReady) {
+      setRecDate(sd.yesterday);
+      setRecDateReady(true);
+    }
+  }, [sd.ready, sd.yesterday, recDateReady]);
   const [cardBalance, setCardBalance] = useState('');
   const [cashBalance, setCashBalance] = useState('');
   const [dineIn, setDineIn] = useState('');
@@ -230,15 +239,15 @@ export default function ExpenseScreen({
   // Load reconciliation data from backend
   useEffect(() => {
     if (!mountedRef.current) {
-      // First mount: load the last reconciliation
+      // First mount: pre-fill form with last record's values (don't override recDate)
       mountedRef.current = true;
       (async () => {
         try {
           const data = await api.getReconciliations(1);
           if (data && data.length > 0) {
             const last = data[0];
-            const d = last.bill_date || last.date || sd.yesterday || '';
-            setRecDate(d);
+            // Don't setRecDate — date is handled by sd.yesterday sync above.
+            // Web never overrides recDate with last.bill_date; same here.
             setCardBalance(toDec2(last.card_balance));
             setCashBalance(toDec2(last.cash_balance));
             setDineIn(toDec2(last.dine_in));
