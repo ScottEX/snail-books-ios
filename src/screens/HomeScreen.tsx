@@ -295,8 +295,6 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     } catch {}
   }, []);
 
-  useEffect(() => { loadLast7(); loadYesterday(); loadWeekTotals(); loadBusinessSummary(); }, [loadLast7, loadYesterday, loadWeekTotals, loadBusinessSummary]);
-
   // ── Lazy load on tab change (chart / supply) ──
   const loadChart = useCallback(async () => {
     try { const d: any = await api.getChart(); setChart(d || []); } catch { setToast(t('toastLoadFailed')); }
@@ -313,6 +311,9 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const loadProcurements = useCallback(async () => {
     try { const p: any = await api.getProcurements(); setProcurements(p || []); } catch { setToast(t('toastLoadFailed')); }
   }, []);
+
+  useEffect(() => { loadLast7(); loadYesterday(); loadWeekTotals(); loadBusinessSummary(); }, [loadLast7, loadYesterday, loadWeekTotals, loadBusinessSummary]);
+
   useEffect(() => {
     if (tab === 'chart') { loadChart(); loadBusinessSummary(); }
     if (tab === 'supply') { loadProducts(); loadProcurements(); }
@@ -562,7 +563,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         </ScrollView>
         )}
 
-        {/* Bottom nav — floating glass pill, icons only, matches web */}
+        {isHome && (
         <View pointerEvents="box-none" style={styles.bottomNavWrap}>
           <View style={styles.bottomNav}>
             {/* Real blur via expo-blur. Sits behind the icons, clipped
@@ -608,6 +609,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             })}
           </View>
         </View>
+        )}
       </View>
 
       {/* BG settings modal */}
