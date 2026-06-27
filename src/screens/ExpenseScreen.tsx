@@ -1056,8 +1056,7 @@ export default function ExpenseScreen({
       )}
 
       {/* Fee history bottom sheet — "全部" detail view */}
-      {showFeeHistory && (
-        <View style={{ position: 'absolute' as any, top: -88, left: 0, right: 0, bottom: 0, zIndex: 9999, justifyContent: 'center', alignItems: 'center', padding: 16, backgroundColor: 'rgba(0,0,0,0.3)' }}>
+      <ModalOverlay visible={showFeeHistory} onClose={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }}>
           <View style={[st.feeSheet, { height: Dimensions.get('window').height * 0.70, width: '96%', overflow: 'visible' as any }]}>
             <View style={st.modalHeader}>
               <Text style={st.modalTitle}>{t('feeHistory')}</Text>
@@ -1123,8 +1122,7 @@ export default function ExpenseScreen({
               })}
             </ScrollView>
           </View>
-        </View>
-      )}
+      </ModalOverlay>
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
       {/* Month picker dropdown — Modal-based (like web's createPortal to body) */}
       <Modal transparent animationType="none" visible={showFeeMonthPicker} onRequestClose={() => {
