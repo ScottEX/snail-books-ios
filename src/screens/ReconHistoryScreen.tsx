@@ -213,7 +213,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
       {/* List */}
       <ScrollView style={st.list} showsVerticalScrollIndicator={false}
         onScroll={handleScroll} scrollEventThrottle={50}
-        contentContainerStyle={{ paddingTop: 112, paddingBottom: 100 }}>
+        contentContainerStyle={{ paddingTop: 112 }}>
         {loading ? (<LoadingSpinner />)
           : records.length === 0 ? (
             <EmptyState icon={<ReconEmptyIcon color={colors.textSub} />} title={t('noRecords')} hint={t('emptyReconHint')} />
