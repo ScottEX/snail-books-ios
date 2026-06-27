@@ -30,7 +30,11 @@ import InvoiceScreen from './InvoiceScreen';
 import ProcurementDetailScreen from './ProcurementDetailScreen';
 import ExpenseDetailScreen from './ExpenseDetailScreen';
 import PdfPreviewPage from './PdfPreviewPage';
+import ChartsPanel from './ChartsPanel';
 import { modalCardAnimation, modalClose } from '../sharedStyles';
+import { toDec2Comma } from '../utils/numbers';
+import { fmtAmtFull } from '../utils/format';
+import NumberTicker from '../components/NumberTicker';
 
 const BG_IMAGE = require('../../assets/img/bg.jpg');
 const LOGO_IMAGE = require('../../assets/img/logo.jpg');
@@ -220,10 +224,22 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const [userRefreshKey, setUserRefreshKey] = useState(0);
 
   // ── Data state for chart / supply / partner ──
-  const [chart, setChart] = useState<any[]>([]);
+  const [chartMonthly, setChartMonthly] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [procurements, setProcurements] = useState<any[]>([]);
-  const [businessSummary, setBusinessSummary] = useState<{ cash_on_hand?: number; cumulative_revenue?: number; cumulative_expense?: number }>({});
+  const [businessSummary, setBusinessSummary] = useState<{
+    cash_on_hand?: number;
+    cumulative_revenue?: number;
+    cumulative_expense?: number;
+    actual_received?: number;
+    receivable?: number;
+    discount?: number;
+    today_expense_amount?: number;
+    month_expense_amount?: number;
+    yesterday_income?: number;
+    yesterday_expense?: number;
+    yesterday_profit?: number;
+  }>({});
   const navScaleAnims = useRef([...Array(5)].map(() => new Animated.Value(1))).current;
 
   // ── Daily revenue state ──
@@ -294,8 +310,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   }, []);
 
   // ── Lazy load on tab change (chart / supply) ──
-  const loadChart = useCallback(async () => {
-    try { const d: any = await api.getChart(); setChart(d || []); } catch { setToast(t('toastLoadFailed')); }
+  const loadChartMonthly = useCallback(async () => {
+    try { const d: any = await api.getChartMonthly(); setChartMonthly(d); } catch { setToast(t('toastLoadFailed')); }
   }, []);
   const loadBusinessSummary = useCallback(async () => {
     try {
@@ -317,9 +333,9 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   }, [tab, loadYesterday, loadWeekTotals]);
 
   useEffect(() => {
-    if (tab === 'chart') { loadChart(); loadBusinessSummary(); }
+    if (tab === 'chart') { loadChartMonthly(); loadBusinessSummary(); }
     if (tab === 'supply') { loadProducts(); loadProcurements(); }
-  }, [tab, loadChart, loadBusinessSummary, loadProducts, loadProcurements]);
+  }, [tab, loadChartMonthly, loadBusinessSummary, loadProducts, loadProcurements]);
 
   // Check admin status (for User Management nav). Non-blocking — failure just means non-admin.
   useEffect(() => {
@@ -561,7 +577,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             <ChartGlassView
               colors={colors}
               businessSummary={businessSummary}
-              chart={chart}
+              chartMonthly={chartMonthly}
             />
           ) : null}
         </ScrollView>
@@ -689,11 +705,76 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
 
 interface ChartGlassProps {
   colors: ThemeColors;
-  businessSummary: { cash_on_hand?: number; cumulative_revenue?: number; cumulative_expense?: number };
-  chart: any[];
+  businessSummary: {
+    cash_on_hand?: number;
+    cumulative_revenue?: number;
+    cumulative_expense?: number;
+    actual_received?: number;
+    receivable?: number;
+    discount?: number;
+    today_expense_amount?: number;
+    month_expense_amount?: number;
+    yesterday_income?: number;
+    yesterday_expense?: number;
+    yesterday_profit?: number;
+  };
+  chartMonthly: any;
 }
 
-function ChartGlassView({ colors, businessSummary, chart }: ChartGlassProps) {
+/** 6 张收支卡片：昨日/本月 收入/支出/利润 2x3 grid */
+function ExpenseSummaryCardsInline({
+  yesterdayExpense, monthExpense, yesterdayIncome, monthIncome, colors,
+}: {
+  yesterdayExpense: number; monthExpense: number;
+  yesterdayIncome: number; monthIncome: number;
+  colors: ThemeColors;
+}) {
+  const yesterdayProfit = yesterdayIncome - yesterdayExpense;
+  const monthProfit = monthIncome - monthExpense;
+
+  const cards = [
+    { label: t('yesterdayIncome'), value: yesterdayIncome, clr: colors.success, isProfit: false },
+    { label: t('yesterdayExpense'), value: yesterdayExpense, clr: colors.danger, isProfit: false },
+    { label: t('monthIncome'), value: monthIncome, clr: colors.success, isProfit: false },
+    { label: t('monthExpense'), value: monthExpense, clr: colors.danger, isProfit: false },
+    { label: t('yesterdayProfit'), value: yesterdayProfit, clr: yesterdayProfit >= 0 ? colors.success : colors.danger, isProfit: true },
+    { label: t('monthProfit'), value: monthProfit, clr: monthProfit >= 0 ? colors.success : colors.danger, isProfit: true },
+  ];
+
+  return (
+    <View style={{ marginBottom: 12 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {cards.map((c, i) => (
+          <View
+            key={i}
+            style={{
+              width: '48%' as any, flexGrow: 1, flexBasis: '46%' as any,
+              backgroundColor: 'rgba(255,255,255,0.88)',
+              borderRadius: 12, paddingVertical: 10, paddingHorizontal: 18,
+              borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.45)',
+              borderLeftColor: c.clr, borderLeftWidth: 3,
+            }}
+          >
+            <Text style={{ fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(0,0,0,0.55)', marginBottom: 4 }}>
+              {c.label}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+              {c.isProfit ? (
+                <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.clr }}>
+                  {c.value >= 0 ? '+' : '-'}{fmtAmtFull(Math.abs(c.value))}
+                </Text>
+              ) : (
+                <NumberTicker value={c.value} style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: 'rgba(0,0,0,0.9)' }} formatFn={fmtAmtFull} />
+              )}
+            </View>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function ChartGlassView({ colors, businessSummary, chartMonthly }: ChartGlassProps) {
   // Use the iOS white glass card (matches web's iOS-specific branch)
   const glassBg = 'rgba(255,255,255,0.78)';
   const glassBgStrong = 'rgba(255,255,255,0.88)';
@@ -712,8 +793,16 @@ function ChartGlassView({ colors, businessSummary, chart }: ChartGlassProps) {
   const subLabelStyle = { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(0,0,0,0.55)' };
   const subValueStyle = { fontSize: 16, fontWeight: '700' as const, color: 'rgba(0,0,0,0.9)', marginTop: 4 };
 
+  const toNum = (v: any) => parseFloat(String(v ?? 0)) || 0;
+  const yesterdayIncome = toNum(businessSummary.yesterday_income);
+  const yesterdayExpense = toNum(businessSummary.yesterday_expense);
+  const monthExpense = toNum(businessSummary.month_expense_amount);
+  // Month income: use daily_revenues or fallback from businessSummary
+  const monthIncomeVal = toNum(businessSummary.yesterday_income) * 30; // rough estimate if not available
+
   return (
     <View style={{ paddingBottom: 100, paddingTop: 4 }}>
+      {/* ── Glass card: 在手资金 ── */}
       <View style={card}>
         <Text style={{ fontSize: FONTS.amount.size, fontWeight: FONTS.amount.weight, color: 'rgba(0,0,0,0.9)', marginBottom: 16 }}>
           {t('summary')}
@@ -722,65 +811,66 @@ function ChartGlassView({ colors, businessSummary, chart }: ChartGlassProps) {
           <Text style={labelStyle}>{t('cashOnHand')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
             <Text style={symStyle}>¥</Text>
-            <Text style={valueStyle}>{(businessSummary.cash_on_hand || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+            <Text style={valueStyle}>{toDec2Comma(businessSummary.cash_on_hand || 0)}</Text>
           </View>
         </View>
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <View style={subCard}>
             <Text style={subLabelStyle}>{t('cumulativeRevenue')}</Text>
-            <Text style={subValueStyle}>¥{(businessSummary.cumulative_revenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+            <Text style={subValueStyle}>{'¥' + toDec2Comma(businessSummary.cumulative_revenue || 0)}</Text>
           </View>
           <View style={subCard}>
             <Text style={subLabelStyle}>{t('cumulativeExpense')}</Text>
-            <Text style={subValueStyle}>¥{(businessSummary.cumulative_expense || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+            <Text style={subValueStyle}>{'¥' + toDec2Comma(businessSummary.cumulative_expense || 0)}</Text>
           </View>
         </View>
       </View>
 
-      <View style={[card, { padding: 0, overflow: 'hidden' }]}>
-        <View style={{ padding: 16, paddingBottom: 8 }}>
-          <Text style={{ fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: 'rgba(0,0,0,0.9)' }}>{t('dailyTrend')}</Text>
-        </View>
-        <ChartMini chart={chart} />
+      {/* ── KPI 三行：实收 / 应收 / 优惠减免 ── */}
+      <View style={[card, { paddingVertical: 18, paddingHorizontal: 18, gap: 14 }]}>
+        {[
+          { label: t('actualReceived'), val: toNum(businessSummary.actual_received) },
+          { label: t('receivable'), val: toNum(businessSummary.receivable) },
+          { label: t('discountAmount'), val: toNum(businessSummary.discount) },
+        ].map((item, i) => (
+          <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 }}>
+            <Text style={{ fontSize: FONTS.sub.size, color: 'rgba(0,0,0,0.55)', fontWeight: FONTS.sub.weight }}>{item.label}</Text>
+            <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: 'rgba(0,0,0,0.9)' }}>
+              {'¥' + toDec2Comma(item.val)}
+            </Text>
+          </View>
+        ))}
       </View>
-    </View>
-  );
-}
 
-function ChartMini({ chart }: { chart: any[] }) {
-  // Simple line chart for the monthly chart data. Falls back to an
-  // empty state when no data. Renders inline so the chart tab doesn't
-  // need a separate component file.
-  if (!chart || chart.length === 0) {
-    return (
-      <View style={{ padding: 24, alignItems: 'center' }}>
-        <Text style={{ color: 'rgba(0,0,0,0.4)', fontSize: FONTS.sub.size }}>{t('noData')}</Text>
-      </View>
-    );
-  }
-  const W = 360, H = 160, P = 24;
-  const data = chart.slice(-12); // last 12 months
-  const maxV = Math.max(1, ...data.map(d => Math.max(Number(d.income || 0), Number(d.expense || 0))));
-  const minV = Math.min(0, ...data.map(d => Math.min(Number(d.income || 0), Number(d.expense || 0))));
-  const xFor = (i: number) => P + (i * (W - P * 2)) / Math.max(1, data.length - 1);
-  const yFor = (v: number) => {
-    const range = maxV - minV || 1;
-    return H - P - ((v - minV) / range) * (H - P * 2);
-  };
-  const linePath = (key: 'income' | 'expense') =>
-    data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${xFor(i).toFixed(1)} ${yFor(Number(d[key] || 0)).toFixed(1)}`).join(' ');
-  return (
-    <Svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
-      <Path d={`M ${P} ${H - P} L ${W - P} ${H - P}`} stroke="rgba(0,0,0,0.10)" strokeWidth={1} />
-      <Path d={linePath('income')} fill="none" stroke="#4C7A5D" strokeWidth={2} />
-      <Path d={linePath('expense')} fill="none" stroke="#7D2329" strokeWidth={2} />
-      {data.map((d, i) => (
-        <Path key={`ri-${i}`} d={`M ${xFor(i) - 2.5} ${yFor(Number(d.income || 0))} a 2.5 2.5 0 1 0 5 0 a 2.5 2.5 0 1 0 -5 0`} fill="#4C7A5D" />
-      ))}
-      {data.map((d, i) => (
-        <Path key={`re-${i}`} d={`M ${xFor(i) - 2.5} ${yFor(Number(d.expense || 0))} a 2.5 2.5 0 1 0 5 0 a 2.5 2.5 0 1 0 -5 0`} fill="#7D2329" />
-      ))}
-    </Svg>
+      {/* ── 6 张收支卡片 ── */}
+      <ExpenseSummaryCardsInline
+        yesterdayExpense={yesterdayExpense}
+        monthExpense={monthExpense}
+        yesterdayIncome={yesterdayIncome}
+        monthIncome={monthIncomeVal}
+        colors={colors}
+      />
+
+      {/* ── 图表：月度趋势 + 分类占比 + 每日收支 ── */}
+      {chartMonthly ? (
+        <ChartsPanel
+          months={chartMonthly.months || []}
+          income={chartMonthly.income || []}
+          expense={chartMonthly.expense || []}
+          profit={chartMonthly.profit || []}
+          categories={chartMonthly.categories || {}}
+          dailyDates={chartMonthly.daily_dates || []}
+          dailyIncome={chartMonthly.daily_income || []}
+          dailyExpense={chartMonthly.daily_expense || []}
+          dailyProfitDates={chartMonthly.daily_dates || []}
+          dailyProfitValues={chartMonthly.daily_profit || []}
+        />
+      ) : (
+        <View style={{ padding: 24, alignItems: 'center' }}>
+          <Text style={{ color: 'rgba(0,0,0,0.4)', fontSize: FONTS.sub.size }}>{t('noData')}</Text>
+        </View>
+      )}
+    </View>
   );
 }
 
