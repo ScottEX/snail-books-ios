@@ -135,6 +135,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [toast, setToast] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string>('');
   const [coverUrl, setCoverUrl] = useState<string>('');
+  const [coverOpacity, setCoverOpacity] = useState(1);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [email, setEmail] = useState('');
@@ -315,6 +316,44 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     }
   };
 
+  // ── Cover opacity ──
+  const handleCoverOpacityChange = (v: number) => {
+    setCoverOpacity(v);
+    try {
+      const uid = getCurrentUserId();
+      localStorage.setItem(uid ? `cover-opacity-${uid}` : 'cover-opacity', String(v));
+    } catch {}
+    api.saveBackgroundSettings({ opacity: v }).catch(() => {});
+  };
+
+  // ── Cover image picked (from ThemePickerModal's BgCropModal) — background image ──
+  const handleCoverImagePicked = async (file: any) => {
+    setUploadingCover(true);
+    try {
+      const r: any = await api.uploadBackground(file);
+      if (r?.url) {
+        try { localStorage.setItem('bg-image', r.url); } catch {}
+      }
+    } catch (err: any) {
+      setToast(err?.message || t('uploadFailedShort'));
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  // ── Reset cover to default (background image, not profile cover) ──
+  const handleCoverReset = async () => {
+    setUploadingCover(true);
+    try {
+      await api.resetBackground();
+      try { localStorage.removeItem('bg-image'); } catch {}
+    } catch (err: any) {
+      setToast(err?.message || t('uploadFailedShort'));
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
   // ── Signature ──
   const startEditingSignature = () => {
     setSignatureDraft(signature);
@@ -447,7 +486,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         {/* ── Cover ── */}
         <TouchableOpacity style={st.coverWrap} onPress={handleCoverPress} activeOpacity={0.9} disabled={uploadingCover}>
           {coverUrl ? (
-            <Image source={{ uri: coverUrl }} style={st.coverImg} />
+            <Image source={{ uri: coverUrl }} style={[st.coverImg, { opacity: coverOpacity }]} />
           ) : (
             <View style={st.coverGradient}>
               <Svg width="100%" height="100%" viewBox="0 0 360 260" preserveAspectRatio="none">
@@ -887,6 +926,12 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       <ThemePickerModal
         visible={showThemeModal}
         onClose={() => setShowThemeModal(false)}
+        showCoverTools
+        coverOpacity={coverOpacity}
+        onCoverOpacityChange={handleCoverOpacityChange}
+        onCoverImagePicked={handleCoverImagePicked}
+        onResetCover={handleCoverReset}
+        coverUploading={uploadingCover}
       />
     </View>
   );
