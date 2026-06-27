@@ -210,19 +210,13 @@ export default function ExpenseScreen({
   // Snap-scroll effects are web-only (CSS scroll-snap + DOM scroll listener).
 
   /* ── 模块一：对账 ── */
-  const [recDate, setRecDate] = useState('');
+  // recDate is derived from sd.yesterday (reactive, like web's useDateField).
+  // recDateOverride lets the user pick a different date via DatePicker.
+  const [recDateOverride, setRecDateOverride] = useState<string | null>(null);
+  const recDate = recDateOverride ?? (sd.ready && sd.yesterday ? sd.yesterday : '');
   const [recDateKey, setRecDateKey] = useState(0);
   const [recDateErr, setRecDateErr] = useState(0);
-  const [recDateReady, setRecDateReady] = useState(false);
   const [toast, setToast] = useState('');
-
-  // Sync to server yesterday once ready (matches web useDateField effect)
-  useEffect(() => {
-    if (sd.ready && sd.yesterday && !recDateReady) {
-      setRecDate(sd.yesterday);
-      setRecDateReady(true);
-    }
-  }, [sd.ready, sd.yesterday, recDateReady]);
   const [cardBalance, setCardBalance] = useState('');
   const [cashBalance, setCashBalance] = useState('');
   const [dineIn, setDineIn] = useState('');
@@ -978,7 +972,7 @@ export default function ExpenseScreen({
           visible={showRecDatePicker}
           value={recDate}
           onClose={() => setShowRecDatePicker(false)}
-          onSelect={(d) => { setRecDate(d); setRecDateKey(k => k + 1); setRecDateErr(0); }}
+          onSelect={(d) => { setRecDateOverride(d); setRecDateKey(k => k + 1); setRecDateErr(0); }}
           minDate={sd.today}
           title={t('billDate')}
         />
