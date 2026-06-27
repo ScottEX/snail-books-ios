@@ -1095,13 +1095,32 @@ export default function ExpenseScreen({
             </View>
             {/* Scrollable list area — use overflow:scroll on View instead of ScrollView */}
             <ScrollView style={{ flex: 1, paddingHorizontal: 12 }} showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
-              {/* TEMP: test data to verify scrolling */}
-              {[...Array(12)].map((_, idx) => (
-                <View key={`test-${idx}`} style={{ backgroundColor: idx % 2 === 0 ? '#f0f4ff' : '#fff', borderRadius: 12, padding: 20, marginBottom: 8, borderWidth: 1, borderColor: '#e0e0e0' }}>
-                  <Text style={{ fontSize: 16, fontWeight: '700', marginBottom: 8 }}>测试月份 {idx + 1}</Text>
-                  <Text style={{ color: '#666' }}>¥{(Math.random() * 5000).toFixed(2)}</Text>
-                </View>
-              ))}
+              {(feeHistoryFilter === 'all' ? allFees : allFees.filter((f: any) => f.year === feeHistoryFilter.year && f.month === feeHistoryFilter.month)).map((f: any, idx: number) => {
+                const monthTotal = (f.meituan_cashier || 0) + (f.meituan_waimai || 0) + (f.shangou_waimai || 0) + (f.meituan_tuan || 0);
+                const platforms = [
+                  { label: t('meituanCashier'), value: f.meituan_cashier || 0, color: colors.info },
+                  { label: t('meituanWaimai'), value: f.meituan_waimai || 0, color: colors.warning },
+                  { label: t('shangouWaimai'), value: f.shangou_waimai || 0, color: colors.info },
+                  { label: t('meituanTuan'), value: f.meituan_tuan || 0, color: colors.success },
+                ];
+                return (
+                  <View key={f.id} style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: colors.secondary, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' } as any}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+                      <Text style={{ fontSize: FONTS.subBold.size, color: colors.textSub, fontWeight: FONTS.subBold.weight }}>{fmtMonth(f.year, f.month)}</Text>
+                      <Text style={{ fontSize: FONTS.body.size, color: colors.primary, fontWeight: FONTS.h2.weight }}>¥{monthTotal.toFixed(2)}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                      {platforms.map((p) => (
+                        <View key={p.label} style={{ flex: 1, minWidth: '46%', flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bg, borderRadius: 6, paddingVertical: 6, paddingHorizontal: 8, gap: 6 }}>
+                          <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: p.color }} />
+                          <Text style={{ fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight, flex: 1 }}>{p.label}</Text>
+                          <Text style={{ fontSize: FONTS.microBold.size, color: colors.textMain, fontWeight: FONTS.microBold.weight }}>¥{p.value.toFixed(2)}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                );
+              })}
             </ScrollView>
           </View>
         </View>
