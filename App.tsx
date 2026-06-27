@@ -60,7 +60,7 @@ export default function App() {
     return () => { unsubKicked(); unsubChange(); };
   }, []);
 
-  const goHome = useCallback(() => { console.warn('[AUTH DEBUG] App.goHome called — page→home'); setAppKey((k) => k + 1); setPage('home'); }, []);
+  const goHome = useCallback(() => { console.warn('[AUTH DEBUG] App.goHome called — page→home (page was', page, ')'); setAppKey((k) => k + 1); setPage('home'); }, [page]);
   const goLogin = useCallback(() => {
     // Preserve device-level settings across logout: language, the
     // "remember me" checkbox, and the saved username so the login

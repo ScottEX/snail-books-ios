@@ -275,8 +275,7 @@ export const api = {
       credentials: 'include' as RequestCredentials,
     });
     if (resp.status === 401 || resp.status === 403) {
-      localStorage.removeItem('user');
-      try { onSessionExpired?.(); } catch {}
+      console.error('[AUTH DEBUG] uploadExpenseImages 401/403 — NOT logging out (debug mode)');
       throw new Error('Unauthorized');
     }
     if (!resp.ok) throw new Error(`Upload failed (${resp.status})`);
@@ -304,8 +303,7 @@ export const api = {
       credentials: 'include' as RequestCredentials,
     });
     if (resp.status === 401) {
-      localStorage.removeItem('user');
-      try { onSessionExpired?.(); } catch {}
+      console.error('[AUTH DEBUG] uploadBackground 401 — NOT logging out (debug mode)');
       throw new Error('Unauthorized');
     }
     if (!resp.ok) throw new Error(`Upload failed (${resp.status})`);
@@ -325,8 +323,7 @@ export const api = {
       credentials: 'include' as RequestCredentials,
     });
     if (resp.status === 401) {
-      localStorage.removeItem('user');
-      try { onSessionExpired?.(); } catch {}
+      console.error('[AUTH DEBUG] uploadAvatar 401 — NOT logging out (debug mode)');
       throw new Error('Unauthorized');
     }
     if (!resp.ok) throw new Error(`Upload failed (${resp.status})`);
@@ -346,8 +343,7 @@ export const api = {
       credentials: 'include' as RequestCredentials,
     });
     if (resp.status === 401) {
-      localStorage.removeItem('user');
-      try { onSessionExpired?.(); } catch {}
+      console.error('[AUTH DEBUG] uploadProfileCover 401 — NOT logging out (debug mode)');
       throw new Error('Unauthorized');
     }
     if (!resp.ok) throw new Error(`Upload failed (${resp.status})`);

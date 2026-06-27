@@ -347,8 +347,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     setLoading(true);
     try {
       const r = await api.login(username, password, remember);
+      console.warn('[AUTH DEBUG] Login response:', JSON.stringify({ status: r.status, has_token: !!r.token, username: r.username, user_id: r.user_id, need_verify: r.need_verify }));
       setLoading(false);
       if (r.status === 'ok') {
+        console.warn('[AUTH DEBUG] Login OK — proceeding to onLogin()');
         if (r.token && typeof localStorage !== 'undefined') localStorage.setItem('token', r.token);
         if (typeof localStorage !== 'undefined') {
           localStorage.setItem('user', r.username || username);
