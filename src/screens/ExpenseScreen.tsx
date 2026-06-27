@@ -1248,14 +1248,17 @@ export default function ExpenseScreen({
         minDate={undefined}
         title={t('billDate')}
       />
-      <DatePickerModal
-        visible={showFeeDatePicker}
-        value={feeEntryDate}
-        onClose={() => setShowFeeDatePicker(false)}
-        onSelect={(d) => { setFeeEntryDate(d); setFeeDateErr(0); }}
-        minDate={undefined}
-        title={t('entryDate')}
-      />
+      {/* Fee date picker — wrapped in Modal to render above fee sheet Modal */}
+      <Modal transparent animationType="none" visible={showFeeDatePicker} onRequestClose={() => setShowFeeDatePicker(false)}>
+        <DatePickerModal
+          visible={true}
+          value={feeEntryDate}
+          onClose={() => setShowFeeDatePicker(false)}
+          onSelect={(d) => { setFeeEntryDate(d); setFeeDateErr(0); }}
+          minDate={undefined}
+          title={t('entryDate')}
+        />
+      </Modal>
     </View>
   );
 }
