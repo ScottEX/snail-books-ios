@@ -197,8 +197,7 @@ export default function ExpenseScreen({
   useEffect(() => {
     if (scrollRef.current) {
       const w = Dimensions.get('window').width;
-      // Card0 = w-50, gap=14 → card1 at w-36; snap to align with content padding → w-54
-      const offsets = [0, w - 54];
+      const offsets = [0, w - 36];
       scrollRef.current.scrollTo({ x: offsets[activeTab] || 0, animated: true });
     }
   }, [activeTab]);
@@ -530,16 +529,14 @@ export default function ExpenseScreen({
           pagingEnabled={false}
           snapToOffsets={(() => {
             const w = Dimensions.get('window').width;
-            // Card0 = w-50, gap=14 → card1 natural = w-36
-            // Content starts at x=18 (paddingHorizontal), so snap card1 at w-54
-            return [0, w - 54];
+            return [0, w - 36];
           })()}
           decelerationRate="fast"
           onMomentumScrollEnd={(e) => {
             const offset = e.nativeEvent.contentOffset.x;
             const w = Dimensions.get('window').width;
-            // Midpoint of snap positions [0, w-54] → (w-54)/2
-            const idx = offset < (w - 54) / 2 ? 0 : 1;
+            // Midpoint of snap positions [0, w-36]
+            const idx = offset < (w - 36) / 2 ? 0 : 1;
             if (idx >= 0 && idx < tabCards.length) setActiveTab(idx);
           }}
           contentContainerStyle={st.tabScroll}>
