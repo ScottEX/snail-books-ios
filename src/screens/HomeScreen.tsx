@@ -521,20 +521,20 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           </View>
         </View>}
 
-        {/* Page content — matches web's `tab === 'partner' ? ... : tab === 'supply' ? ... : else` */}
-        {isHome && (
+        {/* Page content — ExpenseScreen has its own scroll, render outside wrapper */}
+        {isHome && tab === 'expense' ? (
+          <ExpenseScreen
+            businessSummary={businessSummary}
+            onReconHistory={() => setShowReconHistory(true)}
+            onExpenseHistory={() => setShowExpenseHistory(true)}
+          />
+        ) : isHome && (
         <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false} bounces={false}>
 
           {tab === 'partner' ? (
             <PartnerScreen onBack={() => setTab('list')} />
           ) : tab === 'supply' ? (
             <ProcurementScreen />
-          ) : tab === 'expense' ? (
-            <ExpenseScreen
-              businessSummary={businessSummary}
-              onReconHistory={() => setShowReconHistory(true)}
-              onExpenseHistory={() => setShowExpenseHistory(true)}
-            />
           ) : tab === 'list' ? (
             <DailyRevenueView
               colors={colors}
