@@ -12,7 +12,7 @@ import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import { getCurrentUserId } from '../utils/storage';
 import { useServerDate } from '../hooks/useServerDate';
-import { fmtDecInput } from '../utils/numbers';
+import { fmtDecInput, toDec2 } from '../utils/numbers';
 import Toast from '../components/Toast';
 import DatePickerModal from '../components/DatePickerModal';
 import ThemePickerModal from '../components/ThemePickerModal';
@@ -921,7 +921,7 @@ function DailyRevenueView(p: DailyRevProps) {
                       p.revDate === p.td ? t('revSaveToday') :
                       p.revDate === p.sdYesterday ? t('revSaveYesterday') :
                       p.revDate === p.sdDb4 ? t('revSaveDayBefore') :
-                      t('revSaveDayBefore')}
+                      t('revSaveDate').replace('{date}', p.revDate.slice(5).replace('-', ''))}
                   </Text>
                 </View>
               )}
@@ -932,15 +932,15 @@ function DailyRevenueView(p: DailyRevProps) {
           <View style={styles.revWeekRow}>
             <View style={{ alignItems: 'flex-start' }}>
               <Text style={styles.revWeekLabel}>{t('revWeekRevenue')}</Text>
-              <Text style={styles.revWeekVal}>¥{p.weekRev?.revenue ? p.weekRev.revenue.toFixed(2) : '0.00'}</Text>
+              <Text style={styles.revWeekVal}>¥{toDec2(p.weekRev?.revenue)}</Text>
             </View>
             <View style={{ alignItems: 'center' }}>
               <Text style={styles.revWeekLabel}>{t('revWeekTurnover')}</Text>
-              <Text style={styles.revWeekVal}>¥{p.weekRev?.turnover ? p.weekRev.turnover.toFixed(2) : '0.00'}</Text>
+              <Text style={styles.revWeekVal}>¥{toDec2(p.weekRev?.turnover)}</Text>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={styles.revWeekLabel}>{t('revWeekJD')}</Text>
-              <Text style={styles.revWeekVal}>¥{p.weekRev?.jd_revenue ? p.weekRev.jd_revenue.toFixed(2) : '0.00'}</Text>
+              <Text style={styles.revWeekVal}>¥{toDec2(p.weekRev?.jd_revenue)}</Text>
             </View>
           </View>
         </View>
@@ -1033,7 +1033,7 @@ function RevInputCard({ title, sub, symbol, value, onChangeText, yesterdayValue,
       </View>
       <Text style={styles.revInputCardFooter}>
         {t('revYesterdayLabel')}{' '}
-        {yesterdayValue ? `¥${yesterdayValue.toFixed(2)}` : t('revYesterdayNA')}
+        {yesterdayValue ? `¥${toDec2(yesterdayValue)}` : t('revYesterdayNA')}
       </Text>
     </View>
   );
@@ -1209,12 +1209,12 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   datePillTextActive: { color: colors.surface },
   dateLabel: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub },
   revInputCard: { flex: 1, backgroundColor: colors.surface, borderRadius: 10, padding: 10, borderWidth: 0.5, borderColor: colors.secondary },
-  revInputCardTitle: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight },
-  revInputCardSub: { fontSize: 11, color: withAlpha(colors.textSub, 0.7), marginTop: 2, marginBottom: 6 },
-  revInputCardInputWrap: { flexDirection: 'row', alignItems: 'center' },
-  revInputCardSymbol: { fontSize: FONTS.body.size, color: colors.textSub, marginRight: 2 },
-  revInputCardInput: { flex: 1, fontSize: FONTS.body.size, color: colors.textMain, padding: 0 },
-  revInputCardFooter: { fontSize: FONTS.micro.size, color: colors.textSub, marginTop: 4 },
+  revInputCardTitle: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.textSub, marginBottom: 2 },
+  revInputCardSub: { fontSize: FONTS.micro.size, color: colors.textSub, marginBottom: 8 },
+  revInputCardInputWrap: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 6 },
+  revInputCardSymbol: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub, marginRight: 2, marginBottom: 1 },
+  revInputCardInput: { flex: 1, fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.textMain, padding: 0 },
+  revInputCardFooter: { fontSize: FONTS.micro.size, color: colors.textSub },
   revNoteInput: { backgroundColor: colors.surface, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: FONTS.body.size, color: colors.textMain, marginBottom: 14, borderWidth: 1, borderColor: colors.secondary },
   revArchiveBtn: { backgroundColor: withAlpha(colors.textMain, 0.08), borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   revArchiveBtnDone: { backgroundColor: withAlpha(colors.success, 0.18) },
