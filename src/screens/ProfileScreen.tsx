@@ -917,7 +917,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   stickyHeader: {
     position: 'absolute' as any, top: 0, left: 0, right: 0, zIndex: 10,
     flexDirection: 'row', alignItems: 'center',
-    paddingTop: 50, paddingHorizontal: 16, paddingBottom: 12,
+    paddingTop: 60, paddingHorizontal: 16, paddingBottom: 12,
     backgroundColor: colors.surface,
   },
   stickyBackBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
@@ -933,7 +933,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   coverNav: {
     position: 'absolute', top: 0, left: 0, right: 0,
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12,
+    paddingHorizontal: 16, paddingTop: 54, paddingBottom: 12,
   },
   coverBackBtn: {
     width: 36, height: 36, borderRadius: 18,
