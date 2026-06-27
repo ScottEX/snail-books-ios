@@ -1126,21 +1126,13 @@ export default function ExpenseScreen({
         </ModalOverlay>
       )}
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
-      {/* Month picker dropdown — animated spring popover */}
+      {/* Month picker dropdown */}
       {showFeeMonthPicker && (
-        <>
-          {/* Animated backdrop */}
-          <Animated.View style={{ position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.08)', zIndex: 9998, opacity: pickerAnim }}>
-            <TouchableOpacity
-              style={{ flex: 1 }}
-              activeOpacity={1}
-              onPress={() => {
-                Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeMonthPicker(false));
-              }}
-            />
-          </Animated.View>
+        <ModalOverlay onClose={() => {
+          Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeMonthPicker(false));
+        }}>
           <Animated.View style={{
-            position: 'fixed' as any,
+            position: 'absolute' as any,
             top: pickerPos.top || '38%',
             left: pickerPos.left || 10,
             zIndex: 9999,
@@ -1182,22 +1174,15 @@ export default function ExpenseScreen({
               );
             })}
           </Animated.View>
-        </>
+        </ModalOverlay>
       )}
-      {/* Fee history filter dropdown — animated to match platform fee picker */}
+      {/* Fee history filter dropdown */}
       {showFeeHistoryFilterPicker && (
-        <>
-          <Animated.View style={{ position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.08)', zIndex: 9998, opacity: pickerAnim }}>
-            <TouchableOpacity
-              style={{ flex: 1 }}
-              activeOpacity={1}
-              onPress={() => {
-                Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeHistoryFilterPicker(false));
-              }}
-            />
-          </Animated.View>
+        <ModalOverlay onClose={() => {
+          Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeHistoryFilterPicker(false));
+        }}>
           <Animated.View style={{
-            position: 'fixed' as any,
+            position: 'absolute' as any,
             top: feeHistoryPickerPos.top || '38%',
             left: feeHistoryPickerPos.left || 10,
             zIndex: 9999,
@@ -1239,7 +1224,7 @@ export default function ExpenseScreen({
               );
             })}
           </Animated.View>
-        </>
+        </ModalOverlay>
       )}
 
       <DatePickerModal
@@ -1291,7 +1276,7 @@ function ModalOverlay({ children, onClose }: {
     ]).start(onClose);
   };
   return (
-    <Animated.View style={{ position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 200, justifyContent: 'center', alignItems: 'center', padding: 16, opacity: fade }}>
+    <Animated.View style={{ position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 200, justifyContent: 'center', alignItems: 'center', padding: 16, opacity: fade }}>
       <TouchableOpacity style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)' }} onPress={close} activeOpacity={1} />
       <Animated.View style={{ transform: [{ translateY: anim }], alignSelf: 'stretch' as any, alignItems: 'center', justifyContent: 'center' }}>{children}</Animated.View>
     </Animated.View>
@@ -1301,7 +1286,7 @@ function ModalOverlay({ children, onClose }: {
 /* ═══════════════════════════════════════ STYLES ═══════════════════════════════════ */
 const getSt = (colors: ThemeColors) => StyleSheet.create({
   ...uploadReceiptStyles(colors),
-  root: { flex: 1 },
+  root: { flex: 1, position: 'relative' as const },
 
   /* ── Tab Bar ── */
   tabBar: {
@@ -1667,10 +1652,9 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
     paddingBottom: 0,
     // @ts-ignore
     display: 'flex', flexDirection: 'column',
-    width: '96%', maxWidth: 500,
+    width: '96%', maxWidth: 500, maxHeight: '80%',
     // @ts-ignore
     ...modalCardAnimation,
     // @ts-ignore
-    boxShadow: '0 -4px 24px rgba(0,0,0,0.08)',
   },
 });
