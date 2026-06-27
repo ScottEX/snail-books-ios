@@ -103,18 +103,25 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
   const anim = useRef(new Animated.Value(0)).current;
 
   const close = useCallback((afterClose?: () => void) => {
-    Animated.timing(anim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+    const timer = Animated.timing(anim, { toValue: 0, duration: 200, useNativeDriver: true });
+    timer.start(() => {
       setMounted(false);
       afterClose?.();
     });
+    return () => timer.stop();
   }, [anim]);
 
   useEffect(() => {
     if (visible) {
       setMounted(true);
-      Animated.spring(anim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 }).start();
+      const spring = Animated.spring(anim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 });
+      spring.start();
+      return () => spring.stop();
+    } else {
+      anim.setValue(0);
+      setMounted(false);
     }
-  }, [visible]);
+  }, [visible, anim]);
 
   if (!mounted) return null;
 
