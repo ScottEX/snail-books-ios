@@ -4,6 +4,7 @@ import { StatusBar } from 'react-native';
 import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import SessionKickedModal from './src/components/SessionKickedModal';
+import { ErrorBoundary } from './src/components/CrashCatcher';
 import { ThemeProvider } from './src/theme';
 import { LangProvider } from './src/i18n';
 import { onSessionKicked, onUserChange, setSessionExpiredHandler } from './src/api/client';
@@ -96,11 +97,13 @@ export default function App() {
     <SafeAreaProvider>
       <LangProvider>
         <SessionKickedModal />
-        <ThemeProvider key={appKey}>
-          <StatusBar barStyle="light-content" />
-          {page === 'login' && <LoginScreen onLogin={goHome} />}
-          {page === 'home' && <HomeScreen onLogout={goLogin} />}
-        </ThemeProvider>
+        <ErrorBoundary>
+          <ThemeProvider key={appKey}>
+            <StatusBar barStyle="light-content" />
+            {page === 'login' && <LoginScreen onLogin={goHome} />}
+            {page === 'home' && <HomeScreen onLogout={goLogin} />}
+          </ThemeProvider>
+        </ErrorBoundary>
       </LangProvider>
     </SafeAreaProvider>
   );

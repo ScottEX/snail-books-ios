@@ -4,6 +4,9 @@
 // recharts/react-pdf) reference browser APIs that don't exist in Hermes.
 import './src/polyfills/localStorage';
 
+import { installGlobalCrashHandler } from './src/components/CrashCatcher';
+installGlobalCrashHandler();
+
 import { registerRootComponent } from 'expo';
 import App from './App';
 
