@@ -115,6 +115,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
     date !== (expense?.date || expense?.created_at?.slice(0, 10) || todayStr()) ||
     note !== (expense?.note || '') ||
     JSON.stringify(images) !== JSON.stringify(parseImages(expense?.images)) ||
+    JSON.stringify(thumbImages) !== JSON.stringify(parseImages(expense?.thumb_images)) ||
     newFiles.length > 0;
 
   const currentUser = getCurrentUser();
@@ -245,7 +246,9 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
                     {isRefundRecord ? '+¥' : '-¥'}
                   </Text>
                   <Text style={[styles.amountValue, { color: isRefundRecord ? c.success : amtColor }]}>
-                    {Number(expense?.amount || 0).toFixed(2)}
+                    {isRefundRecord
+                    ? Math.abs(Number(expense?.amount || 0)).toFixed(2)
+                    : Number(expense?.amount || 0).toFixed(2)}
                   </Text>
                 </View>
               </View>
