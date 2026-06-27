@@ -605,7 +605,7 @@ const getStyles = (c: ThemeColors) =>
     },
     sectionTitleInline: {
       fontSize: 14, fontWeight: '500', color: c.textSub,
-      textTransform: 'uppercase', letterSpacing: 0.5, width: 64,
+      width: 56,
     },
     thumbRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     thumb: {
