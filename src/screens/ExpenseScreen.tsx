@@ -1297,7 +1297,7 @@ function ModalOverlay({ children, onClose }: {
 /* ═══════════════════════════════════════ STYLES ═══════════════════════════════════ */
 const getSt = (colors: ThemeColors) => StyleSheet.create({
   ...uploadReceiptStyles(colors),
-  root: { flex: 1, position: 'relative' as const },
+  root: { flex: 1, position: 'relative' as const, backgroundColor: 'transparent' as const },
 
   /* ── Tab Bar ── */
   tabBar: {
@@ -1384,9 +1384,9 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   },
 
   /* ── Content ── */
-  contentScroll: { flex: 1 },
+  contentScroll: { flex: 1, backgroundColor: 'transparent' as const },
   contentInner: {
-    paddingHorizontal: 18, paddingBottom: 100, gap: 0,
+    paddingHorizontal: 18, paddingBottom: 100, gap: 0, backgroundColor: 'transparent' as const,
   },
   moduleWrap: {
     width: '100%',
