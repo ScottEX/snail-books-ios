@@ -1232,22 +1232,28 @@ export default function ExpenseScreen({
         </Animated.View>
       </Modal>
 
-      <DatePickerModal
-        visible={showRecDatePicker}
-        value={recDate}
-        onClose={() => setShowRecDatePicker(false)}
-        onSelect={(d) => { setRecDate(d); setRecDateKey(k => k + 1); setRecDateErr(0); }}
-        minDate={sd.today}
-        title={t('billDate')}
-      />
-      <DatePickerModal
-        visible={showExpDatePicker}
-        value={expDate}
-        onClose={() => setShowExpDatePicker(false)}
-        onSelect={(d) => { if (d <= sd.today) { setExpDate(d); setExpDateErr(0); } }}
-        minDate={undefined}
-        title={t('billDate')}
-      />
+      {/* Rec date picker — Modal wraps for full-screen overlay */}
+      <Modal transparent animationType="none" visible={showRecDatePicker} onRequestClose={() => setShowRecDatePicker(false)}>
+        <DatePickerModal
+          visible={true}
+          value={recDate}
+          onClose={() => setShowRecDatePicker(false)}
+          onSelect={(d) => { setRecDate(d); setRecDateKey(k => k + 1); setRecDateErr(0); }}
+          minDate={sd.today}
+          title={t('billDate')}
+        />
+      </Modal>
+      {/* Exp date picker — Modal wraps for full-screen overlay */}
+      <Modal transparent animationType="none" visible={showExpDatePicker} onRequestClose={() => setShowExpDatePicker(false)}>
+        <DatePickerModal
+          visible={true}
+          value={expDate}
+          onClose={() => setShowExpDatePicker(false)}
+          onSelect={(d) => { if (d <= sd.today) { setExpDate(d); setExpDateErr(0); } }}
+          minDate={undefined}
+          title={t('billDate')}
+        />
+      </Modal>
       {/* Fee date picker — wrapped in Modal to render above fee sheet Modal */}
       <Modal transparent animationType="none" visible={showFeeDatePicker} onRequestClose={() => setShowFeeDatePicker(false)}>
         <DatePickerModal
