@@ -460,14 +460,12 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
       {/* Delete confirm — shared ConfirmModal */}
       <ConfirmModal visible={showDeleteConfirm}
         title={t('confirmDeleteRecord')}
-        headerColor={c.danger}
         message={deleteError ? (
           <Text style={{ color: c.danger, fontSize: FONTS.micro.size, textAlign: 'center' }}>{deleteError}</Text>
         ) : (
           "确认删除该笔支出数据，将无法恢复"
         )}
         confirmLabel={deleting ? '删除中…' : (t('confirm') || t('delete'))}
-        confirmColor={c.danger}
         cancelLabel={t('cancel')}
         loading={deleting}
         onConfirm={handleDelete}
