@@ -489,6 +489,9 @@ saveLang: (lang: string) => silentAuthFetch('/api/settings/lang', { method: 'PUT
     restoreUser: (id: number | string) => authFetch(`/api/admin/users/${id}/restore`, { method: 'POST' }),
   },
 
+  // Current user (non-admin safe — returns 200 for everyone)
+  getMe: () => authFetch('/api/users/me'),
+
   // Invoice info (system-level)
   getInvoice: () => authFetch('/api/admin/invoice'),
   updateInvoice: (data: Record<string, string>) => authFetch('/api/admin/invoice', { method: 'PUT', body: JSON.stringify(data) }),
