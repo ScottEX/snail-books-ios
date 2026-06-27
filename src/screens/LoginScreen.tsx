@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, ImageBackground, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ImageBackground, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
 import { t, getLang, langs, useLang } from '../i18n';
@@ -380,6 +380,8 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         if (faceAvailable && !(await hasStoredCredential())) {
           offerEnableFaceID();
         }
+        // DEBUG: confirm onLogin is called
+        Alert.alert('DEBUG', 'Login OK — about to call onLogin()');
         onLogin();
       } else if (r.need_verify) {
         setEmail(r.email); setStep('verify'); setMsg('');
