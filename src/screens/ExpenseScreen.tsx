@@ -439,24 +439,6 @@ export default function ExpenseScreen({
   const [showExpDatePicker, setShowExpDatePicker] = useState(false);
   const [showFeeDatePicker, setShowFeeDatePicker] = useState(false);
 
-  // Compress image — no-op on RN. (RN uses expo-image-manipulator instead.)
-  const compressImage = (file: any): Promise<any> => Promise.resolve(file);
-
-  const handleImageSelect = async (e: any) => {
-    const files: any[] = e?.files || e?.target?.files || [];
-    if (!files || files.length === 0) return;
-    const newFiles: any[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const f = files[i];
-      if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) continue;
-      if (f.size > 10 * 1024 * 1024) continue;
-      if (expImages.some((e: any) => e.name === f.name && e.size === f.size)) continue;
-      const compressed = await compressImage(f);
-      newFiles.push(compressed);
-    }
-    setExpImages((prev: any[]) => [...prev, ...newFiles]);
-  };
-
   const removeImage = (idx: number) => {
     setExpImages(prev => {
       if (prev[idx]) revokePreviewUrl(prev[idx]);
