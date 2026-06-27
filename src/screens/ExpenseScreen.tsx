@@ -18,7 +18,8 @@ import CloseButton from '../components/CloseButton';
 import SubmitButton from '../components/SubmitButton';
 import { useTheme, withAlpha, ThemeColors, FONTS, MODAL_BACKDROP_OPACITY } from '../theme';
 import { modalCardAnimation, modalClose, uploadReceiptStyles } from '../sharedStyles';
-import { fmtAmt as fmt, toDec2Comma } from '../utils/format';
+import { fmtAmt as fmt, fmtAmtFull, toDec2Comma } from '../utils/format';
+import NumberTickerExt from '../components/NumberTicker';
 import { useServerDate } from '../hooks/useServerDate';
 
 /* ── helpers ── */
@@ -751,7 +752,7 @@ export default function ExpenseScreen({
             {/* 在途资金 */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={{ fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.textSub }}>{t('fundsInTransit')}</Text>
-              <NumberTicker value={channelTotal} formatFn={fmtAmtFull} style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary }} />
+              <NumberTickerExt value={channelTotal} formatFn={fmtAmtFull} style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary }} />
             </View>
             <View style={st.channelGrid}>
               {/* Row 1: 堂食 + 美团 + 闪购 */}
