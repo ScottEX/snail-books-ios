@@ -1057,7 +1057,7 @@ export default function ExpenseScreen({
 
       {/* Fee history bottom sheet — "全部" detail view */}
       {showFeeHistory && (
-        <View style={{ position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, justifyContent: 'center', alignItems: 'center', padding: 16, backgroundColor: 'rgba(0,0,0,0.3)' }}>
+        <View style={{ position: 'absolute' as any, top: -88, left: 0, right: 0, bottom: 0, zIndex: 9999, justifyContent: 'center', alignItems: 'center', padding: 16, backgroundColor: 'rgba(0,0,0,0.3)' }}>
           <View style={[st.feeSheet, { height: Dimensions.get('window').height * 0.70, width: '96%', overflow: 'visible' as any }]}>
             <View style={st.modalHeader}>
               <Text style={st.modalTitle}>{t('feeHistory')}</Text>
@@ -1104,7 +1104,7 @@ export default function ExpenseScreen({
                   { label: t('meituanTuan'), value: f.meituan_tuan || 0, color: colors.success },
                 ];
                 return (
-                  <View key={f.id} style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: colors.secondary, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' } as any}>
+                  <View key={f.id} style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, marginBottom: 8 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
                       <Text style={{ fontSize: FONTS.subBold.size, color: colors.textSub, fontWeight: FONTS.subBold.weight }}>{fmtMonth(f.year, f.month)}</Text>
                       <Text style={{ fontSize: FONTS.body.size, color: colors.primary, fontWeight: FONTS.h2.weight }}>¥{monthTotal.toFixed(2)}</Text>
@@ -1657,7 +1657,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   modalCancelText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.textSub },
   /* Platform fee sheet — bottom half-screen */
   feeSheet: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bg,
     borderRadius: 20,
     overflow: 'hidden',
     paddingBottom: 0,
