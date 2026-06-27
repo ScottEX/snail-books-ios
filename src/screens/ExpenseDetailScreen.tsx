@@ -340,7 +340,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
           <View style={styles.editContainer}>
             <Text style={styles.sectionTitle}>{t('expTotalAmount')}</Text>
             <View style={styles.amountEditWrap}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
                 <Text style={[styles.amountEditSymbol, { color: isRefundRecord ? c.success : amtColor }]}>
                   {isRefundRecord ? '+¥' : '-¥'}
                 </Text>
@@ -635,7 +635,7 @@ const getStyles = (c: ThemeColors) =>
     amountEditValue: {
       fontSize: 36, fontWeight: '700',
       borderWidth: 0, backgroundColor: 'transparent',
-      textAlign: 'left', padding: 0, minWidth: 180,
+      textAlign: 'left', padding: 0, width: 180,
     },
     editRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     editRowValue: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textSub },
