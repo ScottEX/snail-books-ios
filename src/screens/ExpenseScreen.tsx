@@ -12,6 +12,9 @@ import CategoryChips from '../components/CategoryChips';
 import PaymentMethodChips from '../components/PaymentMethodChips';
 import ExpenseNoteInput from '../components/ExpenseNoteInput';
 import ReceiptUpload from '../components/ReceiptUpload';
+import ButtonPair from '../components/ButtonPair';
+import CloseButton from '../components/CloseButton';
+import SubmitButton from '../components/SubmitButton';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import { modalCardAnimation, modalClose, uploadReceiptStyles } from '../sharedStyles';
@@ -272,7 +275,6 @@ export default function ExpenseScreen({
     }
   }, [cardBalance, cashBalance, dineIn, meituan, flashSale, jd, tuan]);
 
-  // 提交对账到后端
   const submitRecon = useCallback(async () => {
     if (sd.isFuture(recDate)) { setToast(t('errDateFuture')); return; }
     try {
@@ -403,6 +405,8 @@ export default function ExpenseScreen({
   const [expCatTotals, setExpCatTotals] = useState({ daily: 0, rent: 0, salary: 0, goods: 0 });
   const [loadingExp, setLoadingExp] = useState(false);
   const [showExpConfirm, setShowExpConfirm] = useState(false);
+
+  const isAmountInvalid = !expAmount || parseFloat(expAmount.replace(/,/g, '')) === 0 || loadingExp;
 
   const loadExpenses = async () => {
     try {
@@ -748,19 +752,13 @@ export default function ExpenseScreen({
             </View>
 
             {/* 按钮行：对账记录(左) + 添加(右) */}
-            <View style={st.btnRow}>
-              <TouchableOpacity style={st.reconRecordBtn} onPress={onReconHistory} activeOpacity={0.8}>
-                <Text style={st.reconRecordBtnText}>{t('reconHistory')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[st.reconBtn, !hasReconChanges && { opacity: 0.4 }]}
-                onPress={() => hasReconChanges && setShowToast(true)}
-                activeOpacity={hasReconChanges ? 0.8 : 1}
-                disabled={!hasReconChanges}
-              >
-                <Text style={st.reconBtnText}>{t('reconComplete')}</Text>
-              </TouchableOpacity>
-            </View>
+            <ButtonPair
+              leftLabel={t('reconHistory')}
+              leftOnPress={onReconHistory}
+              rightLabel={t('reconComplete')}
+              rightOnPress={() => hasReconChanges && setShowToast(true)}
+              rightDisabled={!hasReconChanges}
+            />
           </View>
         </FadeInView>
         )}
@@ -954,25 +952,14 @@ export default function ExpenseScreen({
                 </View>
               </View>
               {/* 按钮行 */}
-              <View style={st.btnRow}>
-                <TouchableOpacity style={st.reconRecordBtn}
-                  onPress={() => onExpenseHistory?.()} activeOpacity={0.8}>
-                  <Text style={st.reconRecordBtnText}>{t('expenseHistory')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[st.expBtn, { flex: 1 }]}
-                  onPress={() => { if (parseFloat(expAmount.replace(/,/g, '')) !== 0) setShowExpConfirm(true); }}
-                  disabled={!expAmount || parseFloat(expAmount.replace(/,/g, '')) === 0 || loadingExp || uploadingImg}
-                  activeOpacity={0.8}
-                >
-                  <Text style={st.expBtnText}>
-                    {uploadingImg ? t('uploading') : loadingExp ? '...' : t('confirmRecord')}
-                  </Text>
-                  {(!expAmount || parseFloat(expAmount.replace(/,/g, '')) === 0 || loadingExp || uploadingImg) && (
-                    <View style={st.expBtnMask} />
-                  )}
-                </TouchableOpacity>
-              </View>
+              <ButtonPair
+                leftLabel={t('expenseHistory')}
+                leftOnPress={() => onExpenseHistory?.()}
+                rightLabel={t('confirmRecord')}
+                rightOnPress={() => { if (parseFloat(expAmount.replace(/,/g, '')) !== 0) setShowExpConfirm(true); }}
+                rightDisabled={isAmountInvalid}
+                rightLoading={loadingExp}
+              />
             </View>
           </View>
         </FadeInView>
@@ -985,22 +972,18 @@ export default function ExpenseScreen({
           <View style={st.modalCard} onStartShouldSetResponder={() => true}>
             <View style={st.modalHeader}>
               <Text style={st.modalTitle}>{t('expConfirmTitle')}</Text>
-              <TouchableOpacity onPress={() => setShowExpConfirm(false)}>
-                <Text style={st.modalClose}>✕</Text>
-              </TouchableOpacity>
+              <CloseButton onPress={() => setShowExpConfirm(false)} />
             </View>
             <View style={{ padding: 20, gap: 16 }}>
               <Text style={{ fontSize: FONTS.sub.size, color: colors.textSub, textAlign: 'center' }}>
                 {t('expConfirmMsg')}
               </Text>
-              <View style={{ flexDirection: 'row', gap: 12 }}>
-                <TouchableOpacity style={st.modalCancelBtn} onPress={() => setShowExpConfirm(false)}>
-                  <Text style={st.modalCancelText}>{t('cancel')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={st.modalBtn} onPress={() => { setShowExpConfirm(false); handleAddExpense(); }}>
-                  <Text style={st.modalBtnText}>{t('confirm')}</Text>
-                </TouchableOpacity>
-              </View>
+              <ButtonPair
+                leftLabel={t('cancel')}
+                leftOnPress={() => setShowExpConfirm(false)}
+                rightLabel={t('confirm')}
+                rightOnPress={() => { setShowExpConfirm(false); handleAddExpense(); }}
+              />
             </View>
           </View>
         </ModalOverlay>
@@ -1012,22 +995,18 @@ export default function ExpenseScreen({
           <View style={st.modalCard} onStartShouldSetResponder={() => true}>
             <View style={st.modalHeader}>
               <Text style={st.modalTitle}>{t('friendlyReminder')}</Text>
-              <TouchableOpacity onPress={hideToast}>
-                <Text style={st.modalClose}>✕</Text>
-              </TouchableOpacity>
+              <CloseButton onPress={hideToast} />
             </View>
             <View style={{ padding: 20, gap: 16 }}>
               <Text style={{ fontSize: FONTS.sub.size, color: colors.textSub, textAlign: 'center' }}>
                 {t('jokeRecon')}
               </Text>
-              <View style={{ flexDirection: 'row', gap: 12 }}>
-                <TouchableOpacity style={st.modalCancelBtn} onPress={hideToast}>
-                  <Text style={st.modalCancelText}>{t('cancel')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={st.modalBtn} onPress={() => { hideToast(); submitRecon(); }}>
-                  <Text style={st.modalBtnText}>{t('confirm')}</Text>
-                </TouchableOpacity>
-              </View>
+              <ButtonPair
+                leftLabel={t('cancel')}
+                leftOnPress={hideToast}
+                rightLabel={t('confirm')}
+                rightOnPress={() => { hideToast(); submitRecon(); }}
+              />
             </View>
           </View>
         </ModalOverlay>
@@ -1038,9 +1017,7 @@ export default function ExpenseScreen({
           <View style={st.feeSheet} onStartShouldSetResponder={() => true}>
             <View style={st.modalHeader}>
               <Text style={st.modalTitle}>{t('addFeeEntry')}</Text>
-              <TouchableOpacity onPress={() => setShowFeeSheet(false)}>
-                <Text style={st.modalClose}>✕</Text>
-              </TouchableOpacity>
+              <CloseButton onPress={() => setShowFeeSheet(false)} />
             </View>
             <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16 }}>
               {/* Date */}
@@ -1092,12 +1069,14 @@ export default function ExpenseScreen({
               })}
 
               {/* Confirm */}
-              <TouchableOpacity
-                style={{ backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 8, opacity: (savingFee || (toNum(feeMc) + toNum(feeMw) + toNum(feeEw) + toNum(feeMt) === 0)) ? 0.35 : 1 }}
-                onPress={handleAddFee} disabled={savingFee || (toNum(feeMc) + toNum(feeMw) + toNum(feeEw) + toNum(feeMt) === 0)} activeOpacity={0.8}
-              >
-                <Text style={{ color: colors.surface, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight }}>{savingFee ? '...' : t('confirm')}</Text>
-              </TouchableOpacity>
+              <SubmitButton
+                onPress={handleAddFee}
+                loading={savingFee}
+                disabled={toNum(feeMc) + toNum(feeMw) + toNum(feeEw) + toNum(feeMt) === 0}
+                label={t('confirm')}
+                style={{ backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 8 }}
+                textStyle={{ color: colors.surface, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight }}
+              />
             </View>
           </View>
         </ModalOverlay>
@@ -1109,9 +1088,7 @@ export default function ExpenseScreen({
           <View style={[st.feeSheet, { height: Dimensions.get('window').height * 0.75, width: '96%' }]} onStartShouldSetResponder={() => true}>
             <View style={st.modalHeader}>
               <Text style={st.modalTitle}>{t('feeHistory')}</Text>
-              <TouchableOpacity onPress={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }}>
-                <Text style={st.modalClose}>✕</Text>
-              </TouchableOpacity>
+              <CloseButton onPress={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }} />
             </View>
             {/* Month filter */}
             <View style={{ paddingHorizontal: 20, paddingBottom: 14, flexDirection: 'row', alignItems: 'center' }}>
