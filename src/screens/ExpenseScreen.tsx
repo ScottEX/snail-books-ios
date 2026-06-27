@@ -1059,12 +1059,12 @@ export default function ExpenseScreen({
       {showFeeHistory && (
         <View style={{ position: 'absolute' as any, top: -88, left: 0, right: 0, bottom: 0, zIndex: 9999, justifyContent: 'center', alignItems: 'center', padding: 16, backgroundColor: 'rgba(0,0,0,0.3)' }}>
           <View style={[st.feeSheet, { height: Dimensions.get('window').height * 0.70, width: '96%', overflow: 'visible' as any }]}>
-            <View style={[st.modalHeader, { paddingVertical: 8 }]}>
+            <View style={st.modalHeader}>
               <Text style={st.modalTitle}>{t('feeHistory')}</Text>
               <CloseButton onPress={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }} />
             </View>
             {/* Month filter */}
-            <View style={{ paddingHorizontal: 20, paddingBottom: 6, flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ paddingHorizontal: 20, paddingBottom: 6, marginTop: -6, flexDirection: 'row', alignItems: 'center' }}>
               <TouchableOpacity
                 ref={feeHistoryFilterTriggerRef}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 8, position: 'relative' }}
