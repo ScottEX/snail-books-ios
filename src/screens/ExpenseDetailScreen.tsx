@@ -635,7 +635,7 @@ const getStyles = (c: ThemeColors) =>
     amountEditValue: {
       fontSize: 36, fontWeight: '700',
       borderWidth: 0, backgroundColor: 'transparent',
-      textAlign: 'left', padding: 0, width: 180,
+      textAlign: 'left', padding: 0, flex: 0, width: 180,
     },
     editRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     editRowValue: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textSub },
