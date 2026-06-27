@@ -385,7 +385,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
             <View style={styles.editRow}>
               <Text style={styles.sectionTitleInline}>{t('expenseDate')}</Text>
               <View style={styles.dateField}>
-                <View style={{ paddingVertical: 12, paddingHorizontal: 12 }}>
+                <View style={{ paddingVertical: 12, paddingRight: 12 }}>
                 <DatePicker
                   date={date}
                   onChange={setDate}
