@@ -393,6 +393,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
                   fontSize={FONTS.sub.size}
                   color={c.textSub}
                   disabled={!!expense?.procurement_batch_id}
+                  showCalendarIcon
                   showChevron
                 />
               </View>
