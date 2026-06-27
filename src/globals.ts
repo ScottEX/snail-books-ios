@@ -1,17 +1,13 @@
 /**
- * Install platform shims (localStorage, document, window, navigator) onto
- * globalThis. Must be imported BEFORE any module that touches these globals,
- * because Hermes strict mode throws ReferenceError on access to undeclared
- * globals (the `typeof x !== 'undefined'` guard is NOT enough).
+ * Platform shims install shim (legacy — kept for backwards compat).
  *
- * This is loaded as a side-effect import from index.js (the very first line).
+ * The actual localStorage/DOMMatrix/window/navigator shims are now installed
+ * by ./polyfills/localStorage, which is imported as the very first line of
+ * index.js. This module is kept as a no-op side-effect import target so
+ * existing imports keep working without breaking.
+ *
+ * If you need to access the shimmed globals, just use them directly
+ * (e.g. `localStorage.getItem('user')`) — the polyfill makes them available
+ * globally before any other module evaluates.
  */
-import { localStorage, document, window, navigator } from './platform';
-
-if (typeof globalThis !== 'undefined') {
-  const g = globalThis as any;
-  if (g.localStorage === undefined) g.localStorage = localStorage;
-  if (g.document === undefined) g.document = document;
-  if (g.window === undefined) g.window = window;
-  if (g.navigator === undefined) g.navigator = navigator;
-}
+export {};
