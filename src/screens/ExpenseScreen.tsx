@@ -1070,8 +1070,8 @@ export default function ExpenseScreen({
               <CloseButton onPress={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }} />
             </View>
             {/* Month filter */}
-            <View style={{ paddingHorizontal: 20, paddingBottom: 6, marginTop: -6, flexDirection: 'row', alignItems: 'center' }}>
-              <MonthPicker selected={feeHistoryFilter} onSelect={(v) => setFeeHistoryFilter(v)} months={allFees} colors={colors} />
+            <View style={{ paddingHorizontal: 20, paddingBottom: 6, paddingTop: 8, flexDirection: 'row', alignItems: 'center' }}>
+              <MonthPicker useModal={false} selected={feeHistoryFilter} onSelect={(v) => setFeeHistoryFilter(v)} months={allFees} colors={colors} />
             </View>
             {/* Scrollable list area */}
             <ScrollView style={{ flex: 1, paddingHorizontal: 12 }} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
