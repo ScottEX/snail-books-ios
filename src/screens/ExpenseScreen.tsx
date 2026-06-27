@@ -9,6 +9,7 @@ import { api } from '../api/client';
 import Toast from '../components/Toast';
 import DatePickerModal from '../components/DatePickerModal';
 import CategoryChips from '../components/CategoryChips';
+import MonthPicker, { MonthValue } from '../components/MonthPicker';
 import PaymentMethodChips from '../components/PaymentMethodChips';
 import ExpenseNoteInput from '../components/ExpenseNoteInput';
 import ReceiptUpload from '../components/ReceiptUpload';
@@ -342,11 +343,9 @@ export default function ExpenseScreen({
   const [feeData, setFeeData] = useState<any>(null);        // current month
   const [allFees, setAllFees] = useState<any[]>([]);         // all months for detail
   const [feeMonth, setFeeMonth] = useState<'all' | { year: number; month: number }>({ year: thisYear, month: thisMonth });
-  const [showFeeMonthPicker, setShowFeeMonthPicker] = useState(false);
   const [showFeeSheet, setShowFeeSheet] = useState(false);
   const [showFeeHistory, setShowFeeHistory] = useState(false);
   const [feeHistoryFilter, setFeeHistoryFilter] = useState<'all' | { year: number; month: number }>('all');
-  const [showFeeHistoryFilterPicker, setShowFeeHistoryFilterPicker] = useState(false);
   const [feeEntryDate, setFeeEntryDate] = useState(sd.today || '');
   const [feeDateErr, setFeeDateErr] = useState(0);
   const [feeMc, setFeeMc] = useState('');
@@ -354,14 +353,7 @@ export default function ExpenseScreen({
   const [feeEw, setFeeEw] = useState('');
   const [feeMt, setFeeMt] = useState('');
   const [savingFee, setSavingFee] = useState(false);
-  const pickerTriggerRef = useRef<any>(null);
-  const feeHistoryFilterTriggerRef = useRef<any>(null);
-  const [pickerAnim] = useState(new Animated.Value(0));
-  const [feeHistoryPickerAnim] = useState(new Animated.Value(0));
-  const [pickerPos, setPickerPos] = useState({ top: 0, left: 0 });
-  const [feeHistoryPickerPos, setFeeHistoryPickerPos] = useState({ top: 0, left: 0 });
-
-  const loadFeeData = async () => {
+  /*
     try {
       const all = await api.getPlatformFees();
       const allArr = Array.isArray(all) ? all : [];
@@ -652,32 +644,7 @@ export default function ExpenseScreen({
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
                 <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.textMain }}>{t('platformFee')}</Text>
-                <TouchableOpacity
-                  ref={pickerTriggerRef}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 2, position: 'relative', paddingTop: 2 }}
-                  onPress={() => {
-                    if (!showFeeMonthPicker) {
-                      if (pickerTriggerRef.current && typeof (pickerTriggerRef.current as any).measureInWindow === 'function') {
-                        (pickerTriggerRef.current as any).measureInWindow((x: number, y: number, w: number, h: number) => {
-                          setPickerPos({ top: y + h + 4, left: x });
-                        });
-                      }
-                      pickerAnim.setValue(0);
-                      Animated.spring(pickerAnim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 }).start();
-                      setShowFeeMonthPicker(true);
-                    } else {
-                      Animated.timing(pickerAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => {
-                        setShowFeeMonthPicker(false);
-                      });
-                    }
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={{ fontSize: FONTS.microBold.size, color: colors.primary, fontWeight: FONTS.microBold.weight }}>
-                    {feeMonth === 'all' ? t('feeAllMonths') : fmtMonth(feeMonth.year, feeMonth.month)}
-                  </Text>
-                  <Text style={{ fontSize: FONTS.micro.size, color: colors.primary }}>▼</Text>
-                </TouchableOpacity>
+                <MonthPicker selected={feeMonth} onSelect={(v) => setFeeMonth(v)} months={allFees} colors={colors} />
               </View>
               {(feeMonth !== 'all' || allFees.length > 0) && (
               <TouchableOpacity
@@ -986,110 +953,8 @@ export default function ExpenseScreen({
       )}
 
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
-      {/* Month picker dropdown — Modal-based (like web's createPortal to body) */}
-      <Modal transparent animationType="none" visible={showFeeMonthPicker} onRequestClose={() => {
-        Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeMonthPicker(false));
-      }}>
-        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => {
-          Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeMonthPicker(false));
-        }}>
-          <Animated.View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.08)', opacity: pickerAnim }} />
-        </TouchableOpacity>
-        <Animated.View style={{
-          position: 'absolute',
-          top: pickerPos.top || 100,
-          left: pickerPos.left || 10,
-          backgroundColor: colors.surface,
-          borderRadius: 14,
-          paddingVertical: 6,
-          width: 140,
-          maxHeight: 240,
-          opacity: pickerAnim,
-          transform: [{ scale: pickerAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1], extrapolate: 'clamp' }) }, { translateY: pickerAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0], extrapolate: 'clamp' }) }],
-        }}>
-          <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
-            <TouchableOpacity
-              style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: feeMonth === 'all' ? withAlpha(colors.danger, 0.1) : 'transparent', borderRadius: 8, marginHorizontal: 4 }}
-              onPress={() => {
-                setFeeMonth('all');
-                Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeMonthPicker(false));
-              }}
-              activeOpacity={0.6}
-            >
-              <Text style={{ fontSize: FONTS.sub.size, fontWeight: feeMonth === 'all' ? '700' : '500', color: feeMonth === 'all' ? colors.primary : colors.textMain }}>{t('feeAllMonths')}</Text>
-            </TouchableOpacity>
-            <View style={{ height: 1, backgroundColor: colors.secondary, marginHorizontal: 12, marginVertical: 4 }} />
-            {[...allFees].filter((f: any) => f.year > 2024 || (f.year === 2024 && f.month >= 5)).sort((a: any, b: any) => (b.year - a.year) || (b.month - a.month)).map((f: any) => {
-              const isSel = feeMonth !== 'all' && feeMonth.year === f.year && feeMonth.month === f.month;
-              return (
-                <TouchableOpacity
-                  key={`${f.year}-${f.month}`}
-                  style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: isSel ? withAlpha(colors.danger, 0.1) : 'transparent', borderRadius: 8, marginHorizontal: 4 }}
-                  onPress={() => {
-                    setFeeMonth({ year: f.year, month: f.month });
-                    Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeMonthPicker(false));
-                  }}
-                  activeOpacity={0.6}
-                >
-                  <Text style={{ fontSize: FONTS.sub.size, fontWeight: isSel ? '700' : '400', color: isSel ? colors.primary : colors.textMain }}>{fmtMonth(f.year, f.month)}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </Animated.View>
-      </Modal>
-      {/* Fee history filter dropdown — Modal-based */}
-      <Modal transparent animationType="none" visible={showFeeHistoryFilterPicker} onRequestClose={() => {
-        Animated.timing(feeHistoryPickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeHistoryFilterPicker(false));
-      }}>
-        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => {
-          Animated.timing(feeHistoryPickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeHistoryFilterPicker(false));
-        }}>
-          <Animated.View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.08)', opacity: feeHistoryPickerAnim }} />
-        </TouchableOpacity>
-        <Animated.View style={{
-          position: 'absolute',
-          top: feeHistoryPickerPos.top || 100,
-          left: feeHistoryPickerPos.left || 10,
-          backgroundColor: colors.surface,
-          borderRadius: 14,
-          paddingVertical: 6,
-          width: 140,
-          maxHeight: 240,
-          opacity: feeHistoryPickerAnim,
-          transform: [{ scale: feeHistoryPickerAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1], extrapolate: 'clamp' }) }, { translateY: feeHistoryPickerAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0], extrapolate: 'clamp' }) }],
-        }}>
-          <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
-            <TouchableOpacity
-              style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: feeHistoryFilter === 'all' ? withAlpha(colors.danger, 0.1) : 'transparent', borderRadius: 8, marginHorizontal: 4 }}
-              onPress={() => {
-                setFeeHistoryFilter('all');
-                Animated.timing(feeHistoryPickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeHistoryFilterPicker(false));
-              }}
-              activeOpacity={0.6}
-            >
-              <Text style={{ fontSize: FONTS.sub.size, fontWeight: feeHistoryFilter === 'all' ? '700' : '500', color: feeHistoryFilter === 'all' ? colors.primary : colors.textMain }}>{t('feeAllMonths')}</Text>
-            </TouchableOpacity>
-            <View style={{ height: 1, backgroundColor: colors.secondary, marginHorizontal: 12, marginVertical: 4 }} />
-            {[...allFees].filter((f: any) => f.year > 2024 || (f.year === 2024 && f.month >= 5)).sort((a: any, b: any) => (b.year - a.year) || (b.month - a.month)).map((f: any) => {
-              const isSel = feeHistoryFilter !== 'all' && feeHistoryFilter.year === f.year && feeHistoryFilter.month === f.month;
-              return (
-                <TouchableOpacity
-                  key={`hf-${f.year}-${f.month}`}
-                  style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: isSel ? withAlpha(colors.danger, 0.1) : 'transparent', borderRadius: 8, marginHorizontal: 4 }}
-                  onPress={() => {
-                    setFeeHistoryFilter({ year: f.year, month: f.month });
-                    Animated.timing(feeHistoryPickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeHistoryFilterPicker(false));
-                  }}
-                  activeOpacity={0.6}
-                >
-                  <Text style={{ fontSize: FONTS.sub.size, fontWeight: isSel ? '700' : '400', color: isSel ? colors.primary : colors.textMain }}>{fmtMonth(f.year, f.month)}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </Animated.View>
-      </Modal>
+
+
 
       {/* Rec date picker — Modal wraps for full-screen overlay */}
       <Modal transparent animationType="none" visible={showRecDatePicker} onRequestClose={() => setShowRecDatePicker(false)}>
@@ -1205,32 +1070,7 @@ export default function ExpenseScreen({
             </View>
             {/* Month filter */}
             <View style={{ paddingHorizontal: 20, paddingBottom: 6, marginTop: -6, flexDirection: 'row', alignItems: 'center' }}>
-              <TouchableOpacity
-                ref={feeHistoryFilterTriggerRef}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 8, position: 'relative' }}
-                onPress={() => {
-                  if (!showFeeHistoryFilterPicker) {
-                    if (feeHistoryFilterTriggerRef.current && typeof (feeHistoryFilterTriggerRef.current as any).measureInWindow === 'function') {
-                      (feeHistoryFilterTriggerRef.current as any).measureInWindow((x: number, y: number, w: number, h: number) => {
-                        setFeeHistoryPickerPos({ top: y + h + 4, left: x });
-                      });
-                    }
-                    feeHistoryPickerAnim.setValue(0);
-                    Animated.spring(feeHistoryPickerAnim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 }).start();
-                    setShowFeeHistoryFilterPicker(true);
-                  } else {
-                    Animated.timing(feeHistoryPickerAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => {
-                      setShowFeeHistoryFilterPicker(false);
-                    });
-                  }
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={{ fontSize: FONTS.subBold.size, color: colors.primary, fontWeight: FONTS.subBold.weight }}>
-                  {feeHistoryFilter === 'all' ? t('feeAllMonths') : fmtMonth(feeHistoryFilter.year, feeHistoryFilter.month)}
-                </Text>
-                <Text style={{ fontSize: FONTS.micro.size, color: colors.primary, marginLeft: 2 }}>▼</Text>
-              </TouchableOpacity>
+              <MonthPicker selected={feeHistoryFilter} onSelect={(v) => setFeeHistoryFilter(v)} months={allFees} colors={colors} />
             </View>
             {/* Scrollable list area */}
             <ScrollView style={{ flex: 1, paddingHorizontal: 12 }} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
