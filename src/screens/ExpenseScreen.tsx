@@ -401,7 +401,6 @@ export default function ExpenseScreen({
   const [expImages, setExpImages] = useState<any[]>([]);
   const [uploadingImg, setUploadingImg] = useState(false);
   const [isRefund, setIsRefund] = useState(false);
-  const [expenses, setExpenses] = useState<any[]>([]);
   const [expCatTotals, setExpCatTotals] = useState({ daily: 0, rent: 0, salary: 0, goods: 0 });
   const [loadingExp, setLoadingExp] = useState(false);
   const [showExpConfirm, setShowExpConfirm] = useState(false);
@@ -420,7 +419,6 @@ export default function ExpenseScreen({
         if (page >= (tx.pages || 1)) break;
         page++;
       }
-      setExpenses(allExpenses);
       // Compute category totals
       let daily = 0, rent = 0, salary = 0, goods = 0;
       allExpenses.forEach((e: any) => {
@@ -536,9 +534,9 @@ export default function ExpenseScreen({
   const tabCards = useMemo(() => [
     // 对账 — diff between book balance and current balance
     { gradient: [withAlpha(colors.expenseGradientStart, 0.22), withAlpha(colors.expenseGradientEnd, 0.22)], gradientActive: [withAlpha(colors.expenseGradientStart, 0.48), withAlpha(colors.expenseGradientEnd, 0.48)], title: t('tabRecon'), stat: diff, statFmt: fmt(diff), statColor: diff >= 0 ? colors.success : colors.danger, prefix: diff >= 0 ? '+' : '' },
-    // 支出 — sum of daily + rent + salary + goods
-    { gradient: [withAlpha(colors.expenseGradientStart, 0.22), withAlpha(colors.expenseGradientEnd, 0.22)], gradientActive: [withAlpha(colors.expenseGradientStart, 0.48), withAlpha(colors.expenseGradientEnd, 0.48)], title: t('tabExpense'), stat: expCatTotals.daily + expCatTotals.rent + expCatTotals.salary + expCatTotals.goods, statFmt: fmt(expCatTotals.daily + expCatTotals.rent + expCatTotals.salary + expCatTotals.goods), statColor: colors.textMain, prefix: '' },
-  ], [diff, expCatTotals.daily, expCatTotals.rent, expCatTotals.salary, expCatTotals.goods, colors, lang]);
+    // 支出 — cumulative expense from backend (matching web)
+    { gradient: [withAlpha(colors.expenseGradientStart, 0.22), withAlpha(colors.expenseGradientEnd, 0.22)], gradientActive: [withAlpha(colors.expenseGradientStart, 0.48), withAlpha(colors.expenseGradientEnd, 0.48)], title: t('tabExpense'), stat: (businessSummary && businessSummary.cumulative_expense) || 0, statFmt: fmt((businessSummary && businessSummary.cumulative_expense) || 0), statColor: colors.textMain, prefix: '' },
+  ], [diff, businessSummary, colors, lang]);
 
   const st = useMemo(() => getSt(colors), [colors]);
 
