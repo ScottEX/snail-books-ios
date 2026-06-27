@@ -70,7 +70,12 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const [tab, setTabState] = useState<Tab>(() => {
     try { return (localStorage.getItem('active_tab') as Tab) || 'expense'; } catch { return 'expense'; }
   });
-  const setTab = (t: Tab) => { setTabState(t); try { localStorage.setItem('active_tab', t); } catch {} };
+  const [partnerRefreshKey, setPartnerRefreshKey] = useState(0);
+  const setTab = (t: Tab) => {
+    setTabState(t);
+    try { localStorage.setItem('active_tab', t); } catch {}
+    if (t === 'partner') setPartnerRefreshKey(k => k + 1);
+  };
 
   // ── User / lang ──
   // Use useLang() so the lang state and t() output stay in sync within a
@@ -553,7 +558,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false} bounces={false}>
 
           {tab === 'partner' ? (
-            <PartnerScreen onBack={() => setTab('list')} />
+            <PartnerScreen onBack={() => setTab('list')} refreshKey={partnerRefreshKey} />
           ) : tab === 'supply' ? (
             <ProcurementScreen />
           ) : tab === 'list' ? (
