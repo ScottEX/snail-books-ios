@@ -538,8 +538,8 @@ export default function ExpenseScreen({
           onMomentumScrollEnd={(e) => {
             const offset = e.nativeEvent.contentOffset.x;
             const w = Dimensions.get('window').width;
-            // Card0 center = (w-50)/2, card1 center = (w-36)+(w-36)/2 → midpoint ≈ w-40
-            const idx = offset < w - 40 ? 0 : 1;
+            // Midpoint of snap positions [0, w-54] → (w-54)/2
+            const idx = offset < (w - 54) / 2 ? 0 : 1;
             if (idx >= 0 && idx < tabCards.length) setActiveTab(idx);
           }}
           contentContainerStyle={st.tabScroll}>
