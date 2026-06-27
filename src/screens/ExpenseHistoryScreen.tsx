@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, Animated, Image } from 'react-native';
-import Svg, { Path, Circle } from 'react-native-svg';
+import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
 import { t, getLang } from '../i18n';
 import { api, resolveAssetUrl } from '../api/client';
@@ -50,7 +50,7 @@ function IcnSealExp({ color, label }: { color: string; label: string }) {
     <Svg width={42} height={42} viewBox="0 0 42 42">
       <Circle cx={21} cy={21} r={19.5} fill="none" stroke={color} strokeWidth={1.3} />
       <Circle cx={21} cy={21} r={17} fill="none" stroke={color} strokeWidth={0.5} strokeDasharray="2.5 1.8" />
-      <text x={21} y={24} textAnchor="middle" fontSize={8} fontWeight="700" fill={color} transform="rotate(-12, 21, 21)">{label}</text>
+      <SvgText x={21} y={24} textAnchor="middle" fontSize={8} fontWeight="700" fill={color} transform="rotate(-12, 21, 21)">{label}</SvgText>
     </Svg>
   );
 }
