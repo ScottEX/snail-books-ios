@@ -37,10 +37,12 @@ export default function App() {
   // 401 / account disabled / session kicked → force back to login
   useEffect(() => {
     const handleExpire = () => {
+      console.error('[AUTH DEBUG] App.handleExpire called');
       const now = Date.now();
-      if (now - lastExpireAt.current < 1500) return; // coalesce bursts
+      if (now - lastExpireAt.current < 1500) { console.warn('[AUTH DEBUG] handleExpire coalesced — skipping'); return; }
       lastExpireAt.current = now;
       setPage((p) => {
+        console.error('[AUTH DEBUG] handleExpire setPage → login (was', p, ')');
         if (p !== 'login') setAppKey((k) => k + 1);
         return 'login';
       });
@@ -49,6 +51,7 @@ export default function App() {
     // User-change bus (logout / 401). Still bumps appKey so any
     // stateful children re-initialise.
     const unsubChange = onUserChange(() => {
+      console.error('[AUTH DEBUG] App.onUserChange — user in storage:', !!localStorage.getItem('user'));
       setAppKey((k) => k + 1);
       try { setPage(localStorage.getItem('user') ? 'home' : 'login'); } catch {}
       lastExpireAt.current = Date.now();
@@ -57,7 +60,7 @@ export default function App() {
     return () => { unsubKicked(); unsubChange(); };
   }, []);
 
-  const goHome = useCallback(() => { setAppKey((k) => k + 1); setPage('home'); }, []);
+  const goHome = useCallback(() => { console.warn('[AUTH DEBUG] App.goHome called — page→home'); setAppKey((k) => k + 1); setPage('home'); }, []);
   const goLogin = useCallback(() => {
     // Preserve device-level settings across logout: language, the
     // "remember me" checkbox, and the saved username so the login

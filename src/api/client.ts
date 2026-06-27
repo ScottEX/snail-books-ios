@@ -22,6 +22,7 @@ let _lastAuthSuccess = 0;
 function _resetAuthSuccess() { _lastAuthSuccess = 0; }
 
 function _emitUserChange() {
+  console.error('[AUTH DEBUG] _emitUserChange — resetting _lastAuthSuccess');
   _resetAuthSuccess();  // new session after login → restart warm-up window
   _userChangeListeners.forEach((fn) => { try { fn(); } catch { /* ignore */ } });
 }
@@ -102,6 +103,9 @@ function headers(): Record<string, string> {
 }
 
 async function authFetch<T = any>(url: string, options?: RequestInit): Promise<T> {
+  // ── DEBUG: log every authFetch call so we can trace which one triggers logout
+  const _debugUrl = url;
+  try { console.warn('[AUTH DEBUG] authFetch →', url); } catch {}
   const mergedHeaders: Record<string, string> = {
     ...headers(),
     ...(options?.headers as Record<string, string> || {}),
@@ -115,10 +119,12 @@ async function authFetch<T = any>(url: string, options?: RequestInit): Promise<T
     credentials: 'include' as RequestCredentials,
   });
   if (resp.status === 401) {
+    console.error('[AUTH DEBUG] 401 on', url, '— _lastAuthSuccess =', _lastAuthSuccess);
     // ── Session warm-up: if we've never had a successful auth call this
     // session, the session cookie might still be settling in NSHTTPCookieStorage.
     // Retry once after 1s instead of immediately logging out.
     if (_lastAuthSuccess === 0) {
+      console.warn('[AUTH DEBUG] warm-up retry after 1s for', url);
       await new Promise(r => setTimeout(r, 1000));
       const retryResp = await fetch(API_BASE + url, {
         ...options,
@@ -126,11 +132,14 @@ async function authFetch<T = any>(url: string, options?: RequestInit): Promise<T
         credentials: 'include' as RequestCredentials,
       });
       if (retryResp.ok) {
+        console.warn('[AUTH DEBUG] warm-up retry OK for', url);
         _lastAuthSuccess = Date.now();
         bumpActivity();
         return retryResp.json();
       }
+      console.error('[AUTH DEBUG] warm-up retry FAILED for', url, 'status', retryResp.status);
     }
+    console.error('[AUTH DEBUG] LOGOUT triggered by 401 on', url);
     let kickCode: string | null = null;
     let kickMsg: string | null = null;
     try {
