@@ -751,7 +751,7 @@ export default function ExpenseScreen({
             {/* 在途资金 */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={{ fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.textSub }}>{t('fundsInTransit')}</Text>
-              <NumberTicker value={channelTotal} style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary }} />
+              <NumberTicker value={channelTotal} formatFn={fmtAmtFull} style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary }} />
             </View>
             <View style={st.channelGrid}>
               {/* Row 1: 堂食 + 美团 + 闪购 */}
