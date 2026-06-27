@@ -463,7 +463,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
 const getStyles = (c: ThemeColors) => {
   const hdr = historyHeader(c);
   return StyleSheet.create({
-    container: { flex: 1 },
+    container: { flex: 1, backgroundColor: c.bg },
     ...hdr as any,
     title: { ...hdr.title, color: c.textMain },
     body: {
