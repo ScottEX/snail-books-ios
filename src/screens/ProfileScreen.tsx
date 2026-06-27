@@ -189,11 +189,10 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   // ── Loaders ──
   const loadAvatar = async () => {
     try {
-      const data: any = await api.admin.getMe();
-      if (data?.avatar_url) {
-        const resolved = resolveAssetUrl(data.avatar_url) || data.avatar_url;
-        setAvatarUrl(resolved + '?v=' + Date.now());
-      }
+      const uid = getCurrentUserId();
+      if (!uid) return;
+      const b64 = await api.getUserAvatar(uid);
+      if (b64) setAvatarUrl(b64);
     } catch {}
   };
 
@@ -280,11 +279,10 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       const file = imgs[0];
       setUploadingAvatar(true);
       const form = new FormData();
-      // RN FormData accepts { uri, type, name } shape
       form.append('file', { uri: file.uri, type: file.type || 'image/jpeg', name: file.name || 'avatar.jpg' } as any);
       const r: any = await api.uploadAvatar(form);
-      if (r?.avatar_url || r?.url) {
-        setAvatarUrl((r.avatar_url || r.url) + '?v=' + Date.now());
+      if (r?.ok !== false) {
+        await loadAvatar();
         setToast('头像已更新');
         onAvatarChange?.();
       }
@@ -306,7 +304,8 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         uri: file.uri, type: file.type || 'image/jpeg', name: file.name || 'cover.jpg',
       });
       if (r?.url) {
-        setCoverUrl(r.url + '?v=' + Date.now());
+        const resolved = resolveAssetUrl(r.url) || r.url;
+        setCoverUrl(resolved + '?v=' + Date.now());
         setToast('封面已更新');
       }
     } catch (err: any) {
