@@ -589,13 +589,16 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                 <ShieldIcon color={colors.primary} />
               </View>
               <Text style={st.authLabel}>{t('ssoLabel')}</Text>
-              <Switch
-                value={enforceSingleSession === 1}
-                onValueChange={toggleEnforceSingleSession}
-                trackColor={{ false: withAlpha(colors.textMain, 0.18), true: colors.primary }}
-                thumbColor="#fff"
-                ios_backgroundColor={withAlpha(colors.textMain, 0.18)}
-              />
+              <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                <Switch
+                  value={enforceSingleSession === 1}
+                  onValueChange={toggleEnforceSingleSession}
+                  trackColor={{ false: withAlpha(colors.textMain, 0.18), true: colors.primary }}
+                  thumbColor="#fff"
+                  ios_backgroundColor={withAlpha(colors.textMain, 0.18)}
+                  style={{ transform: [{ scale: 0.75 }] }}
+                />
+              </View>
             </View>
             <Text style={st.authDesc}>{t('ssoDesc')}</Text>
           </View>
