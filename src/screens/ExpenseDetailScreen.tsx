@@ -338,17 +338,17 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
         {/* ── Edit mode ── */}
         {editMode && (
           <View style={styles.editContainer}>
-            <Text style={styles.sectionTitle}>{t('expTotalAmount')}</Text>
-            <View style={styles.amountEditWrap}>
+            <Text style={[styles.sectionTitle, { marginBottom: 4 }]}>{t('expTotalAmount')}</Text>
+            <View style={{ alignItems: 'center', paddingVertical: 8 }}>
               <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
-                <Text style={[styles.amountEditSymbol, { color: isRefundRecord ? c.success : amtColor }]}>
+                <Text style={{ fontSize: 20, fontWeight: '600', color: isRefundRecord ? c.success : amtColor, marginRight: 2, marginBottom: 4 }}>
                   {isRefundRecord ? '+¥' : '-¥'}
                 </Text>
                 {expense?.procurement_batch_id ? (
-                  <Text style={[styles.amountEditValue, { color: c.textSub }]}>{amount || '0.00'}</Text>
+                  <Text style={{ fontSize: 36, fontWeight: '700', color: isRefundRecord ? c.success : c.textSub }}>{amount || '0.00'}</Text>
                 ) : (
                   <TextInput
-                    style={[styles.amountEditValue, { color: isRefundRecord ? c.success : amtColor }]}
+                    style={{ fontSize: 36, fontWeight: '700', color: isRefundRecord ? c.success : amtColor, borderWidth: 0, backgroundColor: 'transparent', textAlign: 'left', padding: 0, flex: 0, width: 180 } as any}
                     value={amount}
                     onChangeText={(v: string) => setAmount(fmtDecInput(v))}
                     onBlur={() => { if (amount !== '') setAmount(toDec2(amount)); }}
