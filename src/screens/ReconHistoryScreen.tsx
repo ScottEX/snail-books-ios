@@ -315,7 +315,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   dateRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2, gap: 8 },
   dateItem: { flex: 1, alignItems: 'center' },
   dateLabel: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight, marginBottom: 2 },
-  dateVal: { fontSize: 11, fontWeight: FONTS.subBold.weight, color: colors.textSub },
+  dateVal: { fontSize: 13, fontWeight: FONTS.subBold.weight, color: colors.textSub },
   dateSep: { width: 1, height: 24, backgroundColor: colors.secondary },
   cardPairRow: { flexDirection: 'row', gap: 4 },
   cardPairCol: { flex: 1, alignItems: 'center' },
