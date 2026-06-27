@@ -3,7 +3,7 @@ import {
   View, Text, TextInput, ScrollView, TouchableOpacity,
   FlatList, Image, ActivityIndicator, StyleSheet, Animated, PanResponder
 } from 'react-native';
-import Svg, { Path, Rect, Circle } from 'react-native-svg';
+import Svg, { Path, Rect, Circle, Text as SvgText } from 'react-native-svg';
 import { t, getLang } from '../i18n';
 import { api } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
@@ -33,7 +33,7 @@ function IcnSealProc({ color, label }: { color: string; label: string }) {
     <Svg width={48} height={48} viewBox="0 0 48 48">
       <Circle cx={24} cy={24} r={22} fill="none" stroke={color} strokeWidth={1.4} />
       <Circle cx={24} cy={24} r={19.5} fill="none" stroke={color} strokeWidth={0.5} strokeDasharray="3 2" />
-      <Text style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, textAlign: 'center', lineHeight: 54, fontSize: 9, fontWeight: '700', color, transform: [{ rotate: '-12deg' }] }}>{label}</Text>
+      <SvgText x={24} y={27} textAnchor="middle" fontSize={9} fontWeight="700" fill={color} transform="rotate(-12, 24, 24)">{label}</SvgText>
     </Svg>
   );
 }
@@ -192,10 +192,10 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   cartClearBtnText: { fontSize: FONTS.micro.size, color: c.primary, fontWeight: FONTS.microBold.weight },
 
   // Drawer overlay
-  overlay: { position: 'fixed' as any, inset: 0, backgroundColor: 'rgba(0,0,0,0)', zIndex: 200 },
+  overlay: { position: 'absolute' as any, inset: 0, backgroundColor: 'rgba(0,0,0,0)', zIndex: 200 },
   // Animated drawer — slides up
   drawer: {
-    position: 'fixed' as any, bottom: 0, left: 0, right: 0,
+    position: 'absolute' as any, bottom: 0, left: 0, right: 0,
     backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
     maxHeight: '88%' as any, zIndex: 201, display: 'flex' as any, flexDirection: 'column' as any,
     // @ts-ignore
@@ -239,7 +239,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   itemsBtnText: { fontSize: FONTS.sub.size, color: c.textMain, fontWeight: FONTS.sub.weight },
 
   // Items modal
-  itemsModalOverlay: { position: 'fixed' as any, inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 500, alignItems: 'center' as const, justifyContent: 'center' as const },
+  itemsModalOverlay: { position: 'absolute' as any, inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 500, alignItems: 'center' as const, justifyContent: 'center' as const },
   itemsModalCard: { backgroundColor: c.surface, borderRadius: 16, width: 'calc(100% - 40px)' as any, maxWidth: 360, maxHeight: '75%' as any, overflow: 'hidden' as const, display: 'flex' as any, flexDirection: 'column' as any },
   itemsModalHeader: { backgroundColor: c.primary, paddingHorizontal: 20, paddingVertical: 14, flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const },
   itemsModalTitle: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.surface },
@@ -269,7 +269,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   mgmtAddBtnText: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.primary },
 
   // Modal (product add/edit)
-  modalOverlay: { position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 400, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center' as const, alignItems: 'center' as const },
+  modalOverlay: { position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 400, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center' as const, alignItems: 'center' as const },
   modalCard: { backgroundColor: c.surface, borderRadius: 16, width: 340, maxWidth: '90%' as any, overflow: 'hidden' as const,
     // @ts-ignore
     ...modalCardAnimation, },
@@ -307,7 +307,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   histImages: { flexDirection: 'row' as const, gap: 4, marginTop: 6 },
 
   // Success
-  successOverlay: { position: 'fixed' as any, inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 400, alignItems: 'center' as const, justifyContent: 'center' as const },
+  successOverlay: { position: 'absolute' as any, inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 400, alignItems: 'center' as const, justifyContent: 'center' as const },
   successCard: { backgroundColor: c.surface, borderRadius: 20, padding: 28, width: 'calc(100% - 40px)' as any, maxWidth: 320, alignItems: 'center' as const },
   successTitle: { fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: c.textMain, marginBottom: 6, marginTop: 8 },
   successSub: { fontSize: FONTS.sub.size, color: c.textSub, lineHeight: 20 } as any,
@@ -1134,7 +1134,7 @@ export default function ProcurementScreen() {
                     </View>
                   </View>
                   {(() => {
-                    const thumbImgs: string[] = (batch.thumb_images?.length ? batch.thumb_images : batch.images) || [];
+                    const thumbImgs: string[] = parseImages(batch.thumb_images?.length ? batch.thumb_images : batch.images) || [];
                     return thumbImgs.length > 0 && (
                       <View style={styles.histImages}>
                         {thumbImgs.map((img: string, i: number) => (
