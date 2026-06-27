@@ -22,11 +22,13 @@ if (typeof globalThis !== 'undefined') {
 
 export default function App() {
   const [_page, _setPage] = useState<'login' | 'home'>('login');
-  // ── DEBUG: wrap setPage to log every transition to 'login'
+  const loginConfirmedAt = useRef(0);
+  // ── Protect against bounce-back: block setPage('login') for 30s after goHome
   const setPage = (v: 'login' | 'home' | ((p: 'login' | 'home') => 'login' | 'home')) => {
     const next = typeof v === 'function' ? v(_page) : v;
-    if (next === 'login' && _page !== 'login') {
-      console.error(new Error('[AUTH DEBUG] setPage → login (stack trace)'));
+    if (next === 'login' && _page === 'home' && Date.now() - loginConfirmedAt.current < 30_000) {
+      console.error(new Error('[AUTH DEBUG] BLOCKED setPage → login (within 30s of goHome)'));
+      return; // IGNORE the transition
     }
     _setPage(v);
   };
@@ -78,8 +80,9 @@ export default function App() {
     return () => { unsubKicked(); unsubChange(); };
   }, []);
 
-  const goHome = useCallback(() => { console.warn('[AUTH DEBUG] App.goHome called — page→home (page was', page, ')'); setAppKey((k) => k + 1); setPage('home'); }, [page]);
+  const goHome = useCallback(() => { loginConfirmedAt.current = Date.now(); console.warn('[AUTH DEBUG] App.goHome called — page→home (page was', page, ')'); setAppKey((k) => k + 1); setPage('home'); }, [page]);
   const goLogin = useCallback(() => {
+    loginConfirmedAt.current = 0; // allow explicit logout
     // Preserve device-level settings across logout: language, the
     // "remember me" checkbox, and the saved username so the login
     // form re-hydrates nicely on next launch. Everything else (user,
