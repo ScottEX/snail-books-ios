@@ -14,7 +14,15 @@ export function onUserChange(fn: UserChangeListener): () => void {
   _userChangeListeners.add(fn);
   return () => { _userChangeListeners.delete(fn); };
 }
+// ── Session warm-up: the session cookie from POST /login may not be
+// immediately visible to NSHTTPCookieStorage. Track whether we've ever
+// succeeded an authFetch this session, and on the very first 401 retry
+// once after 1s before treating it as a real logout.
+let _lastAuthSuccess = 0;
+function _resetAuthSuccess() { _lastAuthSuccess = 0; }
+
 function _emitUserChange() {
+  _resetAuthSuccess();  // new session after login → restart warm-up window
   _userChangeListeners.forEach((fn) => { try { fn(); } catch { /* ignore */ } });
 }
 
@@ -107,6 +115,22 @@ async function authFetch<T = any>(url: string, options?: RequestInit): Promise<T
     credentials: 'include' as RequestCredentials,
   });
   if (resp.status === 401) {
+    // ── Session warm-up: if we've never had a successful auth call this
+    // session, the session cookie might still be settling in NSHTTPCookieStorage.
+    // Retry once after 1s instead of immediately logging out.
+    if (_lastAuthSuccess === 0) {
+      await new Promise(r => setTimeout(r, 1000));
+      const retryResp = await fetch(API_BASE + url, {
+        ...options,
+        headers: mergedHeaders,
+        credentials: 'include' as RequestCredentials,
+      });
+      if (retryResp.ok) {
+        _lastAuthSuccess = Date.now();
+        bumpActivity();
+        return retryResp.json();
+      }
+    }
     let kickCode: string | null = null;
     let kickMsg: string | null = null;
     try {
@@ -115,12 +139,7 @@ async function authFetch<T = any>(url: string, options?: RequestInit): Promise<T
       if (body?.message) kickMsg = body.message;
     } catch {}
     localStorage.removeItem('user');
-    // Drop the per-user bg-image cache so we don't keep rendering a
-    // stale data URI from a now-invalid session (this caused a
-    // bg-flicker regression after session expiry).
     try { localStorage.removeItem('bg-image'); } catch {}
-    // Notify App-level listeners that the user was cleared (so they can
-    // re-evaluate page state, bump appKey, remount ThemeProvider, etc.)
     _emitUserChange();
     if (kickCode === 'session_kicked') {
       _emitSessionKicked();
@@ -153,6 +172,7 @@ async function authFetch<T = any>(url: string, options?: RequestInit): Promise<T
     throw new Error(msg);
   }
   bumpActivity();
+  _lastAuthSuccess = Date.now();
   return resp.json();
 }
 
@@ -299,8 +319,9 @@ export const api = {
   deleteDividend: (id: number) => authFetch(`/api/dividends/${id}`, { method: 'DELETE' }),
   deleteDividendByNote: (note: string) => authFetch('/api/dividends/delete', { method: 'POST', body: JSON.stringify({ note }) }),
 
-  // Background image
-  getBackground: () => authFetch('/api/settings/background'),
+  // Background image — uses silentAuthFetch so a 401 during session warm-up
+  // doesn't trigger logout (the background is cosmetic; default fallback is fine).
+  getBackground: () => silentAuthFetch('/api/settings/background'),
   uploadBackground: async (file: { uri: string; type?: string; name?: string }) => {
     bumpActivity();
     const form = new FormData();
@@ -469,7 +490,7 @@ saveLang: (lang: string) => silentAuthFetch('/api/settings/lang', { method: 'PUT
   getLast7Days: () => authFetch('/api/daily-revenue/last-7'),
   getDailyRevenueTotal: () => authFetch('/api/daily-revenue/total'),
   getBusinessSummary: () => authFetch('/api/business-summary'),
-  getServerDate: () => authFetch('/api/server-date'),
+  getServerDate: () => silentAuthFetch('/api/server-date'),
 
   getChart: () => authFetch('/api/chart'),
   getChartMonthly: () => authFetch('/api/chart/monthly'),
