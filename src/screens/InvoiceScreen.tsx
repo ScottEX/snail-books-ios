@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, TextInput, Image,
-  Modal, ActivityIndicator, Animated, useWindowDimensions,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, TextInput,
+  Animated, useWindowDimensions,
 } from 'react-native';
-import Svg, { Path, Line, Circle, Rect } from 'react-native-svg';
+import Svg, { Path, Line, Circle, Rect, Polyline, Text as SvgText } from 'react-native-svg';
 import { t } from '../i18n';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
@@ -11,7 +11,13 @@ import { api } from '../api/client';
 import Toast from '../components/Toast';
 import EmptyState from '../components/EmptyState';
 import { pickImages, takePhoto, PickedImage } from '../utils/imagePicker';
-import { useImagePreview } from '../hooks/useImagePreview';
+import ConfirmModal from '../components/ConfirmModal';
+import DatePicker from '../components/DatePicker';
+import ReceiptUpload from '../components/ReceiptUpload';
+import ExpenseNoteInput from '../components/ExpenseNoteInput';
+import SubmitButton from '../components/SubmitButton';
+import TrashIcon from '../components/icons/TrashIcon';
+import ImagePreview from '../components/ImagePreview';
 
 /* ═══════════════ ICONS ═══════════════ */
 
@@ -34,24 +40,71 @@ const IcnClose = ({ color }: { color: string }) => (
   </Svg>
 );
 
-const IcnTrash = ({ color }: { color: string }) => (
-  <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-    <Path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+const IcnCompany = ({ color }: { color: string }) => (
+  <Svg width={15} height={15} viewBox="0 0 24 24" stroke={color} strokeWidth={1.8} fill="none">
+    <Path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+    <Polyline points="9 22 9 12 15 12 15 22" />
   </Svg>
 );
 
-const IcnCamera = ({ color }: { color: string }) => (
-  <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-    <Path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
-    <Circle cx="12" cy="13" r="4" />
+const IcnTax = ({ color }: { color: string }) => (
+  <Svg width={15} height={15} viewBox="0 0 24 24" stroke={color} strokeWidth={1.8} fill="none">
+    <Circle cx="12" cy="12" r="10" />
+    <Line x1="12" y1="8" x2="12" y2="12" />
+    <Line x1="12" y1="16" x2="12.01" y2="16" />
   </Svg>
 );
 
-const IcnGallery = ({ color }: { color: string }) => (
-  <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-    <Rect x="3" y="3" width="18" height="18" rx="2" />
-    <Circle cx="8.5" cy="8.5" r="1.5" />
-    <Path d="M21 15l-5-5L5 21" />
+const IcnAddr = ({ color }: { color: string }) => (
+  <Svg width={15} height={15} viewBox="0 0 24 24" stroke={color} strokeWidth={1.8} fill="none">
+    <Path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+    <Circle cx="12" cy="10" r="3" />
+  </Svg>
+);
+
+const IcnBank = ({ color }: { color: string }) => (
+  <Svg width={15} height={15} viewBox="0 0 24 24" stroke={color} strokeWidth={1.8} fill="none">
+    <Rect x="2" y="5" width="20" height="14" rx="2" />
+    <Line x1="2" y1="10" x2="22" y2="10" />
+  </Svg>
+);
+
+const IcnMail = ({ color }: { color: string }) => (
+  <Svg width={15} height={15} viewBox="0 0 24 24" stroke={color} strokeWidth={1.8} fill="none">
+    <Path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+    <Polyline points="22,6 12,13 2,6" />
+  </Svg>
+);
+
+const IcnPhone = ({ color }: { color: string }) => (
+  <Svg width={15} height={15} viewBox="0 0 24 24" stroke={color} strokeWidth={1.8} fill="none">
+    <Path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.63A2 2 0 012 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 8.09a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
+  </Svg>
+);
+
+const IcnAccount = ({ color }: { color: string }) => (
+  <Svg width={15} height={15} viewBox="0 0 24 24" stroke={color} strokeWidth={1.8} fill="none">
+    <Line x1="12" y1="1" x2="12" y2="23" />
+    <Path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+  </Svg>
+);
+
+/** Stamp seal — active (done: 已开票 / pending: 待开票) */
+const IcnSealActive = ({ color, label }: { color: string; label: string }) => (
+  <Svg width={52} height={52} viewBox="0 0 52 52">
+    <Circle cx="26" cy="26" r="24" fill="none" stroke={color} strokeWidth="1.5" />
+    <Circle cx="26" cy="26" r="21" fill="none" stroke={color} strokeWidth="0.5" strokeDasharray="3 2" />
+    <SvgText
+      x="26"
+      y="31"
+      textAnchor="middle"
+      fontSize="11"
+      fontWeight="700"
+      fill={color}
+      transform="rotate(-12, 26, 26)"
+    >
+      {label}
+    </SvgText>
   </Svg>
 );
 
@@ -61,6 +114,14 @@ const InvoiceEmptyIcon = ({ color }: { color: string }) => (
     <Path d="M14 2v6h6" />
     <Line x1="8" y1="13" x2="16" y2="13" />
     <Line x1="8" y1="17" x2="14" y2="17" />
+  </Svg>
+);
+
+/** Pen icon */
+const PencilSvg = ({ color }: { color: string }) => (
+  <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <Path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5Z" />
+    <Path d="M15 5l4 4" />
   </Svg>
 );
 
@@ -154,8 +215,9 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const [data, setData] = useState<InvoiceData>(EMPTY_INV);
   const [orig, setOrig] = useState<InvoiceData>(EMPTY_INV);
   const [loaded, setLoaded] = useState(false);
+  const [entryCardH, setEntryCardH] = useState(0);
 
-  // Admin check (we keep editable rows enabled — backend permits all users)
+  // Admin check
   const [isAdmin, setIsAdmin] = useState(false);
   useEffect(() => {
     (async () => {
@@ -172,13 +234,13 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
     try {
       const stored = localStorage.getItem('email');
       if (stored) { setUserEmail(stored); return; }
-    } catch {}
+    } catch { }
     (async () => {
       try {
         const j: any = await api.admin?.getMe?.();
         const u = j?.user || j?.data || j;
         if (u?.email) setUserEmail(u.email);
-      } catch {}
+      } catch { }
     })();
   }, []);
 
@@ -189,6 +251,8 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
 
   // Drawer (create/edit)
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerKey, setDrawerKey] = useState(0);
+  const closeGuardRef = useRef(0);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [dType, setDType] = useState<InvType>('general');
   const [dAmount, setDAmount] = useState('');
@@ -217,8 +281,14 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   // Toast
   const [toast, setToast] = useState('');
 
-  // Image preview (for the in-drawer preview taps)
-  const { visible: previewVisible, uri: previewUri, show: showPreview, close: closePreview } = useImagePreview();
+  // Image preview state (using ImagePreview component)
+  const [previewImages, setPreviewImages] = useState<string[] | null>(null);
+  const [previewIdx, setPreviewIdx] = useState(0);
+  const openPreview = (images: string[], idx: number = 0) => {
+    setPreviewImages(images);
+    setPreviewIdx(idx);
+  };
+  const closePreview = () => setPreviewImages(null);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -255,7 +325,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
           setDEmail(inv.data.email || '');
           setInvType(inv.data.inv_type || 'vat');
         }
-      } catch {}
+      } catch { }
       setLoaded(true);
     })();
   }, []);
@@ -372,6 +442,8 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
 
   /* ── Drawer open/close ── */
   const openDrawer = (forEdit?: InvoiceRecord) => {
+    closeGuardRef.current++;
+    setDrawerKey(k => k + 1);
     setEditingId(forEdit ? forEdit.id : null);
     setDType(forEdit ? (forEdit.type as InvType) : 'general');
     setDAmount(forEdit ? String(forEdit.amount) : '');
@@ -406,14 +478,16 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
     try {
       const stored = localStorage.getItem('email');
       if (stored) setDEmail(stored);
-    } catch {}
+    } catch { }
   };
 
   const closeDrawer = () => {
+    const guard = ++closeGuardRef.current;
     Animated.parallel([
       Animated.timing(drawerAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
       Animated.timing(overlayAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
     ]).start(() => {
+      if (guard !== closeGuardRef.current) return;
       setDrawerOpen(false);
       setEditingId(null);
       setDStatus('pending');
@@ -423,7 +497,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
     });
   };
 
-  const drawerTranslateY = drawerAnim.interpolate({ inputRange: [0, 1], outputRange: [600, 0] });
+  const drawerTranslateY = drawerAnim.interpolate({ inputRange: [0, 1], outputRange: [400, 0] });
   const overlayOpacity = overlayAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
 
   /* ── Auto-fill amount when batch selected ── */
@@ -435,57 +509,54 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
         const batch = j?.batch || j?.data || j;
         const amt = batch?.total || batch?.total_amount || batch?.amount || 0;
         setDAmount(Number(amt).toFixed(2));
-      } catch {}
+      } catch { }
     })();
   }, [dBatchId]);
 
-  /* ── File handlers ── */
-  const pickNewFiles = async () => {
-    try {
-      const imgs = await pickImages({ multiple: true });
-      if (imgs && imgs.length > 0) setDFiles(prev => [...prev, ...imgs]);
-    } catch {}
+  /* ── Preview handlers ── */
+  const handlePreviewExisting = (index: number) => {
+    openPreview(dExistingFilePath.map(p => api.getInvoiceFileUrl(p)), index);
   };
 
-  const captureNewFile = async () => {
-    try {
-      const photo = await takePhoto();
-      if (photo) setDFiles(prev => [...prev, photo]);
-    } catch {}
+  const handlePreviewNew = (index: number) => {
+    openPreview(dFiles.map(f => f.uri), index);
   };
 
   return (
     <View style={styles.root}>
-      {/* ═══ HEADER CARD ═══ */}
-      <View style={styles.headerCard}>
-        <View style={styles.headerTopRow}>
-          <TouchableOpacity style={styles.backBtn} onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+      {/* ═══ ENTRY CARD ═══ */}
+      <View
+        style={[styles.entryCard, { backgroundColor: '#D15F6C' }]}
+        onLayout={(e: any) => { const h = e.nativeEvent?.layout?.height; if (h) setEntryCardH(h); }}
+      >
+        <View style={styles.ecTop}>
+          <TouchableOpacity style={styles.ecBackBtn} onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <IcnBack color="rgba(255,255,255,0.9)" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle} numberOfLines={1}>{t('invTitle')}</Text>
+          <Text style={styles.ecTitle} numberOfLines={1}>{t('invTitle')}</Text>
           <TouchableOpacity
-            style={styles.applyBtn}
+            style={styles.ecBtn}
             onPress={() => { setDDate(todayStr()); setDNote(''); setDInvoiceNo(''); openDrawer(); }}
             activeOpacity={0.8}
           >
             <IcnPlus color="rgba(255,255,255,0.9)" />
-            <Text style={styles.applyBtnText}>{t('invApply')}</Text>
+            <Text style={styles.ecBtnText}>{t('invApply')}</Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.headerStats}>
-          <View style={styles.headerStat}>
-            <Text style={styles.headerStatNum}>{totalCount}</Text>
-            <Text style={styles.headerStatLbl}>{t('invTotalCount')}</Text>
+        <View style={styles.ecStats}>
+          <View style={styles.ecStat}>
+            <Text style={styles.ecStatNum}>{totalCount}</Text>
+            <Text style={styles.ecStatLbl}>{t('invTotalCount')}</Text>
           </View>
-          <View style={[styles.headerStat, { flex: 2 }]}>
-            <Text style={styles.headerStatNum}>
+          <View style={[styles.ecStat, { flex: 2 }]}>
+            <Text style={styles.ecStatNum}>
               ¥{totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </Text>
-            <Text style={styles.headerStatLbl}>{t('invTotalAmount')}</Text>
+            <Text style={styles.ecStatLbl}>{t('invTotalAmount')}</Text>
           </View>
-          <View style={[styles.headerStat, { borderRightWidth: 0 }]}>
-            <Text style={styles.headerStatNum}>{pendingCount}</Text>
-            <Text style={styles.headerStatLbl}>{t('invPending')}</Text>
+          <View style={[styles.ecStat, { borderRightWidth: 0 }]}>
+            <Text style={styles.ecStatNum}>{pendingCount}</Text>
+            <Text style={styles.ecStatLbl}>{t('invPending')}</Text>
           </View>
         </View>
       </View>
@@ -528,37 +599,45 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
             </View>
             <View style={styles.infoCard}>
               <EditableInfoRow
+                icon={<IcnCompany color={c.info} />}
+                iconBg={withAlpha(c.info, 0.1)}
                 label={t('companyName')}
                 value={data.company_name}
                 colors={c}
                 onChange={(v) => setData({ ...data, company_name: v })}
-                editable
+                editable={isAdmin}
               />
               <View style={styles.divider} />
               <EditableInfoRow
+                icon={<IcnTax color={c.warning} />}
+                iconBg={withAlpha(c.warning, 0.1)}
                 label={t('taxId')}
                 value={data.tax_id}
                 colors={c}
                 mono
                 onChange={(v) => setData({ ...data, tax_id: v })}
-                editable
+                editable={isAdmin}
               />
               <View style={styles.divider} />
               <EditableInfoRow
+                icon={<IcnAddr color={c.success} />}
+                iconBg={withAlpha(c.success, 0.1)}
                 label={t('addressPhone')}
                 value={data.address}
                 colors={c}
                 onChange={(v) => setData({ ...data, address: v })}
-                editable
+                editable={isAdmin}
               />
               <View style={styles.divider} />
               <EditableInfoRow
+                icon={<IcnPhone color="#2E8B4A" />}
+                iconBg="#EAF8EE"
                 label={t('companyPhone')}
                 value={formatPhone(data.phone)}
                 colors={c}
                 mono
                 onChange={(v) => setData({ ...data, phone: v })}
-                editable
+                editable={isAdmin}
               />
             </View>
           </View>
@@ -571,20 +650,24 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
             </View>
             <View style={styles.infoCard}>
               <EditableInfoRow
+                icon={<IcnBank color={c.primary} />}
+                iconBg={withAlpha(c.primary, 0.08)}
                 label={t('bankName')}
                 value={data.bank_name}
                 colors={c}
                 onChange={(v) => setData({ ...data, bank_name: v })}
-                editable
+                editable={isAdmin}
               />
               <View style={styles.divider} />
               <EditableInfoRow
+                icon={<IcnAccount color={c.primary} />}
+                iconBg={withAlpha(c.primary, 0.08)}
                 label={t('bankAccount')}
                 value={data.bank_account}
                 colors={c}
                 mono
                 onChange={(v) => setData({ ...data, bank_account: v })}
-                editable
+                editable={isAdmin}
               />
             </View>
           </View>
@@ -597,11 +680,12 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
             </View>
             <View style={styles.infoCard}>
               <EditableInfoRow
+                icon={<IcnMail color="#7B52AB" />}
+                iconBg="#F0EAF8"
                 label={t('invEmail')}
                 value={userEmail || data.email}
                 colors={c}
                 onChange={(v) => setData({ ...data, email: v })}
-                editable
               />
             </View>
           </View>
@@ -649,7 +733,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
           <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
             {recordsLoading ? (
               <View style={styles.empty}>
-                <ActivityIndicator color={c.primary} />
+                <Text style={styles.emptyText}>...</Text>
               </View>
             ) : filtered.length === 0 ? (
               <EmptyState
@@ -660,6 +744,8 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
             ) : (
               filtered.map(r => (
                 <View key={r.id} style={styles.invCard}>
+                  {/* Torn edge */}
+                  <View style={[styles.invTorn, { backgroundColor: c.primary }]} />
                   <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={() => openDrawer(r)}
@@ -692,11 +778,11 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                       </View>
                     </View>
                     <View style={styles.invSealWrap}>
-                      <View style={[styles.seal, { borderColor: r.status === 'done' ? c.success : c.warning }]}>
-                        <Text style={[styles.sealText, { color: r.status === 'done' ? c.success : c.warning }]}>
-                          {r.status === 'done' ? t('invRecStatusDone') : t('invRecStatusPending')}
-                        </Text>
-                      </View>
+                      {r.status === 'done' ? (
+                        <IcnSealActive color={c.success} label={t('invRecStatusDone')} />
+                      ) : (
+                        <IcnSealActive color={c.warning} label={t('invRecStatusPending')} />
+                      )}
                     </View>
                   </TouchableOpacity>
                   <View style={styles.invBottom}>
@@ -708,13 +794,15 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                         {r.status === 'pending' ? t('invApplyAmount') : t('invTaxAmount')}
                       </Text>
                     </View>
-                    <TouchableOpacity
-                      style={[styles.delBtn, { backgroundColor: withAlpha(c.textMain, 0.05) }]}
-                      onPress={() => setConfirmDeleteId(r.id)}
-                      activeOpacity={0.7}
-                    >
-                      <IcnTrash color={c.danger} />
-                    </TouchableOpacity>
+                    <View style={styles.invActions}>
+                      <TouchableOpacity
+                        style={[styles.invDelBtn, { backgroundColor: withAlpha(c.textMain, 0.05) }]}
+                        onPress={() => setConfirmDeleteId(r.id)}
+                        activeOpacity={0.7}
+                      >
+                        <TrashIcon color={c.danger} size={14} />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               ))
@@ -727,51 +815,35 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
 
       {/* ═══ DELETE CONFIRM ═══ */}
-      <Modal visible={confirmDeleteId != null} transparent animationType="fade" onRequestClose={() => !deleting && setConfirmDeleteId(null)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.confirmCard}>
-            <View style={[styles.confirmHeader, { backgroundColor: c.danger }]}>
-              <Text style={styles.confirmTitle}>{t('confirmDeleteRecord')}</Text>
-            </View>
-            <View style={styles.confirmBody}>
-              <Text style={styles.confirmMsg}>
-                {t('invDelConfirmPrefix')}{records.find(r => r.id === confirmDeleteId)?.invoice_number || '—'}{t('invDelConfirmSuffix')}
-              </Text>
-              <View style={styles.confirmBtnRow}>
-                <TouchableOpacity
-                  style={styles.confirmCancelBtn}
-                  onPress={() => !deleting && setConfirmDeleteId(null)}
-                  disabled={deleting}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.confirmCancelText}>{t('cancel')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.confirmOkBtn, { backgroundColor: c.danger }]}
-                  onPress={handleConfirmDelete}
-                  disabled={deleting}
-                  activeOpacity={0.8}
-                >
-                  {deleting ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Text style={styles.confirmOkText}>{t('confirmDeleteRecord')}</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <ConfirmModal
+        visible={confirmDeleteId != null}
+        title={t('confirmDeleteRecord')}
+        message={
+          <>
+            {t('invDelConfirmPrefix')}
+            <Text style={{ fontWeight: '600', color: c.textMain }}>
+              {records.find(r => r.id === confirmDeleteId)?.invoice_number || '—'}
+            </Text>
+            {t('invDelConfirmSuffix')}
+          </>
+        }
+        confirmLabel={t('confirmDeleteRecord')}
+        headerColor={c.danger}
+        confirmColor={c.danger}
+        loading={deleting}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => !deleting && setConfirmDeleteId(null)}
+      />
 
       {/* ═══ DRAWER (create/edit) ═══ */}
       {drawerOpen && (
-        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+        <>
           <Animated.View style={[styles.drawerOverlay, { opacity: overlayOpacity }]}>
             <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={closeDrawer} />
           </Animated.View>
           <Animated.View
-            style={[styles.drawer, { backgroundColor: c.surface, transform: [{ translateY: drawerTranslateY }] }]}
+            key={drawerKey}
+            style={[styles.drawer, { backgroundColor: c.surface, top: entryCardH || 80, transform: [{ translateY: drawerTranslateY }] }]}
           >
             <View style={styles.drawerHandle} />
             <View style={styles.drawerHead}>
@@ -802,69 +874,94 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
               </View>
 
               {/* Batch selector */}
-              <Text style={styles.dLabel}>{t('invDrawerBatch')}</Text>
-              <TouchableOpacity
-                style={styles.dSelect}
-                onPress={() => {
-                  if (batchList.length === 0) return;
-                  // Cycle through batches — simple sequential selector
-                  const cur = batchList.findIndex((b: any) => b.id === dBatchId);
-                  if (cur < 0) setDBatchId(batchList[0]?.id || null);
-                  else if (cur === batchList.length - 1) setDBatchId(null);
-                  else setDBatchId(batchList[cur + 1]?.id || null);
-                }}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.dSelectText, !dBatchId && { color: c.textSub }]}>
-                  {dBatchId
-                    ? t('procNowBatch').replace('{n}', String(batchList.find((b: any) => b.id === dBatchId)?.batch_number || ''))
-                    : t('invDrawerBatchPlaceholder')}
-                </Text>
-                <Text style={[styles.dSelectChevron, { color: c.textSub }]}>›</Text>
-              </TouchableOpacity>
+              <View style={styles.dField}>
+                <Text style={styles.dLabel}>{t('invDrawerBatch')}</Text>
+                <View style={styles.dSelectWrap}>
+                  <ScrollView style={styles.dSelectScroll} horizontal showsHorizontalScrollIndicator={false}>
+                    {batchList.map((b: any) => (
+                      <TouchableOpacity
+                        key={b.id}
+                        style={[
+                          styles.dBatchChip,
+                          dBatchId === b.id && { backgroundColor: c.primary, borderColor: c.primary },
+                        ]}
+                        onPress={() => setDBatchId(dBatchId === b.id ? null : b.id)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.dBatchChipText, { color: dBatchId === b.id ? '#fff' : c.textSub }]}>
+                          {t('procNowBatch').replace('{n}', String(b.batch_number))}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                  {batchList.length === 0 && (
+                    <Text style={[styles.dSelectText, { color: c.textSub }]}>
+                      {t('invDrawerBatchPlaceholder')}
+                    </Text>
+                  )}
+                </View>
+              </View>
 
               {/* Amount */}
-              <Text style={styles.dLabel}>{t('invDrawerAmount')}<Text style={{ color: c.danger }}> *</Text></Text>
-              <View style={styles.dAmountWrap}>
-                <Text style={[styles.dAmountPrefix, { color: c.textSub }]}>¥</Text>
-                <TextInput
-                  style={[styles.dInput, styles.dAmountInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
-                  value={dAmountFocus ? dAmount : formatAmountForDisplay(dAmount)}
-                  onFocus={() => setDAmountFocus(true)}
-                  onBlur={() => { setDAmountFocus(false); setDAmount(formatAmountForStorage(dAmount)); }}
-                  onChangeText={setDAmount}
-                  placeholder="0.00"
-                  placeholderTextColor={c.textSub}
-                  keyboardType="decimal-pad"
-                />
+              <View style={styles.dField}>
+                <Text style={styles.dLabel}>{t('invDrawerAmount')}<Text style={{ color: c.danger }}> *</Text></Text>
+                <View style={styles.dAmountWrap}>
+                  <Text style={[styles.dAmountPrefix, { color: c.textSub }]}>¥</Text>
+                  <TextInput
+                    style={[styles.dInput, styles.dAmountInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
+                    value={dAmountFocus ? dAmount : formatAmountForDisplay(dAmount)}
+                    onFocus={() => setDAmountFocus(true)}
+                    onBlur={() => { setDAmountFocus(false); setDAmount(formatAmountForStorage(dAmount)); }}
+                    onChangeText={setDAmount}
+                    placeholder="0.00"
+                    placeholderTextColor={c.textSub}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
               </View>
 
               {/* Buyer (auto-filled, read-only) */}
-              <Text style={styles.dLabel}>{t('invDrawerBuyer')}<Text style={{ color: c.danger }}> *</Text></Text>
-              <TextInput
-                style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
-                value={data.company_name}
-                editable={false}
-                placeholder="—"
-                placeholderTextColor={c.textSub}
-              />
+              <View style={styles.dField}>
+                <View style={styles.dLabelRow}>
+                  <Text style={styles.dLabel}>{t('invDrawerBuyer')}<Text style={{ color: c.danger }}> *</Text></Text>
+                  <Text style={styles.dAutoFillLabel}>{t('invAutoFilled')}</Text>
+                </View>
+                <TextInput
+                  style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
+                  value={data.company_name}
+                  editable={false}
+                  placeholder="—"
+                  placeholderTextColor={c.textSub}
+                />
+              </View>
 
               {/* Tax ID (auto-filled, read-only) */}
-              <Text style={styles.dLabel}>{t('invDrawerTaxId')}<Text style={{ color: c.danger }}> *</Text></Text>
-              <TextInput
-                style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
-                value={data.tax_id}
-                editable={false}
-                placeholder="—"
-                placeholderTextColor={c.textSub}
-              />
+              <View style={styles.dField}>
+                <View style={styles.dLabelRow}>
+                  <Text style={styles.dLabel}>{t('invDrawerTaxId')}<Text style={{ color: c.danger }}> *</Text></Text>
+                  <Text style={styles.dAutoFillLabel}>{t('invAutoFilled')}</Text>
+                </View>
+                <TextInput
+                  style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
+                  value={data.tax_id}
+                  editable={false}
+                  placeholder="—"
+                  placeholderTextColor={c.textSub}
+                />
+              </View>
 
               {/* Date + Email */}
               <View style={styles.dRow}>
-                <View style={styles.dFieldHalf}>
+                <View style={[styles.dFieldHalf, { overflow: 'hidden' }]}>
                   <Text style={styles.dLabel}>{t('invDrawerDate')}</Text>
-                  <View style={[styles.dInput, { backgroundColor: withAlpha(c.textMain, 0.03), justifyContent: 'center' }]}>
-                    <Text style={{ color: c.textMain, fontSize: FONTS.sub.size }}>{dDate}</Text>
+                  <View style={[styles.dInput, { backgroundColor: withAlpha(c.textMain, 0.03), justifyContent: 'center', paddingVertical: 0 }]}>
+                    <DatePicker
+                      date={dDate}
+                      onChange={setDDate}
+                      fontSize={FONTS.sub.size}
+                      showChevron
+                      showCalendarIcon
+                    />
                   </View>
                 </View>
                 <View style={styles.dFieldHalf}>
@@ -881,25 +978,27 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
               </View>
 
               {/* Status */}
-              <Text style={styles.dLabel}>{t('invStatus')}</Text>
-              <View style={styles.dTypeRow}>
-                {(['pending', 'done'] as InvStatus[]).map(s_ => (
-                  <TouchableOpacity
-                    key={s_}
-                    style={[styles.dTypeChip, { backgroundColor: dStatus === s_ ? c.primary : withAlpha(c.textMain, 0.06) }]}
-                    onPress={() => setDStatus(s_)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.dTypeChipText, { color: dStatus === s_ ? c.surface : c.textSub }]}>
-                      {s_ === 'pending' ? t('invRecStatusPending') : t('invRecStatusDone')}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+              <View style={styles.dField}>
+                <Text style={styles.dLabel}>{t('invStatus')}</Text>
+                <View style={styles.dTypeRow}>
+                  {(['pending', 'done'] as InvStatus[]).map(s_ => (
+                    <TouchableOpacity
+                      key={s_}
+                      style={[styles.dTypeChip, { backgroundColor: dStatus === s_ ? c.primary : withAlpha(c.textMain, 0.06) }]}
+                      onPress={() => setDStatus(s_)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.dTypeChipText, { color: dStatus === s_ ? c.surface : c.textSub }]}>
+                        {s_ === 'pending' ? t('invRecStatusPending') : t('invRecStatusDone')}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
 
               {/* Invoice number — only when done */}
               {dStatus === 'done' && (
-                <>
+                <View style={styles.dField}>
                   <Text style={styles.dLabel}>{t('invRecInvoiceNo')}<Text style={{ color: c.danger }}> *</Text></Text>
                   <TextInput
                     style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
@@ -908,147 +1007,102 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                     placeholder="NO.2026060001"
                     placeholderTextColor={c.textSub}
                   />
-                </>
+                </View>
               )}
 
               {/* File upload — only when done */}
               {dStatus === 'done' && (
                 <View style={{ marginBottom: 8 }}>
-                  <Text style={styles.dLabel}>{t('invUploadInvoice')}</Text>
-                  {/* Existing file thumbnails */}
-                  {dExistingFilePath.length > 0 && (
-                    <View style={styles.fileRow}>
-                      {dExistingFilePath.map((p, i) => (
-                        <View key={`ex-${i}`} style={styles.fileThumb}>
-                          <TouchableOpacity onPress={() => showPreview(api.getInvoiceFileUrl(p))} activeOpacity={0.7}>
-                            <Image source={{ uri: api.getInvoiceFileUrl(p) }} style={styles.fileThumbImg} />
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={styles.fileRemove}
-                            onPress={() => setDExistingFilePath(prev => prev.filter((_, j) => j !== i))}
-                            activeOpacity={0.7}
-                          >
-                            <Text style={styles.fileRemoveText}>×</Text>
-                          </TouchableOpacity>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                  {/* New file thumbnails */}
-                  {dFiles.length > 0 && (
-                    <View style={styles.fileRow}>
-                      {dFiles.map((f, i) => (
-                        <View key={`nw-${i}`} style={styles.fileThumb}>
-                          <TouchableOpacity onPress={() => showPreview(f.uri)} activeOpacity={0.7}>
-                            <Image source={{ uri: f.uri }} style={styles.fileThumbImg} />
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={styles.fileRemove}
-                            onPress={() => setDFiles(prev => prev.filter((_, j) => j !== i))}
-                            activeOpacity={0.7}
-                          >
-                            <Text style={styles.fileRemoveText}>×</Text>
-                          </TouchableOpacity>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-                  {/* Add buttons */}
-                  <View style={styles.fileAddRow}>
-                    <TouchableOpacity
-                      style={[styles.fileAddBtn, { backgroundColor: withAlpha(c.primary, 0.08) }]}
-                      onPress={pickNewFiles}
-                      activeOpacity={0.7}
-                    >
-                      <IcnGallery color={c.primary} />
-                      <Text style={[styles.fileAddText, { color: c.primary }]}>{t('addImage') || '相册'}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.fileAddBtn, { backgroundColor: withAlpha(c.primary, 0.08) }]}
-                      onPress={captureNewFile}
-                      activeOpacity={0.7}
-                    >
-                      <IcnCamera color={c.primary} />
-                      <Text style={[styles.fileAddText, { color: c.primary }]}>{t('invTakePhoto') || '拍照'}</Text>
-                    </TouchableOpacity>
-                  </View>
+                  <ReceiptUpload
+                    existingImages={editingId && dExistingFilePath.length > 0 ? dExistingFilePath.map(p => api.getInvoiceFileUrl(p)) : []}
+                    newFiles={dFiles}
+                    onAdd={(files: PickedImage[]) => setDFiles(prev => [...prev, ...files])}
+                    onRemoveExisting={(i: number) => { setDExistingFilePath(prev => prev.filter((_, j) => j !== i)); }}
+                    onRemoveNew={(i: number) => setDFiles(dFiles.filter((_, j) => j !== i))}
+                    getPreviewUrl={(f: PickedImage) => f.uri}
+                    label={t('invUploadInvoice') as string}
+                    required
+                    onPreviewExisting={handlePreviewExisting}
+                    onPreviewNew={handlePreviewNew}
+                  />
                 </View>
               )}
 
               {/* Note */}
-              <Text style={styles.dLabel}>{t('invDrawerNote')}</Text>
-              <TextInput
-                style={[styles.dInput, styles.dNoteInput]}
-                value={dNote}
-                onChangeText={setDNote}
-                placeholder={t('invDrawerNotePlaceholder')}
-                placeholderTextColor={c.textSub}
-                multiline
-              />
+              <View style={styles.dField}>
+                <ExpenseNoteInput
+                  label={t('invDrawerNote') as string}
+                  value={dNote}
+                  onChangeText={setDNote}
+                  placeholder={t('invDrawerNotePlaceholder')}
+                />
+              </View>
+
             </ScrollView>
 
             {/* Submit */}
             {(() => {
-              const submitDisabled = submitting || !dAmount || !data.company_name || !data.tax_id
+              const nonLoadDisabled = !dAmount || !data.company_name || !data.tax_id
                 || (dStatus === 'done' && !dInvoiceNo.trim())
                 || (dStatus === 'done' && dFiles.length === 0 && dExistingFilePath.length === 0);
               return (
-                <TouchableOpacity
-                  style={[styles.dSubmit, { backgroundColor: c.primary }, submitDisabled && { opacity: 0.4 }]}
+                <SubmitButton
                   onPress={handleDrawerSubmit}
-                  disabled={submitDisabled}
-                  activeOpacity={0.8}
-                >
-                  {submitting ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Text style={styles.dSubmitText}>{editingId ? t('invSave') : t('invSubmit')}</Text>
-                  )}
-                </TouchableOpacity>
+                  loading={submitting}
+                  disabled={nonLoadDisabled}
+                  label={editingId ? t('invSave') : t('invSubmit')}
+                  style={[styles.dSubmit, { backgroundColor: c.primary }, nonLoadDisabled && { opacity: 0.4 }]}
+                  textStyle={styles.dSubmitText}
+                />
               );
             })()}
           </Animated.View>
-        </View>
-      )}
 
-      {/* Image preview (fullscreen) */}
-      {previewVisible && previewUri ? (
-        <Modal visible={previewVisible} transparent animationType="fade" onRequestClose={closePreview}>
-          <View style={styles.previewBackdrop}>
-            <TouchableOpacity style={styles.previewClose} onPress={closePreview} activeOpacity={0.7}>
-              <Text style={styles.previewCloseText}>×</Text>
-            </TouchableOpacity>
-            <Image source={{ uri: previewUri }} style={{ width: w, height: '100%' }} resizeMode="contain" />
-          </View>
-        </Modal>
-      ) : null}
+          {/* Image preview overlay */}
+          {previewImages && (
+            <ImagePreview
+              images={previewImages}
+              initialIdx={previewIdx}
+              visible={true}
+              onClose={closePreview}
+            />
+          )}
+        </>
+      )}
     </View>
   );
 }
 
 /* ═══════════════ EDITABLE INFO ROW ═══════════════ */
 
-function EditableInfoRow({ label, value, colors, mono, onChange, editable = true }: {
-  label: string; value: string; colors: ThemeColors; mono?: boolean;
-  onChange: (v: string) => void; editable?: boolean;
+function EditableInfoRow({ icon, iconBg, label, value, colors, mono, onChange, editable = true }: {
+  icon: React.ReactNode;
+  iconBg: string;
+  label: string;
+  value: string;
+  colors: ThemeColors;
+  mono?: boolean;
+  onChange: (v: string) => void;
+  editable?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
-  const { colors: c } = useTheme();
-  const styles = useMemo(() => getStyles(c), [c]);
 
   const commit = () => {
     if (draft !== value) onChange(draft);
     setEditing(false);
   };
 
-  return (
-    <View style={styles.eirRow}>
-      <View style={styles.eirBody}>
-        <Text style={styles.eirLabel}>{label}</Text>
-        {editing ? (
+  const styles = useMemo(() => getEirStyles(), []);
+
+  if (editing) {
+    return (
+      <View style={styles.row}>
+        <View style={[styles.icon, { backgroundColor: iconBg }]}>{icon}</View>
+        <View style={styles.body}>
+          <Text style={[styles.label, { color: colors.textSub }]}>{label}</Text>
           <TextInput
-            style={[styles.eirValueInput, { color: colors.textMain }]}
+            style={[styles.valueInput, { color: colors.textMain }]}
             value={draft}
             onChangeText={setDraft}
             onBlur={commit}
@@ -1056,54 +1110,75 @@ function EditableInfoRow({ label, value, colors, mono, onChange, editable = true
             placeholder={value || '—'}
             placeholderTextColor={colors.textSub}
           />
-        ) : (
-          <Text
-            style={[styles.eirValue, { color: value ? colors.textMain : colors.textSub }]}
-            numberOfLines={1}
-          >
-            {value || '—'}
-          </Text>
-        )}
+        </View>
+        <TouchableOpacity style={styles.editBtn} onPress={commit}>
+          <PencilSvg color={colors.primary} />
+        </TouchableOpacity>
       </View>
-      {editable && !editing && (
-        <TouchableOpacity
-          onPress={() => { setDraft(value); setEditing(true); }}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          activeOpacity={0.7}
+    );
+  }
+
+  return (
+    <View style={styles.row}>
+      <View style={[styles.icon, { backgroundColor: iconBg }]}>{icon}</View>
+      <View style={styles.body}>
+        <Text style={[styles.label, { color: colors.textSub }]}>{label}</Text>
+        <Text
+          style={[styles.value, { color: value ? colors.textMain : colors.textSub, fontWeight: value ? '500' : '400' }]}
+          numberOfLines={1}
         >
-          <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-            <Path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5Z" />
-            <Path d="M15 5l4 4" />
-          </Svg>
+          {value || t('invEmpty')}
+        </Text>
+      </View>
+      {editable && (
+        <TouchableOpacity onPress={() => { setDraft(value); setEditing(true); }} activeOpacity={0.7}>
+          <PencilSvg color={colors.textSub} />
         </TouchableOpacity>
       )}
     </View>
   );
 }
 
+const getEirStyles = () => StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, paddingHorizontal: 16, gap: 12 },
+  icon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  body: { flex: 1, minWidth: 0 },
+  label: { fontSize: 11, marginBottom: 2 },
+  value: { fontSize: 13 },
+  valueInput: { fontSize: 13, fontWeight: '500', padding: 0 },
+  editBtn: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+});
+
 /* ═══════════════ STYLES ═══════════════ */
 
 const getStyles = (c: ThemeColors) =>
   StyleSheet.create({
-    root: { flex: 1, backgroundColor: c.bg },
+    root: { flex: 1, backgroundColor: c.bg, position: 'relative' as any, overflow: 'hidden' as any },
     scroll: { flex: 1 },
 
-    /* HEADER */
-    headerCard: { backgroundColor: '#D15F6C', paddingTop: 50, paddingBottom: 14, paddingHorizontal: 20 },
-    headerTopRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-    backBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { flex: 1, color: '#fff', fontSize: 18, fontWeight: '600' },
-    applyBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12 },
-    applyBtnText: { color: '#fff', fontSize: 13, fontWeight: '500' },
-    headerStats: { flexDirection: 'row' },
-    headerStat: { flex: 1, paddingHorizontal: 12, alignItems: 'center', borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.12)' },
-    headerStatNum: { color: '#fff', fontSize: 18, fontWeight: '700' },
-    headerStatLbl: { color: 'rgba(255,255,255,0.6)', fontSize: 10, marginTop: 2 },
+    /* ENTRY CARD */
+    entryCard: {
+      borderRadius: 0, paddingTop: 50, paddingRight: 20, paddingBottom: 14, paddingLeft: 20,
+      position: 'relative' as any, overflow: 'hidden' as any, marginBottom: 14,
+    },
+    ecTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+    ecBackBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    ecTitle: { flex: 1, color: '#fff', fontSize: 18, fontWeight: '600', letterSpacing: 0.3 },
+    ecBtn: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+      backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
+      borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, flexShrink: 0,
+    },
+    ecBtnText: { color: '#fff', fontSize: 13, fontWeight: '500' },
+    ecStats: { flexDirection: 'row' },
+    ecStat: { flex: 1, paddingHorizontal: 12, alignItems: 'center', borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.12)' },
+    ecStatNum: { color: '#fff', fontSize: 20, fontWeight: '600' },
+    ecStatLbl: { color: 'rgba(255,255,255,0.6)', fontSize: 10, marginTop: 2 },
 
     /* TABS */
-    tabs: { flexDirection: 'row', marginHorizontal: 16, marginTop: 14, marginBottom: 12, backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 10, padding: 3 },
+    tabs: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 14, backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 10, padding: 3 },
     tab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },
-    tabOn: { backgroundColor: c.primary },
+    tabOn: { backgroundColor: c.primary, shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } },
     tabText: { fontSize: 13, fontWeight: '500' },
 
     /* TIPS */
@@ -1120,12 +1195,10 @@ const getStyles = (c: ThemeColors) =>
     infoCard: { backgroundColor: c.surface, borderRadius: 12, marginHorizontal: 16, overflow: 'hidden' },
     divider: { height: 0.5, backgroundColor: withAlpha(c.textMain, 0.08), marginLeft: 16 },
 
-    /* EDITABLE INFO ROW */
-    eirRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, paddingHorizontal: 16, gap: 12 },
-    eirBody: { flex: 1 },
-    eirLabel: { fontSize: 11, color: c.textSub, marginBottom: 2 },
-    eirValue: { fontSize: 13, fontWeight: '500' },
-    eirValueInput: { fontSize: 13, fontWeight: '500', padding: 0 },
+    typeToggle: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.secondary },
+    typeChip: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8, borderWidth: 1.5 },
+    typeChipActive: { backgroundColor: withAlpha(c.primary, 0.08), borderColor: c.primary },
+    typeChipText: { fontSize: 12, fontWeight: '500' },
 
     saveBtn: { margin: 16, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
     saveBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
@@ -1137,8 +1210,9 @@ const getStyles = (c: ThemeColors) =>
     filterChipText: { fontSize: 12 },
 
     /* INVOICE CARD */
-    invCard: { marginHorizontal: 16, marginBottom: 12, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.secondary, overflow: 'hidden' },
-    invTop: { flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14, marginTop: 4, borderBottomWidth: 1, borderStyle: 'dashed', borderBottomColor: c.secondary },
+    invCard: { marginHorizontal: 16, marginBottom: 12, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.secondary, overflow: 'hidden', position: 'relative' as any },
+    invTorn: { position: 'absolute' as any, top: 0, left: 0, right: 0, height: 4, opacity: 0.4 },
+    invTop: { flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14, marginTop: 4, borderBottomWidth: 1, borderStyle: 'dashed' as any, borderBottomColor: c.secondary },
     invBadge: { paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6, borderWidth: 1, flexShrink: 0, marginTop: 2 },
     invBadgeVat: { backgroundColor: withAlpha(c.primary, 0.08), borderColor: withAlpha(c.primary, 0.3) },
     invBadgeGeneral: { backgroundColor: withAlpha(c.info, 0.08), borderColor: withAlpha(c.info, 0.3) },
@@ -1146,70 +1220,47 @@ const getStyles = (c: ThemeColors) =>
     invMain: { flex: 1, minWidth: 0 },
     invCompany: { fontSize: 14, fontWeight: '600', color: c.textMain, marginBottom: 3 },
     invTax: { fontSize: 11, color: c.textSub, marginBottom: 4 },
-    invMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+    invMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' as any },
     invDate: { fontSize: 11, color: c.textSub },
     invDot: { color: c.secondary, fontSize: 11 },
     invNo: { fontSize: 10, color: c.textSub },
-    invSealWrap: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center' },
-    seal: { width: 52, height: 52, borderRadius: 26, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-    sealText: { fontSize: 11, fontWeight: '700', textAlign: 'center', paddingHorizontal: 4 },
+    invSealWrap: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     invBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
     invAmount: { fontSize: 20, fontWeight: '700' },
     invAmountLabel: { fontSize: 10, color: c.textSub, marginTop: 1 },
-    delBtn: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+    invActions: { flexDirection: 'row', gap: 6 },
+    invDelBtn: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
 
     empty: { alignItems: 'center', paddingVertical: 48 },
-
-    /* MODAL */
-    modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 16 },
-    confirmCard: { width: 320, maxWidth: '100%', backgroundColor: c.surface, borderRadius: 14, overflow: 'hidden' },
-    confirmHeader: { paddingVertical: 14, paddingHorizontal: 20, alignItems: 'center' },
-    confirmTitle: { color: '#fff', fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight },
-    confirmBody: { padding: 20, gap: 16 },
-    confirmMsg: { color: c.textSub, fontSize: FONTS.sub.size, textAlign: 'center' },
-    confirmBtnRow: { flexDirection: 'row', gap: 12 },
-    confirmCancelBtn: { flex: 1, backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
-    confirmCancelText: { color: c.textSub, fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight },
-    confirmOkBtn: { flex: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
-    confirmOkText: { color: '#fff', fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight },
+    emptyText: { fontSize: 14, color: c.textSub },
 
     /* DRAWER */
-    drawerOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 200 },
-    drawer: { position: 'absolute', left: 0, right: 0, top: 80, bottom: 0, borderTopLeftRadius: 20, borderTopRightRadius: 20, zIndex: 201, paddingBottom: 16 },
+    drawerOverlay: { position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 200 },
+    drawer: { position: 'absolute' as any, left: 0, right: 0, bottom: 0, borderTopLeftRadius: 20, borderTopRightRadius: 20, zIndex: 201, paddingBottom: 16 },
     drawerHandle: { width: 36, height: 4, borderRadius: 2, marginTop: 12, alignSelf: 'center', backgroundColor: c.secondary },
     drawerHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, paddingBottom: 12 },
     drawerTitle: { fontSize: 15, fontWeight: '600', color: c.textMain },
     drawerBody: { flex: 1, paddingHorizontal: 20, paddingTop: 8 },
 
     dLabel: { fontSize: 13, fontWeight: '500', color: c.textSub, marginBottom: 6, marginTop: 8 },
-    dFieldHalf: { flex: 1 },
+    dLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, marginTop: 8 },
+    dAutoFillLabel: { fontSize: 11, color: c.textSub, fontWeight: '400' },
+    dField: { marginBottom: 14 },
+    dFieldHalf: { flex: 1, minWidth: 0 },
     dRow: { flexDirection: 'row', gap: 10 },
     dInput: { width: '100%', paddingVertical: 11, paddingHorizontal: 14, borderWidth: 0, borderRadius: 10, fontSize: 14, color: c.textMain },
-    dNoteInput: { minHeight: 60, textAlignVertical: 'top' },
-    dSelect: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 11, paddingHorizontal: 14, borderRadius: 10, backgroundColor: withAlpha(c.textMain, 0.03) },
-    dSelectText: { fontSize: 14, color: c.textMain },
-    dSelectChevron: { fontSize: 18 },
-    dAmountWrap: { position: 'relative' },
-    dAmountPrefix: { position: 'absolute', left: 14, top: 14, fontSize: 14, fontWeight: '600' },
+    dAmountWrap: { position: 'relative' as any },
+    dAmountPrefix: { position: 'absolute' as any, left: 14, top: 14, fontSize: 14, fontWeight: '600' },
     dAmountInput: { paddingLeft: 26, fontSize: 16, fontWeight: '700' },
     dTypeRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
     dTypeChip: { flex: 1, flexDirection: 'row', paddingVertical: 10, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
     dTypeChipText: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight },
+    dSelectWrap: { minHeight: 40, justifyContent: 'center' },
+    dSelectScroll: { flexDirection: 'row' },
+    dSelectText: { fontSize: 14, paddingVertical: 4 },
+    dBatchChip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: c.secondary, backgroundColor: c.surface, marginRight: 6 },
+    dBatchChipText: { fontSize: 12 },
 
-    /* File upload */
-    fileRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-    fileThumb: { position: 'relative', width: 64, height: 64 },
-    fileThumbImg: { width: 64, height: 64, borderRadius: 8, backgroundColor: withAlpha(c.textMain, 0.05) },
-    fileRemove: { position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
-    fileRemoveText: { color: '#fff', fontSize: 16, fontWeight: '700', lineHeight: 18 },
-    fileAddRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
-    fileAddBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 10 },
-    fileAddText: { fontSize: 13, fontWeight: '500' },
     dSubmit: { paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginHorizontal: 20, marginTop: 8 },
     dSubmitText: { fontSize: 15, fontWeight: '600', color: '#fff' },
-
-    /* Preview */
-    previewBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)' },
-    previewClose: { position: 'absolute', top: 50, right: 16, zIndex: 10, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
-    previewCloseText: { color: '#fff', fontSize: 22, fontWeight: '600', lineHeight: 24 },
   });
