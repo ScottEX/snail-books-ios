@@ -322,6 +322,11 @@ export const api = {
     if (filters) Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
     return authFetch('/api/reconciliations?' + params.toString());
   },
+  getReconciliationsPage: (page = 1, perPage = 10, filters?: Record<string, string>) => {
+    const params = new URLSearchParams({ page: String(page), per_page: String(perPage) });
+    if (filters) Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
+    return authFetch('/api/reconciliations?' + params.toString());
+  },
 
   getUsers: () => authFetch('/api/users'),
   getUser: (id: number) => authFetch(`/api/users/${id}`),
@@ -335,6 +340,8 @@ export const api = {
     authFetch(`/api/platform-fees/entry/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deletePlatformFeeEntry: (id: number) =>
     authFetch(`/api/platform-fees/entry/${id}`, { method: 'DELETE' }),
+  getPlatformFees: () => authFetch('/api/platform-fees'),
+  updatePlatformFee: (id: number, data: any) => authFetch(`/api/platform-fees/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   getDailyRevenue: (page = 1, perPage = 10, year?: number, month?: number, date?: string, days?: number, dateFrom?: string, dateTo?: string) => {
     const params = new URLSearchParams();
     params.append('page', String(page));
@@ -426,6 +433,41 @@ export const api = {
   addToCart: (product_id: number, quantity: number) => authFetch('/api/procurement-cart', { method: 'POST', body: JSON.stringify({ product_id, quantity }) }),
   removeFromCart: (product_id: number) => authFetch(`/api/procurement-cart/${product_id}`, { method: 'DELETE' }),
   clearCart: () => authFetch('/api/procurement-cart', { method: 'DELETE' }),
+
+  // Invoice records (开票记录)
+  getInvoiceRecords: (filter?: { status?: 'pending' | 'done'; type?: 'vat' | 'general'; procurement_batch_id?: number }) => {
+    const params = new URLSearchParams();
+    if (filter?.status) params.append('status', filter.status);
+    if (filter?.type) params.append('type', filter.type);
+    if (filter?.procurement_batch_id) params.append('procurement_batch_id', String(filter.procurement_batch_id));
+    const qs = params.toString();
+    return authFetch('/api/invoice-records' + (qs ? '?' + qs : ''));
+  },
+  getInvoiceRecord: (id: number) => authFetch(`/api/invoice-records/${id}`),
+  createInvoiceRecord: (data: Record<string, any>) => authFetch('/api/invoice-records', { method: 'POST', body: JSON.stringify(data) }),
+  updateInvoiceRecord: (id: number, data: Record<string, any>) => authFetch(`/api/invoice-records/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteInvoiceRecord: (id: number) => authFetch(`/api/invoice-records/${id}`, { method: 'DELETE' }),
+  uploadInvoiceFile: async (id: number, file: { uri: string; type?: string; name?: string }) => {
+    const form = new FormData();
+    form.append('file', file as any);
+    const resp = await fetch(API_BASE + `/api/invoice-records/${id}/upload`, {
+      method: 'POST',
+      headers: headers(),
+      body: form,
+      credentials: 'include' as RequestCredentials,
+    });
+    if (!resp.ok) throw new Error('Upload failed');
+    return resp.json() as Promise<{ status: string; file_path: string; file_type: string; file_size: number }>;
+  },
+  getInvoiceFileUrl: (filePath: string) => {
+    return `${API_BASE}${filePath.startsWith('/') ? '' : '/'}${filePath}`;
+  },
+  getUserAvatar: async (userId: number | string): Promise<string | null> => {
+    try {
+      const resp = await fetch(API_BASE + `/api/users/avatar?user_id=${userId}`, { credentials: 'omit' as RequestCredentials });
+      return await (api as any)._blobToDataUri(resp);
+    } catch { return null; }
+  },
 
   webauthnRegisterStart: (username: string) =>
     authFetch('/api/webauthn/register/begin', { method: 'POST', body: JSON.stringify({ username }) }),
