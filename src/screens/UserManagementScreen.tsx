@@ -12,7 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { t, getLang } from '../i18n';
-import { API_BASE } from '../api/client';
+import { API_BASE, resolveAssetUrl } from '../api/client';
 import { useServerDate } from '../hooks/useServerDate';
 import { useTheme, withAlpha, ThemeColors, FONTS } from '../theme';
 import { historyHeader } from '../sharedStyles';
@@ -322,7 +322,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
                 >
                   <View style={s.avatarWrap}>
                     {u.avatar ? (
-                      <Image source={{ uri: u.avatar }} style={s.avatar} />
+                      <Image source={{ uri: resolveAssetUrl(u.avatar) || '' }} style={s.avatar} />
                     ) : (
                       <Image source={require('../../assets/img/logo.jpg')} style={s.avatar} />
                     )}
