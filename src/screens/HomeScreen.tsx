@@ -528,6 +528,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             businessSummary={businessSummary}
             onReconHistory={() => setShowReconHistory(true)}
             onExpenseHistory={() => setShowExpenseHistory(true)}
+            onExpenseAdded={loadBusinessSummary}
           />
         ) : isHome && (
         <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false} bounces={false}>

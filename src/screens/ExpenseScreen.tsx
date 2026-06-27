@@ -162,10 +162,12 @@ export default function ExpenseScreen({
   businessSummary,
   onReconHistory,
   onExpenseHistory,
+  onExpenseAdded,
 }: {
   businessSummary?: { cash_on_hand?: number; cumulative_revenue?: number; cumulative_expense?: number };
   onReconHistory?: () => void;
   onExpenseHistory?: () => void;
+  onExpenseAdded?: () => void;
 }) {
   const { colors } = useTheme();
   const sd = useServerDate();
@@ -409,7 +411,8 @@ export default function ExpenseScreen({
   };
 
   /* ── 模块三：支出 ── */
-  const [expDate, setExpDate] = useState(sd.today || '');
+  const [expDate, setExpDate] = useState('');
+  useEffect(() => { if (sd.ready && expDate === '') setExpDate(sd.today); }, [sd.ready, sd.today, expDate]);
   const [expDateErr, setExpDateErr] = useState(0);
   const [expAmount, setExpAmount] = useState('');
   const [expCategory, setExpCategory] = useState('daily');
@@ -461,7 +464,7 @@ export default function ExpenseScreen({
     const raw = parseFloat(expAmount.replace(/,/g, ''));
     if (!expAmount || raw === 0) return;
     if (!isRefund && raw <= 0) return;
-    if (sd.isFuture(expDate)) { setToast(t('errDateFuture')); return; }
+    if (sd.ready && sd.isFuture(expDate)) { setToast(t('errDateFuture')); return; }
     setLoadingExp(true);
     try {
       // Upload images first if any
@@ -503,6 +506,7 @@ export default function ExpenseScreen({
       setExpImages([]);
       setIsRefund(false);
       await loadExpenses();
+      onExpenseAdded?.();
       onExpenseHistory?.();
     } catch { setToast(t('toastSubmitFailed')); }
     setLoadingExp(false);
