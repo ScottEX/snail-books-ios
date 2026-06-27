@@ -525,11 +525,10 @@ export default function ExpenseScreen({
           pagingEnabled={false}
           snapToOffsets={(() => {
             const w = Dimensions.get('window').width;
-            // Card1 pos = w-32 (card0 w-50 + margin 18). paddingLeft=18.
-            // Card1 left aligned to content: 18 + (w-32) - offset = 18 → offset = w-32
             return [0, w - 32];
           })()}
           decelerationRate="fast"
+          disableIntervalMomentum={true}
           onMomentumScrollEnd={(e) => {
             const offset = e.nativeEvent.contentOffset.x;
             const w = Dimensions.get('window').width;
