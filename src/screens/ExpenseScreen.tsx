@@ -388,7 +388,7 @@ export default function ExpenseScreen({
         year: feeMonth.year, month: feeMonth.month,
         entry_date: feeEntryDate,
         meituan_cashier: mc, meituan_waimai: mw,
-        eleme_waimai: ew, meituan_tuan: mt,
+        shangou_waimai: ew, meituan_tuan: mt,
       });
       if (r?.status === 'ok') {
         setFeeData(r.data);
@@ -505,9 +505,9 @@ export default function ExpenseScreen({
 
   /* ── 卡片摘要数据 ── */
   const feeTotal = feeMonth === 'all'
-    ? allFees.reduce((sum: number, f: any) => sum + (f.meituan_cashier || 0) + (f.meituan_waimai || 0) + (f.eleme_waimai || 0) + (f.meituan_tuan || 0), 0)
+    ? allFees.reduce((sum: number, f: any) => sum + (f.meituan_cashier || 0) + (f.meituan_waimai || 0) + (f.shangou_waimai || 0) + (f.meituan_tuan || 0), 0)
     : feeData
-    ? ((feeData.meituan_cashier || 0) + (feeData.meituan_waimai || 0) + (feeData.eleme_waimai || 0) + (feeData.meituan_tuan || 0))
+    ? ((feeData.meituan_cashier || 0) + (feeData.meituan_waimai || 0) + (feeData.shangou_waimai || 0) + (feeData.meituan_tuan || 0))
     : 0;
   const lang = getLang();
   const tabCards = useMemo(() => [
@@ -656,9 +656,9 @@ export default function ExpenseScreen({
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 2, position: 'relative', paddingTop: 2 }}
                   onPress={() => {
                     if (!showFeeMonthPicker) {
-                      if (pickerTriggerRef.current && typeof (pickerTriggerRef.current as any).measure === 'function') {
-                        (pickerTriggerRef.current as any).measure((_x: number, _y: number, _w: number, _h: number, px: number, py: number) => {
-                          setPickerPos({ top: py + 30, left: px });
+                      if (pickerTriggerRef.current && typeof (pickerTriggerRef.current as any).measureInWindow === 'function') {
+                        (pickerTriggerRef.current as any).measureInWindow((x: number, y: number, w: number, h: number) => {
+                          setPickerPos({ top: y + h + 4, left: x });
                         });
                       }
                       pickerAnim.setValue(0);
@@ -710,7 +710,7 @@ export default function ExpenseScreen({
               {([
                 { k: 'meituanCashier', v: feeMonth === 'all' ? allFees.reduce((s: number, f: any) => s + (f.meituan_cashier || 0), 0) : (feeData?.meituan_cashier || 0), color: colors.info },
                 { k: 'meituanWaimai', v: feeMonth === 'all' ? allFees.reduce((s: number, f: any) => s + (f.meituan_waimai || 0), 0) : (feeData?.meituan_waimai || 0), color: colors.warning },
-                { k: 'shangouWaimai', v: feeMonth === 'all' ? allFees.reduce((s: number, f: any) => s + (f.eleme_waimai || 0), 0) : (feeData?.eleme_waimai || 0), color: colors.info },
+                { k: 'shangouWaimai', v: feeMonth === 'all' ? allFees.reduce((s: number, f: any) => s + (f.shangou_waimai || 0), 0) : (feeData?.shangou_waimai || 0), color: colors.info },
                 { k: 'meituanTuan', v: feeMonth === 'all' ? allFees.reduce((s: number, f: any) => s + (f.meituan_tuan || 0), 0) : (feeData?.meituan_tuan || 0), color: colors.success },
               ] as const).map((p) => (
                 <View key={p.k} style={{ flex: 1, minWidth: '45%', backgroundColor: colors.bg, borderRadius: 10, padding: 10 }}>
@@ -1007,32 +1007,32 @@ export default function ExpenseScreen({
               </View>
 
               {/* Column headers */}
-              <View style={{ flexDirection: 'row', marginBottom: 10, gap: 8, paddingHorizontal: 2 }}>
-                <Text style={{ flex: 1, maxWidth: '30%', fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight }}></Text>
+              <View style={{ flexDirection: 'row', marginBottom: 10, gap: 6, paddingHorizontal: 2 }}>
+                <Text style={{ flex: 1, minWidth: 100, maxWidth: 220, flexShrink: 1, fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight }}></Text>
                 <Text style={{ width: 80, fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight, textAlign: 'left' }}>{t('feePreview')}</Text>
                 <Text style={{ width: 80, fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight, textAlign: 'left' }}>{t('feeCurrent')}</Text>
-                <Text style={{ width: 72, fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight, textAlign: 'right' }}>{t('feeEntry')}</Text>
+                <Text style={{ width: 76, fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight, textAlign: 'right' }}>{t('feeEntry')}</Text>
               </View>
 
               {/* Fee rows */}
               {([
                 { k: 'meituanCashier', cur: feeData?.meituan_cashier || 0, val: feeMc, set: setFeeMc },
                 { k: 'meituanWaimai', cur: feeData?.meituan_waimai || 0, val: feeMw, set: setFeeMw },
-                { k: 'shangouWaimai', cur: feeData?.eleme_waimai || 0, val: feeEw, set: setFeeEw },
+                { k: 'shangouWaimai', cur: feeData?.shangou_waimai || 0, val: feeEw, set: setFeeEw },
                 { k: 'meituanTuan', cur: feeData?.meituan_tuan || 0, val: feeMt, set: setFeeMt },
               ] as const).map((row) => {
                 const inputNum = toNum(row.val);
                 return (
-                  <View key={row.k} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 8 }}>
-                    <Text style={{ flex: 1, maxWidth: '30%', fontSize: FONTS.sub.size, color: colors.textSub, fontWeight: FONTS.sub.weight }} numberOfLines={1}>{t(row.k)}</Text>
-                    <Text style={{ width: 80, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain, textAlign: 'left' }}>
+                  <View key={row.k} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10, gap: 6 }}>
+                    <Text style={{ flex: 1, minWidth: 100, maxWidth: 220, flexShrink: 1, fontSize: FONTS.sub.size, color: colors.textSub, fontWeight: FONTS.sub.weight, marginTop: 8 }}>{t(row.k)}</Text>
+                    <Text style={{ width: 80, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain, textAlign: 'left', marginTop: 8 }}>
                       ¥{(row.cur + inputNum).toFixed(2)}
                     </Text>
-                    <Text style={{ width: 80, fontSize: FONTS.micro.size, color: colors.textSub, textAlign: 'left' }}>
+                    <Text style={{ width: 80, fontSize: FONTS.micro.size, color: colors.textSub, textAlign: 'left', marginTop: 10 }}>
                       ¥{row.cur.toFixed(2)}
                     </Text>
                     <TextInput
-                      style={{ width: 72, height: 38, borderWidth: 1, borderColor: colors.secondary, borderRadius: 8, paddingHorizontal: 10, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub, textAlign: 'right', backgroundColor: colors.surface, outline: 'none' } as any}
+                      style={{ width: 76, height: 38, borderWidth: 1, borderColor: colors.secondary, borderRadius: 8, paddingHorizontal: 10, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub, textAlign: 'right', backgroundColor: colors.surface, outline: 'none' } as any}
                       value={row.val} onChangeText={(v: string) => row.set(fmtDecInput(v))}
                       keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={colors.textSub}
                     />
@@ -1069,9 +1069,9 @@ export default function ExpenseScreen({
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 8, position: 'relative' }}
                 onPress={() => {
                   if (!showFeeHistoryFilterPicker) {
-                    if (feeHistoryFilterTriggerRef.current && typeof (feeHistoryFilterTriggerRef.current as any).measure === 'function') {
-                      (feeHistoryFilterTriggerRef.current as any).measure((_x: number, _y: number, _w: number, _h: number, px: number, py: number) => {
-                        setFeeHistoryPickerPos({ top: py + 30, left: px });
+                    if (feeHistoryFilterTriggerRef.current && typeof (feeHistoryFilterTriggerRef.current as any).measureInWindow === 'function') {
+                      (feeHistoryFilterTriggerRef.current as any).measureInWindow((x: number, y: number, w: number, h: number) => {
+                        setFeeHistoryPickerPos({ top: y + h + 4, left: x });
                       });
                     }
                     pickerAnim.setValue(0);
@@ -1094,11 +1094,11 @@ export default function ExpenseScreen({
             </View>
             <ScrollView style={{ flex: 1, paddingHorizontal: 12, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
               {(feeHistoryFilter === 'all' ? allFees : allFees.filter((f: any) => f.year === feeHistoryFilter.year && f.month === feeHistoryFilter.month)).map((f: any, idx: number) => {
-                const monthTotal = (f.meituan_cashier || 0) + (f.meituan_waimai || 0) + (f.eleme_waimai || 0) + (f.meituan_tuan || 0);
+                const monthTotal = (f.meituan_cashier || 0) + (f.meituan_waimai || 0) + (f.shangou_waimai || 0) + (f.meituan_tuan || 0);
                 const platforms = [
                   { label: t('meituanCashier'), value: f.meituan_cashier || 0, color: colors.info },
                   { label: t('meituanWaimai'), value: f.meituan_waimai || 0, color: colors.warning },
-                  { label: t('shangouWaimai'), value: f.eleme_waimai || 0, color: colors.info },
+                  { label: t('shangouWaimai'), value: f.shangou_waimai || 0, color: colors.info },
                   { label: t('meituanTuan'), value: f.meituan_tuan || 0, color: colors.success },
                 ];
                 return (
