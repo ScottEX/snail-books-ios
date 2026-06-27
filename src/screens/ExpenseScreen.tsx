@@ -1149,7 +1149,7 @@ export default function ExpenseScreen({
         }}>
           <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
             <TouchableOpacity
-              style={{ paddingHorizontal: 12, paddingVertical: 4, backgroundColor: feeMonth === 'all' ? withAlpha(colors.danger, 0.1) : 'transparent', borderRadius: 8, marginHorizontal: 4 }}
+              style={{ paddingHorizontal: 12, paddingVertical: 2, backgroundColor: feeMonth === 'all' ? withAlpha(colors.danger, 0.1) : 'transparent', borderRadius: 6, marginHorizontal: 4 }}
               onPress={() => {
                 setFeeMonth('all');
                 Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeMonthPicker(false));
@@ -1158,13 +1158,13 @@ export default function ExpenseScreen({
             >
               <Text style={{ fontSize: FONTS.sub.size, fontWeight: feeMonth === 'all' ? '700' : '500', color: feeMonth === 'all' ? colors.primary : colors.textMain }}>{t('feeAllMonths')}</Text>
             </TouchableOpacity>
-            <View style={{ height: 1, backgroundColor: colors.secondary, marginHorizontal: 12, marginVertical: 4 }} />
+            <View style={{ height: 1, backgroundColor: colors.secondary, marginHorizontal: 12, marginVertical: 2 }} />
             {[...allFees].filter((f: any) => f.year > 2024 || (f.year === 2024 && f.month >= 5)).sort((a: any, b: any) => (b.year - a.year) || (b.month - a.month)).map((f: any) => {
               const isSel = feeMonth !== 'all' && feeMonth.year === f.year && feeMonth.month === f.month;
               return (
                 <TouchableOpacity
                   key={`${f.year}-${f.month}`}
-                  style={{ paddingHorizontal: 12, paddingVertical: 4, backgroundColor: isSel ? withAlpha(colors.danger, 0.1) : 'transparent', borderRadius: 8, marginHorizontal: 4 }}
+                  style={{ paddingHorizontal: 12, paddingVertical: 2, backgroundColor: isSel ? withAlpha(colors.danger, 0.1) : 'transparent', borderRadius: 6, marginHorizontal: 4 }}
                   onPress={() => {
                     setFeeMonth({ year: f.year, month: f.month });
                     Animated.timing(pickerAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowFeeMonthPicker(false));
