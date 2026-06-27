@@ -1271,29 +1271,22 @@ function ModalOverlay({ children, onClose }: {
 }) {
   const anim = useRef(new Animated.Value(-300)).current;
   const fade = useRef(new Animated.Value(0)).current;
-  const [visible, setVisible] = useState(true);
 
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(anim, { toValue: 0, useNativeDriver: false, bounciness: 4, speed: 14 }),
-      Animated.timing(fade, { toValue: 1, duration: 200, useNativeDriver: false }),
+      Animated.spring(anim, { toValue: 0, useNativeDriver: true, bounciness: 4, speed: 14 }),
+      Animated.timing(fade, { toValue: 1, duration: 200, useNativeDriver: true }),
     ]).start();
   }, []);
 
   const close = () => {
     Animated.parallel([
-      Animated.timing(anim, { toValue: -300, duration: 180, useNativeDriver: false }),
-      Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: false }),
+      Animated.timing(anim, { toValue: -300, duration: 180, useNativeDriver: true }),
+      Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: true }),
     ]).start(() => {
-      setVisible(false);
       onClose();
     });
   };
-
-  if (!visible) {
-    // After animation completes, render nothing — caller will unmount
-    return <Modal transparent animationType="none" visible={false} onRequestClose={() => {}}><View /></Modal>;
-  }
 
   return (
     <Modal transparent animationType="none" visible onRequestClose={close}>
