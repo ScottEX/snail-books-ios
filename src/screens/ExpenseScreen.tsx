@@ -259,6 +259,7 @@ export default function ExpenseScreen({
     (async () => {
       try {
         const data = await api.getReconciliations(365);
+        const last = (data && data.length > 0) ? data[0] : null;
         const match = (data || []).find((r: any) => r.bill_date === recDate);
         if (match) {
           setCardBalance(toDec2(match.card_balance));
@@ -268,6 +269,15 @@ export default function ExpenseScreen({
           setFlashSale(toDec2(match.flash_sale));
           setTuan(toDec2(match.tuan));
           setJd(toDec2(match.jd));
+        } else if (last && recDate >= (last.bill_date || '')) {
+          // No exact match, but date >= last record → pre-fill with last values (matches web)
+          setCardBalance(toDec2(last.card_balance));
+          setCashBalance(toDec2(last.cash_balance));
+          setDineIn(toDec2(last.dine_in));
+          setMeituan(toDec2(last.meituan));
+          setFlashSale(toDec2(last.flash_sale));
+          setTuan(toDec2(last.tuan));
+          setJd(toDec2(last.jd));
         } else {
           setCardBalance('');
           setCashBalance('');
