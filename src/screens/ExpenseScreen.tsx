@@ -197,8 +197,8 @@ export default function ExpenseScreen({
   useEffect(() => {
     if (scrollRef.current) {
       const w = Dimensions.get('window').width;
-      // Card 0 width = w-61, gap=14 → card1 offset = (w-61) + 14 = w-47
-      const offsets = [0, w - 47];
+      // Card width = w-40, gap=14 → card1 offset = (w-40) + 14 = w-26
+      const offsets = [0, w - 26];
       scrollRef.current.scrollTo({ x: offsets[activeTab] || 0, animated: true });
     }
   }, [activeTab]);
@@ -530,15 +530,15 @@ export default function ExpenseScreen({
           pagingEnabled={false}
           snapToOffsets={(() => {
             const w = Dimensions.get('window').width;
-            // Card 0 width = w - 61, gap = 14 → offset for card 1 = (w - 61) + 14
-            return [0, w - 47];
+            // Card width = w - 40, gap = 14 → card1 offset = (w - 40) + 14 = w - 26
+            return [0, w - 26];
           })()}
           decelerationRate="fast"
           onMomentumScrollEnd={(e) => {
             const offset = e.nativeEvent.contentOffset.x;
             const w = Dimensions.get('window').width;
-            // Card 0 width = w-61, gap = 14; switch at (w-61) + gap/2 = w-54
-            const idx = offset < w - 54 ? 0 : 1;
+            // Card width = w-40, gap=14 → switch at (w-40) + gap/2 = w-33
+            const idx = offset < w - 33 ? 0 : 1;
             if (idx >= 0 && idx < tabCards.length) setActiveTab(idx);
           }}
           contentContainerStyle={st.tabScroll}>
@@ -549,10 +549,7 @@ export default function ExpenseScreen({
               <TouchableOpacity
                 key={i}
                 testID="snap-card"
-                style={[st.tabCard, active && st.tabCardActive,
-                  // @ts-ignore — 支出卡片更宽 (web: calc(100vw - 36px))
-                  i === 1 && { width: Dimensions.get('window').width - 36 },
-                ]}
+                style={[st.tabCard, active && st.tabCardActive]}
                 onPress={() => setActiveTab(i)}
                 activeOpacity={0.7}
               >
@@ -1319,7 +1316,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
     // The CSS backgroundImage (linear-gradient) is re-created with
     // a <LinearGradient> child in the JSX (RN can't render CSS
     // gradient strings). Web has NO backdrop-filter on tabCard.
-    width: Dimensions.get('window').width - 61, height: 210,
+    width: Dimensions.get('window').width - 40, height: 210,
     borderRadius: 14, overflow: 'hidden',
     paddingHorizontal: 16, paddingVertical: 14,
     justifyContent: 'flex-start',
