@@ -1064,7 +1064,7 @@ export default function ExpenseScreen({
               <CloseButton onPress={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }} />
             </View>
             {/* Month filter */}
-            <View style={{ paddingHorizontal: 20, paddingBottom: 6, marginTop: -6, flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ paddingHorizontal: 20, paddingBottom: 6, marginTop: -14, flexDirection: 'row', alignItems: 'center' }}>
               <TouchableOpacity
                 ref={feeHistoryFilterTriggerRef}
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 8, position: 'relative' }}
