@@ -346,12 +346,13 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     if (!username || !password) { setMsg(t('errEmptyFields')); triggerShake(); return; }
     setLoading(true);
     try {
+      setMsg('DEBUG: calling api.login...');
       const r = await api.login(username, password, remember);
-      Alert.alert('DEBUG 1', `Login response — status: ${r.status}, has_token: ${!!r.token}`);
+      setMsg(`DEBUG: status=${r.status} token=${!!r.token}`);
       console.warn('[AUTH DEBUG] Login response:', JSON.stringify({ status: r.status, has_token: !!r.token, username: r.username, user_id: r.user_id, need_verify: r.need_verify }));
       setLoading(false);
       if (r.status === 'ok') {
-        Alert.alert('DEBUG 2', 'r.status === ok — proceeding');
+        setMsg('DEBUG: status=ok, proceeding...');
         console.warn('[AUTH DEBUG] Login OK — proceeding to onLogin()');
         if (r.token && typeof localStorage !== 'undefined') localStorage.setItem('token', r.token);
         if (typeof localStorage !== 'undefined') {
@@ -382,22 +383,18 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         if (faceAvailable && !(await hasStoredCredential())) {
           offerEnableFaceID();
         }
-        // DEBUG: confirm onLogin is called
-        Alert.alert('DEBUG', 'Login OK — about to call onLogin()');
+        setMsg('DEBUG: calling onLogin()...');
         onLogin();
       } else if (r.need_verify) {
-        Alert.alert('DEBUG 3', `need_verify — email: ${r.email}`);
+        setMsg(`DEBUG: need_verify email=${r.email}`);
         setEmail(r.email); setStep('verify'); setMsg('');
         setTimeout(() => codeRef.current?.focus(), 100);
       } else {
-        Alert.alert('DEBUG 4', `Login failed — message: ${r.message || 'none'}`);
-        setMsg(r.message || t('errWrongCredentials'));
-        triggerShake();
+        setMsg(`DEBUG: login failed — ${r.message || 'no message'}`);
       }
     } catch (e: any) {
-      Alert.alert('DEBUG 5', `Exception: ${e?.message}`);
+      setMsg(`DEBUG: exception — ${e?.message || 'unknown'}`);
       setLoading(false);
-      setMsg(e?.message || t('errNetworkError') || '网络错误，请检查网络后重试');
     }
   };
 
