@@ -128,61 +128,14 @@ async function authFetch<T = any>(url: string, options?: RequestInit): Promise<T
     credentials: 'include' as RequestCredentials,
   });
   if (resp.status === 401) {
-    console.error('[AUTH DEBUG] 401 on', url, '— _lastAuthSuccess =', _lastAuthSuccess);
-    // ── Session warm-up: if we've never had a successful auth call this
-    // session, the session cookie might still be settling in NSHTTPCookieStorage.
-    // Retry once after 1s instead of immediately logging out.
-    if (_lastAuthSuccess === 0) {
-      console.warn('[AUTH DEBUG] warm-up retry after 1s for', url);
-      await new Promise(r => setTimeout(r, 1000));
-      const retryResp = await fetch(API_BASE + url, {
-        ...options,
-        headers: mergedHeaders,
-        credentials: 'include' as RequestCredentials,
-      });
-      if (retryResp.ok) {
-        console.warn('[AUTH DEBUG] warm-up retry OK for', url);
-        _lastAuthSuccess = Date.now();
-        bumpActivity();
-        return retryResp.json();
-      }
-      console.error('[AUTH DEBUG] warm-up retry FAILED for', url, 'status', retryResp.status);
-    }
-    console.error('[AUTH DEBUG] LOGOUT triggered by 401 on', url);
-    let kickCode: string | null = null;
-    let kickMsg: string | null = null;
-    try {
-      const body = await resp.clone().json();
-      if (body?.code) kickCode = body.code;
-      if (body?.message) kickMsg = body.message;
-    } catch {}
-    localStorage.removeItem('user');
-    try { localStorage.removeItem('bg-image'); } catch {}
-    _emitUserChange();
-    if (kickCode === 'session_kicked') {
-      _emitSessionKicked();
-    }
-    try { onSessionExpired?.(); } catch {}
-    return Promise.reject(new Error(kickMsg || 'Unauthorized'));
+    // ── TEMPORARY DEBUG: skip logout entirely to test if 401 is the trigger.
+    // If login works with this, the problem IS 401. Otherwise it's elsewhere.
+    console.error('[AUTH DEBUG] 401 IGNORED (debug mode) on', url);
+    return Promise.reject(new Error('DEBUG: 401 ignored (not logging out)'));
   }
   if (resp.status === 403) {
-    // Read body to distinguish account-disabled from permission-denied.
-    // Only logout if the backend explicitly says the account is disabled.
-    let isDisabled = false;
-    try {
-      const body = await resp.clone().json();
-      const msg = (body?.message || '').toLowerCase();
-      isDisabled = msg.includes('disabled') || msg.includes('禁用') || msg.includes('停用');
-    } catch {}
-    if (isDisabled) {
-      localStorage.removeItem('user');
-      try { localStorage.removeItem('bg-image'); } catch {}
-      _emitUserChange();
-      try { onSessionExpired?.(); } catch {}
-      return Promise.reject(new Error('Account disabled'));
-    }
-    // Permission denied (e.g. non-admin hitting admin endpoint) — just reject, don't logout
-    return Promise.reject(new Error('Forbidden'));
+    console.error('[AUTH DEBUG] 403 IGNORED (debug mode) on', url);
+    return Promise.reject(new Error('DEBUG: 403 ignored (not logging out)'));
   }
   if (!resp.ok) {
     let msg = `API error: ${resp.status} ${resp.statusText}`;
