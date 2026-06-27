@@ -349,10 +349,12 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
     paddingVertical: 14, paddingHorizontal: 14,
     marginBottom: 8,
     borderWidth: 1, borderColor: colors.secondary,
+    gap: 6,
   },
   rowTop: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginBottom: 4,
+    minHeight: 44,
   },
   badges: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   catBadge: { backgroundColor: withAlpha(colors.warning, 0.1), borderRadius: 4, paddingHorizontal: 8, paddingVertical: 3 },
