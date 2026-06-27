@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Animated, Modal } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { FONTS, withAlpha, ThemeColors } from '../theme';
 import { t } from '../i18n';
 
@@ -131,7 +132,9 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
         <Text style={{ fontSize: FONTS.microBold.size, color: colors.primary, fontWeight: FONTS.microBold.weight }}>
           {displayText}
         </Text>
-        <Text style={{ fontSize: FONTS.micro.size, color: colors.primary }}>▼</Text>
+        <Svg width={14} height={14} viewBox="0 0 1024 1024" style={{ marginLeft: 2 }}>
+          <Path d="M836.899 399.237l-218.01 335.037c-47.506 73.007-166.272 73.007-213.778 0l-218.01-335.037C139.595 326.23 198.977 234.97 293.99 234.97h436.02c95.013 0 154.395 91.26 106.889 164.267z" fill={colors.primary} />
+        </Svg>
       </TouchableOpacity>
 
       {/* Dropdown */}
