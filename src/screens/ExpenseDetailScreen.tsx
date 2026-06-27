@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
-  TextInput, Image, useWindowDimensions, Modal, ActivityIndicator,
+  TextInput, Image, useWindowDimensions,
 } from 'react-native';
-import Svg, { Path, Rect } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import { t, getLang } from '../i18n';
 import { fmtDecInput, toDec2 } from '../utils/numbers';
 import { api, resolveAssetUrl } from '../api/client';
@@ -11,6 +11,7 @@ import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import ButtonPair from '../components/ButtonPair';
 import Toast from '../components/Toast';
+import ConfirmModal from '../components/ConfirmModal';
 import CategoryChips from '../components/CategoryChips';
 import PaymentMethodChips from '../components/PaymentMethodChips';
 import ExpenseNoteInput from '../components/ExpenseNoteInput';
@@ -456,75 +457,30 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
         </View>
       )}
 
-      {/* Delete confirm modal */}
-      <Modal visible={showDeleteConfirm} transparent animationType="fade" onRequestClose={() => !deleting && setShowDeleteConfirm(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.confirmCard}>
-            <View style={[styles.confirmHeader, { backgroundColor: c.danger }]}>
-              <Text style={styles.confirmTitle}>{t('confirmDeleteRecord')}</Text>
-            </View>
-            <View style={styles.confirmBody}>
-              {deleteError ? (
-                <Text style={{ color: c.danger, fontSize: FONTS.micro.size, textAlign: 'center' }}>{deleteError}</Text>
-              ) : (
-                <Text style={styles.confirmMsg}>确认删除该笔支出数据，将无法恢复</Text>
-              )}
-              <View style={styles.confirmBtnRow}>
-                <TouchableOpacity
-                  style={[styles.confirmCancelBtn]}
-                  onPress={() => { setShowDeleteConfirm(false); setDeleteError(''); }}
-                  disabled={deleting}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.confirmCancelText}>{t('cancel')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.confirmOkBtn, { backgroundColor: c.danger }]}
-                  onPress={handleDelete}
-                  disabled={deleting}
-                  activeOpacity={0.8}
-                >
-                  {deleting ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Text style={styles.confirmOkText}>{t('confirm') || t('delete')}</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* Delete confirm — shared ConfirmModal */}
+      <ConfirmModal visible={showDeleteConfirm}
+        title={t('confirmDeleteRecord')}
+        headerColor={c.danger}
+        message={deleteError ? (
+          <Text style={{ color: c.danger, fontSize: FONTS.micro.size, textAlign: 'center' }}>{deleteError}</Text>
+        ) : (
+          "确认删除该笔支出数据，将无法恢复"
+        )}
+        confirmLabel={deleting ? '删除中…' : (t('confirm') || t('delete'))}
+        confirmColor={c.danger}
+        cancelLabel={t('cancel')}
+        loading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => { setShowDeleteConfirm(false); setDeleteError(''); }} />
 
-      {/* Save success modal */}
-      <Modal visible={showSavedConfirm} transparent animationType="fade" onRequestClose={() => setShowSavedConfirm(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.confirmCard}>
-            <View style={[styles.confirmHeader, { backgroundColor: c.primary }]}>
-              <Text style={styles.confirmTitle}>{t('expUpdated')}</Text>
-            </View>
-            <View style={styles.confirmBody}>
-              <Text style={styles.confirmMsg}>{t('expSavedMsg')}</Text>
-              <View style={styles.confirmBtnRow}>
-                <TouchableOpacity
-                  style={styles.confirmCancelBtn}
-                  onPress={() => setShowSavedConfirm(false)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.confirmCancelText}>{t('stayPage')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.confirmOkBtn, { backgroundColor: c.primary }]}
-                  onPress={() => { setShowSavedConfirm(false); onBack(); }}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.confirmOkText}>{t('backToList') || t('confirm')}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* Save success — shared ConfirmModal */}
+      <ConfirmModal visible={showSavedConfirm}
+        title={t('expUpdated')}
+        message={t('expSavedMsg')}
+        confirmLabel={t('backToList') || t('confirm')}
+        cancelLabel={t('stayPage')}
+        onConfirm={() => { setShowSavedConfirm(false); onBack(); }}
+        onCancel={() => setShowSavedConfirm(false)} />
 
       {/* Image preview */}
       {previewVisible && (
@@ -658,30 +614,6 @@ const getStyles = (c: ThemeColors) =>
       color: c.surface, fontSize: FONTS.subBold.size,
       fontWeight: FONTS.subBold.weight,
     },
-
-    /* Modal */
-    modalBackdrop: {
-      flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',
-      justifyContent: 'center', alignItems: 'center', padding: 16,
-    },
-    confirmCard: {
-      width: 320, maxWidth: '100%',
-      backgroundColor: c.surface, borderRadius: 14, overflow: 'hidden',
-    },
-    confirmHeader: { paddingVertical: 14, paddingHorizontal: 20, alignItems: 'center' },
-    confirmTitle: { color: '#fff', fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight },
-    confirmBody: { padding: 20, gap: 16 },
-    confirmMsg: { color: c.textSub, fontSize: FONTS.sub.size, textAlign: 'center' },
-    confirmBtnRow: { flexDirection: 'row', gap: 12 },
-    confirmCancelBtn: {
-      flex: 1, backgroundColor: withAlpha(c.textMain, 0.06),
-      borderRadius: 12, paddingVertical: 10, alignItems: 'center',
-    },
-    confirmCancelText: { color: c.textSub, fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight },
-    confirmOkBtn: {
-      flex: 1, borderRadius: 12, paddingVertical: 10, alignItems: 'center',
-    },
-    confirmOkText: { color: '#fff', fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight },
 
     /* Image preview */
     previewBackdrop: {
