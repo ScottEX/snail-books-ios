@@ -1266,21 +1266,32 @@ export default function ExpenseScreen({
 
 /* ══════════════════════════════ MODAL OVERLAY ══════════════════════════════ */
 
-function ModalOverlay({ children, onClose }: {
+function ModalOverlay({ children, onClose, visible }: {
   children: React.ReactNode;
   onClose: () => void;
+  visible?: boolean;
 }) {
   const fade = useRef(new Animated.Value(0)).current;
+  const [mounted, setMounted] = useState(visible !== false);
 
   useEffect(() => {
-    Animated.timing(fade, { toValue: 1, duration: 200, useNativeDriver: false }).start();
-  }, []);
+    if (visible === false) {
+      // animate out then unmount
+      Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: false }).start(() => setMounted(false));
+    } else {
+      setMounted(true);
+      fade.setValue(0);
+      Animated.timing(fade, { toValue: 1, duration: 200, useNativeDriver: false }).start();
+    }
+  }, [visible]);
 
   const close = () => {
     Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: false }).start(() => {
       onClose();
     });
   };
+
+  if (!mounted) return null;
 
   return (
     <Animated.View style={{ position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, justifyContent: 'center', alignItems: 'center', padding: 16, backgroundColor: 'rgba(0,0,0,0.3)', opacity: fade }}>
