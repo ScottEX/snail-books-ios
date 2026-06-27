@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StatusBar } from 'react-native';
+import { StatusBar, Alert } from 'react-native';
 import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import SessionKickedModal from './src/components/SessionKickedModal';
@@ -10,6 +10,15 @@ import { onSessionKicked, onUserChange, setSessionExpiredHandler } from './src/a
 import { initStorageCache } from './src/platform';
 import { clearCredential } from './src/utils/biometric';
 import { clearWebAuthn } from './src/utils/storage';
+
+// ── Global error catch: if the app crashes, this will fire before restart
+if (typeof globalThis !== 'undefined') {
+  const origHandler = (globalThis as any).ErrorUtils?.getGlobalHandler?.();
+  (globalThis as any).ErrorUtils?.setGlobalHandler?.((err: any, isFatal: boolean) => {
+    try { Alert.alert('APP CRASH', String(err?.message || err)); } catch {}
+    origHandler?.(err, isFatal);
+  });
+}
 
 export default function App() {
   const [_page, _setPage] = useState<'login' | 'home'>('login');
