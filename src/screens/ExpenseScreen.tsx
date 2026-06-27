@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, useReducer } from 'react';
 import {
-  View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated, Dimensions, Image,
+  View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated, Dimensions,
 } from 'react-native';
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,7 +8,10 @@ import { t, getLang } from '../i18n';
 import { api } from '../api/client';
 import Toast from '../components/Toast';
 import DatePickerModal from '../components/DatePickerModal';
-import { pickImages } from '../utils/imagePicker';
+import CategoryChips from '../components/CategoryChips';
+import PaymentMethodChips from '../components/PaymentMethodChips';
+import ExpenseNoteInput from '../components/ExpenseNoteInput';
+import ReceiptUpload from '../components/ReceiptUpload';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import { modalCardAnimation, modalClose, uploadReceiptStyles } from '../sharedStyles';
@@ -390,8 +393,8 @@ export default function ExpenseScreen({
   const [expDate, setExpDate] = useState(sd.today || '');
   const [expDateErr, setExpDateErr] = useState(0);
   const [expAmount, setExpAmount] = useState('');
-  const [expCategory, setExpCategory] = useState('日常');
-  const [payMethod, setPayMethod] = useState('微信');
+  const [expCategory, setExpCategory] = useState('daily');
+  const [payMethod, setPayMethod] = useState('payWechat');
   const [expNote, setExpNote] = useState('');
   const [expImages, setExpImages] = useState<any[]>([]);
   const [uploadingImg, setUploadingImg] = useState(false);
@@ -418,11 +421,11 @@ export default function ExpenseScreen({
       let daily = 0, rent = 0, salary = 0, goods = 0;
       allExpenses.forEach((e: any) => {
         const cat = e.category || '';
-        const amt = e.amount || 0;
-        if (cat.includes('日常')) daily += amt;
-        else if (cat.includes('房租')) rent += amt;
-        else if (cat.includes('薪资')) salary += amt;
-        else if (cat.includes('采购')) goods += amt;
+        const amt = Math.abs(e.amount || 0);
+        if (cat === 'daily') daily += amt;
+        else if (cat === 'rent') rent += amt;
+        else if (cat === 'salary') salary += amt;
+        else if (cat === 'goods') goods += amt;
       });
       setExpCatTotals({ daily, rent, salary, goods });
     } catch { setToast(t('toastLoadFailed')); }
@@ -433,7 +436,6 @@ export default function ExpenseScreen({
   const [showRecDatePicker, setShowRecDatePicker] = useState(false);
   const [showExpDatePicker, setShowExpDatePicker] = useState(false);
   const [showFeeDatePicker, setShowFeeDatePicker] = useState(false);
-  const [showImgTip, setShowImgTip] = useState(false);
 
   // Compress image — no-op on RN. (RN uses expo-image-manipulator instead.)
   const compressImage = (file: any): Promise<any> => Promise.resolve(file);
@@ -508,8 +510,8 @@ export default function ExpenseScreen({
       });
       clearUrlCache();
       setExpAmount('');
-      setExpCategory('日常');
-      setPayMethod('微信');
+      setExpCategory('daily');
+      setPayMethod('payWechat');
       setExpNote('');
       setExpDate(sd.today || '');
       setExpImages([]);
@@ -907,114 +909,20 @@ export default function ExpenseScreen({
                 </View>
                 <View style={st.amtCursor} />
               </View>
-              {/* 分类胶囊 — 2×2 grid (accommodates long English words) */}
-              <Text style={st.catSectionTitle}>{t('expenseCategory')}</Text>
-              <View style={st.catGridWide}>
-                {(() => {
-                  const icons: Record<string, React.ReactElement> = {
-                    '日常': <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><Path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-2l-2-3H9L7 7H5a2 2 0 00-2 2z"/><Path d="M16 12a4 4 0 11-8 0"/></Svg>,
-                    '房租': <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><Path d="M3 21h18"/><Path d="M3 10l9-7 9 7"/><Path d="M5 12v7h4v-4h6v4h4v-7"/></Svg>,
-                    '薪资': <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><Circle cx="12" cy="12" r="9"/><Path d="M14 8h-3.5a2 2 0 000 4h1a2 2 0 010 4H8"/><Path d="M12 6v2M12 16v2"/></Svg>,
-                    '采购': <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><Path d="M20 7l-3-4H7L4 7v12a2 2 0 002 2h12a2 2 0 002-2V7z"/><Path d="M4 7h16"/><Path d="M9 12h6"/><Path d="M12 9v6"/></Svg>,
-                  };
-                  const keys: Record<string, string> = { '日常': 'daily', '房租': 'rent', '薪资': 'salary', '采购': 'goods' };
-                  const cats = ['日常', '房租', '薪资', '采购'] as const;
-                  const mkChip = (cat: string) => {
-                    const active = expCategory === cat;
-                    return (
-                      <TouchableOpacity key={cat} style={[st.catChip, active && st.catChipActive]}
-                        onPress={() => setExpCategory(cat)} activeOpacity={0.7}>
-                        <View style={[st.chipIconCircle, active && st.chipIconCircleActive]}>{icons[cat]}</View>
-                        <Text style={[st.catChipText, active && st.catChipTextActive]} numberOfLines={1}>{t(keys[cat] as any)}</Text>
-                      </TouchableOpacity>
-                    );
-                  };
-                  return (
-                    <>
-                      <View style={st.catRow}>{cats.slice(0, 2).map(mkChip)}</View>
-                      <View style={st.catRow}>{cats.slice(2, 4).map(mkChip)}</View>
-                    </>
-                  );
-                })()}
-              </View>
+              {/* 分类胶囊 */}
+              <CategoryChips selected={expCategory} onSelect={setExpCategory} />
               {/* 支付方式 */}
-              <Text style={st.catSectionTitle}>{t('paymentMethod')}</Text>
-              <View style={st.payGrid}>
-                {(() => {
-                  const payIcons: Record<string, (color: string) => React.ReactNode> = {
-                    '现金': (color) => <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><Rect x="1" y="4" width="22" height="16" rx="2"/><Path d="M1 10h22"/><Circle cx="12" cy="12" r="3"/></Svg>,
-                    '微信': (color) => <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><Path d="M21 11.5a8.4 8.4 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.4 8.4 0 01-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.4 8.4 0 013.8-.9h.5a8.5 8.5 0 018 8v.5z"/></Svg>,
-                    '支付宝': (color) => <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><Path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><Path d="M9 12l2 2 4-4"/></Svg>,
-                  };
-                  const chipIconBg: Record<string, string> = { '微信': '#07C160', '支付宝': '#1677FF', '现金': '#333' };
-                  const keyMap: Record<string, string> = { '现金': 'payCash', '微信': 'payWechat', '支付宝': 'payAlipay' };
-                  return (['现金', '微信', '支付宝'] as const).map((m) => {
-                    const active = payMethod === m;
-                    const isWechat = m === '微信';
-                    const isAlipay = m === '支付宝';
-                    return (
-                      <TouchableOpacity key={m}
-                        style={[st.payChip, active && (isWechat ? st.payChipActiveWechat : isAlipay ? st.payChipActiveAlipay : st.payChipActive)]}
-                        onPress={() => setPayMethod(m)} activeOpacity={0.7}>
-                        <View style={[st.chipIconCircle, active && { backgroundColor: chipIconBg[m] }]}>
-                          {payIcons[m](active ? colors.surface : colors.textSub)}
-                        </View>
-                        <Text style={[st.payChipText, active && st.payChipTextActive]}>{t(keyMap[m] as any)}</Text>
-                      </TouchableOpacity>
-                    );
-                  });
-                })()}
-              </View>
+              <PaymentMethodChips selected={payMethod} onSelect={setPayMethod} />
               {/* 支出说明 */}
-              <Text style={st.catSectionTitle}>{t('expenseNote')}</Text>
-              <InputWithFocus inputStyle={st.noteInput}
-                value={expNote}
-                onChangeText={setExpNote}
-                placeholder={t('notePlaceholder')}
-                placeholderTextColor={colors.textSub}
-                multiline />
+              <ExpenseNoteInput value={expNote} onChangeText={setExpNote} />
               {/* 凭证上传 */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={[st.catSectionTitle, { marginBottom: 0 }]}>{t('uploadImage')}</Text>
-                <TouchableOpacity onPress={() => setShowImgTip(!showImgTip)} activeOpacity={0.7}
-                  style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: colors.secondary, alignItems: 'center', justifyContent: 'center' }}>
-                  <Text style={{ fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.textSub }}>!</Text>
-                </TouchableOpacity>
-                {showImgTip && (
-                  <View style={st.imgTipBubble}>
-                    <Text style={st.imgTipText}>支持 jpg/png/webp，单张最大 10MB</Text>
-                  </View>
-                )}
-              </View>
-              <View style={st.imgRow}>
-                {/* Add button */}
-                <TouchableOpacity style={st.imgAddBtn}
-                  onPress={async () => {
-                    const imgs = await pickImages({ multiple: true }).catch(() => []);
-                    if (imgs.length === 0) return;
-                    setExpImages((prev: any[]) => [...prev, ...imgs]);
-                  }}
-                  activeOpacity={0.7}>
-                  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={1.5} strokeLinecap="round">
-                    <Path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
-                    <Circle cx="12" cy="13" r="4" />
-                  </Svg>
-                  <Text style={st.imgAddText}>{t('addImage')}</Text>
-                </TouchableOpacity>
-                {/* Image previews */}
-                {expImages.map((file: any, i: number) => (
-                  <View key={`img-${i}`} style={st.imgPreview}>
-                    <Image source={{ uri: getPreviewUrl(file) }} style={{ width: 92, height: 92, borderRadius: 12 }} />
-                    <TouchableOpacity style={st.imgRemove}
-                      onPress={() => removeImage(i)}
-                      activeOpacity={0.7}>
-                      <Svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={colors.surface} strokeWidth={2.5} strokeLinecap="round">
-                        <Path d="M18 6L6 18M6 6l12 12" />
-                      </Svg>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
+              <ReceiptUpload
+                newFiles={expImages}
+                onAdd={(files) => setExpImages((prev: any[]) => [...prev, ...files])}
+                onRemoveNew={removeImage}
+                getPreviewUrl={getPreviewUrl}
+                maxThumbSize={120}
+              />
               {/* 日期选择 */}
               <View style={st.expDateRow}>
                 <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={1.5}>
