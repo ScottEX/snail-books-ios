@@ -129,11 +129,23 @@ async function authFetch<T = any>(url: string, options?: RequestInit): Promise<T
     return Promise.reject(new Error(kickMsg || 'Unauthorized'));
   }
   if (resp.status === 403) {
-    localStorage.removeItem('user');
-    try { localStorage.removeItem('bg-image'); } catch {}
-    _emitUserChange();
-    try { onSessionExpired?.(); } catch {}
-    return Promise.reject(new Error('Account disabled'));
+    // Read body to distinguish account-disabled from permission-denied.
+    // Only logout if the backend explicitly says the account is disabled.
+    let isDisabled = false;
+    try {
+      const body = await resp.clone().json();
+      const msg = (body?.message || '').toLowerCase();
+      isDisabled = msg.includes('disabled') || msg.includes('禁用') || msg.includes('停用');
+    } catch {}
+    if (isDisabled) {
+      localStorage.removeItem('user');
+      try { localStorage.removeItem('bg-image'); } catch {}
+      _emitUserChange();
+      try { onSessionExpired?.(); } catch {}
+      return Promise.reject(new Error('Account disabled'));
+    }
+    // Permission denied (e.g. non-admin hitting admin endpoint) — just reject, don't logout
+    return Promise.reject(new Error('Forbidden'));
   }
   if (!resp.ok) {
     let msg = `API error: ${resp.status} ${resp.statusText}`;

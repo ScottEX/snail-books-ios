@@ -217,15 +217,13 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const [loaded, setLoaded] = useState(false);
   const [entryCardH, setEntryCardH] = useState(0);
 
-  // Admin check — safe: check via non-403 endpoint
+  // Admin check
   const [isAdmin, setIsAdmin] = useState(false);
   useEffect(() => {
     (async () => {
       try {
-        // Don't call api.admin.check() directly — non-admin gets 403 → authFetch kills session.
-        // Instead infer from a normal endpoint that returns 200 for everyone.
-        const me: any = await api.getMe?.().catch(() => null);
-        setIsAdmin(me?.is_admin === true || me?.role === 'admin');
+        const r: any = await api.admin?.check?.();
+        setIsAdmin(r?.is_admin === true);
       } catch { /* default false */ }
     })();
   }, []);
@@ -239,8 +237,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
     } catch { }
     (async () => {
       try {
-        // Safe: api.getMe returns 200 for everyone (unlike api.admin.getMe which can 403)
-        const j: any = await api.getMe?.();
+        const j: any = await api.admin?.getMe?.();
         const u = j?.user || j?.data || j;
         if (u?.email) setUserEmail(u.email);
       } catch { }
