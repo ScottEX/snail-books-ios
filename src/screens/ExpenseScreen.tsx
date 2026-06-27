@@ -1298,7 +1298,7 @@ function ModalOverlay({ children, onClose }: {
 /* ═══════════════════════════════════════ STYLES ═══════════════════════════════════ */
 const getSt = (colors: ThemeColors) => StyleSheet.create({
   ...uploadReceiptStyles(colors),
-  root: { flex: 1 },
+  root: { flex: 1, backgroundColor: colors.bg },
 
   /* ── Tab Bar ── */
   tabBar: {
