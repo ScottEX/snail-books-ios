@@ -228,7 +228,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
               )}
             </>
           )}
-        <View style={{ height: 100 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
 
       {/* Detail Modal */}
