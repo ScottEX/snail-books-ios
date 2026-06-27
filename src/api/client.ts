@@ -83,6 +83,8 @@ let onSessionExpired: (() => void) | null = null;
 export function setSessionExpiredHandler(fn: () => void) { onSessionExpired = fn; }
 
 function startIdleTimer() {
+  // ── DEBUG: permanently disabled to rule out idle-timer as logout cause
+  return;
   if (idleTimer) return;
   idleTimer = setInterval(() => {
     if (!localStorage.getItem('user')) return;
