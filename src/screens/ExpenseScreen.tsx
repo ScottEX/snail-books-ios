@@ -567,8 +567,6 @@ export default function ExpenseScreen({
                   style={StyleSheet.absoluteFillObject}
                   pointerEvents="none"
                 />
-                {/* 1px white inset top — fakes web's boxShadow:inset */}
-                <View style={[st.tabCardInsetTop, active && st.tabCardInsetTopActive]} pointerEvents="none" />
                 <View style={st.tabInner}>
                   <Text style={[st.tabTitle, active && st.tabTitleActive]}>
                     {tab.title}
@@ -1327,20 +1325,8 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'flex-start',
   },
   tabCardActive: {
-    // Active = brighter white inner border (1px, alpha 0.55),
-    // matching web's `borderColor: 'rgba(255,255,255,0.55)'`.
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.55)',
-  },
-  // 1px white-alpha line at the very top of the tab card — fakes
-  // web's `boxShadow: inset 0 1px 0 rgba(255,255,255,0.35)` (resting
-  // state) and the brighter `0.55` version when active. RN has no
-  // inset shadow so we use an absolute View at the top.
-  tabCardInsetTop: {
-    position: 'absolute', top: 0, left: 12, right: 12, height: 1,
-    backgroundColor: 'rgba(255,255,255,0.35)',
-  },
-  tabCardInsetTopActive: {
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    // Web's tabCardActive only sets borderColor (no borderWidth) — no visible border.
+    // RN needs no border to match.
   },
   tabInner: {
     flex: 1, alignItems: 'stretch',
