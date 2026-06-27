@@ -550,7 +550,7 @@ export default function ExpenseScreen({
                 key={i}
                 testID="snap-card"
                 style={[st.tabCard, active && st.tabCardActive,
-                  i === 1 && { width: Dimensions.get('window').width - 12 },
+                  i === 1 && { width: Dimensions.get('window').width - Math.round(Dimensions.get('window').width * 0.03) },
                 ]}
                 onPress={() => setActiveTab(i)}
                 activeOpacity={0.7}
