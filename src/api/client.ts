@@ -413,6 +413,7 @@ export const api = {
   createProcurement: (data: any) => authFetch('/api/procurements', { method: 'POST', body: JSON.stringify(data) }),
   updateProcurement: (data: any) => authFetch('/api/procurements', { method: 'PUT', body: JSON.stringify(data) }),
   deleteProcurement: (id: number) => authFetch(`/api/procurements/${id}`, { method: 'DELETE' }),
+  getProcurementStats: () => authFetch('/api/procurement-stats'),
 
   webauthnRegisterStart: (username: string) =>
     authFetch('/api/webauthn/register/begin', { method: 'POST', body: JSON.stringify({ username }) }),
