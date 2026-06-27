@@ -230,6 +230,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }): Reac
     try {
       const stored = localStorage.getItem(getThemeKey());
       if (stored && THEMES[stored]) return THEMES[stored];
+      // Fallback: check device-level key (survives logout)
+      const deviceStored = localStorage.getItem('snail-books-theme');
+      if (deviceStored && THEMES[deviceStored]) return THEMES[deviceStored];
     } catch {}
     return theme1;
   });
@@ -239,6 +242,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }): Reac
     if (!t) return;
     setThemeState(t);
     try { localStorage.setItem(getThemeKey(), themeId); } catch {}
+    try { localStorage.setItem('snail-books-theme', themeId); } catch {}
     api.saveTheme(themeId).catch(() => {});
   }, []);
 

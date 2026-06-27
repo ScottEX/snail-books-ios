@@ -57,7 +57,7 @@ export default function App() {
     return () => { unsubKicked(); unsubChange(); };
   }, []);
 
-  const goHome = useCallback(() => setPage('home'), []);
+  const goHome = useCallback(() => { setAppKey((k) => k + 1); setPage('home'); }, []);
   const goLogin = useCallback(() => {
     // Preserve device-level settings across logout: language, the
     // "remember me" checkbox, and the saved username so the login
@@ -67,14 +67,20 @@ export default function App() {
     let lang = '';
     let rememberMe = '';
     let savedLogin = '';
+    let themeId = '';
     try {
       lang = localStorage.getItem('lang') || '';
       rememberMe = localStorage.getItem('remember_me') || '';
       savedLogin = localStorage.getItem('saved_login') || '';
+      // Preserve theme preference across logout — save under a device key
+      // so it survives the clear (per-user key depends on user_id which is also cleared)
+      const themeKey = (() => { try { const { getThemeKey } = require('./src/theme'); return getThemeKey(); } catch { return 'snail-books-theme'; } })();
+      themeId = localStorage.getItem(themeKey) || '';
       localStorage.clear();
       if (lang) localStorage.setItem('lang', lang);
       if (rememberMe) localStorage.setItem('remember_me', rememberMe);
       if (savedLogin) localStorage.setItem('saved_login', savedLogin);
+      if (themeId) localStorage.setItem('snail-books-theme', themeId);
     } catch {}
     // Clear biometric-unlock credential + WebAuthn state so a logged-out
     // device can never be unlocked into another user's account.
