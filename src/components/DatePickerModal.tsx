@@ -299,7 +299,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
               <TouchableOpacity
                 style={[styles.footerBtn, (!isValid(draft) || isFuture(draft)) && { opacity: 0.3 }]}
                 disabled={!isValid(draft) || !!isFuture(draft)}
-                onPress={() => close(() => { onSelect(draft); })}
+                onPress={() => close(() => { onSelect(draft); onClose(); })}
               >
                 <Text style={{ color: '#0A84FF', fontSize: 14, fontWeight: '700' }}>{t('confirm') || '确定'}</Text>
               </TouchableOpacity>
