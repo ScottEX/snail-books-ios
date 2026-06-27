@@ -302,7 +302,7 @@ export default function ExpenseScreen({
   }, [cardBalance, cashBalance, dineIn, meituan, flashSale, jd, tuan]);
 
   const submitRecon = useCallback(async () => {
-    if (sd.isFuture(recDate)) { setToast(t('errDateFuture')); return; }
+    if (sd.ready && sd.isFuture(recDate)) { setToast(t('errDateFuture')); return; }
     try {
       // 提交那一刻拉最新 businessSummary，确保 cash_on_hand 含本会话刚录的支出
       let latestSummary: any = businessSummary;
@@ -310,10 +310,8 @@ export default function ExpenseScreen({
       const latestCashOnHand = latestSummary?.cash_on_hand || 0;
       const latestCashOnHandCents = toCents(latestCashOnHand);
       const latestDiff = (realTotalCents - latestCashOnHandCents) / 100;
-      const today = sd.today || '';
       const username = localStorage.getItem('user') || '';
       await api.createReconciliation({
-        date: today,
         bill_date: recDate,
         card_balance: toNum(cardBalance),
         cash_balance: toNum(cashBalance),
@@ -331,24 +329,24 @@ export default function ExpenseScreen({
     } catch { setToast(t('toastSubmitFailed')); }
   }, [recDate, cardBalance, cashBalance, dineIn, meituan, flashSale, tuan, jd, onReconHistory]);
 
-  const channelTotal = toNum(dineIn) + toNum(meituan) + toNum(flashSale) + toNum(tuan) + toNum(jd);
+  const toCents = (v: any) => Math.round((parseFloat(String(v ?? '0')) || 0) * 100);
   // Precise arithmetic: convert to cents (integer), compute, convert back
   // Avoids IEEE 754 float issues (e.g., 0.1 + 0.2 !== 0.3)
-  const toCents = (v: any) => Math.round((parseFloat(String(v ?? '0')) || 0) * 100);
   const channelTotalCents = toCents(dineIn) + toCents(meituan) + toCents(flashSale) + toCents(tuan) + toCents(jd);
+  const channelTotal = channelTotalCents / 100;
   const realTotalCents = toCents(cardBalance) + toCents(cashBalance) + channelTotalCents;
   const cashOnHandCents = toCents((businessSummary && businessSummary.cash_on_hand) || 0);
   const realTotal = realTotalCents / 100;
   const diff = (realTotalCents - cashOnHandCents) / 100;
 
   const hasReconChanges =
-    cardBalance !== initReconValues.current.card ||
-    cashBalance !== initReconValues.current.cash ||
-    dineIn !== initReconValues.current.dine ||
-    meituan !== initReconValues.current.mt ||
-    flashSale !== initReconValues.current.fs ||
-    jd !== initReconValues.current.jd ||
-    tuan !== initReconValues.current.tuan;
+    toNum(cardBalance) !== toNum(initReconValues.current.card) ||
+    toNum(cashBalance) !== toNum(initReconValues.current.cash) ||
+    toNum(dineIn) !== toNum(initReconValues.current.dine) ||
+    toNum(meituan) !== toNum(initReconValues.current.mt) ||
+    toNum(flashSale) !== toNum(initReconValues.current.fs) ||
+    toNum(jd) !== toNum(initReconValues.current.jd) ||
+    toNum(tuan) !== toNum(initReconValues.current.tuan);
 
   /* ── 模块二：平台手续费 ── */
   const thisYear = sd.year || new Date().getFullYear();
