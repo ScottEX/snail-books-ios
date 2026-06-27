@@ -595,7 +595,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                   onValueChange={toggleEnforceSingleSession}
                   trackColor={{ false: withAlpha(colors.textMain, 0.18), true: colors.primary }}
                   thumbColor="#fff"
-                  ios_backgroundColor={withAlpha(colors.textMain, 0.18)}
                   style={{ transform: [{ scale: 0.75 }] }}
                 />
               </View>
