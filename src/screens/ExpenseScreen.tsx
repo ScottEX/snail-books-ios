@@ -15,8 +15,7 @@ import ReceiptUpload from '../components/ReceiptUpload';
 import ButtonPair from '../components/ButtonPair';
 import CloseButton from '../components/CloseButton';
 import SubmitButton from '../components/SubmitButton';
-import { useTheme, withAlpha, ThemeColors } from '../theme';
-import { FONTS } from '../theme';
+import { useTheme, withAlpha, ThemeColors, FONTS, MODAL_BACKDROP_OPACITY } from '../theme';
 import { modalCardAnimation, modalClose, uploadReceiptStyles } from '../sharedStyles';
 import { fmtAmt as fmt, toDec2Comma } from '../utils/format';
 import { useServerDate } from '../hooks/useServerDate';
@@ -1271,32 +1270,35 @@ function ModalOverlay({ children, onClose, visible }: {
   onClose: () => void;
   visible?: boolean;
 }) {
+  const [show, setShow] = useState(visible !== false);
+  const slide = useRef(new Animated.Value(-300)).current;
   const fade = useRef(new Animated.Value(0)).current;
-  const [mounted, setMounted] = useState(visible !== false);
 
   useEffect(() => {
-    if (visible === false) {
-      // animate out then unmount
-      Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: false }).start(() => setMounted(false));
-    } else {
-      setMounted(true);
+    if (visible !== false) {
+      setShow(true);
+      slide.setValue(-300);
       fade.setValue(0);
-      Animated.timing(fade, { toValue: 1, duration: 200, useNativeDriver: false }).start();
+      Animated.parallel([
+        Animated.spring(slide, { toValue: 0, useNativeDriver: false, bounciness: 4, speed: 14 }),
+        Animated.timing(fade, { toValue: 1, duration: 200, useNativeDriver: false }),
+      ]).start();
+    } else if (show) {
+      Animated.parallel([
+        Animated.timing(slide, { toValue: -300, duration: 180, useNativeDriver: false }),
+        Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: false }),
+      ]).start(() => setShow(false));
     }
   }, [visible]);
 
-  const close = () => {
-    Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: false }).start(() => {
-      onClose();
-    });
-  };
-
-  if (!mounted) return null;
+  if (!show) return null;
 
   return (
-    <Animated.View style={{ position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, justifyContent: 'center', alignItems: 'center', padding: 16, backgroundColor: 'rgba(0,0,0,0.3)', opacity: fade }}>
-      <TouchableOpacity style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} onPress={close} activeOpacity={1} />
-      <View style={{ alignSelf: 'stretch' as any, alignItems: 'center', justifyContent: 'center' }}>{children}</View>
+    <Animated.View style={{ position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, justifyContent: 'center', alignItems: 'center', padding: 16, opacity: fade }}>
+      <TouchableOpacity activeOpacity={1} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', opacity: MODAL_BACKDROP_OPACITY }} onPress={onClose} />
+      <Animated.View style={{ alignSelf: 'stretch' as any, alignItems: 'center', justifyContent: 'center', transform: [{ translateY: slide }] }}>
+        {children}
+      </Animated.View>
     </Animated.View>
   );
 }
