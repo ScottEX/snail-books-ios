@@ -324,7 +324,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
                     {u.avatar ? (
                       <Image source={{ uri: u.avatar }} style={s.avatar} />
                     ) : (
-                      <Image source={require('../assets/img/logo.jpg')} style={s.avatar} />
+                      <Image source={require('../../assets/img/logo.jpg')} style={s.avatar} />
                     )}
                   </View>
                   <View style={{ flex: 1 }}>
