@@ -390,7 +390,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           <ProfileScreen
             onBack={onBack}
             onLogout={onLogout}
-            onManageUsers={() => { setShowProfile(false); setTimeout(() => setShowUserMgmt(true), 250); }}
+            onManageUsers={() => { setTimeout(() => setShowUserMgmt(true), 250); }}
           />
         )}
       </SlideScreen>
