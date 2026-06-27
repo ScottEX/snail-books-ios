@@ -414,6 +414,18 @@ export const api = {
   updateProcurement: (data: any) => authFetch('/api/procurements', { method: 'PUT', body: JSON.stringify(data) }),
   deleteProcurement: (id: number) => authFetch(`/api/procurements/${id}`, { method: 'DELETE' }),
   getProcurementStats: () => authFetch('/api/procurement-stats'),
+  getProcurementBatches: (page = 1, perPage = 10) => authFetch(`/api/procurement-batches?page=${page}&per_page=${perPage}`),
+  createProcurementBatch: (data: any) => authFetch('/api/procurement-batches', { method: 'POST', body: JSON.stringify(data) }),
+  getProcurementBatchDetail: (id: number) => authFetch(`/api/procurement-batches/${id}`),
+  updateProcurementBatch: (id: number, data: any) => authFetch(`/api/procurement-batches/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteProcurementBatch: (id: number) => authFetch(`/api/procurement-batches/${id}`, { method: 'DELETE' }),
+  settleProcurementBatch: (id: number) => authFetch(`/api/procurement-batches/${id}/settle`, { method: 'POST' }),
+  getProcurementShareLink: (id: number): Promise<{ url: string }> => authFetch(`/api/procurement-batches/${id}/share-link`),
+  getProcurementBatchesLite: () => authFetch('/api/procurement-batches-lite'),
+  getCart: () => authFetch('/api/procurement-cart'),
+  addToCart: (product_id: number, quantity: number) => authFetch('/api/procurement-cart', { method: 'POST', body: JSON.stringify({ product_id, quantity }) }),
+  removeFromCart: (product_id: number) => authFetch(`/api/procurement-cart/${product_id}`, { method: 'DELETE' }),
+  clearCart: () => authFetch('/api/procurement-cart', { method: 'DELETE' }),
 
   webauthnRegisterStart: (username: string) =>
     authFetch('/api/webauthn/register/begin', { method: 'POST', body: JSON.stringify({ username }) }),
