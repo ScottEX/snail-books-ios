@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { t, setLang, getLang, langs } from '../i18n';
+import { t, getLang, langs, useLang } from '../i18n';
 import { api } from '../api/client';
+import { useServerDate } from '../hooks/useServerDate';
 import Toast from '../components/Toast';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
@@ -68,7 +69,11 @@ export default function PartnerScreen({ onBack }: { onBack: () => void }) {
   const [divNote, setDivNote] = useState('');
   const [divPreview, setDivPreview] = useState<any[]>([]);
   const [filter, setFilter] = useState('all');
-  const [lang, setLangState] = useState(getLang());
+  // Use useLang() so the lang state and t() output stay in sync within a
+  // single React render — the legacy setLang + setLangState pair updates
+  // globalThis.curLang synchronously but doesn't trigger a React re-render
+  // on its own, causing a brief flash of mismatched state.
+  const { lang, setLang } = useLang();
 
   const [toast, setToast] = useState('');
 
@@ -145,7 +150,6 @@ export default function PartnerScreen({ onBack }: { onBack: () => void }) {
 
   const switchLang = (l: string) => {
     setLang(l);
-    setLangState(l);
     loadData();
   };
 
