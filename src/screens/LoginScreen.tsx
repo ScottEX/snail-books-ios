@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, ImageBackground, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ImageBackground, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
 import { t, getLang, langs, useLang } from '../i18n';
@@ -346,14 +346,9 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     if (!username || !password) { setMsg(t('errEmptyFields')); triggerShake(); return; }
     setLoading(true);
     try {
-      setMsg('DEBUG: calling api.login...');
       const r = await api.login(username, password, remember);
-      setMsg(`DEBUG: status=${r.status} token=${!!r.token}`);
-      console.warn('[AUTH DEBUG] Login response:', JSON.stringify({ status: r.status, has_token: !!r.token, username: r.username, user_id: r.user_id, need_verify: r.need_verify }));
       setLoading(false);
       if (r.status === 'ok') {
-        setMsg('DEBUG: status=ok, proceeding...');
-        console.warn('[AUTH DEBUG] Login OK — proceeding to onLogin()');
         if (r.token && typeof localStorage !== 'undefined') localStorage.setItem('token', r.token);
         if (typeof localStorage !== 'undefined') {
           localStorage.setItem('user', r.username || username);
@@ -383,18 +378,17 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         if (faceAvailable && !(await hasStoredCredential())) {
           offerEnableFaceID();
         }
-        setMsg('DEBUG: calling onLogin()...');
         onLogin();
       } else if (r.need_verify) {
-        setMsg(`DEBUG: need_verify email=${r.email}`);
         setEmail(r.email); setStep('verify'); setMsg('');
         setTimeout(() => codeRef.current?.focus(), 100);
       } else {
-        setMsg(`DEBUG: login failed — ${r.message || 'no message'}`);
+        setMsg(r.message || t('errWrongCredentials'));
+        triggerShake();
       }
     } catch (e: any) {
-      setMsg(`DEBUG: exception — ${e?.message || 'unknown'}`);
       setLoading(false);
+      setMsg(e?.message || t('errNetworkError') || '网络错误，请检查网络后重试');
     }
   };
 
