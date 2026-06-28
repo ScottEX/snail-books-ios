@@ -405,6 +405,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
                     trackColor={{ false: withAlpha(c.textMain, 0.18), true: c.primary }}
                     thumbColor="#fff"
                     disabled={isGrace}
+                    style={{ transform: [{ scale: 0.75 }] }}
                   />
                 </View>
               </View>
