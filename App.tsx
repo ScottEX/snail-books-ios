@@ -72,12 +72,14 @@ export default function App() {
     let rememberMe = '';
     let savedLogin = '';
     let bgImage = '';
+    let avatarUri = '';
     let themeId = '';
     try {
       lang = localStorage.getItem('lang') || '';
       rememberMe = localStorage.getItem('remember_me') || '';
       savedLogin = localStorage.getItem('saved_login') || '';
       bgImage = localStorage.getItem('bg-image') || '';
+      avatarUri = localStorage.getItem('avatar-uri') || '';
       const themeKey = (() => { try { const { getThemeKey } = require('./src/theme'); return getThemeKey(); } catch { return 'snail-books-theme'; } })();
       themeId = localStorage.getItem(themeKey) || '';
       localStorage.clear();
@@ -85,6 +87,7 @@ export default function App() {
       if (rememberMe) localStorage.setItem('remember_me', rememberMe);
       if (savedLogin) localStorage.setItem('saved_login', savedLogin);
       if (bgImage) localStorage.setItem('bg-image', bgImage);
+      if (avatarUri) localStorage.setItem('avatar-uri', avatarUri);
       if (themeId) localStorage.setItem('snail-books-theme', themeId);
     } catch {}
     clearCredential().catch(() => {});

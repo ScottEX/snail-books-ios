@@ -37,14 +37,18 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [bgUrl, setBgUrl] = useState<string>(() => {
     try { return localStorage.getItem('bg-image') || ''; } catch { return ''; }
   });
-  const [avatarUrl, setAvatarUrl] = useState<string>('');
+  const [avatarUrl, setAvatarUrl] = useState<string>(() => {
+    try { return localStorage.getItem('avatar-uri') || ''; } catch { return ''; }
+  });
   // Ready states control when custom bg/avatar fade in — mirrors web's
   // bgReady/avatarReady pattern so the transition is smooth (opacity
   // animation) rather than a jarring source swap.
   const [bgReady, setBgReady] = useState(() => {
     try { return !!localStorage.getItem('bg-image'); } catch { return false; }
   });
-  const [avatarReady, setAvatarReady] = useState(false);
+  const [avatarReady, setAvatarReady] = useState(() => {
+    try { return !!localStorage.getItem('avatar-uri'); } catch { return false; }
+  });
   const bgOpacity = useRef(new Animated.Value(bgUrl ? 1 : 0)).current;
   const avatarOpacity = useRef(new Animated.Value(0)).current;
   // Use the LangProvider hook so the lang state and t() output stay
@@ -180,7 +184,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         api.getUserBackgroundUri(id).catch(() => null),
       ]);
       if (reqId !== userReqId.current) return;
-      if (avatar) { setAvatarUrl(avatar); setAvatarReady(true); }
+      if (avatar) {
+        setAvatarUrl(avatar); setAvatarReady(true);
+        try { localStorage.setItem('avatar-uri', avatar); } catch {}
+      }
       else setAvatarReady(true); // no avatar — keep previous visible
       if (bg) {
         setBgUrl(bg); setBgReady(true);
