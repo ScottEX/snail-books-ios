@@ -193,7 +193,12 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             setShowBgModal(false);
             setBgImageUri(DEFAULT_BG);
             setBgVersion((v) => v + 1);
-            localStorage.removeItem('__theme_reset_ts');
+            setBgOpacity(0);
+            try {
+              const uid = getCurrentUserId();
+              localStorage.setItem(uid ? `bg-opacity-${uid}` : 'bg-opacity', '0');
+              localStorage.removeItem('__theme_reset_ts');
+            } catch {}
           }
         }
       } catch {}
