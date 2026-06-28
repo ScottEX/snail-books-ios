@@ -788,19 +788,19 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   loading={loading}
                   disabled={!code}
                   label={t('verifyBtn')}
-                  style={[styles.btnRed, !code && styles.btnDisabled]}
-                  textStyle={styles.btnRedText}
+                  style={[styles.btnDark, !code && styles.btnDisabled]}
+                  textStyle={styles.btnDarkText}
                 />
                 <Text style={styles.verifyHint}>
                   {t('verifyNewNoEmail') || '一直没收到？别着急，您可以 '}
-                  <Text style={styles.verifyLink} onPress={resendCooldown > 0 ? undefined : handleResend}>
+                  <Text style={{ color: colors.surface, fontWeight: FONTS.micro.weight }} onPress={resendCooldown > 0 ? undefined : handleResend}>
                     {resendCooldown > 0 ? `${resendCooldown}s 后${t('verifyNewResend') || '重新发送'}` : t('verifyNewResend') || '重新发送'}
                   </Text>
                   {t('verifyNewOrSpam') || ' 或检查一下垃圾箱。'}
                 </Text>
                 <Text style={styles.verifyHint}>
                   {t('verifyNewWrongEmail') || '填错邮箱了？'}
-                  <Text style={styles.verifyLink} onPress={() => { setStep('register'); reset(); }}>
+                  <Text style={{ color: colors.surface, fontWeight: FONTS.micro.weight }} onPress={() => { setStep('register'); reset(); }}>
                     {t('verifyNewEditEmail') || '修改邮箱地址'}
                   </Text>
                 </Text>
