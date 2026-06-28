@@ -8,6 +8,7 @@ import {
   TextInput,
   Image,
   Modal,
+  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle } from 'react-native-svg';
@@ -158,7 +159,13 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
 
   const openDateDrop = useCallback(() => {
     dateChipRef.current?.measureInWindow((x, y, width, height) => {
-      setDateLayout({ top: y + height + 4, left: x, width: 320 });
+      const DD_W = 320;
+      const pad = 16;
+      const screenW = Dimensions.get('window').width;
+      let left = x - 20;
+      if (left + DD_W > screenW - pad) left = screenW - pad - DD_W;
+      if (left < pad) left = pad;
+      setDateLayout({ top: y + height + 4, left, width: DD_W });
     });
     if (dateFrom && dateFrom.length >= 7) {
       setDropYear(parseInt(dateFrom.slice(0, 4)));
@@ -385,7 +392,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
       {/* ── Date dropdown modal (year/month picker + quick presets) ── */}
       <Modal visible={showDateDrop} transparent animationType="none" onRequestClose={closeDrops}>
         <TouchableOpacity style={s.dropBackdrop} activeOpacity={1} onPress={closeDrops}>
-          <View style={[s.datePanel, { top: dateLayout.top, left: Math.max(16, dateLayout.left - 20), width: 320 }]}>
+          <View style={[s.datePanel, { top: dateLayout.top, left: dateLayout.left, width: 320 }]}>
             {/* Year selector */}
             <View style={s.pickerRow}>
               {(sd.ready
