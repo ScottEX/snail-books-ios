@@ -209,6 +209,11 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         setCoverUrl(resolved + sep + 'v=' + Date.now());
       }
     } catch {}
+    try {
+      const uid = getCurrentUserId();
+      const saved = localStorage.getItem(uid ? `cover-opacity-${uid}` : 'cover-opacity');
+      if (saved !== null) setCoverOpacity(parseFloat(saved));
+    } catch {}
   };
 
   const loadUserInfo = async () => {
@@ -347,20 +352,18 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     }
   };
 
-  // ── Reset to default (theme + opacity + background, NOT avatar) ──
-  const handleCoverReset = async () => {
+  // ── Theme reset → resets BACKGROUND only (matches web's handleThemeReset) ──
+  const handleThemeReset = async () => {
     setUploadingCover(true);
     try {
-      const uid = getCurrentUserId();
-      // 1. Reset theme to default
-      setTheme(DEFAULT_THEME_ID);
-      // 2. Reset opacity to 0% (save to localStorage + API)
-      setCoverOpacity(0);
-      api.saveBackgroundSettings({ opacity: 0 }).catch(() => {});
-      // 3. Reset cover image
-      await api.resetProfileCover();
-      setCoverUrl('');
-      loadCover();
+      // Reset background image only — NOT cover, NOT theme, NOT opacity
+      await api.resetBackground();
+      try { localStorage.removeItem('bg-image'); } catch {}
+      // Dispatch events so HomeScreen picks up the reset + closes its modal
+      if (typeof (window as any).dispatchEvent === 'function') {
+        (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: '' } }));
+        (window as any).dispatchEvent(new CustomEvent('theme-reset'));
+      }
       setShowThemeModal(false);
     } catch (err: any) {
       setToast(err?.message || t('uploadFailedShort'));
@@ -947,7 +950,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         coverOpacity={coverOpacity}
         onCoverOpacityChange={handleCoverOpacityChange}
         onCoverImagePicked={handleCoverImagePicked}
-        onResetCover={handleCoverReset}
+        onResetCover={handleThemeReset}
         coverUploading={uploadingCover}
       />
     </View>

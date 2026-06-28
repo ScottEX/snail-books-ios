@@ -162,10 +162,15 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         setBgVersion((v) => v + 1);
       }
     };
+    const onThemeReset = () => setShowBgModal(false);
     const w: any = typeof window !== 'undefined' ? window : undefined;
     if (w && typeof w.addEventListener === 'function') {
       w.addEventListener('bg-changed', onBgChanged);
-      return () => w.removeEventListener('bg-changed', onBgChanged);
+      w.addEventListener('theme-reset', onThemeReset);
+      return () => {
+        w.removeEventListener('bg-changed', onBgChanged);
+        w.removeEventListener('theme-reset', onThemeReset);
+      };
     }
     return undefined;
   }, []);
