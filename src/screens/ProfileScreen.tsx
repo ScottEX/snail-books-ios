@@ -194,7 +194,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [deleteConfirmUsername, setDeleteConfirmUsername] = useState('');
   // Sticky header on scroll (matches web)
   const [scrollY, setScrollY] = useState(0);
-  const FREEZE_POINT = 120; // cover freezes after scrolling 120px
+  const FREEZE_POINT = 100; // cover freezes after scrolling 100px
   const coverOffset = scrollY > 0 ? Math.min(scrollY, FREEZE_POINT) : 0; // how far cover has scrolled up
   // Pull-down stretch + blur (scrollY < 0 = pull-down, scrollY > 0 = scroll-up blur)
   const pullDown = Math.max(0, -scrollY);
