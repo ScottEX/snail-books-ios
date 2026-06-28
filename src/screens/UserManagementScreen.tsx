@@ -34,6 +34,8 @@ interface UserItem {
 interface Props {
   onBack: () => void;
   onSelectUser: (user: { id: number; username: string; email: string; avatar: string; is_disabled: boolean; reviewed: boolean }) => void;
+  /** Set to a user ID to mark that user as reviewed locally, without re-fetching */
+  reviewedUserId?: number | null;
 }
 
 // ── SVG icons ──
@@ -80,7 +82,7 @@ function lastDayOfMonth(y: number, m: number): string {
   return `${y}-${String(m).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
+export default function UserManagementScreen({ onBack, onSelectUser, reviewedUserId }: Props) {
   const { colors: c } = useTheme();
   const sd = useServerDate();
   const s = useMemo(() => getStyles(c), [c]);
@@ -137,6 +139,14 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
   }, []);
 
   useEffect(() => { fetchUsers('', '', ''); }, []);
+
+  // ── Mark a specific user as reviewed locally (no full refresh) ──
+  useEffect(() => {
+    if (!reviewedUserId) return;
+    setUsers((prev) => prev.map((u) =>
+      u.id === reviewedUserId ? { ...u, reviewed: true } : u
+    ));
+  }, [reviewedUserId]);
 
   // ── Client-side search filter ──
   const filteredUsers = useMemo(() => {

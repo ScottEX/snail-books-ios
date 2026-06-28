@@ -274,6 +274,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   );
   const [expenseRefreshKey, setExpenseRefreshKey] = useState(0);
   const [userRefreshKey, setUserRefreshKey] = useState(0);
+  const [reviewedUserId, setReviewedUserId] = useState<number | null>(null);
 
   // ── Data state for chart / supply / partner ──
   const [chartMonthly, setChartMonthly] = useState<any>(null);
@@ -496,15 +497,17 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         {(onBack) => <UserManagementScreen
           key={userRefreshKey}
           onBack={onBack}
+          reviewedUserId={reviewedUserId}
           onSelectUser={async (u) => {
             if (!u.reviewed) {
               try { await api.admin.markReviewed(u.id); } catch {}
+              setReviewedUserId(u.id);
             }
             setTimeout(() => setShowUserDetail(u), 250);
           }}
         />}
       </SlideScreen>
-      <SlideScreen visible={!!showUserDetail} onClose={() => { setShowUserDetail(null); setUserRefreshKey(k => k + 1); }} stackIndex={2}>
+      <SlideScreen visible={!!showUserDetail} onClose={() => { setShowUserDetail(null); setReviewedUserId(null); }} stackIndex={2}>
         {(onBack) => showUserDetail ? (
           <UserDetailScreen
             user={showUserDetail}
