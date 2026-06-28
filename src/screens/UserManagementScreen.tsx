@@ -230,10 +230,10 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
   return (
     <View style={s.container}>
       {/* Unified BlurView — single glass from status bar through header */}
-      <BlurView intensity={70} tint="regular" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop + 52 }} />
+      <BlurView intensity={70} tint="regular" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop + 48 }} />
       <StatusBar barStyle="light-content" />
       {/* Header content — transparent overlay on top of unified BlurView */}
-      <View style={[s.header, { top: safeTop, paddingTop: 0, paddingBottom: 16, backgroundColor: 'transparent', pointerEvents: 'box-none' as any }] as any}>
+      <View style={[s.header, { top: safeTop, paddingTop: 0, paddingBottom: 12, backgroundColor: 'transparent', pointerEvents: 'box-none' as any }] as any}>
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
           <View style={s.backBtn}>
             <BackArrowSvg color="#fff" />
@@ -244,7 +244,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
       </View>
 
       {/* Body */}
-      <View style={[s.body, { marginTop: safeTop + 52 }]}>
+      <View style={[s.body, { marginTop: safeTop + 48 }]}>
         {/* Search bar */}
         <View style={s.searchBox}>
           <SearchIcon color={c.textSub} />
