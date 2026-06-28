@@ -93,6 +93,8 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
   const { colors: c } = useTheme();
   const sd = useServerDate();
   const s = useMemo(() => getStyles(c), [c]);
+  const insets = useSafeAreaInsets();
+  const safeTop = insets.top;
 
   const [users, setUsers] = useState<UserItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -230,7 +232,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
       {/* Status bar — transparent, inherits from behind */}
       <StatusBar barStyle="dark-content" />
       {/* Header — BlurView glass, matches web backdropFilter */}
-      <View style={[s.header, { pointerEvents: 'box-none' as any }] as any}>
+      <View style={[s.header, { top: safeTop, pointerEvents: 'box-none' as any }] as any}>
         <BlurView intensity={70} tint="regular" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
           <View style={s.backBtn}>
@@ -242,7 +244,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
       </View>
 
       {/* Body */}
-      <View style={s.body}>
+      <View style={[s.body, { marginTop: safeTop + 64 }]}>
         {/* Search bar */}
         <View style={s.searchBox}>
           <SearchIcon color={c.textSub} />
