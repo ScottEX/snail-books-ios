@@ -4,6 +4,7 @@ import {
   Image, TextInput, Switch, Modal,
 } from 'react-native';
 import Svg, { Path, Defs, LinearGradient as SVGGradient, Stop, Rect } from 'react-native-svg';
+import { BlurView } from 'expo-blur';
 import { t, getLang, langs, useLang } from '../i18n';
 import { api, resolveAssetUrl } from '../api/client';
 import { useTheme, withAlpha, ThemeColors, DEFAULT_THEME_ID } from '../theme';
@@ -571,14 +572,20 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
           </View>
         )}
 
-        {/* Frosted glass overlay — dark tint intensifies with pull-down */}
+        {/* Frosted glass blur — mirrors image transform for full coverage */}
         {blurIntensity > 0 && (
-          <View
-            style={{
-              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-              backgroundColor: `rgba(0,0,0,${Math.min(blurIntensity / 36, 0.35)})`,
-            }}
-            pointerEvents="none"
+          <BlurView
+            intensity={blurIntensity}
+            tint="dark"
+            style={[
+              { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+              {
+                transform: [
+                  { translateY: pullDown / 2 },
+                  { scaleY: 1 + pullDown / 220 },
+                ],
+              },
+            ]}
           />
         )}
 
