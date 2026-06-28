@@ -202,7 +202,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
   const loadCover = async () => {
     try {
-      const data: any = await api.getProfileCover();
+      const data: any = await api.getBackground();
       if (data?.url) {
         const resolved = resolveAssetUrl(data.url) || data.url;
         setCoverUrl(resolved + '?v=' + Date.now());
