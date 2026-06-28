@@ -684,7 +684,6 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
               if (typeof window !== 'undefined' && typeof (window as any).dispatchEvent === 'function') {
                 (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: resolved } }));
               }
-              setToast(t('bgUpdated') || '背景已更新');
             } else {
               setToast(t('toastSubmitFailed'));
             }

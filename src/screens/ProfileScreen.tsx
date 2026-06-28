@@ -336,25 +336,8 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   };
 
   const handleCoverPress = async () => {
-    if (uploadingCover) return;
-    try {
-      const imgs = await pickImages({ multiple: false }).catch(() => []);
-      if (imgs.length === 0) return;
-      const file = imgs[0];
-      setUploadingCover(true);
-      const r: any = await api.uploadProfileCover({
-        uri: file.uri, type: file.type || 'image/jpeg', name: file.name || 'cover.jpg',
-      });
-      if (r?.url) {
-        const resolved = resolveAssetUrl(r.url) || r.url;
-        setCoverUrl(resolved + '?v=' + Date.now());
-        setToast('封面已更新');
-      }
-    } catch (err: any) {
-      setToast(err?.message || t('uploadFailedShort'));
-    } finally {
-      setUploadingCover(false);
-    }
+    // Open theme modal → user can crop/upload cover via BgCropModal
+    setShowThemeModal(true);
   };
 
   // ── bgOpacity (shared via localStorage + API, same as HomeScreen) ──
