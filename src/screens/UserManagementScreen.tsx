@@ -467,7 +467,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
 const getStyles = (c: ThemeColors) => {
   const hdr = historyHeader(c);
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: c.bg },
+    container: { flex: 1, backgroundColor: '#fff' },
     ...hdr as any,
     title: { ...hdr.title, color: c.textMain },
     headerWhite: {
@@ -476,7 +476,7 @@ const getStyles = (c: ThemeColors) => {
     body: {
       flex: 1,
       paddingTop: 100,
-      backgroundColor: c.bg,
+      backgroundColor: '#fff',
     },
     // Search bar
     searchBox: {
