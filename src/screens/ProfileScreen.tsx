@@ -807,7 +807,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                   <Text style={mo.cancelText}>{t('cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={mo.confirmBtn} onPress={async () => { setShowLogoutModal(false); await api.logout(); onLogout(); }}>
-                  <Text style={mo.confirmText}>{t('confirm')}</Text>
+                  <Text style={mo.confirmText}>{t('confirmLogout')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1205,7 +1205,7 @@ const getMo = (colors: ThemeColors) => StyleSheet.create({
   },
   title: { fontSize: 14, fontWeight: '700', color: colors.surface },
   close: { ...modalClose },
-  body: { padding: 20, gap: 12 },
+  body: { padding: 24, gap: 18 } as any,
   input: {
     paddingHorizontal: 10, paddingVertical: 9, borderRadius: 8,
     fontSize: FONTS.sub.size, color: colors.textMain,
@@ -1213,14 +1213,15 @@ const getMo = (colors: ThemeColors) => StyleSheet.create({
   },
   pwHint: { fontSize: FONTS.micro.size, color: colors.textSub, lineHeight: 18 },
   err: { fontSize: FONTS.micro.size, color: colors.danger },
-  btnRow: { flexDirection: 'row', gap: 12, marginTop: 8 },
+  btnRow: { flexDirection: 'row', gap: 12, marginTop: 0 },
   cancelBtn: {
-    flex: 1, backgroundColor: colors.bg, borderRadius: 12,
+    flex: 1, borderRadius: 10, borderWidth: 1,
+    borderColor: (colors as any).secondary || '#e0e0e0',
     paddingVertical: 12, alignItems: 'center',
   },
   cancelText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.textSub },
   confirmBtn: {
-    flex: 1, backgroundColor: colors.primary, borderRadius: 12,
+    flex: 1, backgroundColor: colors.primary, borderRadius: 10,
     paddingVertical: 12, alignItems: 'center',
   },
   confirmText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.surface },
