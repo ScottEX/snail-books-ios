@@ -229,8 +229,8 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
     <View style={s.container}>
       {/* Status bar — transparent */}
       <StatusBar barStyle="dark-content" />
-      {/* Header — solid white */}
-      <View style={[s.header, s.headerWhite, { pointerEvents: 'box-none' as any }] as any}>
+      {/* Header — transparent, content scrolls behind */}
+      <View style={[s.header, { pointerEvents: 'box-none' as any }] as any}>
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
           <View style={s.backBtn}>
             <BackArrowSvg color="#000" />
@@ -475,7 +475,7 @@ const getStyles = (c: ThemeColors) => {
     },
     body: {
       flex: 1,
-      marginTop: 100,
+      paddingTop: 100,
       backgroundColor: c.bg,
     },
     // Search bar
