@@ -192,7 +192,6 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
       } catch {}
     }, 2000);
     return () => { if (pollTimer) clearInterval(pollTimer); };
-    return undefined;
   }, []);
   const [bgOpacity, setBgOpacity] = useState<number>(() => {
     try {
