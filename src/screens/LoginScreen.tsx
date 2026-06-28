@@ -50,7 +50,9 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     try { return !!localStorage.getItem('avatar-uri'); } catch { return false; }
   });
   const bgOpacity = useRef(new Animated.Value(bgUrl ? 1 : 0)).current;
-  const avatarOpacity = useRef(new Animated.Value(0)).current;
+  const avatarOpacity = useRef(new Animated.Value(
+    (() => { try { return !!localStorage.getItem('avatar-uri'); } catch { return false; } })() ? 1 : 0
+  )).current;
   // Use the LangProvider hook so the lang state and t() output stay
   // in sync within a single React render — using the legacy setLang
   // here updates globalThis.curLang synchronously but doesn't trigger
