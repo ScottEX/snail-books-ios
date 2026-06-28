@@ -189,12 +189,15 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       if (avatar) {
         setAvatarUrl(avatar); setAvatarReady(true);
         try { localStorage.setItem('avatar-uri', avatar); } catch {}
+      } else {
+        setAvatarUrl(''); setAvatarReady(true);
       }
-      else setAvatarReady(true); // no avatar — keep previous visible
       if (bg) {
         setBgUrl(bg); setBgReady(true);
         try { localStorage.setItem('bg-image', bg); } catch {}
-      } else { setBgReady(true); }
+      } else {
+        setBgUrl(''); setBgReady(true);
+      }
     }, 400);
     return () => { clearTimeout(timer); };
   }, [username]);
@@ -514,10 +517,13 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       <ImageBackground source={BG_IMAGE} style={styles.bgLayer} resizeMode="cover">
         <View style={styles.bgOverlay} />
       </ImageBackground>
-      {/* Custom background — fades in over default (mirrors web's two-layer approach) */}
-      {bgUrl ? (
-        <Animated.Image source={{ uri: bgUrl }} style={[styles.bgLayer, { opacity: bgOpacity }]} resizeMode="cover" />
-      ) : null}
+      {/* Custom background — always rendered, opacity hides it when not ready.
+          Source falls back to default BG_IMAGE so the layer doesn't unmount. */}
+      <Animated.Image
+        source={bgUrl ? { uri: bgUrl } : BG_IMAGE}
+        style={[styles.bgLayer, { opacity: bgOpacity }]}
+        resizeMode="cover"
+      />
       <View style={styles.bgOverlay} />
       <KeyboardAvoidingView
         style={styles.flex}
@@ -533,9 +539,11 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
           <View style={styles.brand}>
             <View style={styles.logoWrap}>
               <Image source={LOGO_IMAGE} style={{ width: 80, height: 80, borderRadius: 40 }} resizeMode="cover" />
-              {avatarUrl ? (
-                <Animated.Image source={{ uri: avatarUrl }} style={[styles.logoOver, { opacity: avatarOpacity }]} resizeMode="cover" />
-              ) : null}
+              <Animated.Image
+                source={avatarUrl ? { uri: avatarUrl } : LOGO_IMAGE}
+                style={[styles.logoOver, { opacity: avatarOpacity }]}
+                resizeMode="cover"
+              />
             </View>
             <Text style={styles.subtitle}>{t('subtitle')}</Text>
             <View style={styles.langRow}>
