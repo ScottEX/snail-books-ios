@@ -216,7 +216,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     return () => { clearTimeout(timer); };
   }, [username]);
 
-  const reset = () => { setMsg(''); setMsgOk(false); setDevCode(''); };
+  const reset = () => { setMsg(''); setMsgOk(false); setDevCode(''); setCode(''); };
   const goLogin = () => {
     setStep('login'); reset();
     if (typeof localStorage !== 'undefined') {
