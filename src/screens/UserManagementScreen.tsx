@@ -232,7 +232,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
       {/* Status bar — transparent, inherits from behind */}
       <StatusBar barStyle="dark-content" />
       {/* Header — BlurView glass, matches web backdropFilter */}
-      <View style={[s.header, { top: safeTop, paddingTop: 14, paddingBottom: 14, pointerEvents: 'box-none' as any }] as any}>
+      <View style={[s.header, { top: safeTop, paddingTop: 10, paddingBottom: 10, pointerEvents: 'box-none' as any }] as any}>
         <BlurView intensity={70} tint="regular" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
           <View style={s.backBtn}>
@@ -244,7 +244,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
       </View>
 
       {/* Body */}
-      <View style={[s.body, { marginTop: safeTop + 64 }]}>
+      <View style={[s.body, { marginTop: safeTop + 56 }]}>
         {/* Search bar */}
         <View style={s.searchBox}>
           <SearchIcon color={c.textSub} />
