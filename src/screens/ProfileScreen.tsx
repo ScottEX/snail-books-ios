@@ -540,6 +540,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         </View>
       )}
       <ScrollView style={st.scroll} showsVerticalScrollIndicator={false}
+        bounces={true} alwaysBounceVertical={true}
         onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
         scrollEventThrottle={16}>
         {/* ── Cover ── */}
