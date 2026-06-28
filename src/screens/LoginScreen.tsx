@@ -473,7 +473,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     try {
       const r = await api.resetPassword(email, code, password);
       setLoading(false);
-      if (r.status === 'ok') { setStep('login'); }
+      if (r.status === 'ok') { setMsg(''); setStep('login'); }
       else { setMsgOk(false); setMsg(r.message); triggerShake(); }
     } catch (e: any) {
       setLoading(false);
