@@ -366,11 +366,16 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     }
   };
 
-  // ── Theme reset → resets BACKGROUND only (matches web's handleThemeReset) ──
+  // ── Theme reset → resets theme + opacity + background. NOT cover. ──
   const handleThemeReset = async () => {
     setUploadingCover(true);
     try {
-      // Reset background image only — NOT cover, NOT theme, NOT opacity
+      // 1. Reset theme to default
+      setTheme(DEFAULT_THEME_ID);
+      // 2. Reset opacity to 0% + sync to API
+      setCoverOpacity(0);
+      api.saveBackgroundSettings({ opacity: 0 }).catch(() => {});
+      // 3. Reset background image
       await api.resetBackground();
       try { localStorage.removeItem('bg-image'); } catch {}
       // Dispatch events so HomeScreen picks up the reset + closes its modal
