@@ -233,7 +233,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
       <BlurView intensity={70} tint="regular" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop + 42 }} />
       <StatusBar barStyle="light-content" />
       {/* Header content — transparent overlay on top of unified BlurView */}
-      <View style={[s.header, { top: safeTop, paddingTop: 0, paddingBottom: 6, backgroundColor: 'transparent', pointerEvents: 'box-none' as any }] as any}>
+      <View style={[s.header, { top: safeTop - 5, paddingTop: 0, paddingBottom: 6, backgroundColor: 'transparent', pointerEvents: 'box-none' as any }] as any}>
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
           <View style={s.backBtn}>
             <BackArrowSvg color="#fff" />
