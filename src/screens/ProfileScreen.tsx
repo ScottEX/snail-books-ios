@@ -536,11 +536,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       <View
         style={[
           st.navBar,
-          {
-            backgroundColor: scrollY > 0
-              ? `rgba(0,0,0,${Math.min(coverOffset / FREEZE_POINT, 1) * 0.7})`
-              : 'transparent',
-          },
+          { backgroundColor: 'transparent' },
         ]}
         pointerEvents="auto">
         <TouchableOpacity onPress={onBack} style={st.navBackBtn} activeOpacity={0.7}>
