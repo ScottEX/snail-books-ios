@@ -8,7 +8,7 @@ import Svg, { Path, Circle } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
 import { t, getLang, langs, useLang } from '../i18n';
 import { api, resolveAssetUrl } from '../api/client';
-import { useTheme, withAlpha, ThemeColors } from '../theme';
+import { useTheme, withAlpha, ThemeColors, DEFAULT_THEME_ID } from '../theme';
 import { FONTS } from '../theme';
 import { getCurrentUserId } from '../utils/storage';
 import { useServerDate } from '../hooks/useServerDate';
@@ -226,6 +226,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   };
   const handleResetBg = async () => {
     try { await api.resetBackground(); } catch {}
+    setTheme(DEFAULT_THEME_ID);
     setBgImageUri(DEFAULT_BG);
     setBgVersion((v) => v + 1);
     setBgOpacity(0);
