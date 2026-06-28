@@ -291,7 +291,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
           {/* Avatar + username row */}
           <View style={s.avatarSection}>
             <Image
-              source={{ uri: resolveAssetUrl(detail.avatar) || 'https://placehold.co/120x120/EAE5E0/8C8583?text=U' }}
+              source={detail.avatar ? { uri: resolveAssetUrl(detail.avatar) || '' } : require('../../assets/img/logo.jpg')}
               style={s.avatar}
             />
             <View style={{ flex: 1, gap: 6 }}>
