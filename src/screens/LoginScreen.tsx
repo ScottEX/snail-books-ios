@@ -220,10 +220,12 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   const reset = () => { setMsg(''); setMsgOk(false); setDevCode(''); setCode(''); };
   const goLogin = () => {
+    setMsg('');
     setStep('login');
   };
 
   const goRegister = () => {
+    setMsg('');
     setStep('register');
   };
 
