@@ -26,6 +26,8 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [step, setStep] = useState<Step>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [regUsername, setRegUsername] = useState('');
+  const [regPassword, setRegPassword] = useState('');
   const [password2, setPassword2] = useState('');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -412,15 +414,15 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   const handleRegister = async () => {
     if (loading) return;
-    if (!username || !password || !email) { setMsg(t('errEmptyFields')); triggerShake(); return; }
-    if (password !== password2) { setMsg(t('errPwMismatch') || 'Passwords mismatch'); triggerShake(); return; }
-    const pwErr = validatePassword(password);
+    if (!regUsername || !regPassword || !email) { setMsg(t('errEmptyFields')); triggerShake(); return; }
+    if (regPassword !== password2) { setMsg(t('errPwMismatch') || 'Passwords mismatch'); triggerShake(); return; }
+    const pwErr = validatePassword(regPassword);
     if (pwErr) { setMsg(pwErr); triggerShake(); return; }
     const emailErr = validateEmail(email);
     if (emailErr) { setMsg(emailErr); triggerShake(); return; }
     setLoading(true);
     try {
-      const r = await api.register(username, password, email);
+      const r = await api.register(regUsername, regPassword, email);
       setLoading(false);
       if (r.status === 'ok') { setMsgOk(true); setMsg(r.message); setDevCode(r.dev_code || ''); setStep('verify'); setTimeout(() => codeRef.current?.focus(), 100); }
       else { setMsg(r.message); triggerShake(); }
@@ -688,10 +690,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('username')}</Text>
                   <View style={styles.pwWrap}>
-                    <TextInput style={[styles.textInput, { paddingRight: username ? 44 : 16 }]} value={username} onChangeText={setUsername}
-                      placeholder={t('username')} placeholderTextColor="rgba(255,255,255,0.4)" autoCapitalize="none" onBlur={handleUsernameBlur} />
-                    {username ? (
-                      <TouchableOpacity style={styles.clearBtn} onPress={() => setUsername('')}>
+                    <TextInput style={[styles.textInput, { paddingRight: regUsername ? 44 : 16 }]} value={regUsername} onChangeText={setRegUsername}
+                      placeholder={t('username')} placeholderTextColor="rgba(255,255,255,0.4)" autoCapitalize="none" />
+                    {regUsername ? (
+                      <TouchableOpacity style={styles.clearBtn} onPress={() => setRegUsername('')}>
                         <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                           <Line x1="18" y1="6" x2="6" y2="18" />
                           <Line x1="6" y1="6" x2="18" y2="18" />
@@ -711,7 +713,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                     <Text style={styles.hintText}>{t('pwHint') || '8+ chars, letter + number + special'}</Text>
                   </Text>
                   <View style={styles.pwWrap}>
-                    <TextInput style={styles.pwInput} value={password} onChangeText={setPassword}
+                    <TextInput style={styles.pwInput} value={regPassword} onChangeText={setRegPassword}
                       placeholder={t('password')} placeholderTextColor="rgba(255,255,255,0.4)" secureTextEntry={!showPw} />
                     <TouchableOpacity style={styles.pwEye} onPress={() => setShowPw(!showPw)}>
                       <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
