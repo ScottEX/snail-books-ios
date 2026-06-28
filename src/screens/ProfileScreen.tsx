@@ -12,6 +12,7 @@ import Toast from '../components/Toast';
 import BackArrow from '../components/icons/BackArrow';
 import CameraIcon from '../components/icons/CameraIcon';
 import ThemePickerModal from '../components/ThemePickerModal';
+import SubmitButton from '../components/SubmitButton';
 import ModalOverlay from '../components/ModalOverlay';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { pickImages } from '../utils/imagePicker';
@@ -870,13 +871,14 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                     <TouchableOpacity style={mo.cancelBtn} onPress={() => setShowEmailModal(false)}>
                       <Text style={mo.cancelText}>{t('cancel')}</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[mo.confirmBtn, (emailLoading || !newEmail) && { opacity: 0.4 }]}
+                    <SubmitButton
                       onPress={handleSendCode}
-                      disabled={emailLoading || !newEmail}
-                    >
-                      <Text style={mo.confirmText}>{emailLoading ? '...' : t('sendCode')}</Text>
-                    </TouchableOpacity>
+                      loading={emailLoading}
+                      disabled={!newEmail}
+                      label={t('sendCode')}
+                      style={mo.confirmBtn}
+                      textStyle={mo.confirmText}
+                    />
                   </View>
                 </>
               ) : (
