@@ -168,8 +168,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   useEffect(() => {
     const id = username.trim();
     if (!id) {
-      setAvatarUrl('');
-      // Don't clear bgUrl/bgReady — cached bg should stay visible. Matches web.
+      // Don't clear avatarUrl/bgUrl — keep last user's avatar/bg visible. Matches web.
       return;
     }
     // Don't reset avatarReady — keep current avatar visible while fetching.
