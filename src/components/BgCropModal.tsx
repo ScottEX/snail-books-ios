@@ -94,21 +94,14 @@ export default function BgCropModal({
     stateRef.current.rotation = 0;
     stateRef.current.tx = 0;
     stateRef.current.ty = 0;
-    // Fit image to cover the crop guide (matching web's coverFitImage)
-    Image.getSize(imageSrc, (imgW, imgH) => {
-      const sw = guideW / imgW;
-      const sh = guideH / imgH;
-      const minFit = Math.max(sw, sh, 0.5);
-      const fitScale = minFit * 1.05;
-      const clamped = Math.max(0.5, Math.min(3, fitScale));
-      setScale(clamped);
-      stateRef.current.scale = clamped;
-      stateRef.current.minScale = minFit;
-    }, () => {
-      setScale(1);
-      stateRef.current.scale = 1;
-      stateRef.current.minScale = 0.5;
-    });
+    // Fit image to cover the crop guide (matching web's coverFitImage).
+    // The image fills the container via resizeMode="cover" — minScale is
+    // purely geometric: guide must stay covered on both axes.
+    const geoMinScale = Math.max(1 / 1.4, guideH / (guideW * 1.4));
+    const clamped = Math.max(geoMinScale, Math.min(3, geoMinScale * 1.05));
+    setScale(clamped);
+    stateRef.current.scale = clamped;
+    stateRef.current.minScale = geoMinScale;
   }, [imageSrc]);
 
   // Reset internal state on close
@@ -278,8 +271,8 @@ export default function BgCropModal({
 
   // Preview confirm: upload the cropped bitmap
   const handlePreviewConfirm = async () => {
-    if (!previewUri || phase === 'uploading') return;
-    setPhase('uploading');
+    if (!previewUri || isProcessing) return;
+    setIsProcessing(true);
     try {
       const file: any = {
         uri: previewUri,
@@ -288,11 +281,13 @@ export default function BgCropModal({
       };
       await onConfirm(file);
       setSrc(''); setMsg(''); setPhase('cropping'); setPreviewUri('');
+      setIsProcessing(false);
       resetTransform();
       onUploaded?.();
     } catch (e: any) {
       setMsg(e?.message || t('uploadFailed') || 'Upload failed');
       setPhase('cropping');
+      setIsProcessing(false);
     }
   };
 
@@ -364,16 +359,21 @@ export default function BgCropModal({
               <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 10 }}>{t('coverHint')}</Text>
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 14, width: '100%' }}>
                 <TouchableOpacity
-                  style={{ flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center' }}
+                  style={{ flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center', opacity: isProcessing ? 0.5 : 1 }}
                   onPress={() => { setPhase('cropping'); setPreviewUri(''); }}
+                  disabled={isProcessing}
                 >
                   <Text style={{ fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.7)' }}>{t('recrop') || '重新裁剪'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={{ flex: 2, paddingVertical: 10, borderRadius: 10, backgroundColor: '#5B5BD6', alignItems: 'center' }}
+                  style={{ flex: 2, paddingVertical: 10, borderRadius: 10, backgroundColor: '#5B5BD6', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', opacity: isProcessing ? 0.6 : 1 }}
                   onPress={handlePreviewConfirm}
+                  disabled={isProcessing}
                 >
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#fff' }}>{t('confirmUse') || '确认使用'}</Text>
+                  {isProcessing ? (
+                    <LoadingSpinner label={false} size={20} color="#fff" />
+                  ) : null}
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#fff', marginLeft: isProcessing ? 8 : 0 }}>{t('confirmUse') || '确认使用'}</Text>
                 </TouchableOpacity>
               </View>
             </View>
