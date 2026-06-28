@@ -120,6 +120,8 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [realName, setRealName] = useState('');
+  const [realNamePinyin, setRealNamePinyin] = useState('');
+  const [realNameTW, setRealNameTW] = useState('');
   const [linkedPartnerId, setLinkedPartnerId] = useState<number | null>(null);
   const [linkedPartnerName, setLinkedPartnerName] = useState('');
   const [showPartnerPicker, setShowPartnerPicker] = useState(false);
@@ -143,6 +145,8 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       setPhone(d?.phone || '');
       setEmail(d?.email || '');
       setRealName(d?.real_name || '');
+      setRealNamePinyin(d?.real_name_pinyin || '');
+      setRealNameTW(d?.real_name_tw || '');
       setLinkedPartnerId(d?.linked_partner_id ?? null);
       setLinkedPartnerName(d?.linked_partner_name || '');
     } catch {
@@ -157,6 +161,13 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
     setSaving(true);
     try {
       await api.admin.updateUser(user.id, { [field]: value });
+      if (field === 'real_name') {
+        // Re-fetch detail to get updated pinyin/TW
+        const detailResp: any = await api.admin.getUser(user.id);
+        const d = detailResp?.data || detailResp;
+        setRealNamePinyin(d?.real_name_pinyin || '');
+        setRealNameTW(d?.real_name_tw || '');
+      }
       if (field === 'is_disabled') onChanged();
     } catch (e: any) {
       showToast(e?.message || t('toastSubmitFailed'));
@@ -372,7 +383,13 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
                     <PencilSvg color={c.textSub} />
                   </View>
                 ) : (
-                  <Text style={s.infoValue}>{realName || '—'}</Text>
+                  <Text style={s.infoValue}>
+                    {lang === 'en'
+                      ? (realNamePinyin || realName || '—')
+                      : lang === 'zh-TW'
+                      ? (realNameTW || realName || '—')
+                      : (realName || '—')}
+                  </Text>
                 )}
               </View>
               <View style={s.divider} />
