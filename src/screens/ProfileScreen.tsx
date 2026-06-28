@@ -194,10 +194,13 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [deleteConfirmUsername, setDeleteConfirmUsername] = useState('');
   // Sticky header on scroll (matches web)
   const [scrollY, setScrollY] = useState(0);
-  const headerOpacity = scrollY > 220 ? Math.min(1, (scrollY - 220) / 40) : 0;
-  // Pull-down stretch + blur
+  const FREEZE_POINT = 120; // cover freezes after scrolling 120px
+  const coverOffset = scrollY > 0 ? Math.min(scrollY, FREEZE_POINT) : 0; // how far cover has scrolled up
+  // Pull-down stretch + blur (scrollY < 0 = pull-down, scrollY > 0 = scroll-up blur)
   const pullDown = Math.max(0, -scrollY);
-  const blurIntensity = Math.min(pullDown / 3, 18);
+  const blurIntensity = scrollY > 0
+    ? Math.min(scrollY / 2, 10)   // scroll-up: progressive blur, max 10 at freeze point
+    : Math.min(pullDown / 3, 18);  // pull-down: stretch blur
 
   const username = useMemo(() => {
     try { return getCurrentUser(); } catch { return ''; }
@@ -529,22 +532,29 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
   return (
     <View style={st.root}>
-      {/* Sticky header — appears when cover scrolls out of view */}
-      {headerOpacity > 0 && (
-        <View style={[st.stickyHeader, { opacity: headerOpacity }]} pointerEvents={headerOpacity > 0.5 ? 'auto' : 'none'}>
-          <TouchableOpacity onPress={onBack} style={st.stickyBackBtn} activeOpacity={0.7}>
-            <BackArrow color={colors.textMain} />
-          </TouchableOpacity>
-          <Text style={st.stickyTitle}>{t('editProfile')}</Text>
-        </View>
-      )}
-      {/* ── Cover — absolutely positioned, tracks scroll to slide away or stretch on pull-down ── */}
+      {/* Nav bar — always visible, fixed at top */}
+      <View
+        style={[
+          st.navBar,
+          {
+            backgroundColor: scrollY > 0
+              ? (coverOffset >= FREEZE_POINT ? colors.surface : `rgba(0,0,0,${0.3 + coverOffset / FREEZE_POINT * 0.3})`)
+              : 'transparent',
+          },
+        ]}
+        pointerEvents="auto">
+        <TouchableOpacity onPress={onBack} style={st.navBackBtn} activeOpacity={0.7}>
+          <BackArrow color={coverOffset >= FREEZE_POINT ? colors.textMain : '#fff'} />
+        </TouchableOpacity>
+        <Text style={[st.navTitle, { color: coverOffset >= FREEZE_POINT ? colors.textMain : '#fff' }]}>{t('editProfile')}</Text>
+      </View>
+      {/* ── Cover — absolutely positioned, slides up 120px then freezes ── */}
       <TouchableOpacity
         style={[
           st.coverWrap,
           {
             position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5,
-            transform: [{ translateY: scrollY > 0 ? -Math.min(scrollY, 220) : 0 }],
+            transform: [{ translateY: -coverOffset }],
           },
         ]}
         onPress={handleCoverPress} activeOpacity={0.9} disabled={uploadingCover}>
@@ -578,14 +588,14 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
           </View>
         )}
 
-        {/* Frosted glass blur — mirrors image transform for full coverage */}
+        {/* Pull-down blur overlay — mirrors image transform for full coverage */}
         {blurIntensity > 0 && (
           <BlurView
             intensity={blurIntensity}
             tint="dark"
             style={[
               { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-              {
+              scrollY < 0 && {
                 transform: [
                   { translateY: pullDown / 2 },
                   { scaleY: 1 + pullDown / 220 },
@@ -595,26 +605,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
           />
         )}
 
-        {/* Top shadow gradient for nav readability */}
-        <View style={st.coverScrim}>
-          <Svg width="100%" height="100%" viewBox="0 0 360 100" preserveAspectRatio="none">
-            <Defs>
-              <SVGGradient id="scrimGrad" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor="#000" stopOpacity={0.45} />
-                <Stop offset="1" stopColor="#000" stopOpacity={0} />
-              </SVGGradient>
-            </Defs>
-            <Rect width="360" height="100" fill="url(#scrimGrad)" />
-          </Svg>
-        </View>
-
-        {/* Floating nav */}
-        <View style={st.coverNav}>
-          <TouchableOpacity onPress={onBack} style={st.coverBackBtn} activeOpacity={0.7}>
-            <BackArrow color="#fff" />
-          </TouchableOpacity>
-          <Text style={st.coverTitle}>{t('editProfile')}</Text>
-        </View>
+        {/* "更换封面" button */}
         <View style={st.coverOverlay}>
           <CameraIcon color="#fff" size={14} strokeWidth={2} />
           <Text style={st.coverOverlayText}>{uploadingCover ? '...' : t('editCover') || '更换封面'}</Text>
@@ -1084,35 +1075,22 @@ function Divider({ colors }: any) {
 const getStyles = (colors: ThemeColors) => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.surface },
   scroll: { flex: 1 },
-  // Sticky header (matches web: appears when cover scrolls out of view)
-  stickyHeader: {
+  // Nav bar — always visible at top, transitions from transparent dark to solid surface
+  navBar: {
     position: 'absolute' as any, top: 0, left: 0, right: 0, zIndex: 10,
     flexDirection: 'row', alignItems: 'center',
-    paddingTop: 60, paddingHorizontal: 16, paddingBottom: 12,
-    backgroundColor: colors.surface,
+    paddingTop: 54, paddingHorizontal: 16, paddingBottom: 12,
   },
-  stickyBackBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  stickyTitle: { flex: 1, fontSize: 18, fontWeight: '700', color: colors.textMain, marginLeft: 10 },
-  // Cover
-  coverWrap: { height: 220, position: 'relative', overflow: 'visible' as any },
-  coverImg: { width: '100%', height: '100%' } as any,
-  coverGradient: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  coverScrim: {
-    position: 'absolute', top: 0, left: 0, right: 0, height: 100,
-  },
-  coverNav: {
-    position: 'absolute', top: 0, left: 0, right: 0,
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 16, paddingTop: 54, paddingBottom: 12,
-  },
-  coverBackBtn: {
+  navBackBtn: {
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: 'rgba(0,0,0,0.25)',
     justifyContent: 'center', alignItems: 'center',
   },
-  coverTitle: {
-    fontSize: 15, fontWeight: '600', color: '#fff',
-  },
+  navTitle: { flex: 1, fontSize: 15, fontWeight: '600', marginLeft: 12 },
+  // Cover
+  coverWrap: { height: 220, position: 'relative', overflow: 'visible' as any },
+  coverImg: { width: '100%', height: '100%' } as any,
+  coverGradient: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   coverOverlay: {
     position: 'absolute', bottom: 12, left: 12,
     flexDirection: 'row', alignItems: 'center', gap: 6,
