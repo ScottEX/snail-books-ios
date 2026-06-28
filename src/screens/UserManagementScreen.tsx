@@ -241,7 +241,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
       </View>
 
       {/* Body */}
-      <View style={s.body}>
+      <ScrollView style={s.body} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: 64, paddingBottom: 80 }}>
         {/* Search bar */}
         <View style={s.searchBox}>
           <SearchIcon color={c.textSub} />
@@ -297,7 +297,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
         </View>
 
         {/* User list */}
-        <ScrollView style={s.list} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
+        <View style={{ paddingHorizontal: 16, paddingTop: 4 }}>
           {loading ? (
             <Text style={{ textAlign: 'center', color: c.textSub, marginTop: 40, fontSize: 13 }}>
               {t('loading')}
@@ -362,13 +362,13 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
               );
             })
           )}
-        </ScrollView>
+        </View>
 
         {/* Footer */}
         <View style={s.footer}>
           <Text style={s.footerText}>{t('totalUsers').replace('{n}', String(total))}</Text>
         </View>
-      </View>
+      </ScrollView>
 
       {/* ── Status dropdown modal ── */}
       <Modal visible={showStatusDrop} transparent animationType="none" onRequestClose={closeDrops}>
@@ -467,16 +467,13 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
 const getStyles = (c: ThemeColors) => {
   const hdr = historyHeader(c);
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fff' },
+    container: { flex: 1, backgroundColor: c.bg },
     ...hdr as any,
     title: { ...hdr.title, color: c.textMain },
-    headerWhite: {
-      backgroundColor: '#fff',
-    },
     body: {
       flex: 1,
-      paddingTop: 100,
-      backgroundColor: '#fff',
+      marginTop: 36,
+      backgroundColor: c.bg,
     },
     // Search bar
     searchBox: {
@@ -572,8 +569,6 @@ const getStyles = (c: ThemeColors) => {
     },
     dateActionApply: { backgroundColor: c.primary },
     dateActionText: { fontSize: 13, color: c.textMain },
-    // List
-    list: { flex: 1, paddingHorizontal: 16, paddingTop: 4 },
     userRow: {
       flexDirection: 'row', alignItems: 'center',
       backgroundColor: c.surface, borderRadius: 12,
