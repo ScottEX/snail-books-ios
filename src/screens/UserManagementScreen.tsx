@@ -230,7 +230,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
   return (
     <View style={s.container}>
       {/* Unified BlurView — single glass from status bar through header */}
-      <BlurView intensity={70} tint="regular" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop + 56, zIndex: 99 }} />
+      <BlurView intensity={70} tint="regular" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop + 56 }} />
       <StatusBar barStyle="light-content" />
       {/* Header content — transparent overlay on top of unified BlurView */}
       <View style={[s.header, { top: safeTop, paddingTop: 10, paddingBottom: 10, backgroundColor: 'transparent', pointerEvents: 'box-none' as any }] as any}>
