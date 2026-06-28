@@ -50,8 +50,6 @@ export default function AdminHeader({ safeTop, onBack, title }: AdminHeaderProps
           paddingHorizontal: 16,
           backgroundColor: 'transparent',
           pointerEvents: 'box-none' as const,
-          borderBottomWidth: 0.5,
-          borderBottomColor: 'rgba(0,0,0,0.06)',
         }}
       >
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
