@@ -2463,7 +2463,7 @@ const LangContext = createContext<LangContextValue>({
 
 export function LangProvider({ children }: { children: React.ReactNode }): React.ReactNode {
   const [lang, setLangState] = useState<string>(() => {
-    const cur = (globalThis as any).curLang || 'zh-CN';
+    const cur = localStorage.getItem('lang') || (globalThis as any).curLang || 'zh-CN';
     (globalThis as any).curLang = cur; // 同步给 t()/getLang() 使用
     return cur;
   });
