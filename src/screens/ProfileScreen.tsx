@@ -138,7 +138,15 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [toast, setToast] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string>('');
   const [coverUrl, setCoverUrl] = useState<string>('');
-  const [coverOpacity, setCoverOpacity] = useState(1);
+  const [coverOpacity, setCoverOpacity] = useState(1); // cover image opacity (always visible, not slider-controlled)
+  const [bgOpacity, setBgOpacity] = useState<number>(() => {
+    try {
+      const uid = getCurrentUserId();
+      const key = uid ? `bg-opacity-${uid}` : 'bg-opacity';
+      const s = localStorage.getItem(key);
+      return s !== null ? parseFloat(s) : 0.5;
+    } catch { return 0.5; }
+  });
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [email, setEmail] = useState('');
@@ -209,14 +217,11 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         setCoverUrl(resolved + sep + 'v=' + Date.now());
       }
     } catch {}
+    // Load bgOpacity from server (shared with HomeScreen)
     try {
-      const uid = getCurrentUserId();
-      const saved = localStorage.getItem(uid ? `cover-opacity-${uid}` : 'cover-opacity');
-      if (saved !== null) {
-        const v = parseFloat(saved);
-        // If saved opacity is ~0 but a cover exists, override to 1
-        // (stale "0" from old reset behavior — cover should be visible)
-        setCoverOpacity(v <= 0.05 ? 1 : v);
+      const bg: any = await api.getBackground();
+      if (bg?.opacity !== null && bg?.opacity !== undefined) {
+        setBgOpacity(bg.opacity);
       }
     } catch {}
   };
@@ -276,10 +281,10 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
           const t = parseInt(ts, 10);
           if (t !== lastTs && (Date.now() - t < 30000)) {
             lastTs = t;
-            setCoverOpacity(0);
+            setBgOpacity(0);
             try {
               const uid = getCurrentUserId();
-              localStorage.setItem(uid ? `cover-opacity-${uid}` : 'cover-opacity', '0');
+              localStorage.setItem(uid ? `bg-opacity-${uid}` : 'bg-opacity', '0');
             } catch {}
           }
         }
@@ -352,13 +357,14 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     }
   };
 
-  // ── Cover opacity ──
-  const handleCoverOpacityChange = (v: number) => {
-    setCoverOpacity(v);
+  // ── bgOpacity (shared via localStorage + API, same as HomeScreen) ──
+  const handleBgOpacityChange = (v: number) => {
+    setBgOpacity(v);
     try {
       const uid = getCurrentUserId();
-      localStorage.setItem(uid ? `cover-opacity-${uid}` : 'cover-opacity', String(v));
+      localStorage.setItem(uid ? `bg-opacity-${uid}` : 'bg-opacity', String(v));
     } catch {}
+    api.saveBackgroundSettings({ opacity: v }).catch(() => {});
   };
 
   // ── Cover image picked (from ThemePickerModal's BgCropModal) ──
@@ -953,8 +959,8 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         visible={showThemeModal}
         onClose={() => setShowThemeModal(false)}
         showCoverTools
-        coverOpacity={coverOpacity}
-        onCoverOpacityChange={handleCoverOpacityChange}
+        coverOpacity={bgOpacity}
+        onCoverOpacityChange={handleBgOpacityChange}
         onCoverImagePicked={handleCoverImagePicked}
         onResetCover={() => setShowThemeModal(false)}
         coverUploading={uploadingCover}
