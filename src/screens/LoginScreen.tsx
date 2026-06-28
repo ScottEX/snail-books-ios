@@ -414,20 +414,21 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   const handleRegister = async () => {
     if (loading) return;
-    if (!regUsername || !regPassword || !email) { setMsg(t('errEmptyFields')); triggerShake(); return; }
-    if (regPassword !== password2) { setMsg(t('errPwMismatch') || 'Passwords mismatch'); triggerShake(); return; }
+    if (!regUsername || !regPassword || !email) { setMsgOk(false); setMsg(t('errEmptyFields')); triggerShake(); return; }
+    if (regPassword !== password2) { setMsgOk(false); setMsg(t('errPwMismatch') || 'Passwords mismatch'); triggerShake(); return; }
     const pwErr = validatePassword(regPassword);
-    if (pwErr) { setMsg(pwErr); triggerShake(); return; }
+    if (pwErr) { setMsgOk(false); setMsg(pwErr); triggerShake(); return; }
     const emailErr = validateEmail(email);
-    if (emailErr) { setMsg(emailErr); triggerShake(); return; }
+    if (emailErr) { setMsgOk(false); setMsg(emailErr); triggerShake(); return; }
     setLoading(true);
     try {
       const r = await api.register(regUsername, regPassword, email);
       setLoading(false);
       if (r.status === 'ok') { setMsgOk(true); setMsg(r.message); setDevCode(r.dev_code || ''); setStep('verify'); setTimeout(() => codeRef.current?.focus(), 100); }
-      else { setMsg(r.message); triggerShake(); }
+      else { setMsgOk(false); setMsg(r.message); triggerShake(); }
     } catch (e: any) {
       setLoading(false);
+      setMsgOk(false);
       setMsg(e?.message || t('errNetworkError') || '网络错误，请检查网络后重试');
     }
   };
@@ -439,27 +440,29 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     try {
       const r = await api.verify(email, code);
       setLoading(false);
-      if (r.status === 'ok') { setStep('login'); }
-      else { setMsg(r.message); triggerShake(); }
+      if (r.status === 'ok') { setMsg(''); setStep('login'); }
+      else { setMsgOk(false); setMsg(r.message); triggerShake(); }
     } catch (e: any) {
       setLoading(false);
+      setMsgOk(false);
       setMsg(e?.message || t('errNetworkError') || '网络错误，请检查网络后重试');
     }
   };
 
   const handleForgot = async () => {
     if (loading) return;
-    if (!email) { setMsg(t('errEmptyFields')); return; }
+    if (!email) { setMsgOk(false); setMsg(t('errEmptyFields')); return; }
     const emailErr = validateEmail(email);
-    if (emailErr) { setMsg(emailErr); return; }
+    if (emailErr) { setMsgOk(false); setMsg(emailErr); return; }
     setLoading(true);
     try {
       const r = await api.forgotPassword(email);
       setLoading(false);
       if (r.status === 'ok') { setMsgOk(true); setMsg(r.message); setDevCode(r.dev_code || ''); setPassword(''); setStep('reset'); setTimeout(() => codeRef.current?.focus(), 100); }
-      else setMsg(r.message);
+      else { setMsgOk(false); setMsg(r.message); }
     } catch (e: any) {
       setLoading(false);
+      setMsgOk(false);
       setMsg(e?.message || t('errNetworkError') || '网络错误，请检查网络后重试');
     }
   };
