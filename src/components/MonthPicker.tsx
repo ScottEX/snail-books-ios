@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Animated, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { FONTS, withAlpha, ThemeColors } from '../theme';
 import { t } from '../i18n';
+import AnimatedDropdown from './AnimatedDropdown';
 
 export type MonthValue = 'all' | { year: number; month: number };
 
@@ -16,11 +17,10 @@ interface MonthPickerProps {
   useModal?: boolean;
 }
 
-/** Shared month selector: trigger button + dropdown with scale animation.
+/** Shared month selector: trigger button + AnimatedDropdown with scale animation.
  *  Used by platform fee card and fee history modal. */
 export default function MonthPicker({ selected, onSelect, months, colors, allLabel, useModal = true }: MonthPickerProps) {
   const [visible, setVisible] = useState(false);
-  const anim = useRef(new Animated.Value(0)).current;
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<any>(null);
 
@@ -33,19 +33,15 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
           setPos({ top: y + h + 4, left: x });
         });
       }
-      anim.setValue(0);
-      Animated.spring(anim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 }).start();
       setVisible(true);
     } else {
-      Animated.timing(anim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => setVisible(false));
+      setVisible(false);
     }
   };
 
-  const close = (cb?: () => void) => {
-    Animated.timing(anim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => {
-      setVisible(false);
-      cb?.();
-    });
+  const selectAndClose = (value: MonthValue) => {
+    setVisible(false);
+    onSelect(value);
   };
 
   const displayText = selected === 'all'
@@ -55,70 +51,6 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
   const sortedMonths = [...months]
     .filter((f: any) => f.year > 2024 || (f.year === 2024 && f.month >= 5))
     .sort((a: any, b: any) => (b.year - a.year) || (b.month - a.month));
-
-  const DropdownContent = (
-    <Animated.View style={{
-      position: 'absolute',
-      top: pos.top || 100,
-      left: pos.left || 10,
-      backgroundColor: colors.surface,
-      borderRadius: 14,
-      paddingVertical: 6,
-      width: 140,
-      maxHeight: 240,
-      zIndex: 99999,
-      opacity: anim,
-      transform: [
-        { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1], extrapolate: 'clamp' }) },
-        { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0], extrapolate: 'clamp' }) },
-      ],
-    }}>
-      <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
-        {/* All months option */}
-        <TouchableOpacity
-          style={{
-            paddingHorizontal: 12, paddingVertical: 8,
-            backgroundColor: selected === 'all' ? withAlpha(colors.danger, 0.1) : 'transparent',
-            borderRadius: 8, marginHorizontal: 4,
-          }}
-          onPress={() => close(() => onSelect('all'))}
-          activeOpacity={0.6}
-        >
-          <Text style={{
-            fontSize: FONTS.sub.size,
-            fontWeight: selected === 'all' ? '700' : '500',
-            color: selected === 'all' ? colors.primary : colors.textMain,
-          }}>
-            {label}
-          </Text>
-        </TouchableOpacity>
-        <View style={{ height: 1, backgroundColor: colors.secondary, marginHorizontal: 12, marginVertical: 4 }} />
-        {sortedMonths.map((f: any) => {
-          const isSel = selected !== 'all' && selected.year === f.year && selected.month === f.month;
-          return (
-            <TouchableOpacity
-              key={`mp-${f.year}-${f.month}`}
-              style={{
-                paddingHorizontal: 12, paddingVertical: 8,
-                backgroundColor: isSel ? withAlpha(colors.danger, 0.1) : 'transparent',
-                borderRadius: 8, marginHorizontal: 4,
-              }}
-              onPress={() => close(() => onSelect({ year: f.year, month: f.month }))}
-              activeOpacity={0.6}
-            >
-              <Text style={{
-                fontSize: FONTS.sub.size,
-                fontWeight: isSel ? '700' : '400',
-                color: isSel ? colors.primary : colors.textMain,
-              }}>
-                {f.year}.{String(f.month).padStart(2, '0')}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-    </Animated.View>
-  );
 
   return (
     <>
@@ -138,25 +70,65 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
       </TouchableOpacity>
 
       {/* Dropdown */}
-      {useModal ? (
-        <Modal transparent animationType="none" visible={visible} onRequestClose={() => close()}>
-          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => close()}>
-            <Animated.View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.08)', opacity: anim }} />
-          </TouchableOpacity>
-          {DropdownContent}
-        </Modal>
-      ) : visible ? (
-        <>
-          <TouchableOpacity
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99998 }}
-            activeOpacity={1}
-            onPress={() => close()}
-          >
-            <Animated.View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.08)', opacity: anim }} />
-          </TouchableOpacity>
-          {DropdownContent}
-        </>
-      ) : null}
+      <AnimatedDropdown
+        visible={visible}
+        onClose={() => setVisible(false)}
+        inline={!useModal}
+        style={{ top: pos.top || 100, left: pos.left || 10, width: 140 }}
+      >
+        <View style={{
+          backgroundColor: colors.surface,
+          borderRadius: 14,
+          paddingVertical: 6,
+          maxHeight: 240,
+          overflow: 'hidden' as const,
+        }}>
+          <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
+            {/* All months option */}
+            <TouchableOpacity
+              style={{
+                paddingHorizontal: 12, paddingVertical: 8,
+                backgroundColor: selected === 'all' ? withAlpha(colors.danger, 0.1) : 'transparent',
+                borderRadius: 8, marginHorizontal: 4,
+              }}
+              onPress={() => selectAndClose('all')}
+              activeOpacity={0.6}
+            >
+              <Text style={{
+                fontSize: FONTS.sub.size,
+                fontWeight: selected === 'all' ? '700' : '500',
+                color: selected === 'all' ? colors.primary : colors.textMain,
+              }}>
+                {label}
+              </Text>
+            </TouchableOpacity>
+            <View style={{ height: 1, backgroundColor: colors.secondary, marginHorizontal: 12, marginVertical: 4 }} />
+            {sortedMonths.map((f: any) => {
+              const isSel = selected !== 'all' && selected.year === f.year && selected.month === f.month;
+              return (
+                <TouchableOpacity
+                  key={`mp-${f.year}-${f.month}`}
+                  style={{
+                    paddingHorizontal: 12, paddingVertical: 8,
+                    backgroundColor: isSel ? withAlpha(colors.danger, 0.1) : 'transparent',
+                    borderRadius: 8, marginHorizontal: 4,
+                  }}
+                  onPress={() => selectAndClose({ year: f.year, month: f.month })}
+                  activeOpacity={0.6}
+                >
+                  <Text style={{
+                    fontSize: FONTS.sub.size,
+                    fontWeight: isSel ? '700' : '400',
+                    color: isSel ? colors.primary : colors.textMain,
+                  }}>
+                    {f.year}.{String(f.month).padStart(2, '0')}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </AnimatedDropdown>
     </>
   );
 }
