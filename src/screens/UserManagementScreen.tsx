@@ -8,6 +8,7 @@ import {
   TextInput,
   Image,
   Modal,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
@@ -226,9 +227,10 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
 
   return (
     <View style={s.container}>
+      <StatusBar barStyle="dark-content" />
       {/* Header — absolute glass (matches web historyHeader) */}
       <View style={[s.header, { pointerEvents: 'box-none' as any }] as any}>
-        <BlurView intensity={30} tint="light" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 0, overflow: 'hidden' }} />
+        <BlurView intensity={30} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
           <View style={s.backBtn}>
             <BackArrowSvg color="#000" />
