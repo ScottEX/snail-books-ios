@@ -496,7 +496,12 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         {(onBack) => <UserManagementScreen
           key={userRefreshKey}
           onBack={onBack}
-          onSelectUser={(u) => { setTimeout(() => setShowUserDetail(u), 250); }}
+          onSelectUser={async (u) => {
+            if (!u.reviewed) {
+              try { await api.admin.markReviewed(u.id); setUserRefreshKey(k => k + 1); } catch {}
+            }
+            setTimeout(() => setShowUserDetail(u), 250);
+          }}
         />}
       </SlideScreen>
       <SlideScreen visible={!!showUserDetail} onClose={() => { setShowUserDetail(null); }} stackIndex={2}>

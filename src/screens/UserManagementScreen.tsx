@@ -33,7 +33,7 @@ interface UserItem {
 
 interface Props {
   onBack: () => void;
-  onSelectUser: (user: { id: number; username: string; email: string; avatar: string; is_disabled: boolean }) => void;
+  onSelectUser: (user: { id: number; username: string; email: string; avatar: string; is_disabled: boolean; reviewed: boolean }) => void;
 }
 
 // ── SVG icons ──
@@ -304,6 +304,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
                     email: u.email || '',
                     avatar: u.avatar || '',
                     is_disabled: u.is_disabled,
+                    reviewed: u.reviewed,
                   })}
                   activeOpacity={0.6}
                 >
