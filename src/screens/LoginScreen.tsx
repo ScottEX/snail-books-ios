@@ -440,7 +440,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     try {
       const r = await api.verify(email, code);
       setLoading(false);
-      if (r.status === 'ok') { setMsg(''); setStep('login'); }
+      if (r.status === 'ok') { setEmail(''); setRegUsername(''); setRegPassword(''); setPassword2(''); setMsg(''); setStep('login'); }
       else { setMsgOk(false); setMsg(r.message); triggerShake(); }
     } catch (e: any) {
       setLoading(false);
