@@ -229,12 +229,11 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
 
   return (
     <View style={s.container}>
-      {/* Status bar — same BlurView glass as header */}
-      <BlurView intensity={70} tint="regular" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop, zIndex: 100 }} />
+      {/* Unified BlurView — single glass from status bar through header */}
+      <BlurView intensity={70} tint="regular" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop + 56, zIndex: 99 }} />
       <StatusBar barStyle="light-content" />
-      {/* Header — BlurView glass, matches web backdropFilter */}
-      <View style={[s.header, { top: safeTop, paddingTop: 10, paddingBottom: 10, pointerEvents: 'box-none' as any }] as any}>
-        <BlurView intensity={70} tint="regular" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+      {/* Header content — transparent overlay on top of unified BlurView */}
+      <View style={[s.header, { top: safeTop, paddingTop: 10, paddingBottom: 10, backgroundColor: 'transparent', pointerEvents: 'box-none' as any }] as any}>
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
           <View style={s.backBtn}>
             <BackArrowSvg color="#fff" />
