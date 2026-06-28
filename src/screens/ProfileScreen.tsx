@@ -4,6 +4,7 @@ import {
   Image, TextInput, Switch, Modal,
 } from 'react-native';
 import Svg, { Path, Defs, LinearGradient as SVGGradient, Stop, Rect } from 'react-native-svg';
+import { BlurView } from 'expo-blur';
 import { t, getLang, langs, useLang } from '../i18n';
 import { api, resolveAssetUrl } from '../api/client';
 import { useTheme, withAlpha, ThemeColors, DEFAULT_THEME_ID } from '../theme';
@@ -194,6 +195,10 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   // Sticky header on scroll (matches web)
   const [scrollY, setScrollY] = useState(0);
   const headerOpacity = scrollY > 220 ? Math.min(1, (scrollY - 220) / 40) : 0;
+  // Pull-down stretch + blur
+  const pullDown = Math.max(0, -scrollY);
+  const coverHeight = 220 + pullDown;
+  const blurIntensity = Math.min(pullDown / 3, 18);
 
   const username = useMemo(() => {
     try { return getCurrentUser(); } catch { return ''; }
@@ -538,7 +543,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
         scrollEventThrottle={16}>
         {/* ── Cover ── */}
-        <TouchableOpacity style={st.coverWrap} onPress={handleCoverPress} activeOpacity={0.9} disabled={uploadingCover}>
+        <TouchableOpacity style={[st.coverWrap, { height: coverHeight }]} onPress={handleCoverPress} activeOpacity={0.9} disabled={uploadingCover}>
           {coverUrl ? (
             <Image source={{ uri: coverUrl }} style={[st.coverImg, { opacity: coverOpacity }]} />
           ) : (
@@ -554,6 +559,11 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                 <Rect width="360" height="260" fill="url(#coverGrad)" />
               </Svg>
             </View>
+          )}
+
+          {/* Pull-down blur overlay */}
+          {blurIntensity > 0 && (
+            <BlurView intensity={blurIntensity} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
           )}
 
           {/* Top shadow gradient for nav readability */}
