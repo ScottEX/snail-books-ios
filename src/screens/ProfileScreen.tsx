@@ -12,6 +12,7 @@ import Toast from '../components/Toast';
 import BackArrow from '../components/icons/BackArrow';
 import CameraIcon from '../components/icons/CameraIcon';
 import ThemePickerModal from '../components/ThemePickerModal';
+import BgCropModal from '../components/BgCropModal';
 import SubmitButton from '../components/SubmitButton';
 import ModalOverlay from '../components/ModalOverlay';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
@@ -166,6 +167,9 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [showPwModal, setShowPwModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showCoverCrop, setShowCoverCrop] = useState(false);
+  const [coverCropSrc, setCoverCropSrc] = useState('');
+  const [coverCropFile, setCoverCropFile] = useState<any>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showAdminBlockModal, setShowAdminBlockModal] = useState(false);
@@ -336,8 +340,15 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   };
 
   const handleCoverPress = async () => {
-    // Open theme modal → user can crop/upload cover via BgCropModal
-    setShowThemeModal(true);
+    if (uploadingCover) return;
+    try {
+      const imgs = await pickImages({ multiple: false }).catch(() => []);
+      if (imgs.length === 0) return;
+      const file = imgs[0];
+      setCoverCropFile(file);
+      setCoverCropSrc(file.uri);
+      setShowCoverCrop(true);
+    } catch {}
   };
 
   // ── bgOpacity (shared via localStorage + API, same as HomeScreen) ──
@@ -947,6 +958,19 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         onCoverImagePicked={handleCoverImagePicked}
         onResetCover={() => setShowThemeModal(false)}
         coverUploading={uploadingCover}
+      />
+      {/* Cover crop modal — opened directly from cover press, not via theme modal */}
+      <BgCropModal
+        visible={showCoverCrop}
+        onClose={() => { setShowCoverCrop(false); setCoverCropSrc(''); setCoverCropFile(null); }}
+        imageSrc={coverCropSrc}
+        onClearImage={() => { setCoverCropSrc(''); setCoverCropFile(null); }}
+        onConfirm={async (file: any) => {
+          await handleCoverImagePicked(file);
+          setShowCoverCrop(false);
+          setCoverCropSrc('');
+          setCoverCropFile(null);
+        }}
       />
     </View>
   );
