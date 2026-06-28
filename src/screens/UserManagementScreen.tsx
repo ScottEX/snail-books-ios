@@ -9,6 +9,7 @@ import {
   Image,
   Modal,
   Dimensions,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle } from 'react-native-svg';
@@ -107,6 +108,8 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
   const [dateLayout, setDateLayout] = useState({ top: 0, left: 0, width: 0 });
   const statusChipRef = useRef<View>(null);
   const dateChipRef = useRef<View>(null);
+  const statusAnim = useRef(new Animated.Value(0)).current;
+  const dateAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (sd.ready && sd.year !== FALLBACK_YEAR) setDropYear(sd.year);
@@ -153,9 +156,11 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
     statusChipRef.current?.measureInWindow((x, y, width, height) => {
       setStatusLayout({ top: y + height + 4, left: x, width });
     });
+    statusAnim.setValue(0);
+    Animated.spring(statusAnim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 }).start();
     setShowStatusDrop(true);
     setShowDateDrop(false);
-  }, []);
+  }, [statusAnim]);
 
   const openDateDrop = useCallback(() => {
     dateChipRef.current?.measureInWindow((x, y, width, height) => {
@@ -174,14 +179,20 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
       setDropYear(sd.year || FALLBACK_YEAR);
       setDropMonth(new Date().getMonth() + 1);
     }
+    dateAnim.setValue(0);
+    Animated.spring(dateAnim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 }).start();
     setShowDateDrop(true);
     setShowStatusDrop(false);
-  }, [dateFrom, sd.year]);
+  }, [dateFrom, sd.year, dateAnim]);
 
   const closeDrops = useCallback(() => {
-    setShowStatusDrop(false);
-    setShowDateDrop(false);
-  }, []);
+    if (showStatusDrop) {
+      Animated.timing(statusAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => setShowStatusDrop(false));
+    }
+    if (showDateDrop) {
+      Animated.timing(dateAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => setShowDateDrop(false));
+    }
+  }, [showStatusDrop, showDateDrop, statusAnim, dateAnim]);
 
   const applyStatus = useCallback((val: string) => {
     setStatusFilter(val);
@@ -360,8 +371,20 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
 
       {/* ── Status dropdown modal ── */}
       <Modal visible={showStatusDrop} transparent animationType="none" onRequestClose={closeDrops}>
-        <TouchableOpacity style={s.dropBackdrop} activeOpacity={1} onPress={closeDrops}>
-          <View style={[s.dropPanel, { top: statusLayout.top, left: statusLayout.left, width: statusLayout.width }]}>
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={closeDrops}>
+          <Animated.View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.08)', opacity: statusAnim }} />
+        </TouchableOpacity>
+        <Animated.View style={[
+          s.dropPanel,
+          { top: statusLayout.top, left: statusLayout.left, width: statusLayout.width },
+          {
+            opacity: statusAnim,
+            transform: [
+              { scale: statusAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1], extrapolate: 'clamp' }) },
+              { translateY: statusAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0], extrapolate: 'clamp' }) },
+            ],
+          },
+        ]}>
             <TouchableOpacity style={s.dropItem} onPress={() => applyStatus('')}>
               <Text style={[s.dropItemText, statusFilter === '' && { color: c.primary, fontWeight: '600' }]}>
                 {t('all')}
@@ -385,14 +408,25 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
                 {t('graceStatus')}
               </Text>
             </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
+          </Animated.View>
       </Modal>
 
       {/* ── Date dropdown modal (year/month picker + quick presets) ── */}
       <Modal visible={showDateDrop} transparent animationType="none" onRequestClose={closeDrops}>
-        <TouchableOpacity style={s.dropBackdrop} activeOpacity={1} onPress={closeDrops}>
-          <View style={[s.datePanel, { top: dateLayout.top, left: dateLayout.left, width: 320 }]}>
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={closeDrops}>
+          <Animated.View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.08)', opacity: dateAnim }} />
+        </TouchableOpacity>
+        <Animated.View style={[
+          s.datePanel,
+          { top: dateLayout.top, left: dateLayout.left, width: 320 },
+          {
+            opacity: dateAnim,
+            transform: [
+              { scale: dateAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1], extrapolate: 'clamp' }) },
+              { translateY: dateAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0], extrapolate: 'clamp' }) },
+            ],
+          },
+        ]}>
             {/* Year selector */}
             <View style={s.pickerRow}>
               {(sd.ready
@@ -443,8 +477,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
                 <Text style={[s.dateActionText, { color: '#fff' }]}>{t('apply') || '确定'}</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </TouchableOpacity>
+          </Animated.View>
       </Modal>
 
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
