@@ -10,6 +10,7 @@ import {
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { t, getLang } from '../i18n';
 import { API_BASE, resolveAssetUrl } from '../api/client';
@@ -227,6 +228,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
     <View style={s.container}>
       {/* Header — absolute glass (matches web historyHeader) */}
       <View style={[s.header, { pointerEvents: 'box-none' as any }] as any}>
+        <BlurView intensity={30} tint="light" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 0, overflow: 'hidden' }} />
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
           <View style={s.backBtn}>
             <BackArrowSvg color="#000" />
