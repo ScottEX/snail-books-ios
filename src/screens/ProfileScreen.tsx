@@ -375,6 +375,11 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     }
   };
 
+  // ── Validation helpers ──
+  const [SPECIAL_RE] = useState(() => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/);
+  const isPwValid = (pw: string) => pw.length >= 8 && /[A-Za-z]/.test(pw) && /[0-9]/.test(pw) && SPECIAL_RE.test(pw);
+  const isEmailValid = (em: string) => /^[^@]+@[^@]+\.[^@]+$/.test(em);
+
   // ── Change password ──
   const handleChangePw = async () => {
     if (pwLoading) return;
@@ -835,7 +840,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                 <SubmitButton
                   onPress={handleChangePw}
                   loading={pwLoading}
-                  disabled={!oldPw || !newPw || !confirmPw}
+                  disabled={!oldPw || !newPw || !confirmPw || !isPwValid(newPw)}
                   label={t('confirm')}
                   style={mo.confirmBtn}
                   textStyle={mo.confirmText}
@@ -875,7 +880,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                     <SubmitButton
                       onPress={handleSendCode}
                       loading={emailLoading}
-                      disabled={!newEmail}
+                      disabled={!newEmail || !isEmailValid(newEmail)}
                       label={t('sendCode')}
                       style={mo.confirmBtn}
                       textStyle={mo.confirmText}
