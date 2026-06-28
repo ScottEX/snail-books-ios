@@ -9,16 +9,15 @@ import {
   Image,
   TextInput,
   ActivityIndicator,
-  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BlurView } from 'expo-blur';
 import Svg, { Path } from 'react-native-svg';
 import { t, getLang } from '../i18n';
 import { api, resolveAssetUrl } from '../api/client';
-import { useTheme, withAlpha, ThemeColors, FONTS } from '../theme';
+import { useTheme, withAlpha, ThemeColors } from '../theme';
 import ConfirmModal from '../components/ConfirmModal';
 import Toast from '../components/Toast';
+import AdminHeader from '../components/AdminHeader';
 import { getCurrentUserId } from '../utils/storage';
 
 interface UserData {
@@ -68,14 +67,6 @@ function getRoleColor(role: string): string {
 }
 
 // ── SVG icons ──
-function BackArrowSvg({ color }: { color: string }) {
-  return (
-    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M15 18l-6-6 6-6" />
-    </Svg>
-  );
-}
-
 function PencilSvg({ color }: { color: string }) {
   return (
     <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -229,19 +220,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
 
   return (
     <View style={s.container}>
-      {/* Unified BlurView — matches UserManagementScreen */}
-      <BlurView intensity={70} tint="regular" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop + 42 }} />
-      <StatusBar barStyle="light-content" />
-      {/* Header content — transparent overlay */}
-      <View style={{ position: 'absolute', top: safeTop - 5, left: 0, right: 0, zIndex: 90, flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 0, paddingBottom: 6, paddingHorizontal: 16, backgroundColor: 'transparent', pointerEvents: 'box-none' as any } as any}>
-        <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
-          <View style={s.backBtn}>
-            <BackArrowSvg color="#fff" />
-          </View>
-        </TouchableOpacity>
-        <Text style={s.title}>{t('userDetail')}</Text>
-        <View style={{ width: 36 }} />
-      </View>
+      <AdminHeader safeTop={safeTop} onBack={onBack} title={t('userDetail')} />
 
       {/* Body */}
       <View style={[s.body, { marginTop: safeTop + 42 }]}>
@@ -490,14 +469,6 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
 
 const getStyles = (c: ThemeColors) => StyleSheet.create({
   container: { flex: 1 },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.25)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  title: {
-    flex: 1, fontSize: 15, fontWeight: '600', color: '#fff',
-  },
   body: { flex: 1, backgroundColor: c.bg },
   avatarSection: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 16,

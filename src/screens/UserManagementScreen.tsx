@@ -8,18 +8,16 @@ import {
   TextInput,
   Image,
   Modal,
-  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BlurView } from 'expo-blur';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { t, getLang } from '../i18n';
 import { API_BASE, resolveAssetUrl } from '../api/client';
 import { useServerDate } from '../hooks/useServerDate';
-import { useTheme, withAlpha, ThemeColors, FONTS } from '../theme';
-import { historyHeader } from '../sharedStyles';
+import { useTheme, withAlpha, ThemeColors } from '../theme';
 import EmptyState from '../components/EmptyState';
 import Toast from '../components/Toast';
+import AdminHeader from '../components/AdminHeader';
 
 interface UserItem {
   id: number;
@@ -38,14 +36,6 @@ interface Props {
 }
 
 // ── SVG icons ──
-function BackArrowSvg({ color }: { color: string }) {
-  return (
-    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M15 18l-6-6 6-6" />
-    </Svg>
-  );
-}
-
 function SearchIcon({ color }: { color: string }) {
   return (
     <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -229,19 +219,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
 
   return (
     <View style={s.container}>
-      {/* Unified BlurView — single glass from status bar through header */}
-      <BlurView intensity={70} tint="regular" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop + 42 }} />
-      <StatusBar barStyle="light-content" />
-      {/* Header content — transparent overlay on top of unified BlurView */}
-      <View style={[s.header, { top: safeTop - 5, paddingTop: 0, paddingBottom: 6, backgroundColor: 'transparent', pointerEvents: 'box-none' as any }] as any}>
-        <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
-          <View style={s.backBtn}>
-            <BackArrowSvg color="#fff" />
-          </View>
-        </TouchableOpacity>
-        <Text style={[s.title, { color: '#fff' }]}>{t('userManagement')}</Text>
-        <View style={{ width: 36 }} />
-      </View>
+      <AdminHeader safeTop={safeTop} onBack={onBack} title={t('userManagement')} />
 
       {/* Body */}
       <View style={[s.body, { marginTop: safeTop + 42 }]}>
@@ -468,11 +446,8 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
 }
 
 const getStyles = (c: ThemeColors) => {
-  const hdr = historyHeader(c);
   return StyleSheet.create({
     container: { flex: 1 },
-    ...hdr as any,
-    title: { ...hdr.title, color: c.textMain },
     body: {
       flex: 1,
       marginTop: 100,
