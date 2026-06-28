@@ -350,6 +350,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     try {
       await api.resetBackground();
       try { localStorage.removeItem('bg-image'); } catch {}
+      setShowThemeModal(false);
     } catch (err: any) {
       setToast(err?.message || t('uploadFailedShort'));
     } finally {
