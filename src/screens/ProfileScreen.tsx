@@ -202,7 +202,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
   const loadCover = async () => {
     try {
-      const data: any = await api.getBackground();
+      const data: any = await api.getProfileCover();
       if (data?.url) {
         const resolved = resolveAssetUrl(data.url) || data.url;
         setCoverUrl(resolved + '?v=' + Date.now());
@@ -329,13 +329,14 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     api.saveBackgroundSettings({ opacity: v }).catch(() => {});
   };
 
-  // ── Cover image picked (from ThemePickerModal's BgCropModal) — background image ──
+  // ── Cover image picked (from ThemePickerModal's BgCropModal) ──
   const handleCoverImagePicked = async (file: any) => {
     setUploadingCover(true);
     try {
-      const r: any = await api.uploadBackground(file);
+      const r: any = await api.uploadProfileCover(file);
       if (r?.url) {
-        try { localStorage.setItem('bg-image', r.url); } catch {}
+        const resolved = resolveAssetUrl(r.url) || r.url;
+        setCoverUrl(resolved + '?v=' + Date.now());
       }
     } catch (err: any) {
       setToast(err?.message || t('uploadFailedShort'));
@@ -358,11 +359,9 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         if (uid) localStorage.setItem(`cover-opacity-${uid}`, '0');
       } catch {}
       api.saveBackgroundSettings({ opacity: 0 }).catch(() => {});
-      // 3. Reset background image
-      await api.resetBackground();
-      try { localStorage.removeItem('bg-image'); } catch {}
+      // 3. Reset cover image
+      await api.resetProfileCover();
       setCoverUrl('');
-      // Reload to confirm server-side reset (should show gradient)
       loadCover();
       setShowThemeModal(false);
     } catch (err: any) {
