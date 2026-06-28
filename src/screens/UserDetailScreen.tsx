@@ -149,11 +149,19 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       setRealNameTW(d?.real_name_tw || '');
       setLinkedPartnerId(d?.linked_partner_id ?? null);
       setLinkedPartnerName(d?.linked_partner_name || '');
+      // Auto-mark as reviewed when admin views unreviewed user
+      if (!d?.reviewed) {
+        try {
+          await api.admin.markReviewed(user.id);
+          setDetail((prev) => prev ? { ...prev, reviewed: true } : prev);
+          onChanged();
+        } catch {}
+      }
     } catch {
       showToast(t('toastLoadFailed'));
     }
     setLoading(false);
-  }, [user.id, showToast]);
+  }, [user.id, showToast, onChanged]);
 
   useEffect(() => { fetchDetail(); }, [fetchDetail]);
 
