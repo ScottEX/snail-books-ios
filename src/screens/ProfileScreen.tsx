@@ -832,13 +832,14 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                 <TouchableOpacity style={mo.cancelBtn} onPress={() => setShowPwModal(false)}>
                   <Text style={mo.cancelText}>{t('cancel')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[mo.confirmBtn, (pwLoading || !oldPw || !newPw || !confirmPw) && { opacity: 0.4 }]}
+                <SubmitButton
                   onPress={handleChangePw}
-                  disabled={pwLoading || !oldPw || !newPw || !confirmPw}
-                >
-                  <Text style={mo.confirmText}>{pwLoading ? '...' : t('confirm')}</Text>
-                </TouchableOpacity>
+                  loading={pwLoading}
+                  disabled={!oldPw || !newPw || !confirmPw}
+                  label={t('confirm')}
+                  style={mo.confirmBtn}
+                  textStyle={mo.confirmText}
+                />
               </View>
             </View>
           </View>
