@@ -227,17 +227,16 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
 
   return (
     <View style={s.container}>
-      {/* Status bar — dark backdrop, matches header */}
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 36, zIndex: 100, backgroundColor: 'rgba(0,0,0,0.7)' }} />
-      <StatusBar barStyle="light-content" />
-      {/* Header — dark semi-transparent, matches ProfileScreen frozen navbar */}
-      <View style={[s.header, s.headerDark, { pointerEvents: 'box-none' as any }] as any}>
+      {/* Status bar — transparent */}
+      <StatusBar barStyle="dark-content" />
+      {/* Header — transparent */}
+      <View style={[s.header, { pointerEvents: 'box-none' as any }] as any}>
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
-          <View style={[s.backBtn, s.backBtnDark]}>
-            <BackArrowSvg color="#fff" />
+          <View style={s.backBtn}>
+            <BackArrowSvg color="#000" />
           </View>
         </TouchableOpacity>
-        <Text style={[s.title, s.titleWhite]}>{t('userManagement')}</Text>
+        <Text style={s.title}>{t('userManagement')}</Text>
         <View style={{ width: 36 }} />
       </View>
 
