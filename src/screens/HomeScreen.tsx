@@ -261,6 +261,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const [showUserMgmt, setShowUserMgmt] = useState(false);
   const [showUserDetail, setShowUserDetail] = useState<any | null>(null);
   const goingToDetail = useRef(false);
+  const onCloseUserMgmt = useRef<() => void>(() => {});
   const [showInvoice, setShowInvoice] = useState<{ filterBatchId?: number | null } | null>(null);
   const [showProcurementDetail, setShowProcurementDetail] = useState<any | null>(null);
   const [showExpenseDetail, setShowExpenseDetail] = useState<any | null>(null);
@@ -449,6 +450,13 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     return `${y}年${m}月${d}日`;
   };
 
+  // Keep onClose always fresh — SlideScreen's useEffect may capture stale closures
+  onCloseUserMgmt.current = () => {
+    if (goingToDetail.current) return;
+    setShowUserMgmt(false);
+    setShowProfile(true);
+  };
+
   return (
     <View style={styles.bg}>
       {/* Two-layer background (mirrors web). Base layer = bundled
@@ -493,7 +501,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
       <SlideScreen visible={!!showInvoice} onClose={() => setShowInvoice(null)}>
         {(onBack) => <InvoiceScreen onBack={onBack} filterBatchId={showInvoice?.filterBatchId ?? null} />}
       </SlideScreen>
-      <SlideScreen visible={showUserMgmt} onClose={() => { if (goingToDetail.current) return; setShowUserMgmt(false); setShowProfile(true); }}>
+      <SlideScreen visible={showUserMgmt} onClose={() => onCloseUserMgmt.current()}>
         {(onBack) => <UserManagementScreen
           key={userRefreshKey}
           onBack={onBack}
