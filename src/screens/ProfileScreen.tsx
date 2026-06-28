@@ -362,6 +362,8 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       await api.resetBackground();
       try { localStorage.removeItem('bg-image'); } catch {}
       setCoverUrl('');
+      // Reload to confirm server-side reset (should show gradient)
+      loadCover();
       setShowThemeModal(false);
     } catch (err: any) {
       setToast(err?.message || t('uploadFailedShort'));
