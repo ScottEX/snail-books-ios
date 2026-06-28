@@ -147,6 +147,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   // short-circuit when the input is empty or just whitespace, and we
   // drop the response if the user has since continued typing (race-safe).
   const userReqId = useRef(0);
+  const bgFromCache = useRef(!!bgUrl); // true if bg came from localStorage cache
   useEffect(() => {
     const id = username.trim();
     if (!id) {
@@ -165,7 +166,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       if (reqId !== userReqId.current) return; // a newer request superseded us
       if (avatar) setAvatarUrl(avatar);
       if (bg) {
-        setBgUrl(bg);
+        // If bg was already set from localStorage cache, don't replace
+        // it with a fresh data URI — the string changes (same image,
+        // different blob→dataURI) and causes ImageBackground to flash.
+        if (!bgFromCache.current) setBgUrl(bg);
         try { localStorage.setItem('bg-image', bg); } catch {}
       }
     }, 400);
