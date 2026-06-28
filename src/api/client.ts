@@ -210,8 +210,8 @@ export const api = {
     authFetch('/resend-code', { method: 'POST', body: JSON.stringify({ email }) }),
   forgotPassword: (email: string) =>
     authFetch('/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
-  resetPassword: (email: string, new_password: string, code: string) =>
-    authFetch('/reset-password', { method: 'POST', body: JSON.stringify({ email, new_password, code }) }),
+  resetPassword: (email: string, code: string, password: string) =>
+    authFetch('/reset-password', { method: 'POST', body: JSON.stringify({ email, code, password }) }),
 
   getSummary: () => authFetch('/api/summary'),
   getTransactions: (page = 1, perPage = 10, filters?: Record<string, string>) => {
