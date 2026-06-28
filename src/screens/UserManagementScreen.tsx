@@ -227,10 +227,11 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
 
   return (
     <View style={s.container}>
-      {/* Status bar — transparent */}
+      {/* Status bar backdrop — white, no gray */}
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 36, zIndex: 99, backgroundColor: '#fff' }} />
       <StatusBar barStyle="dark-content" />
-      {/* Header — transparent, content scrolls behind */}
-      <View style={[s.header, { pointerEvents: 'box-none' as any }] as any}>
+      {/* Header — white background, transparent glass */}
+      <View style={[s.header, { backgroundColor: '#fff', pointerEvents: 'box-none' as any }] as any}>
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
           <View style={s.backBtn}>
             <BackArrowSvg color="#000" />
@@ -241,7 +242,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
       </View>
 
       {/* Body */}
-      <ScrollView style={s.body} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: 64, paddingBottom: 80 }}>
+      <View style={s.body}>
         {/* Search bar */}
         <View style={s.searchBox}>
           <SearchIcon color={c.textSub} />
@@ -297,7 +298,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
         </View>
 
         {/* User list */}
-        <View style={{ paddingHorizontal: 16, paddingTop: 4 }}>
+        <ScrollView style={s.list} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
           {loading ? (
             <Text style={{ textAlign: 'center', color: c.textSub, marginTop: 40, fontSize: 13 }}>
               {t('loading')}
@@ -362,13 +363,13 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
               );
             })
           )}
-        </View>
+        </ScrollView>
 
         {/* Footer */}
         <View style={s.footer}>
           <Text style={s.footerText}>{t('totalUsers').replace('{n}', String(total))}</Text>
         </View>
-      </ScrollView>
+      </View>
 
       {/* ── Status dropdown modal ── */}
       <Modal visible={showStatusDrop} transparent animationType="none" onRequestClose={closeDrops}>
@@ -472,7 +473,7 @@ const getStyles = (c: ThemeColors) => {
     title: { ...hdr.title, color: c.textMain },
     body: {
       flex: 1,
-      marginTop: 36,
+      marginTop: 100,
       backgroundColor: c.bg,
     },
     // Search bar
@@ -569,6 +570,8 @@ const getStyles = (c: ThemeColors) => {
     },
     dateActionApply: { backgroundColor: c.primary },
     dateActionText: { fontSize: 13, color: c.textMain },
+    // List
+    list: { flex: 1, paddingHorizontal: 16, paddingTop: 4 },
     userRow: {
       flexDirection: 'row', alignItems: 'center',
       backgroundColor: c.surface, borderRadius: 12,
