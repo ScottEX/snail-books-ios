@@ -7,9 +7,7 @@ import {
   StyleSheet,
   TextInput,
   Image,
-  Modal,
   Dimensions,
-  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle } from 'react-native-svg';
@@ -20,6 +18,7 @@ import { useTheme, withAlpha, ThemeColors } from '../theme';
 import EmptyState from '../components/EmptyState';
 import Toast from '../components/Toast';
 import AdminHeader from '../components/AdminHeader';
+import AnimatedDropdown from '../components/AnimatedDropdown';
 
 interface UserItem {
   id: number;
@@ -108,8 +107,6 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
   const [dateLayout, setDateLayout] = useState({ top: 0, left: 0, width: 0 });
   const statusChipRef = useRef<View>(null);
   const dateChipRef = useRef<View>(null);
-  const statusAnim = useRef(new Animated.Value(0)).current;
-  const dateAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (sd.ready && sd.year !== FALLBACK_YEAR) setDropYear(sd.year);
@@ -156,11 +153,9 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
     statusChipRef.current?.measureInWindow((x, y, width, height) => {
       setStatusLayout({ top: y + height + 4, left: x, width });
     });
-    statusAnim.setValue(0);
-    Animated.spring(statusAnim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 }).start();
     setShowStatusDrop(true);
     setShowDateDrop(false);
-  }, [statusAnim]);
+  }, []);
 
   const openDateDrop = useCallback(() => {
     dateChipRef.current?.measureInWindow((x, y, width, height) => {
@@ -179,24 +174,13 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
       setDropYear(sd.year || FALLBACK_YEAR);
       setDropMonth(new Date().getMonth() + 1);
     }
-    dateAnim.setValue(0);
-    Animated.spring(dateAnim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 }).start();
     setShowDateDrop(true);
     setShowStatusDrop(false);
-  }, [dateFrom, sd.year, dateAnim]);
-
-  const closeDrops = useCallback(() => {
-    if (showStatusDrop) {
-      Animated.timing(statusAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => setShowStatusDrop(false));
-    }
-    if (showDateDrop) {
-      Animated.timing(dateAnim, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => setShowDateDrop(false));
-    }
-  }, [showStatusDrop, showDateDrop, statusAnim, dateAnim]);
+  }, [dateFrom, sd.year]);
 
   const applyStatus = useCallback((val: string) => {
     setStatusFilter(val);
-    closeDrops();
+    setShowStatusDrop(false);
     fetchUsers(val, dateFrom, dateTo);
   }, [dateFrom, dateTo, fetchUsers]);
 
@@ -205,21 +189,21 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
     const to = lastDayOfMonth(dropYear, dropMonth);
     setDateFrom(from);
     setDateTo(to);
-    closeDrops();
+    setShowDateDrop(false);
     fetchUsers(statusFilter, from, to);
   }, [dropYear, dropMonth, statusFilter, fetchUsers]);
 
   const applyQuick = useCallback((days: number) => {
     setDateFrom(sd.offset(-days));
     setDateTo(sd.today);
-    closeDrops();
+    setShowDateDrop(false);
     fetchUsers(statusFilter, sd.offset(-days), sd.today);
   }, [sd.today, sd.offset, statusFilter, fetchUsers]);
 
   const clearDate = useCallback(() => {
     setDateFrom('');
     setDateTo('');
-    closeDrops();
+    setShowDateDrop(false);
     fetchUsers(statusFilter, '', '');
   }, [statusFilter, fetchUsers]);
 
@@ -265,7 +249,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
             <TouchableOpacity
               style={s.filterChip}
               ref={statusChipRef}
-              onPress={() => showStatusDrop ? closeDrops() : openStatusDrop()}
+              onPress={() => showStatusDrop ? setShowStatusDrop(false) : openStatusDrop()}
               activeOpacity={0.7}
             >
               <Text
@@ -281,7 +265,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
             <TouchableOpacity
               style={s.filterChip}
               ref={dateChipRef}
-              onPress={() => showDateDrop ? closeDrops() : openDateDrop()}
+              onPress={() => showDateDrop ? setShowDateDrop(false) : openDateDrop()}
               activeOpacity={0.7}
             >
               <Text
@@ -369,22 +353,18 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
         </View>
       </View>
 
-      {/* ── Status dropdown modal ── */}
-      <Modal visible={showStatusDrop} transparent animationType="none" onRequestClose={closeDrops}>
-        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={closeDrops}>
-          <Animated.View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.08)', opacity: statusAnim }} />
-        </TouchableOpacity>
-        <Animated.View style={[
-          s.dropPanel,
-          { top: statusLayout.top, left: statusLayout.left, width: statusLayout.width },
-          {
-            opacity: statusAnim,
-            transform: [
-              { scale: statusAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1], extrapolate: 'clamp' }) },
-              { translateY: statusAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0], extrapolate: 'clamp' }) },
-            ],
-          },
-        ]}>
+      {/* ── Status dropdown ── */}
+      <AnimatedDropdown
+        visible={showStatusDrop}
+        onClose={() => setShowStatusDrop(false)}
+        style={{ top: statusLayout.top, left: statusLayout.left, width: statusLayout.width || 140 }}
+      >
+        <View style={{
+          backgroundColor: c.surface,
+          borderRadius: 10,
+          borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
+          overflow: 'hidden' as const,
+        }}>
             <TouchableOpacity style={s.dropItem} onPress={() => applyStatus('')}>
               <Text style={[s.dropItemText, statusFilter === '' && { color: c.primary, fontWeight: '600' }]}>
                 {t('all')}
@@ -408,25 +388,21 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
                 {t('graceStatus')}
               </Text>
             </TouchableOpacity>
-          </Animated.View>
-      </Modal>
+        </View>
+      </AnimatedDropdown>
 
-      {/* ── Date dropdown modal (year/month picker + quick presets) ── */}
-      <Modal visible={showDateDrop} transparent animationType="none" onRequestClose={closeDrops}>
-        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={closeDrops}>
-          <Animated.View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.08)', opacity: dateAnim }} />
-        </TouchableOpacity>
-        <Animated.View style={[
-          s.datePanel,
-          { top: dateLayout.top, left: dateLayout.left, width: 320 },
-          {
-            opacity: dateAnim,
-            transform: [
-              { scale: dateAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1], extrapolate: 'clamp' }) },
-              { translateY: dateAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0], extrapolate: 'clamp' }) },
-            ],
-          },
-        ]}>
+      {/* ── Date dropdown (year/month picker + quick presets) ── */}
+      <AnimatedDropdown
+        visible={showDateDrop}
+        onClose={() => setShowDateDrop(false)}
+        style={{ top: dateLayout.top, left: dateLayout.left, width: 320 }}
+      >
+        <View style={{
+          backgroundColor: c.surface,
+          borderRadius: 10,
+          borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
+          overflow: 'hidden' as const,
+        }}>
             {/* Year selector */}
             <View style={s.pickerRow}>
               {(sd.ready
@@ -477,8 +453,8 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
                 <Text style={[s.dateActionText, { color: '#fff' }]}>{t('apply') || '确定'}</Text>
               </TouchableOpacity>
             </View>
-          </Animated.View>
-      </Modal>
+        </View>
+      </AnimatedDropdown>
 
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
     </View>
@@ -516,17 +492,7 @@ const getStyles = (c: ThemeColors) => {
       borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
     },
     filterChipText: { fontSize: 13, color: c.textSub, flex: 1 },
-    // Dropdown backdrop
-    dropBackdrop: { flex: 1 },
-    // Dropdown panel
-    dropPanel: {
-      position: 'absolute',
-      backgroundColor: c.surface,
-      borderRadius: 10,
-      borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
-      overflow: 'hidden' as any,
-      zIndex: 9999,
-    },
+    // Dropdown items
     dropItem: {
       flexDirection: 'row', alignItems: 'center', gap: 8,
       paddingVertical: 12, paddingHorizontal: 14,
@@ -535,14 +501,6 @@ const getStyles = (c: ThemeColors) => {
     dropItemText: { fontSize: 14, color: c.textMain },
     statusDotSm: { width: 6, height: 6, borderRadius: 3 },
     // ── Date picker ──
-    datePanel: {
-      position: 'absolute',
-      backgroundColor: c.surface,
-      borderRadius: 10,
-      borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
-      overflow: 'hidden' as any,
-      zIndex: 9999,
-    },
     pickerRow: {
       flexDirection: 'row', gap: 6,
       paddingHorizontal: 14, paddingTop: 12, paddingBottom: 6,
