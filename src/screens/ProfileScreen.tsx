@@ -209,11 +209,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         setCoverUrl(resolved + sep + 'v=' + Date.now());
       }
     } catch {}
-    try {
-      const uid = getCurrentUserId();
-      const saved = localStorage.getItem(uid ? `cover-opacity-${uid}` : 'cover-opacity');
-      if (saved !== null) setCoverOpacity(parseFloat(saved));
-    } catch {}
   };
 
   const loadUserInfo = async () => {
@@ -361,10 +356,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       setTheme(DEFAULT_THEME_ID);
       // 2. Reset opacity to 0% (save to localStorage + API)
       setCoverOpacity(0);
-      try {
-        localStorage.setItem('cover-opacity', '0');
-        if (uid) localStorage.setItem(`cover-opacity-${uid}`, '0');
-      } catch {}
       api.saveBackgroundSettings({ opacity: 0 }).catch(() => {});
       // 3. Reset cover image
       await api.resetProfileCover();
