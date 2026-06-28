@@ -138,7 +138,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [toast, setToast] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string>('');
   const [coverUrl, setCoverUrl] = useState<string>('');
-  const [coverOpacity, setCoverOpacity] = useState(0);
+  const [coverOpacity, setCoverOpacity] = useState(1);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [email, setEmail] = useState('');
@@ -205,8 +205,14 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       const data: any = await api.getProfileCover();
       if (data?.url) {
         const resolved = resolveAssetUrl(data.url) || data.url;
-        setCoverUrl(resolved + '?v=' + Date.now());
+        const sep = resolved.includes('?') ? '&' : '?';
+        setCoverUrl(resolved + sep + 'v=' + Date.now());
       }
+    } catch {}
+    try {
+      const uid = getCurrentUserId();
+      const saved = localStorage.getItem(uid ? `cover-opacity-${uid}` : 'cover-opacity');
+      if (saved !== null) setCoverOpacity(parseFloat(saved));
     } catch {}
   };
 
@@ -336,7 +342,8 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       const r: any = await api.uploadProfileCover(file);
       if (r?.url) {
         const resolved = resolveAssetUrl(r.url) || r.url;
-        setCoverUrl(resolved + '?v=' + Date.now());
+        const sep = resolved.includes('?') ? '&' : '?';
+        setCoverUrl(resolved + sep + 'v=' + Date.now());
       }
     } catch (err: any) {
       setToast(err?.message || t('uploadFailedShort'));
