@@ -181,7 +181,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       ]);
       if (reqId !== userReqId.current) return;
       if (avatar) { setAvatarUrl(avatar); setAvatarReady(true); }
-      else { setAvatarUrl(''); setAvatarReady(true); }
+      else setAvatarReady(true); // no avatar — keep previous visible
       if (bg) {
         setBgUrl(bg); setBgReady(true);
         try { localStorage.setItem('bg-image', bg); } catch {}
