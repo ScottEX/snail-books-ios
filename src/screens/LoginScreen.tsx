@@ -863,7 +863,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                     </TouchableOpacity>
                   </View>
                 </View>
-                <SubmitButton onPress={handleReset} loading={loading} label={t('resetBtn')} style={styles.btnRed} textStyle={styles.btnRedText} />
+                <SubmitButton onPress={handleReset} loading={loading} label={t('resetBtn')} style={styles.btnDark} textStyle={styles.btnDarkText} />
                 <TouchableOpacity onPress={() => { reset(); goLogin(); }}>
                   <Text style={styles.forgotText}>{t('backToLogin')}</Text>
                 </TouchableOpacity>
