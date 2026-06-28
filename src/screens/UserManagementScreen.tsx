@@ -230,9 +230,9 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
       {/* Status bar backdrop — dark tint so white text/icons are visible */}
       <BlurView intensity={20} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 36, zIndex: 100 }} />
       <StatusBar barStyle="light-content" />
-      {/* Header — absolute glass (matches web historyHeader) */}
-      <View style={[s.header, { pointerEvents: 'box-none' as any }] as any}>
-        <BlurView intensity={30} tint="light" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+      {/* Header — white frosted glass */}
+      <View style={[s.header, s.headerGlass, { pointerEvents: 'box-none' as any }] as any}>
+        <BlurView intensity={40} tint="light" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
           <View style={s.backBtn}>
             <BackArrowSvg color="#000" />
@@ -472,6 +472,9 @@ const getStyles = (c: ThemeColors) => {
     container: { flex: 1, backgroundColor: c.bg },
     ...hdr as any,
     title: { ...hdr.title, color: c.textMain },
+    headerGlass: {
+      backgroundColor: 'rgba(255,255,255,0.75)',
+    },
     body: {
       flex: 1,
       marginTop: 100,
