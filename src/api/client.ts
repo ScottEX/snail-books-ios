@@ -203,13 +203,15 @@ export const api = {
   },
 
   register: (username: string, password: string, email: string) =>
-    authFetch('/api/register', { method: 'POST', body: JSON.stringify({ username, password, email }) }),
+    authFetch('/register', { method: 'POST', body: JSON.stringify({ username, password, email }) }),
   verify: (email: string, code: string) =>
-    authFetch('/api/verify', { method: 'POST', body: JSON.stringify({ email, code }) }),
+    authFetch('/verify', { method: 'POST', body: JSON.stringify({ email, code }) }),
+  resendCode: (email: string) =>
+    authFetch('/resend-code', { method: 'POST', body: JSON.stringify({ email }) }),
   forgotPassword: (email: string) =>
-    authFetch('/api/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+    authFetch('/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
   resetPassword: (email: string, new_password: string, code: string) =>
-    authFetch('/api/reset-password', { method: 'POST', body: JSON.stringify({ email, new_password, code }) }),
+    authFetch('/reset-password', { method: 'POST', body: JSON.stringify({ email, new_password, code }) }),
 
   getSummary: () => authFetch('/api/summary'),
   getTransactions: (page = 1, perPage = 10, filters?: Record<string, string>) => {
