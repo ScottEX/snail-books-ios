@@ -676,7 +676,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                         </View>
                         <Text style={styles.rememberText}>{t('rememberMe') || '记住我'}</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity onPress={() => { setStep('forgot'); reset(); }}>
+                      <TouchableOpacity onPress={() => { setStep('forgot'); setEmail(''); reset(); }}>
                         <Text style={styles.forgotText}>{t('forgotPassword')}</Text>
                       </TouchableOpacity>
                     </View>
