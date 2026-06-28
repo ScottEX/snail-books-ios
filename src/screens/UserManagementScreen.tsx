@@ -232,7 +232,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
       <StatusBar barStyle="light-content" />
       {/* Header — absolute glass (matches web historyHeader) */}
       <View style={[s.header, { pointerEvents: 'box-none' as any }] as any}>
-        <BlurView intensity={30} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+        <BlurView intensity={30} tint="light" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
           <View style={s.backBtn}>
             <BackArrowSvg color="#000" />
