@@ -538,88 +538,87 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
           <Text style={st.stickyTitle}>{t('editProfile')}</Text>
         </View>
       )}
+      {/* ── Cover — absolutely positioned above ScrollView ── */}
+      <TouchableOpacity
+        style={[st.coverWrap, { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5 }]}
+        onPress={handleCoverPress} activeOpacity={0.9} disabled={uploadingCover}>
+        {coverUrl ? (
+          <Image
+            source={{ uri: coverUrl }}
+            style={[
+              st.coverImg,
+              { opacity: coverOpacity },
+              pullDown > 0 && {
+                transform: [
+                  { translateY: pullDown / 2 },
+                  { scaleY: 1 + pullDown / 220 },
+                ],
+              },
+            ]}
+          />
+        ) : (
+          <View style={st.coverGradient}>
+            <Svg width="100%" height="100%" viewBox="0 0 360 260" preserveAspectRatio="none">
+              <Defs>
+                <SVGGradient id="coverGrad" x1="0" y1="0" x2="1" y2="1">
+                  <Stop offset="0" stopColor={colors.primary} stopOpacity={1} />
+                  <Stop offset="0.5" stopColor={(colors as any).accent || colors.primary} stopOpacity={0.7} />
+                  <Stop offset="1" stopColor={colors.primary} stopOpacity={0.35} />
+                </SVGGradient>
+              </Defs>
+              <Rect width="360" height="260" fill="url(#coverGrad)" />
+            </Svg>
+          </View>
+        )}
+
+        {/* Pull-down blur overlay */}
+        {blurIntensity > 0 && (
+          <BlurView intensity={blurIntensity} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+        )}
+
+        {/* Top shadow gradient for nav readability */}
+        <View style={st.coverScrim}>
+          <Svg width="100%" height="100%" viewBox="0 0 360 100" preserveAspectRatio="none">
+            <Defs>
+              <SVGGradient id="scrimGrad" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor="#000" stopOpacity={0.45} />
+                <Stop offset="1" stopColor="#000" stopOpacity={0} />
+              </SVGGradient>
+            </Defs>
+            <Rect width="360" height="100" fill="url(#scrimGrad)" />
+          </Svg>
+        </View>
+
+        {/* Floating nav */}
+        <View style={st.coverNav}>
+          <TouchableOpacity onPress={onBack} style={st.coverBackBtn} activeOpacity={0.7}>
+            <BackArrow color="#fff" />
+          </TouchableOpacity>
+          <Text style={st.coverTitle}>{t('editProfile')}</Text>
+        </View>
+        <View style={st.coverOverlay}>
+          <CameraIcon color="#fff" size={14} strokeWidth={2} />
+          <Text style={st.coverOverlayText}>{uploadingCover ? '...' : t('editCover') || '更换封面'}</Text>
+        </View>
+
+        {/* Avatar — overlaps cover bottom */}
+        <TouchableOpacity onPress={handleAvatarPress} style={st.avatarFloat} activeOpacity={0.8} disabled={uploadingAvatar}>
+          {avatarUrl ? (
+            <Image source={{ uri: avatarUrl }} style={st.avatar} />
+          ) : (
+            <Image source={{ uri: resolveAssetUrl('/img/logo.jpg') || '/img/logo.jpg' }} style={st.avatar} />
+          )}
+          <View style={st.camBadge}>
+            <CameraIcon color="#fff" size={11} strokeWidth={2} />
+          </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
       <ScrollView style={st.scroll} showsVerticalScrollIndicator={false}
         bounces={true} alwaysBounceVertical={true}
         onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
         scrollEventThrottle={16}>
-        {/* ── Cover ── */}
-        <TouchableOpacity
-          style={[
-            st.coverWrap,
-            pullDown > 0 && { transform: [{ translateY: -pullDown }] },
-          ]}
-          onPress={handleCoverPress} activeOpacity={0.9} disabled={uploadingCover}>
-          {coverUrl ? (
-            <Image
-              source={{ uri: coverUrl }}
-              style={[
-                st.coverImg,
-                { opacity: coverOpacity },
-                pullDown > 0 && {
-                  transform: [
-                    { translateY: pullDown / 2 },
-                    { scaleY: 1 + pullDown / 220 },
-                  ],
-                },
-              ]}
-            />
-          ) : (
-            <View style={st.coverGradient}>
-              <Svg width="100%" height="100%" viewBox="0 0 360 260" preserveAspectRatio="none">
-                <Defs>
-                  <SVGGradient id="coverGrad" x1="0" y1="0" x2="1" y2="1">
-                    <Stop offset="0" stopColor={colors.primary} stopOpacity={1} />
-                    <Stop offset="0.5" stopColor={(colors as any).accent || colors.primary} stopOpacity={0.7} />
-                    <Stop offset="1" stopColor={colors.primary} stopOpacity={0.35} />
-                  </SVGGradient>
-                </Defs>
-                <Rect width="360" height="260" fill="url(#coverGrad)" />
-              </Svg>
-            </View>
-          )}
-
-          {/* Pull-down blur overlay */}
-          {blurIntensity > 0 && (
-            <BlurView intensity={blurIntensity} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-          )}
-
-          {/* Top shadow gradient for nav readability */}
-          <View style={st.coverScrim}>
-            <Svg width="100%" height="100%" viewBox="0 0 360 100" preserveAspectRatio="none">
-              <Defs>
-                <SVGGradient id="scrimGrad" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0" stopColor="#000" stopOpacity={0.45} />
-                  <Stop offset="1" stopColor="#000" stopOpacity={0} />
-                </SVGGradient>
-              </Defs>
-              <Rect width="360" height="100" fill="url(#scrimGrad)" />
-            </Svg>
-          </View>
-
-          {/* Floating nav */}
-          <View style={st.coverNav}>
-            <TouchableOpacity onPress={onBack} style={st.coverBackBtn} activeOpacity={0.7}>
-              <BackArrow color="#fff" />
-            </TouchableOpacity>
-            <Text style={st.coverTitle}>{t('editProfile')}</Text>
-          </View>
-          <View style={st.coverOverlay}>
-            <CameraIcon color="#fff" size={14} strokeWidth={2} />
-            <Text style={st.coverOverlayText}>{uploadingCover ? '...' : t('editCover') || '更换封面'}</Text>
-          </View>
-
-          {/* Avatar — overlaps cover bottom */}
-          <TouchableOpacity onPress={handleAvatarPress} style={st.avatarFloat} activeOpacity={0.8} disabled={uploadingAvatar}>
-            {avatarUrl ? (
-              <Image source={{ uri: avatarUrl }} style={st.avatar} />
-            ) : (
-              <Image source={{ uri: resolveAssetUrl('/img/logo.jpg') || '/img/logo.jpg' }} style={st.avatar} />
-            )}
-            <View style={st.camBadge}>
-              <CameraIcon color="#fff" size={11} strokeWidth={2} />
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
+        {/* Spacer — keeps content below the absolutely-positioned cover */}
+        <View style={{ height: 220 }} />
 
         {/* ── Profile head ── */}
         <View style={st.profileHead}>
