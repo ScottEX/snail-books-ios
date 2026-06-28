@@ -138,7 +138,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [toast, setToast] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string>('');
   const [coverUrl, setCoverUrl] = useState<string>('');
-  const [coverOpacity, setCoverOpacity] = useState(1);
+  const [coverOpacity, setCoverOpacity] = useState(0);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [email, setEmail] = useState('');
@@ -350,9 +350,9 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     try {
       // 1. Reset theme to default
       setTheme(DEFAULT_THEME_ID);
-      // 2. Reset opacity to 100%
-      setCoverOpacity(1);
-      try { localStorage.setItem('cover-opacity', '1'); } catch {}
+      // 2. Reset opacity to 0%
+      setCoverOpacity(0);
+      try { localStorage.setItem('cover-opacity', '0'); } catch {}
       // 3. Reset background image
       await api.resetBackground();
       try { localStorage.removeItem('bg-image'); } catch {}
