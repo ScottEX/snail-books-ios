@@ -699,6 +699,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
               setBgImageUri(resolved);
               setBgVersion((v) => v + 1);
               try { localStorage.setItem('bg-image', resolved); } catch {}
+              try { localStorage.setItem('__bg_changed_ts', String(Date.now())); } catch {}
               if (typeof window !== 'undefined' && typeof (window as any).dispatchEvent === 'function') {
                 (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: resolved } }));
               }
