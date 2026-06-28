@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Image, StyleSheet, ActivityIndicator, useWindowDimensions, PanResponder } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, useWindowDimensions, PanResponder } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import LoadingSpinner from './LoadingSpinner';
 import Svg, { Path } from 'react-native-svg';
@@ -183,89 +183,53 @@ export default function BgCropModal({
     setScale(1); setRotation(0); setTx(0); setTy(0);
   };
 
-  // Confirm: in cover mode, actually crop via expo-image-manipulator and show preview.
-  // In default mode, pass original with crop hints (server-side crop).
+  // Confirm: crop client-side via expo-image-manipulator, show preview, then upload.
   const handleConfirm = async () => {
-    if (phase === 'uploading' || !src) return;
-    if (isCover) {
-      // Cover mode: crop client-side → preview → confirm
-      // Don't switch to 'uploading' phase (avoid full-screen spinner).
-      // Instead disable interactions while crop runs, then show preview.
-      setIsProcessing(true);
-      try {
-        const s = stateRef.current;
-        // Get original image dimensions for accurate crop
-        const imgSize = await new Promise<{ w: number; h: number }>((resolve, reject) => {
-          Image.getSize(src, (w, h) => resolve({ w, h }), reject);
-        });
-        // Image display size: guideW * 1.4, resizeMode cover → image fits within
-        const displayW = guideW * 1.4;
-        const displayH = guideW * 1.4;
-        const imgAspect = imgSize.w / imgSize.h;
-        const displayAspect = displayW / displayH;
-        let renderW: number, renderH: number;
-        if (imgAspect > displayAspect) {
-          renderH = displayH;
-          renderW = displayH * imgAspect;
-        } else {
-          renderW = displayW;
-          renderH = displayW / imgAspect;
-        }
-        // Map guide center (in display coords) to image pixel coords
-        const scaleImgToDisp = renderW / imgSize.w; // px per original px
-        const guideCenterX = displayW / 2 - s.tx;
-        const guideCenterY = displayH / 2 - s.ty;
-        // Crop size in display coords, then convert to original px
-        const cropW = (guideW / s.scale) / scaleImgToDisp;
-        const cropH = (guideH / s.scale) / scaleImgToDisp;
-        const originX = Math.max(0, (guideCenterX - (renderW - displayW) / 2) / scaleImgToDisp - cropW / 2);
-        const originY = Math.max(0, (guideCenterY - (renderH - displayH) / 2) / scaleImgToDisp - cropH / 2);
-        const finalW = Math.min(cropW, imgSize.w - originX);
-        const finalH = Math.min(cropH, imgSize.h - originY);
-
-        const result = await manipulateAsync(
-          src,
-          [{
-            crop: {
-              originX,
-              originY,
-              width: finalW,
-              height: finalH,
-            },
-          }],
-          { format: SaveFormat.JPEG, compress: 0.92 }
-        );
-        setPreviewUri(result.uri);
-        setPhase('preview');
-        setIsProcessing(false);
-      } catch (e: any) {
-        setMsg(e?.message || t('uploadFailed') || 'Crop failed');
-        setPhase('cropping');
-        setIsProcessing(false);
-      }
-      return;
-    }
-    // Default mode (background): pass hints
-    if (phase === 'uploading' || !src) return;
-    setPhase('uploading');
+    if (isProcessing || !src) return;
+    setIsProcessing(true);
     try {
-      const file: any = {
-        uri: src,
-        type: 'image/jpeg',
-        name: 'background.jpg',
-        _scale: stateRef.current.scale,
-        _rotation: stateRef.current.rotation,
-        _tx: stateRef.current.tx,
-        _ty: stateRef.current.ty,
-        _cropRatio: aspect,
-      };
-      await onConfirm(file);
-      setSrc(''); setMsg(''); setPhase('cropping');
-      resetTransform();
-      onUploaded?.();
+      const s = stateRef.current;
+      // Get original image dimensions for accurate crop
+      const imgSize = await new Promise<{ w: number; h: number }>((resolve, reject) => {
+        Image.getSize(src, (w, h) => resolve({ w, h }), reject);
+      });
+      // Image display size: guideW * 1.4, resizeMode cover → image fits within
+      const displayW = guideW * 1.4;
+      const displayH = guideW * 1.4;
+      const imgAspect = imgSize.w / imgSize.h;
+      const displayAspect = displayW / displayH;
+      let renderW: number, renderH: number;
+      if (imgAspect > displayAspect) {
+        renderH = displayH;
+        renderW = displayH * imgAspect;
+      } else {
+        renderW = displayW;
+        renderH = displayW / imgAspect;
+      }
+      // Map guide center (in display coords) to image pixel coords
+      const scaleImgToDisp = renderW / imgSize.w;
+      const guideCenterX = displayW / 2 - s.tx;
+      const guideCenterY = displayH / 2 - s.ty;
+      // Crop size in display coords, then convert to original px
+      const cropW = (guideW / s.scale) / scaleImgToDisp;
+      const cropH = (guideH / s.scale) / scaleImgToDisp;
+      const originX = Math.max(0, (guideCenterX - (renderW - displayW) / 2) / scaleImgToDisp - cropW / 2);
+      const originY = Math.max(0, (guideCenterY - (renderH - displayH) / 2) / scaleImgToDisp - cropH / 2);
+      const finalW = Math.min(cropW, imgSize.w - originX);
+      const finalH = Math.min(cropH, imgSize.h - originY);
+
+      const result = await manipulateAsync(
+        src,
+        [{ crop: { originX, originY, width: finalW, height: finalH } }],
+        { format: SaveFormat.JPEG, compress: 0.92 }
+      );
+      setPreviewUri(result.uri);
+      setPhase('preview');
+      setIsProcessing(false);
     } catch (e: any) {
-      setMsg(e?.message || t('uploadFailed') || 'Upload failed');
+      setMsg(e?.message || t('uploadFailed') || 'Crop failed');
       setPhase('cropping');
+      setIsProcessing(false);
     }
   };
 
@@ -341,22 +305,27 @@ export default function BgCropModal({
           </View>
         )}
 
-        {phase === 'uploading' && (
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <ActivityIndicator size="large" color="#fff" />
-          </View>
-        )}
-
-        {/* Preview phase (cover mode only) */}
+        {/* Preview phase — shows cropped result with mode-appropriate text */}
         {phase === 'preview' && previewUri !== '' && (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}>
             <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: 20, padding: 24, alignItems: 'center', width: '100%', maxWidth: 320 }}>
               <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(27,122,74,0.2)', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
                 <Text style={{ fontSize: 20, color: '#1B7A4A' }}>✓</Text>
               </View>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 12 }}>{t('coverUpdated')}</Text>
-              <Image source={{ uri: previewUri }} style={{ width: 240, height: Math.round(240 * (260 / 375)), borderRadius: 4, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' }} resizeMode="cover" />
-              <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 10 }}>{t('coverHint')}</Text>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 12 }}>
+                {isCover ? t('coverUpdated') : t('bgUpdated')}
+              </Text>
+              <Image source={{ uri: previewUri }}
+                style={{
+                  width: 240,
+                  height: isCover ? Math.round(240 * (260 / 375)) : Math.round(240 * aspect),
+                  borderRadius: 4, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)',
+                }}
+                resizeMode="cover"
+              />
+              <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 10 }}>
+                {isCover ? t('coverHint') : t('bgResultHint')}
+              </Text>
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 14, width: '100%' }}>
                 <TouchableOpacity
                   style={{ flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center', opacity: isProcessing ? 0.5 : 1 }}
