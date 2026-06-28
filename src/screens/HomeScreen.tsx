@@ -485,14 +485,14 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             onBack={onBack}
             onLogout={onLogout}
             onAvatarChange={loadAvatar}
-            onManageUsers={() => { setTimeout(() => setShowUserMgmt(true), 250); }}
+            onManageUsers={() => { setShowProfile(false); setTimeout(() => setShowUserMgmt(true), 250); }}
           />
         )}
       </SlideScreen>
       <SlideScreen visible={!!showInvoice} onClose={() => setShowInvoice(null)}>
         {(onBack) => <InvoiceScreen onBack={onBack} filterBatchId={showInvoice?.filterBatchId ?? null} />}
       </SlideScreen>
-      <SlideScreen visible={showUserMgmt} onClose={() => setShowUserMgmt(false)}>
+      <SlideScreen visible={showUserMgmt} onClose={() => { setShowUserMgmt(false); setShowProfile(true); }}>
         {(onBack) => <UserManagementScreen
           key={userRefreshKey}
           onBack={onBack}
