@@ -227,18 +227,17 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
 
   return (
     <View style={s.container}>
-      {/* Status bar backdrop — white frosted glass, matches header */}
-      <BlurView intensity={40} style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 36, zIndex: 100, backgroundColor: 'rgba(255,255,255,0.85)' }} />
-      <StatusBar barStyle="dark-content" />
-      {/* Header — white frosted glass */}
-      <View style={[s.header, s.headerGlass, { pointerEvents: 'box-none' as any }] as any}>
-        <BlurView intensity={40} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+      {/* Status bar — dark backdrop, white text (matches ProfileScreen frozen navbar) */}
+      <BlurView intensity={20} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 36, zIndex: 100 }} />
+      <StatusBar barStyle="light-content" />
+      {/* Header — dark semi-transparent, matches ProfileScreen frozen navbar */}
+      <View style={[s.header, s.headerDark, { pointerEvents: 'box-none' as any }] as any}>
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
-          <View style={s.backBtn}>
-            <BackArrowSvg color="#000" />
+          <View style={[s.backBtn, s.backBtnDark]}>
+            <BackArrowSvg color="#fff" />
           </View>
         </TouchableOpacity>
-        <Text style={s.title}>{t('userManagement')}</Text>
+        <Text style={[s.title, s.titleWhite]}>{t('userManagement')}</Text>
         <View style={{ width: 36 }} />
       </View>
 
@@ -472,8 +471,14 @@ const getStyles = (c: ThemeColors) => {
     container: { flex: 1, backgroundColor: c.bg },
     ...hdr as any,
     title: { ...hdr.title, color: c.textMain },
-    headerGlass: {
-      backgroundColor: 'rgba(255,255,255,0.85)',
+    headerDark: {
+      backgroundColor: 'rgba(0,0,0,0.7)',
+    },
+    backBtnDark: {
+      backgroundColor: 'rgba(0,0,0,0.25)',
+    },
+    titleWhite: {
+      color: '#fff',
     },
     body: {
       flex: 1,
