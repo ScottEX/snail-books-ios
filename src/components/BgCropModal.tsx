@@ -317,8 +317,9 @@ export default function BgCropModal({
               </Text>
               <Image source={{ uri: previewUri }}
                 style={{
-                  width: 240,
-                  height: isCover ? Math.round(240 * (260 / 375)) : Math.round(240 * aspect),
+                  width: isCover ? 240 : 280,
+                  height: isCover ? Math.round(240 * (260 / 375)) : Math.min(Math.round(280 * aspect), 180),
+                  maxHeight: isCover ? undefined : 180,
                   borderRadius: 4, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)',
                 }}
                 resizeMode="cover"
