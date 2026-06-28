@@ -218,11 +218,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   const reset = () => { setMsg(''); setMsgOk(false); setDevCode(''); setCode(''); };
   const goLogin = () => {
-    setStep('login'); reset();
-    if (typeof localStorage !== 'undefined') {
-      const saved = localStorage.getItem('saved_login');
-      if (saved) setUsername(saved);
-    }
+    setStep('login');
   };
 
   const goRegister = () => {
@@ -819,7 +815,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                     keyboardType="email-address" onSubmitEditing={handleForgot} autoCapitalize="none" />
                 </View>
                 <SubmitButton onPress={handleForgot} loading={loading} label={t('forgotSendBtn') || 'Send Code'} style={styles.btnDark} textStyle={styles.btnDarkText} />
-                <TouchableOpacity onPress={goLogin}>
+                <TouchableOpacity onPress={() => { reset(); goLogin(); }}>
                   <Text style={styles.forgotText}>{t('backToLogin')}</Text>
                 </TouchableOpacity>
               </View>
@@ -866,7 +862,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   </View>
                 </View>
                 <SubmitButton onPress={handleReset} loading={loading} label={t('resetBtn')} style={styles.btnRed} textStyle={styles.btnRedText} />
-                <TouchableOpacity onPress={goLogin}>
+                <TouchableOpacity onPress={() => { reset(); goLogin(); }}>
                   <Text style={styles.forgotText}>{t('backToLogin')}</Text>
                 </TouchableOpacity>
               </View>
