@@ -260,7 +260,6 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const [showProfile, setShowProfile] = useState(false);
   const [showUserMgmt, setShowUserMgmt] = useState(false);
   const [showUserDetail, setShowUserDetail] = useState<any | null>(null);
-  const [showProfileAfterMgmt, setShowProfileAfterMgmt] = useState(false);
   const [showInvoice, setShowInvoice] = useState<{ filterBatchId?: number | null } | null>(null);
   const [showProcurementDetail, setShowProcurementDetail] = useState<any | null>(null);
   const [showExpenseDetail, setShowExpenseDetail] = useState<any | null>(null);
@@ -480,27 +479,27 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
       </SlideScreen>
 
       {/* Profile / Invoice / User Management slide-overs (full-page sub-screens) */}
-      <SlideScreen visible={showProfile} onClose={() => setShowProfile(false)}>
+      <SlideScreen visible={showProfile} onClose={() => setShowProfile(false)} stackIndex={0}>
         {(onBack) => (
           <ProfileScreen
             onBack={onBack}
             onLogout={onLogout}
             onAvatarChange={loadAvatar}
-            onManageUsers={() => { setShowProfile(false); setShowProfileAfterMgmt(true); setTimeout(() => setShowUserMgmt(true), 250); }}
+            onManageUsers={() => { setTimeout(() => setShowUserMgmt(true), 250); }}
           />
         )}
       </SlideScreen>
       <SlideScreen visible={!!showInvoice} onClose={() => setShowInvoice(null)}>
         {(onBack) => <InvoiceScreen onBack={onBack} filterBatchId={showInvoice?.filterBatchId ?? null} />}
       </SlideScreen>
-      <SlideScreen visible={showUserMgmt} onClose={() => { setShowUserMgmt(false); if (showProfileAfterMgmt) { setShowProfile(true); setShowProfileAfterMgmt(false); } }}>
+      <SlideScreen visible={showUserMgmt} onClose={() => setShowUserMgmt(false)} stackIndex={1}>
         {(onBack) => <UserManagementScreen
           key={userRefreshKey}
           onBack={onBack}
-          onSelectUser={(u) => { setShowProfileAfterMgmt(false); setShowUserMgmt(false); setTimeout(() => setShowUserDetail(u), 250); }}
+          onSelectUser={(u) => { setTimeout(() => setShowUserDetail(u), 250); }}
         />}
       </SlideScreen>
-      <SlideScreen visible={!!showUserDetail} onClose={() => { setShowUserDetail(null); setShowProfileAfterMgmt(true); setShowUserMgmt(true); }}>
+      <SlideScreen visible={!!showUserDetail} onClose={() => { setShowUserDetail(null); }} stackIndex={2}>
         {(onBack) => showUserDetail ? (
           <UserDetailScreen
             user={showUserDetail}
