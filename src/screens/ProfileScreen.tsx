@@ -348,17 +348,22 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const handleCoverReset = async () => {
     setUploadingCover(true);
     try {
+      const uid = getCurrentUserId();
       // 1. Reset theme to default
       setTheme(DEFAULT_THEME_ID);
       // 2. Reset opacity to 0%
       setCoverOpacity(0);
-      try { localStorage.setItem('cover-opacity', '0'); } catch {}
+      try {
+        localStorage.setItem('cover-opacity', '0');
+        if (uid) localStorage.setItem(`cover-opacity-${uid}`, '0');
+      } catch {}
       // 3. Reset background image
       await api.resetBackground();
       try { localStorage.removeItem('bg-image'); } catch {}
       setCoverUrl('');
       // 4. Reset profile cover (avatar area)
       await api.resetProfileCover();
+      try { localStorage.removeItem('avatar-uri'); } catch {}
       setAvatarUrl('');
       setShowThemeModal(false);
     } catch (err: any) {
