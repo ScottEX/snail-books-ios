@@ -168,12 +168,12 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   useEffect(() => {
     const id = username.trim();
     if (!id) {
-      setAvatarUrl(''); setAvatarReady(false);
+      setAvatarUrl('');
       // Don't clear bgUrl/bgReady — cached bg should stay visible. Matches web.
       return;
     }
-    // Don't reset bgReady — keep cached background visible while API refreshes
-    setAvatarReady(false);
+    // Don't reset avatarReady — keep current avatar visible while fetching.
+    // Matches the bg logic: old avatar stays, new one swaps in directly.
     const reqId = ++userReqId.current;
     const timer = setTimeout(async () => {
       const [avatar, bg] = await Promise.all([
@@ -182,7 +182,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       ]);
       if (reqId !== userReqId.current) return;
       if (avatar) { setAvatarUrl(avatar); setAvatarReady(true); }
-      else setAvatarReady(true); // no avatar — still mark ready
+      else { setAvatarUrl(''); setAvatarReady(true); }
       if (bg) {
         setBgUrl(bg); setBgReady(true);
         try { localStorage.setItem('bg-image', bg); } catch {}
