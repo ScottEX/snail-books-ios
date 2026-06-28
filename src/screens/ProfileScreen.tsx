@@ -538,15 +538,15 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
           st.navBar,
           {
             backgroundColor: scrollY > 0
-              ? (coverOffset >= FREEZE_POINT ? colors.surface : `rgba(0,0,0,${0.3 + coverOffset / FREEZE_POINT * 0.3})`)
+              ? `rgba(0,0,0,${Math.min(coverOffset / FREEZE_POINT, 1) * 0.7})`
               : 'transparent',
           },
         ]}
         pointerEvents="auto">
         <TouchableOpacity onPress={onBack} style={st.navBackBtn} activeOpacity={0.7}>
-          <BackArrow color={coverOffset >= FREEZE_POINT ? colors.textMain : '#fff'} />
+          <BackArrow color="#fff" />
         </TouchableOpacity>
-        <Text style={[st.navTitle, { color: coverOffset >= FREEZE_POINT ? colors.textMain : '#fff' }]}>{t('editProfile')}</Text>
+        <Text style={[st.navTitle, { color: '#fff' }]}>{t('editProfile')}</Text>
       </View>
       {/* ── Cover — absolutely positioned, slides up 120px then freezes ── */}
       <TouchableOpacity
