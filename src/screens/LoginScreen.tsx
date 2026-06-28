@@ -51,7 +51,9 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [showPw2, setShowPw2] = useState(false);
   const [showPwNew, setShowPwNew] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [remember, setRemember] = useState(false);
+  const [remember, setRemember] = useState(() => {
+    try { return localStorage.getItem('remember_me') === '1'; } catch { return false; }
+  });
   const [devCode, setDevCode] = useState('');
   // WebAuthn/Face ID state. hasFaceID: this device has a stored
   // credential. pwdHasFaceID: the currently typed username has any
@@ -70,7 +72,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     if (typeof localStorage !== 'undefined') {
       const saved = localStorage.getItem('saved_login');
       if (saved) setUsername(saved);
-      if (localStorage.getItem('remember_me') === '1') setRemember(true);
       if (localStorage.getItem('user')) onLogin();
     }
   }, []);
