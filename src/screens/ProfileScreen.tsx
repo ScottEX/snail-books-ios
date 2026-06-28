@@ -266,6 +266,28 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     if (isAdmin) fetchUnreviewedCount();
   }, [refreshKey]);
 
+  // ── Watch for cross-screen theme reset ──
+  useEffect(() => {
+    let lastTs = 0;
+    const timer = setInterval(() => {
+      try {
+        const ts = localStorage.getItem('__theme_reset_ts');
+        if (ts) {
+          const t = parseInt(ts, 10);
+          if (t !== lastTs && (Date.now() - t < 30000)) {
+            lastTs = t;
+            setCoverOpacity(0);
+            try {
+              const uid = getCurrentUserId();
+              localStorage.setItem(uid ? `cover-opacity-${uid}` : 'cover-opacity', '0');
+            } catch {}
+          }
+        }
+      } catch {}
+    }, 2000);
+    return () => clearInterval(timer);
+  }, []);
+
   // ── Auth prefs (debounced save) ──
   const persistAuthPrefs = (next: { enforce_single_session?: number; session_timeout_hours?: number }) => {
     if (authPrefsTimer.current) clearTimeout(authPrefsTimer.current);
