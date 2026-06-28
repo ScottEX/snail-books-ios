@@ -626,7 +626,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                 <ThemeIcon color="#ffb450" />
               </View>
               <Text style={st.iconLabel}>{t('themeLabel')}</Text>
-              <Text style={st.badge}>{getThemeName(theme.id)}</Text>
+              <View style={st.badge}><Text style={st.badgeText}>{getThemeName(theme.id)}</Text></View>
               <ChevronRight color={colors.textSub} />
             </View>
           </TouchableOpacity>
@@ -1061,11 +1061,10 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   iconLabel: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.textMain, flex: 1 },
   iconValue: { fontSize: FONTS.body.size, fontWeight: '500', color: colors.textMain },
   badge: {
-    fontSize: 13, fontWeight: '500',
-    color: colors.textSub,
     backgroundColor: withAlpha(colors.textMain, 0.05),
     paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
   },
+  badgeText: { fontSize: 13, fontWeight: '500', color: colors.textSub },
   langBtn: { fontSize: 13, fontWeight: FONTS.micro.weight, color: colors.textSub },
   langBtnActive: { color: colors.primary, fontWeight: FONTS.microBold.weight },
   langCapsule: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
