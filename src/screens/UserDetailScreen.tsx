@@ -9,6 +9,7 @@ import {
   Image,
   TextInput,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -35,6 +36,8 @@ interface UserData {
   signature: string;
   delete_scheduled: string;
   delete_by: string;
+  linked_partner_id: number | null;
+  linked_partner_name: string;
 }
 
 interface Props {
@@ -117,6 +120,11 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [realName, setRealName] = useState('');
+  const [linkedPartnerId, setLinkedPartnerId] = useState<number | null>(null);
+  const [linkedPartnerName, setLinkedPartnerName] = useState('');
+  const [showPartnerPicker, setShowPartnerPicker] = useState(false);
+  const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false);
+  const [partnerList, setPartnerList] = useState<any[]>([]);
   const [toast, setToast] = useState('');
 
   const showToast = useCallback((msg: string) => {
@@ -135,6 +143,8 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       setPhone(d?.phone || '');
       setEmail(d?.email || '');
       setRealName(d?.real_name || '');
+      setLinkedPartnerId(d?.linked_partner_id ?? null);
+      setLinkedPartnerName(d?.linked_partner_name || '');
     } catch {
       showToast(t('toastLoadFailed'));
     }
@@ -197,6 +207,34 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
     }
     setSaving(false);
   };
+
+  const fetchPartnerList = useCallback(async () => {
+    try {
+      const data: any = await api.getPartners();
+      setPartnerList(Array.isArray(data) ? data : []);
+    } catch {}
+  }, []);
+
+  const handleLinkPartner = useCallback(async (partnerId: number, partnerName: string) => {
+    setShowPartnerPicker(false);
+    setSaving(true);
+    try {
+      await api.admin.updateUser(user.id, { linked_partner_id: partnerId });
+      setLinkedPartnerId(partnerId);
+      setLinkedPartnerName(partnerName);
+    } catch {}
+    setSaving(false);
+  }, [user.id]);
+
+  const handleUnlinkPartner = useCallback(async () => {
+    setSaving(true);
+    try {
+      await api.admin.updateUser(user.id, { linked_partner_id: null });
+      setLinkedPartnerId(null);
+      setLinkedPartnerName('');
+    } catch {}
+    setSaving(false);
+  }, [user.id]);
 
   const handleRoleSelect = useCallback((r: string) => {
     setRole(r);
@@ -409,6 +447,32 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
             </View>
           )}
 
+          {/* Linked Partner */}
+          <View style={s.section}>
+            <View style={s.sectionTitleRow}>
+              <Text style={s.sectionTitleText}>{t('linkedPartner')}</Text>
+              <View style={s.sectionTitleLine} />
+            </View>
+            <View style={s.card}>
+              <View style={s.toggleRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.toggleLabel}>
+                    {linkedPartnerId ? linkedPartnerName : t('unlinked')}
+                  </Text>
+                </View>
+                {linkedPartnerId ? (
+                  <TouchableOpacity onPress={() => setShowUnlinkConfirm(true)} disabled={saving} activeOpacity={0.7}>
+                    <Text style={{ color: c.danger, fontSize: 13, fontWeight: '500' }}>{t('unlinkPartner')}</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity onPress={() => { fetchPartnerList(); setShowPartnerPicker(true); }} disabled={saving} activeOpacity={0.7}>
+                    <Text style={{ color: c.primary, fontSize: 13, fontWeight: '500' }}>{t('linkPartner')}</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          </View>
+
           {/* Other Info */}
           <View style={s.section}>
             <View style={s.sectionTitleRow}>
@@ -478,6 +542,39 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
         loading={deleting}
         onConfirm={handleDelete}
         onCancel={() => setShowDeleteConfirm(false)}
+      />
+
+      {/* Partner picker */}
+      <Modal visible={showPartnerPicker} transparent animationType="fade" onRequestClose={() => setShowPartnerPicker(false)}>
+        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' }} activeOpacity={1} onPress={() => setShowPartnerPicker(false)}>
+          <View style={{ backgroundColor: c.surface, borderRadius: 14, width: '80%', maxHeight: '60%', padding: 4 }} onStartShouldSetResponder={() => true}>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: c.textMain, padding: 16, paddingBottom: 12 }}>{t('linkPartner')}</Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {partnerList.map((p: any) => (
+                <TouchableOpacity
+                  key={p.id}
+                  style={{ paddingVertical: 14, paddingHorizontal: 16, borderTopWidth: 0.5, borderTopColor: withAlpha(c.textMain, 0.08) }}
+                  onPress={() => handleLinkPartner(p.id, p.name)}
+                  activeOpacity={0.6}
+                >
+                  <Text style={{ fontSize: 14, color: c.textMain }}>{p.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <ConfirmModal
+        visible={showUnlinkConfirm}
+        title={t('unlinkPartner')}
+        message={t('unlinkPartner') + '？“' + linkedPartnerName + '”'}
+        confirmLabel={saving ? (t('loading') || '...') : t('unlinkPartner')}
+        cancelLabel={t('cancel')}
+        confirmColor={c.danger}
+        loading={saving}
+        onConfirm={handleUnlinkPartner}
+        onCancel={() => setShowUnlinkConfirm(false)}
       />
 
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
