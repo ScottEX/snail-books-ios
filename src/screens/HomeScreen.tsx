@@ -91,16 +91,16 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const [avatarUrl, setAvatarUrl] = useState<string>('');
   const avatarReqId = useRef(0);
   const loadAvatar = useCallback(() => {
-    const id = (usr || '').trim();
-    if (!id) { setAvatarUrl(''); return; }
+    const uid = getCurrentUserId();
+    if (!uid) { setAvatarUrl(''); return; }
     const reqId = ++avatarReqId.current;
     setTimeout(async () => {
       try {
-        const url = await api.getUserAvatarByLoginUri(id);
+        const url = await api.getUserAvatar(uid);
         if (reqId === avatarReqId.current && url) setAvatarUrl(url);
       } catch {}
     }, 300);
-  }, [usr]);
+  }, []);
   useEffect(() => { loadAvatar(); }, [loadAvatar]);
 
   // ── Background image (mirrors web's two-layer approach) ──
