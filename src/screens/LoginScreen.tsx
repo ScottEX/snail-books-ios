@@ -165,22 +165,15 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     return () => loop.stop();
   }, [faceMode]);
 
-  // Debounced fetch of per-user avatar + background. Mirrors the web
-  // LoginScreen: typing a known username/email swaps the logo and the
-  // full-screen background after ~400ms of no further input. We
-  // short-circuit when the input is empty or just whitespace, and we
-  // drop the response if the user has since continued typing (race-safe).
+  // Fetch avatar + background on username blur (not while typing).
+  // Keeps the current avatar/bg visible until the user finishes typing,
+  // then fetches and swaps or clears in one go.
   const userReqId = useRef(0);
-  useEffect(() => {
+  const handleUsernameBlur = () => {
     const id = username.trim();
-    if (!id) {
-      // Don't clear avatarUrl/bgUrl — keep last user's avatar/bg visible. Matches web.
-      return;
-    }
-    // Don't reset avatarReady — keep current avatar visible while fetching.
-    // Matches the bg logic: old avatar stays, new one swaps in directly.
+    if (!id) return;
     const reqId = ++userReqId.current;
-    const timer = setTimeout(async () => {
+    (async () => {
       const [avatar, bg] = await Promise.all([
         api.getUserAvatarByLoginUri(id).catch(() => null),
         api.getUserBackgroundUri(id).catch(() => null),
@@ -198,9 +191,8 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       } else {
         setBgUrl(''); setBgReady(true);
       }
-    }, 400);
-    return () => { clearTimeout(timer); };
-  }, [username]);
+    })();
+  };
 
   // Debounced check whether the typed username has any WebAuthn
   // credential bound server-side. Mirrors web LoginScreen L237-255 —
@@ -621,7 +613,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                       <View style={styles.pwWrap}>
                         <TextInput style={[styles.textInput, { paddingRight: username ? 44 : 16 }]} value={username} onChangeText={setUsername}
                           placeholder={t('loginPlaceholder') || '用户名 / 邮箱'} placeholderTextColor="rgba(255,255,255,0.4)"
-                          onSubmitEditing={handleLogin} autoCapitalize="none" />
+                          onSubmitEditing={handleLogin} autoCapitalize="none" onBlur={handleUsernameBlur} />
                         {username ? (
                           <TouchableOpacity style={styles.clearBtn} onPress={() => setUsername('')}>
                             <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -702,7 +694,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   <Text style={styles.fieldLabel}>{t('username')}</Text>
                   <View style={styles.pwWrap}>
                     <TextInput style={[styles.textInput, { paddingRight: username ? 44 : 16 }]} value={username} onChangeText={setUsername}
-                      placeholder={t('username')} placeholderTextColor="rgba(255,255,255,0.4)" autoCapitalize="none" />
+                      placeholder={t('username')} placeholderTextColor="rgba(255,255,255,0.4)" autoCapitalize="none" onBlur={handleUsernameBlur} />
                     {username ? (
                       <TouchableOpacity style={styles.clearBtn} onPress={() => setUsername('')}>
                         <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
