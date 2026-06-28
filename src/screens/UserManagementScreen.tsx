@@ -232,7 +232,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
       <StatusBar barStyle="light-content" />
       {/* Header — white frosted glass */}
       <View style={[s.header, s.headerGlass, { pointerEvents: 'box-none' as any }] as any}>
-        <BlurView intensity={40} tint="light" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+        <BlurView intensity={40} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
           <View style={s.backBtn}>
             <BackArrowSvg color="#000" />
@@ -473,7 +473,7 @@ const getStyles = (c: ThemeColors) => {
     ...hdr as any,
     title: { ...hdr.title, color: c.textMain },
     headerGlass: {
-      backgroundColor: 'rgba(255,255,255,0.75)',
+      backgroundColor: 'rgba(255,255,255,0.85)',
     },
     body: {
       flex: 1,
