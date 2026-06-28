@@ -275,6 +275,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const [expenseRefreshKey, setExpenseRefreshKey] = useState(0);
   const [userRefreshKey, setUserRefreshKey] = useState(0);
   const [reviewedUserId, setReviewedUserId] = useState<number | null>(null);
+  const [profileRefreshKey, setProfileRefreshKey] = useState(0);
 
   // ── Data state for chart / supply / partner ──
   const [chartMonthly, setChartMonthly] = useState<any>(null);
@@ -487,6 +488,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             onLogout={onLogout}
             onAvatarChange={loadAvatar}
             onManageUsers={() => { setTimeout(() => setShowUserMgmt(true), 250); }}
+            refreshKey={profileRefreshKey}
           />
         )}
       </SlideScreen>
@@ -507,7 +509,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           }}
         />}
       </SlideScreen>
-      <SlideScreen visible={!!showUserDetail} onClose={() => { setShowUserDetail(null); setReviewedUserId(null); }} stackIndex={2}>
+      <SlideScreen visible={!!showUserDetail} onClose={() => { setShowUserDetail(null); setReviewedUserId(null); setProfileRefreshKey(k => k + 1); }} stackIndex={2}>
         {(onBack) => showUserDetail ? (
           <UserDetailScreen
             user={showUserDetail}
