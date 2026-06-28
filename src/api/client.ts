@@ -465,7 +465,26 @@ export const api = {
   getUserAvatar: async (userId: number | string): Promise<string | null> => {
     try {
       const resp = await fetch(API_BASE + `/api/users/avatar?user_id=${userId}`, { credentials: 'omit' as RequestCredentials });
+      if (!resp.ok) return null;
       return await (api as any)._blobToDataUri(resp);
+    } catch { return null; }
+  },
+
+  // ── Per-user login-screen images (avatar + background) ──
+  // Web returns a Blob and converts to object URL; RN has no Blob
+  // URL, so we fetch and read as a data URI (base64) instead. This
+  // matches the behavior the user sees on web: typing a known
+  // username instantly swaps the avatar/background.
+  _blobToDataUri: async (resp: Response): Promise<string | null> => {
+    if (!resp.ok) return null;
+    try {
+      const blob = await resp.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(blob);
+      });
     } catch { return null; }
   },
 
