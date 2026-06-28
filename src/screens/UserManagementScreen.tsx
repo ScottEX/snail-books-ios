@@ -227,7 +227,9 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
 
   return (
     <View style={s.container}>
-      <StatusBar barStyle="dark-content" />
+      {/* Status bar backdrop — dark tint so white text/icons are visible */}
+      <BlurView intensity={20} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 36, zIndex: 100 }} />
+      <StatusBar barStyle="light-content" />
       {/* Header — absolute glass (matches web historyHeader) */}
       <View style={[s.header, { pointerEvents: 'box-none' as any }] as any}>
         <BlurView intensity={30} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
