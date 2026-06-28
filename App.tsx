@@ -53,7 +53,6 @@ export default function App() {
     };
     const unsubKicked = onSessionKicked(handleExpire);
     const unsubChange = onUserChange(() => {
-      setAppKey((k) => k + 1);
       try { setPage(localStorage.getItem('user') ? 'home' : 'login'); } catch {}
       lastExpireAt.current = Date.now();
     });
