@@ -61,6 +61,7 @@ export default function BgCropModal({
   const [tx, setTx] = useState(0);
   const [ty, setTy] = useState(0);
   const [previewUri, setPreviewUri] = useState(''); // cropped preview image
+  const [isProcessing, setIsProcessing] = useState(false); // crop in progress (don't show full spinner)
 
   // Refs to live gesture state (so PanResponder sees fresh values without rerenders)
   const stateRef = useRef({
@@ -81,29 +82,40 @@ export default function BgCropModal({
   useEffect(() => {
     if (!imageSrc) {
       setSrc('');
+      setIsProcessing(false);
       return;
     }
     setSrc(imageSrc);
-    setScale(1);
     setRotation(0);
     setTx(0);
     setTy(0);
-    stateRef.current.scale = 1;
     stateRef.current.rotation = 0;
     stateRef.current.tx = 0;
     stateRef.current.ty = 0;
+    // Fit image to cover the crop guide (matching web's coverFitImage)
+    Image.getSize(imageSrc, (imgW, imgH) => {
+      const sw = guideW / imgW;
+      const sh = guideH / imgH;
+      const fitScale = Math.max(sw, sh, 0.5) * 1.05;
+      const clamped = Math.max(0.5, Math.min(3, fitScale));
+      setScale(clamped);
+      stateRef.current.scale = clamped;
+    }, () => {
+      setScale(1);
+      stateRef.current.scale = 1;
+    });
   }, [imageSrc]);
 
   // Reset internal state on close
   useEffect(() => {
     if (!visible) {
-      setSrc(''); setMsg(''); setPhase('cropping'); setPreviewUri('');
+      setSrc(''); setMsg(''); setPhase('cropping'); setPreviewUri(''); setIsProcessing(false);
       setScale(1); setRotation(0); setTx(0); setTy(0);
     }
   }, [visible]);
 
   const close = () => {
-    setSrc(''); setMsg(''); setPhase('cropping'); setPreviewUri('');
+    setSrc(''); setMsg(''); setPhase('cropping'); setPreviewUri(''); setIsProcessing(false);
     setScale(1); setRotation(0); setTx(0); setTy(0);
     onClearImage();
     onClose();
@@ -179,7 +191,9 @@ export default function BgCropModal({
     if (phase === 'uploading' || !src) return;
     if (isCover) {
       // Cover mode: crop client-side → preview → confirm
-      setPhase('uploading');
+      // Don't switch to 'uploading' phase (avoid full-screen spinner).
+      // Instead disable interactions while crop runs, then show preview.
+      setIsProcessing(true);
       try {
         const s = stateRef.current;
         // Get original image dimensions for accurate crop
@@ -225,9 +239,11 @@ export default function BgCropModal({
         );
         setPreviewUri(result.uri);
         setPhase('preview');
+        setIsProcessing(false);
       } catch (e: any) {
         setMsg(e?.message || t('uploadFailed') || 'Crop failed');
         setPhase('cropping');
+        setIsProcessing(false);
       }
       return;
     }
@@ -400,19 +416,24 @@ export default function BgCropModal({
       {phase === 'cropping' && (
         <View style={styles.actions}>
           <TouchableOpacity
-            style={[styles.actionBtn, styles.cancelBtn]}
+            style={[styles.actionBtn, styles.cancelBtn, isProcessing && { opacity: 0.5 }]}
             onPress={close}
+            disabled={isProcessing}
           >
             <Text style={styles.cancelText}>{t('cancel')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.actionBtn, styles.confirmBtn]}
+            style={[styles.actionBtn, styles.confirmBtn, isProcessing && { opacity: 0.6 }]}
             onPress={handleConfirm}
-            disabled={!src}
+            disabled={!src || isProcessing}
           >
-            <View style={styles.checkmark}>
-              <Text style={styles.checkmarkText}>✓</Text>
-            </View>
+            {isProcessing ? (
+              <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />
+            ) : (
+              <View style={styles.checkmark}>
+                <Text style={styles.checkmarkText}>✓</Text>
+              </View>
+            )}
             <Text style={styles.confirmText}>{confirmLabel || (isCover ? t('useThisCover') : t('useThisBg'))}</Text>
           </TouchableOpacity>
         </View>
