@@ -1,5 +1,6 @@
 import { View, Text, TouchableOpacity, Image, StyleSheet, ActivityIndicator, useWindowDimensions, PanResponder } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { t } from '../i18n';
 import { useEffect, useRef, useState, useMemo } from 'react';
 
@@ -13,11 +14,9 @@ interface BgCropModalProps {
   /** Called when the modal wants to clear the image (e.g. on close /
    *  cancel / recrop reset). Parent should set imageSrc back to ''. */
   onClearImage: () => void;
-  /** Called with the original picked file (with optional scale/rotation
-   *  metadata) after the user confirms. Caller is responsible for upload.
-   *  On RN we don't have HTML Canvas, so the cropped bitmap isn't
-   *  produced client-side; instead the caller (or server) does the
-   *  final crop using the returned scale/rotate hints. */
+  /** Called with the cropped file after user confirms. For 'cover' mode,
+   *  this receives an actual cropped bitmap (via expo-image-manipulator).
+   *  For default mode, passes original file with crop hints. */
   onConfirm: (file: any) => void | Promise<void>;
   /** Called after the upload triggered by onConfirm has resolved
    *  successfully. */
@@ -28,6 +27,8 @@ interface BgCropModalProps {
   title?: string;
   /** Label of the confirm button. */
   confirmLabel?: string;
+  /** 'cover' mode: uses cover aspect ratio + two-step preview flow */
+  mode?: 'cover';
 }
 
 /** Fullscreen crop modal used by the background image flow.
@@ -47,15 +48,17 @@ export default function BgCropModal({
   onConfirm, onUploaded, aspectRatio, title, confirmLabel,
 }: BgCropModalProps) {
   const { width: WIN_W, height: WIN_H } = useWindowDimensions();
+  const isCover = mode === 'cover';
 
   // ── Internal crop state machine ──
   const [src, setSrc] = useState('');
   const [msg, setMsg] = useState('');
-  const [phase, setPhase] = useState<'cropping' | 'uploading'>('cropping');
+  const [phase, setPhase] = useState<'cropping' | 'preview' | 'uploading'>('cropping');
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [tx, setTx] = useState(0);
   const [ty, setTy] = useState(0);
+  const [previewUri, setPreviewUri] = useState(''); // cropped preview image
 
   // Refs to live gesture state (so PanResponder sees fresh values without rerenders)
   const stateRef = useRef({
@@ -92,22 +95,22 @@ export default function BgCropModal({
   // Reset internal state on close
   useEffect(() => {
     if (!visible) {
-      setSrc(''); setMsg(''); setPhase('cropping');
+      setSrc(''); setMsg(''); setPhase('cropping'); setPreviewUri('');
       setScale(1); setRotation(0); setTx(0); setTy(0);
     }
   }, [visible]);
 
   const close = () => {
-    setSrc(''); setMsg(''); setPhase('cropping');
+    setSrc(''); setMsg(''); setPhase('cropping'); setPreviewUri('');
     setScale(1); setRotation(0); setTx(0); setTy(0);
     onClearImage();
     onClose();
   };
 
-  // Crop guide box
+  // Crop guide box — cover uses fixed ratio (260/375), bg uses viewport
   const aspect = aspectRatio != null
     ? Math.max(0.5, Math.min(2.4, aspectRatio))
-    : WIN_H / WIN_W;
+    : isCover ? 260 / 375 : WIN_H / WIN_W;
   const guideW = Math.min(WIN_W * 0.85, (WIN_H * 0.55) / aspect);
   const guideH = guideW * aspect;
 
@@ -152,10 +155,65 @@ export default function BgCropModal({
     setScale(1); setRotation(0); setTx(0); setTy(0);
   };
 
-  // Confirm: pass the original image file plus crop hints to onConfirm.
-  // On RN we don't produce a new bitmap; the caller (or backend) is
-  // expected to crop. We attach scale/rotation/aspect as metadata.
+  // Confirm: in cover mode, actually crop via expo-image-manipulator and show preview.
+  // In default mode, pass original with crop hints (server-side crop).
   const handleConfirm = async () => {
+    if (phase === 'uploading' || !src) return;
+    if (isCover) {
+      // Cover mode: crop client-side → preview → confirm
+      setPhase('uploading');
+      try {
+        const s = stateRef.current;
+        // Get original image dimensions for accurate crop
+        const imgSize = await new Promise<{ w: number; h: number }>((resolve, reject) => {
+          Image.getSize(src, (w, h) => resolve({ w, h }), reject);
+        });
+        // Image display size: guideW * 1.4, resizeMode cover → image fits within
+        const displayW = guideW * 1.4;
+        const displayH = guideW * 1.4;
+        const imgAspect = imgSize.w / imgSize.h;
+        const displayAspect = displayW / displayH;
+        let renderW: number, renderH: number;
+        if (imgAspect > displayAspect) {
+          renderH = displayH;
+          renderW = displayH * imgAspect;
+        } else {
+          renderW = displayW;
+          renderH = displayW / imgAspect;
+        }
+        // Map guide center (in display coords) to image pixel coords
+        const scaleImgToDisp = renderW / imgSize.w; // px per original px
+        const guideCenterX = displayW / 2 - s.tx;
+        const guideCenterY = displayH / 2 - s.ty;
+        // Crop size in display coords, then convert to original px
+        const cropW = (guideW / s.scale) / scaleImgToDisp;
+        const cropH = (guideH / s.scale) / scaleImgToDisp;
+        const originX = Math.max(0, (guideCenterX - (renderW - displayW) / 2) / scaleImgToDisp - cropW / 2);
+        const originY = Math.max(0, (guideCenterY - (renderH - displayH) / 2) / scaleImgToDisp - cropH / 2);
+        const finalW = Math.min(cropW, imgSize.w - originX);
+        const finalH = Math.min(cropH, imgSize.h - originY);
+
+        const result = await manipulateAsync(
+          src,
+          [{
+            crop: {
+              originX,
+              originY,
+              width: finalW,
+              height: finalH,
+            },
+          }],
+          { format: SaveFormat.JPEG, compress: 0.92 }
+        );
+        setPreviewUri(result.uri);
+        setPhase('preview');
+      } catch (e: any) {
+        setMsg(e?.message || t('uploadFailed') || 'Crop failed');
+        setPhase('cropping');
+      }
+      return;
+    }
+    // Default mode (background): pass hints
     if (phase === 'uploading' || !src) return;
     setPhase('uploading');
     try {
@@ -163,7 +221,6 @@ export default function BgCropModal({
         uri: src,
         type: 'image/jpeg',
         name: 'background.jpg',
-        // Crop hints
         _scale: stateRef.current.scale,
         _rotation: stateRef.current.rotation,
         _tx: stateRef.current.tx,
@@ -172,6 +229,26 @@ export default function BgCropModal({
       };
       await onConfirm(file);
       setSrc(''); setMsg(''); setPhase('cropping');
+      resetTransform();
+      onUploaded?.();
+    } catch (e: any) {
+      setMsg(e?.message || t('uploadFailed') || 'Upload failed');
+      setPhase('cropping');
+    }
+  };
+
+  // Preview confirm: upload the cropped bitmap
+  const handlePreviewConfirm = async () => {
+    if (!previewUri || phase === 'uploading') return;
+    setPhase('uploading');
+    try {
+      const file: any = {
+        uri: previewUri,
+        type: 'image/jpeg',
+        name: isCover ? 'cover.jpg' : 'background.jpg',
+      };
+      await onConfirm(file);
+      setSrc(''); setMsg(''); setPhase('cropping'); setPreviewUri('');
       resetTransform();
       onUploaded?.();
     } catch (e: any) {
@@ -233,6 +310,33 @@ export default function BgCropModal({
         {phase === 'uploading' && (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
             <ActivityIndicator size="large" color="#fff" />
+          </View>
+        )}
+
+        {/* Preview phase (cover mode only) */}
+        {phase === 'preview' && previewUri !== '' && (
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}>
+            <View style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: 20, alignItems: 'center', width: '100%', maxWidth: 300 }}>
+              <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(75,181,132,0.2)', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
+                <Text style={{ fontSize: 16, color: '#4BB584' }}>✓</Text>
+              </View>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 12 }}>{t('coverPreview') || '封面预览'}</Text>
+              <Image source={{ uri: previewUri }} style={{ width: 240, height: Math.round(240 * (260 / 375)), borderRadius: 4, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' }} resizeMode="cover" />
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 14, width: '100%' }}>
+                <TouchableOpacity
+                  style={{ flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center' }}
+                  onPress={() => { setPhase('cropping'); setPreviewUri(''); }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.7)' }}>{t('recrop') || '重新裁剪'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ flex: 2, paddingVertical: 10, borderRadius: 10, backgroundColor: '#5B5BD6', alignItems: 'center' }}
+                  onPress={handlePreviewConfirm}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#fff' }}>{t('confirmUse') || '确认使用'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         )}
       </View>

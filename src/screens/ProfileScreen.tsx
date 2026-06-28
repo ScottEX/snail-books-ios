@@ -965,6 +965,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         onClose={() => { setShowCoverCrop(false); setCoverCropSrc(''); setCoverCropFile(null); }}
         imageSrc={coverCropSrc}
         onClearImage={() => { setCoverCropSrc(''); setCoverCropFile(null); }}
+        mode="cover"
         onConfirm={async (file: any) => {
           await handleCoverImagePicked(file);
           setShowCoverCrop(false);
