@@ -538,9 +538,15 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
           <Text style={st.stickyTitle}>{t('editProfile')}</Text>
         </View>
       )}
-      {/* ── Cover — absolutely positioned above ScrollView ── */}
+      {/* ── Cover — absolutely positioned, tracks scroll to slide away or stretch on pull-down ── */}
       <TouchableOpacity
-        style={[st.coverWrap, { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5 }]}
+        style={[
+          st.coverWrap,
+          {
+            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5,
+            transform: [{ translateY: scrollY > 0 ? -Math.min(scrollY, 220) : 0 }],
+          },
+        ]}
         onPress={handleCoverPress} activeOpacity={0.9} disabled={uploadingCover}>
         {coverUrl ? (
           <Image
