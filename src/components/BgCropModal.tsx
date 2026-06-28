@@ -316,12 +316,13 @@ export default function BgCropModal({
                 {isCover ? t('coverUpdated') : t('bgUpdated')}
               </Text>
               <Image source={{ uri: previewUri }}
-                style={{
-                  width: isCover ? 240 : 280,
-                  height: isCover ? Math.round(240 * (260 / 375)) : Math.min(Math.round(280 * aspect), 180),
-                  maxHeight: isCover ? undefined : 180,
-                  borderRadius: 4, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)',
-                }}
+                style={[isCover ? {
+                  width: 240,
+                  height: Math.round(240 * (260 / 375)),
+                } : {
+                  width: 200,
+                  height: Math.min(Math.round(200 * (guideH / guideW)), 360),
+                }, { borderRadius: 4, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' }]}
                 resizeMode="cover"
               />
               <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 10 }}>
