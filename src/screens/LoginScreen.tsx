@@ -646,7 +646,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                         </TouchableOpacity>
                       </View>
                     </View>
-                    <SubmitButton onPress={handleLogin} loading={loading} label={t('loginBtn')} style={styles.btnDark} textStyle={styles.btnDarkText} />
+                    <SubmitButton onPress={handleLogin} loading={loading} disabled={!username || !password} label={t('loginBtn')} style={[styles.btnDark, (!username || !password) && styles.btnDisabled]} textStyle={styles.btnDarkText} />
                     {/* Face ID entry link — only shown when biometric is
                         available AND the typed username has any WebAuthn
                         credential bound server-side. */}
