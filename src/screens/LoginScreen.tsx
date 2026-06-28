@@ -456,7 +456,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     try {
       const r = await api.forgotPassword(email);
       setLoading(false);
-      if (r.status === 'ok') { setMsgOk(true); setMsg(r.message); setDevCode(r.dev_code || ''); setStep('reset'); setTimeout(() => codeRef.current?.focus(), 100); }
+      if (r.status === 'ok') { setMsgOk(true); setMsg(r.message); setDevCode(r.dev_code || ''); setPassword(''); setStep('reset'); setTimeout(() => codeRef.current?.focus(), 100); }
       else setMsg(r.message);
     } catch (e: any) {
       setLoading(false);
@@ -676,7 +676,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                         </View>
                         <Text style={styles.rememberText}>{t('rememberMe') || '记住我'}</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity onPress={() => { setStep('forgot'); setEmail(''); reset(); }}>
+                      <TouchableOpacity onPress={() => { setStep('forgot'); setEmail(''); setPassword(''); reset(); }}>
                         <Text style={styles.forgotText}>{t('forgotPassword')}</Text>
                       </TouchableOpacity>
                     </View>
