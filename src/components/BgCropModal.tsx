@@ -320,8 +320,8 @@ export default function BgCropModal({
                   width: 240,
                   height: Math.round(240 * (260 / 375)),
                 } : {
-                  width: 200,
-                  height: Math.min(Math.round(200 * (guideH / guideW)), 300),
+                  width: Math.round(180 * (guideW / guideH)),
+                  height: 180,
                 }, { borderRadius: 4, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' }]}
                 resizeMode="cover"
               />
