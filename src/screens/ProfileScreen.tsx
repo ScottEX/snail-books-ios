@@ -571,6 +571,17 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
           </View>
         )}
 
+        {/* Frosted glass overlay — dark tint intensifies with pull-down */}
+        {blurIntensity > 0 && (
+          <View
+            style={{
+              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+              backgroundColor: `rgba(0,0,0,${Math.min(blurIntensity / 36, 0.35)})`,
+            }}
+            pointerEvents="none"
+          />
+        )}
+
         {/* Top shadow gradient for nav readability */}
         <View style={st.coverScrim}>
           <Svg width="100%" height="100%" viewBox="0 0 360 100" preserveAspectRatio="none">
