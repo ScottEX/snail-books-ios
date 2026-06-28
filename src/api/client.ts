@@ -380,6 +380,10 @@ export const api = {
   admin: {
     check: () => authFetch('/api/admin/check'),
     getUnreviewedCount: () => authFetch('/api/admin/users/unreviewed-count'),
+    getUser: (id: number | string) => authFetch(`/api/admin/users/${id}`),
+    updateUser: (id: number | string, body: Record<string, any>) =>
+      authFetch(`/api/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    deleteUser: (id: number | string) => authFetch(`/api/admin/users/${id}`, { method: 'DELETE' }),
     markReviewed: (userId?: number) =>
       authFetch('/api/admin/users/mark-reviewed', {
         method: 'POST',
