@@ -197,6 +197,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             try {
               const uid = getCurrentUserId();
               localStorage.setItem(uid ? `bg-opacity-${uid}` : 'bg-opacity', '0');
+              api.saveBackgroundSettings({ opacity: 0 }).catch(() => {});
               localStorage.removeItem('__theme_reset_ts');
             } catch {}
           }
@@ -229,7 +230,11 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     setBgVersion((v) => v + 1);
     setBgOpacity(0);
     try { localStorage.removeItem('bg-image'); } catch {}
-    try { api.saveBackgroundSettings({ opacity: 0 }).catch(() => {}); } catch {}
+    try {
+      const uid = getCurrentUserId();
+      localStorage.setItem(uid ? `bg-opacity-${uid}` : 'bg-opacity', '0');
+      api.saveBackgroundSettings({ opacity: 0 }).catch(() => {});
+    } catch {}
     setShowBgModal(false);
     if (typeof window !== 'undefined' && typeof (window as any).dispatchEvent === 'function') {
       (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: DEFAULT_BG } }));
