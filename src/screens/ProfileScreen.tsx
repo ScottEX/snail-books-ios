@@ -1211,7 +1211,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingHorizontal: 24,
   },
   stampPre: { fontSize: 13, color: colors.textSub, letterSpacing: 0.5, lineHeight: 48, textAlign: 'center' },
-  stampNum: { fontSize: 42, fontWeight: '700' },
+  stampNum: { fontSize: 42, fontWeight: '700', fontStyle: 'italic' as any },
 });
 
 const getMo = (colors: ThemeColors) => StyleSheet.create({
