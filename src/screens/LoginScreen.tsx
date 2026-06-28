@@ -47,10 +47,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [avatarReady, setAvatarReady] = useState(false);
   const bgOpacity = useRef(new Animated.Value(bgUrl ? 1 : 0)).current;
   const avatarOpacity = useRef(new Animated.Value(0)).current;
-  // Track current bgUrl in ref so the userReqId effect can compare old vs new
-  // without stale closure issues.
-  const bgUrlRef = useRef(bgUrl);
-  bgUrlRef.current = bgUrl;
   // Use the LangProvider hook so the lang state and t() output stay
   // in sync within a single React render — using the legacy setLang
   // here updates globalThis.curLang synchronously but doesn't trigger
@@ -188,19 +184,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       if (avatar) { setAvatarUrl(avatar); setAvatarReady(true); }
       else setAvatarReady(true); // no avatar — still mark ready
       if (bg) {
-        // Crossfade: if there's already a bg shown, fade out → swap → fade in.
-        // First load (no existing bgUrl) still sets directly for instant display.
-        if (bgUrlRef.current) {
-          setBgReady(false);
-          setTimeout(() => {
-            if (reqId !== userReqId.current) return;
-            setBgUrl(bg);
-            setBgReady(true);
-          }, 550);
-        } else {
-          setBgUrl(bg);
-          setBgReady(true);
-        }
+        setBgUrl(bg); setBgReady(true);
         try { localStorage.setItem('bg-image', bg); } catch {}
       } else { setBgReady(true); }
     }, 400);
