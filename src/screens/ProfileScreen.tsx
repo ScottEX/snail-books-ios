@@ -12,6 +12,7 @@ import Toast from '../components/Toast';
 import BackArrow from '../components/icons/BackArrow';
 import CameraIcon from '../components/icons/CameraIcon';
 import ThemePickerModal from '../components/ThemePickerModal';
+import ModalOverlay from '../components/ModalOverlay';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { pickImages } from '../utils/imagePicker';
 import { modalCardAnimation, modalClose } from '../sharedStyles';
@@ -731,8 +732,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
 
       {/* ══════ Logout modal ══════ */}
-      <Modal visible={showLogoutModal} transparent animationType="fade" onRequestClose={() => setShowLogoutModal(false)}>
-        <View style={mo.backdrop}>
+      <ModalOverlay visible={showLogoutModal} onClose={() => setShowLogoutModal(false)}>
           <View style={mo.card}>
             <View style={mo.header}>
               <Text style={mo.title}>{t('logout')}</Text>
@@ -754,12 +754,10 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               </View>
             </View>
           </View>
-        </View>
-      </Modal>
+      </ModalOverlay>
 
       {/* ══════ Admin block modal ══════ */}
-      <Modal visible={showAdminBlockModal} transparent animationType="fade" onRequestClose={() => setShowAdminBlockModal(false)}>
-        <View style={mo.backdrop}>
+      <ModalOverlay visible={showAdminBlockModal} onClose={() => setShowAdminBlockModal(false)}>
           <View style={mo.card}>
             <View style={mo.header}>
               <Text style={mo.title}>{t('deleteAccount')}</Text>
@@ -776,12 +774,10 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               </TouchableOpacity>
             </View>
           </View>
-        </View>
-      </Modal>
+      </ModalOverlay>
 
       {/* ══════ Delete account modal ══════ */}
-      <Modal visible={showDeleteModal} transparent animationType="fade" onRequestClose={() => setShowDeleteModal(false)}>
-        <View style={mo.backdrop}>
+      <ModalOverlay visible={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
           <View style={mo.card}>
             <View style={mo.header}>
               <Text style={mo.title}>{t('deleteAccountConfirmTitle')}</Text>
@@ -814,12 +810,10 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               </View>
             </View>
           </View>
-        </View>
-      </Modal>
+      </ModalOverlay>
 
       {/* ══════ Change password modal ══════ */}
-      <Modal visible={showPwModal} transparent animationType="fade" onRequestClose={() => setShowPwModal(false)}>
-        <View style={mo.backdrop}>
+      <ModalOverlay visible={showPwModal} onClose={() => setShowPwModal(false)}>
           <View style={mo.card}>
             <View style={mo.header}>
               <Text style={mo.title}>{t('changePassword')}</Text>
@@ -847,12 +841,10 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               </View>
             </View>
           </View>
-        </View>
-      </Modal>
+      </ModalOverlay>
 
       {/* ══════ Change email modal ══════ */}
-      <Modal visible={showEmailModal} transparent animationType="fade" onRequestClose={() => setShowEmailModal(false)}>
-        <View style={mo.backdrop}>
+      <ModalOverlay visible={showEmailModal} onClose={() => setShowEmailModal(false)}>
           <View style={mo.card}>
             <View style={mo.header}>
               <Text style={mo.title}>{t('changeEmail')}</Text>
@@ -919,8 +911,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               )}
             </View>
           </View>
-        </View>
-      </Modal>
+      </ModalOverlay>
 
       {/* ══════ Theme picker — shared component ══════ */}
       <ThemePickerModal
