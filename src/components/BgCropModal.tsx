@@ -45,7 +45,7 @@ interface BgCropModalProps {
  *  image is intended to fill the screen. */
 export default function BgCropModal({
   visible, onClose, imageSrc, onClearImage,
-  onConfirm, onUploaded, aspectRatio, title, confirmLabel,
+  onConfirm, onUploaded, aspectRatio, title, confirmLabel, mode,
 }: BgCropModalProps) {
   const { width: WIN_W, height: WIN_H } = useWindowDimensions();
   const isCover = mode === 'cover';
