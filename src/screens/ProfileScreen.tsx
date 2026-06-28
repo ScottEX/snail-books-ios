@@ -344,7 +344,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     }
   };
 
-  // ── Reset to default (theme + opacity + avatar, NOT background image) ──
+  // ── Reset to default (theme + opacity + background, NOT avatar) ──
   const handleCoverReset = async () => {
     setUploadingCover(true);
     try {
@@ -358,12 +358,10 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         if (uid) localStorage.setItem(`cover-opacity-${uid}`, '0');
       } catch {}
       api.saveBackgroundSettings({ opacity: 0 }).catch(() => {});
-      // 3. Reset profile cover (avatar)
-      const r: any = await api.resetProfileCover();
-      try { localStorage.removeItem('avatar-uri'); } catch {}
-      setAvatarUrl('');
-      // Reload avatar to confirm reset
-      loadAvatar();
+      // 3. Reset background image
+      await api.resetBackground();
+      try { localStorage.removeItem('bg-image'); } catch {}
+      setCoverUrl('');
       setShowThemeModal(false);
     } catch (err: any) {
       setToast(err?.message || t('uploadFailedShort'));
