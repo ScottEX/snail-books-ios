@@ -9,8 +9,10 @@ import {
   Image,
   TextInput,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 import Svg, { Path } from 'react-native-svg';
 import { t, getLang } from '../i18n';
 import { api, resolveAssetUrl } from '../api/client';
@@ -107,6 +109,7 @@ function TrashIconSvg({ color }: { color: string }) {
 export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
   const { colors: c } = useTheme();
   const insets = useSafeAreaInsets();
+  const safeTop = insets.top;
   const isSelf = String(user.id) === (getCurrentUserId() || '');
   const lang = getLang();
   const s = useMemo(() => getStyles(c), [c]);
@@ -226,27 +229,35 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
 
   return (
     <View style={s.container}>
-      {/* Header */}
-      <View style={[s.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity onPress={onBack} activeOpacity={0.7} style={s.backBtn}>
-          <BackArrowSvg color={c.primary} />
+      {/* Unified BlurView — matches UserManagementScreen */}
+      <BlurView intensity={70} tint="regular" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: safeTop + 42 }} />
+      <StatusBar barStyle="light-content" />
+      {/* Header content — transparent overlay */}
+      <View style={{ position: 'absolute', top: safeTop - 5, left: 0, right: 0, zIndex: 90, flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 0, paddingBottom: 6, paddingHorizontal: 16, backgroundColor: 'transparent', pointerEvents: 'box-none' as any } as any}>
+        <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
+          <View style={s.backBtn}>
+            <BackArrowSvg color="#fff" />
+          </View>
         </TouchableOpacity>
         <Text style={s.title}>{t('userDetail')}</Text>
         <View style={{ width: 36 }} />
       </View>
 
+      {/* Body */}
+      <View style={[s.body, { marginTop: safeTop + 42 }]}>
+
       {loading ? (
-        <View style={s.body}>
+        <View style={{ flex: 1 }}>
           <View style={{ paddingVertical: 60, alignItems: 'center' }}>
             <ActivityIndicator color={c.primary} />
           </View>
         </View>
       ) : !detail ? (
-        <View style={s.body}>
+        <View style={{ flex: 1 }}>
           <Text style={{ textAlign: 'center', color: c.textSub, marginTop: 60, fontSize: 13 }}>User not found</Text>
         </View>
       ) : (
-        <ScrollView style={s.body} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80, paddingTop: 12 }}>
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80, paddingTop: 12 }}>
           {/* Avatar + username row */}
           <View style={s.avatarSection}>
             <Image
@@ -457,6 +468,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
           {/* TODO: show user's recent transactions / activity here if backend provides */}
         </ScrollView>
       )}
+      </View>
 
       <ConfirmModal
         visible={showDeleteConfirm}
@@ -477,20 +489,13 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
 
 const getStyles = (c: ThemeColors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: c.bg },
-  header: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12,
-    backgroundColor: withAlpha(c.bg, 0.92),
-    borderBottomWidth: 1, borderBottomColor: withAlpha(c.textSub, 0.1),
-  },
   backBtn: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: withAlpha(c.bg, 0.5),
+    backgroundColor: 'rgba(0,0,0,0.25)',
     justifyContent: 'center', alignItems: 'center',
-    borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
   },
   title: {
-    flex: 1, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.textMain,
+    flex: 1, fontSize: 15, fontWeight: '600', color: '#fff',
   },
   body: { flex: 1 },
   avatarSection: {
