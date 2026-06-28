@@ -4,7 +4,7 @@ import {
   Image, TextInput, Switch, Modal,
 } from 'react-native';
 import Svg, { Path, Defs, LinearGradient as SVGGradient, Stop, Rect } from 'react-native-svg';
-import { t, getLang, setLang, langs } from '../i18n';
+import { t, getLang, langs, useLang } from '../i18n';
 import { api, resolveAssetUrl } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
@@ -134,6 +134,7 @@ function LogoutIcon({ color }: { color: string }) {
 
 export default function ProfileScreen({ onBack, onLogout, onLangChange, onManageUsers, onAvatarChange, refreshKey }: Props) {
   const { colors, theme, setTheme, allThemes } = useTheme();
+  const { setLang } = useLang();
   const [toast, setToast] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string>('');
   const [coverUrl, setCoverUrl] = useState<string>('');
@@ -604,7 +605,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
             <Text style={st.iconLabel}>{t('language')}</Text>
             <View style={{ flexDirection: 'row' }}>
               {(['zh-CN', 'zh-TW', 'en'] as const).map(l => (
-                <TouchableOpacity key={l} onPress={() => { setLang(l); onLangChange?.(); }}>
+                <TouchableOpacity key={l} onPress={() => setLang(l)}>
                   <Text style={[st.langBtn, getLang() === l && st.langBtnActive]}>
                     {l === 'zh-CN' ? '简' : l === 'zh-TW' ? '繁' : 'EN'}
                   </Text>
