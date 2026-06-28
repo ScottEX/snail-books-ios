@@ -90,8 +90,12 @@ export default function App() {
     } catch {}
     clearCredential().catch(() => {});
     clearWebAuthn();
-    setAppKey((k) => k + 1);
-    setPage('login');
+    // If onUserChange already switched to login (e.g. HomeScreen modal
+    // called api.logout() before us), skip the duplicate remount.
+    if (pageRef.current !== 'login') {
+      setAppKey((k) => k + 1);
+      setPage('login');
+    }
   }, []);
 
   if (!ready) return null;

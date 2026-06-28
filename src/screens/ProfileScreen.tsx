@@ -748,7 +748,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                 <TouchableOpacity style={mo.cancelBtn} onPress={() => setShowLogoutModal(false)}>
                   <Text style={mo.cancelText}>{t('cancel')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={mo.confirmBtn} onPress={() => { setShowLogoutModal(false); onLogout(); }}>
+                <TouchableOpacity style={mo.confirmBtn} onPress={async () => { setShowLogoutModal(false); await api.logout(); onLogout(); }}>
                   <Text style={mo.confirmText}>{t('confirm')}</Text>
                 </TouchableOpacity>
               </View>
