@@ -15,6 +15,7 @@ import { useServerDate } from '../hooks/useServerDate';
 import { fmtDecInput, toDec2 } from '../utils/numbers';
 import Toast from '../components/Toast';
 import DatePickerModal from '../components/DatePickerModal';
+import ModalOverlay from '../components/ModalOverlay';
 import ThemePickerModal from '../components/ThemePickerModal';
 import SlideScreen from '../components/SlideScreen';
 import PartnerScreen from './PartnerScreen';
@@ -57,6 +58,7 @@ function DateErrorHint({ trigger, message, colors }: { trigger: number; message:
 
 export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const { colors, setTheme, allThemes } = useTheme();
+  const mo = getMo(colors);
   // Web's headerColor: when the bg image is fully opaque, the text
   // sits on the image alone → white. When the bg has any transparency
   // (≤ 0.99), the bgOverlay is partial and the image darkens, so
@@ -570,7 +572,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                 <Text style={styles.headerLink}>{t('bgSettings')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => openModal(() => setShowLogoutModal(true))}
+                onPress={() => setShowLogoutModal(true)}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 style={styles.headerBtn}
               >
@@ -716,29 +718,29 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
       />
 
       {/* Logout modal */}
-      {showLogoutModal && (
-        <Animated.View style={[styles.modalOverlay, { opacity: modalFade }]}>
-          <Animated.View style={[styles.modalCard, { transform: [{ translateY: modalAnim }] }]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('logout')}</Text>
-              <TouchableOpacity onPress={() => closeModal(() => setShowLogoutModal(false))}>
-                <Text style={styles.modalClose}>✕</Text>
+      <ModalOverlay visible={showLogoutModal} onClose={() => setShowLogoutModal(false)}>
+          <View style={mo.card}>
+            <View style={mo.header}>
+              <Text style={mo.title}>{t('logout')}</Text>
+              <TouchableOpacity onPress={() => setShowLogoutModal(false)}>
+                <Text style={mo.close}>✕</Text>
               </TouchableOpacity>
             </View>
-            <View style={{ padding: 24, alignItems: 'center', gap: 18 }}>
-              <Text style={{ fontSize: 15, color: colors.textMain, textAlign: 'center' }}>{t('logoutConfirm')}</Text>
-              <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
-                <TouchableOpacity style={[styles.modalBtn, { flex: 1, borderWidth: 1, borderColor: colors.secondary }]} onPress={() => closeModal(() => setShowLogoutModal(false))}>
-                  <Text style={{ color: colors.textSub, fontSize: 14, fontWeight: '600' }}>{t('cancel')}</Text>
+            <View style={mo.body}>
+              <Text style={{ color: colors.textMain, fontSize: 15, lineHeight: 22, textAlign: 'center' }}>
+                {t('logoutConfirm')}
+              </Text>
+              <View style={mo.btnRow}>
+                <TouchableOpacity style={mo.cancelBtn} onPress={() => setShowLogoutModal(false)}>
+                  <Text style={mo.cancelText}>{t('cancel')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.modalBtn, { flex: 1, backgroundColor: colors.primary }]} onPress={() => closeModal(() => { api.logout().finally(() => onLogout()); })}>
-                  <Text style={{ color: colors.surface, fontSize: 14, fontWeight: '600' }}>{t('confirmLogout')}</Text>
+                <TouchableOpacity style={mo.confirmBtn} onPress={() => { setShowLogoutModal(false); api.logout().finally(() => onLogout()); }}>
+                  <Text style={mo.confirmText}>{t('confirmLogout')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
-          </Animated.View>
-        </Animated.View>
-      )}
+          </View>
+      </ModalOverlay>
 
       <DatePickerModal
         visible={showDatePicker}
@@ -1311,14 +1313,6 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   navIconWrap: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   navIconWrapActive: { backgroundColor: withAlpha(colors.textMain, 0.1) },
 
-  // Modal
-  modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 200, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' },
-  modalCard: { backgroundColor: colors.surface, borderRadius: 16, width: 340, maxWidth: '90%', overflow: 'hidden' as const, ...modalCardAnimation },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: colors.secondary },
-  modalTitle: { fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: colors.textMain },
-  modalClose: { fontSize: 18, color: colors.textSub, padding: 4 },
-  modalBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
-
   // BG settings modal extras
   opacityChip: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: colors.bg, alignItems: 'center', borderWidth: 1, borderColor: 'transparent' },
   opacityChipActive: { backgroundColor: withAlpha(colors.primary, 0.12), borderColor: colors.primary },
@@ -1392,4 +1386,36 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   rev7CardFooterText: { fontSize: 11, color: colors.textSub },
   rev7CardNote: { marginTop: 6, backgroundColor: withAlpha(colors.textSub, 0.06), borderRadius: 6, padding: 8 },
   rev7CardNoteText: { fontSize: 12, color: colors.textSub },
+});
+
+const getMo = (colors: ThemeColors) => StyleSheet.create({
+  backdrop: {
+    flex: 1, backgroundColor: withAlpha(colors.textMain, 0.4),
+    justifyContent: 'center', alignItems: 'center', padding: 16,
+  },
+  card: {
+    backgroundColor: colors.surface, borderRadius: 16,
+    width: 340, maxWidth: '90%', overflow: 'hidden' as any,
+    ...modalCardAnimation,
+  },
+  header: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 20, paddingVertical: 14,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+  },
+  title: { fontSize: 14, fontWeight: '700', color: colors.surface },
+  close: { ...modalClose },
+  body: { padding: 24, gap: 18 } as any,
+  btnRow: { flexDirection: 'row', gap: 12, marginTop: 0 },
+  cancelBtn: {
+    flex: 1, borderRadius: 10, borderWidth: 1,
+    borderColor: (colors as any).secondary || '#e0e0e0',
+    paddingVertical: 12, alignItems: 'center',
+  },
+  cancelText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.textSub },
+  confirmBtn: {
+    flex: 1, backgroundColor: colors.primary, borderRadius: 10,
+    paddingVertical: 12, alignItems: 'center',
+  },
+  confirmText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.surface },
 });
