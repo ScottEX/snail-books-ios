@@ -508,7 +508,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       </ImageBackground>
       {/* Custom background — fades in over default (mirrors web's two-layer approach) */}
       {bgUrl ? (
-        <Animated.Image source={{ uri: bgUrl }} style={[styles.bgLayer, styles.bgCustom, { opacity: bgOpacity }]} resizeMode="cover" />
+        <Animated.Image source={{ uri: bgUrl }} style={[styles.bgLayer, { opacity: bgOpacity }]} resizeMode="cover" />
       ) : null}
       <View style={styles.bgOverlay} />
       <KeyboardAvoidingView
@@ -889,12 +889,11 @@ const GLASS_BORDER_STRONG = 'rgba(255,255,255,0.35)';
 const AVATAR_RING = 'rgba(255,255,255,0.25)';
 
 const getStyles = (colors: ThemeColors) => StyleSheet.create({
-  flex: { flex: 1 },
   container: { flex: 1 },
-  bgLayer: { position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0 },
-  bgCustom: { zIndex: 0 },
+  bgLayer: { position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 },
   bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.30)', zIndex: 1 },
-  content: { flex: 1, width: '100%', position: 'relative' as any, zIndex: 2 },
+  flex: { flex: 1, position: 'relative' as any, zIndex: 10 },
+  content: { flex: 1, width: '100%' },
   contentScroll: { padding: 20, paddingTop: 32, paddingBottom: 40, maxWidth: 380, width: '100%', alignSelf: 'center' },
   brand: { alignItems: 'center', marginBottom: 32 },
   logoWrap: {
