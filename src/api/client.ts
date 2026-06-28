@@ -489,10 +489,7 @@ export const api = {
   },
   getUserBackgroundUri: async (identifier: string): Promise<string | null> => {
     try {
-      let resp = await fetch(API_BASE + `/api/users/background?username=${encodeURIComponent(identifier)}`, { credentials: 'omit' as RequestCredentials });
-      if (!resp.ok && identifier.includes('@')) {
-        resp = await fetch(API_BASE + `/api/users/background?email=${encodeURIComponent(identifier)}`, { credentials: 'omit' as RequestCredentials });
-      }
+      const resp = await fetch(API_BASE + `/api/users/background?username=${encodeURIComponent(identifier)}`, { credentials: 'omit' as RequestCredentials });
       return await (api as any)._blobToDataUri(resp);
     } catch { return null; }
   },
