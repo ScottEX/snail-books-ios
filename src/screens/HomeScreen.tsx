@@ -224,23 +224,6 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     try { localStorage.setItem(opacityKey, String(v)); } catch {}
     api.saveBackgroundSettings({ opacity: v }).catch(() => {});
   };
-  const handleResetBg = async () => {
-    try { await api.resetBackground(); } catch {}
-    setTheme(DEFAULT_THEME_ID);
-    setBgImageUri(DEFAULT_BG);
-    setBgVersion((v) => v + 1);
-    setBgOpacity(0);
-    try { localStorage.removeItem('bg-image'); } catch {}
-    try {
-      const uid = getCurrentUserId();
-      localStorage.setItem(uid ? `bg-opacity-${uid}` : 'bg-opacity', '0');
-      api.saveBackgroundSettings({ opacity: 0 }).catch(() => {});
-    } catch {}
-    setShowBgModal(false);
-    if (typeof window !== 'undefined' && typeof (window as any).dispatchEvent === 'function') {
-      (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: DEFAULT_BG } }));
-    }
-  };
 
   // ── Modal state ──
   const [showBgModal, setShowBgModal] = useState(false);
@@ -710,7 +693,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           }
           setBgUploading(false);
         }}
-        onResetCover={handleResetBg}
+        onResetCover={() => setShowBgModal(false)}
         coverUploading={bgUploading}
       />
 

@@ -356,30 +356,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     }
   };
 
-  // ── Theme reset → resets theme + background. NOT cover, NOT opacity. ──
-  const handleThemeReset = async () => {
-    setUploadingCover(true);
-    try {
-      // 1. Reset theme to default
-      setTheme(DEFAULT_THEME_ID);
-      // 2. Reset background image
-      await api.resetBackground();
-      try { localStorage.removeItem('bg-image'); } catch {}
-      // Dispatch events so HomeScreen picks up the reset + closes its modal
-      if (typeof (window as any).dispatchEvent === 'function') {
-        (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: '' } }));
-        (window as any).dispatchEvent(new CustomEvent('theme-reset'));
-      }
-      // Fallback: localStorage flag (event may not work in RN)
-      try { localStorage.setItem('__theme_reset_ts', String(Date.now())); } catch {}
-      setShowThemeModal(false);
-    } catch (err: any) {
-      setToast(err?.message || t('uploadFailedShort'));
-    } finally {
-      setUploadingCover(false);
-    }
-  };
-
   // ── Signature ──
   const startEditingSignature = () => {
     setSignatureDraft(signature);
@@ -958,7 +934,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         coverOpacity={coverOpacity}
         onCoverOpacityChange={handleCoverOpacityChange}
         onCoverImagePicked={handleCoverImagePicked}
-        onResetCover={handleThemeReset}
+        onResetCover={() => setShowThemeModal(false)}
         coverUploading={uploadingCover}
       />
     </View>

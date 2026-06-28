@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
-import { useTheme, ThemeColors, withAlpha, FONTS } from '../theme';
+import { useTheme, ThemeColors, withAlpha, FONTS, DEFAULT_THEME_ID } from '../theme';
 import { t } from '../i18n';
+import { api } from '../api/client';
 
 import ThemePicker from './ThemePicker';
 import ThemeOpacitySlider from './ThemeOpacitySlider';
@@ -58,17 +59,47 @@ export default function ThemePickerModal({
   showCoverTools, coverOpacity, onCoverOpacityChange,
   onCoverImagePicked, onResetCover, coverUploading,
 }: ThemePickerModalProps) {
-  const { colors } = useTheme();
+  const { colors, setTheme } = useTheme();
   const styles = getStyles(colors);
   const fade = useRef(new Animated.Value(0)).current;
   const slide = useRef(new Animated.Value(-300)).current;
   const [show, setShow] = React.useState(false);
   const [showCrop, setShowCrop] = useState(false);
-  // imageSrc is the URI the user picked via the image picker. It is
-  // passed to BgCropModal. The image picker lives HERE so that clicking
-  // the "选择图片" button opens the system picker immediately.
   const [imageSrc, setImageSrc] = useState('');
   const [pickedFile, setPickedFile] = useState<any>(null);
+  const [resetting, setResetting] = useState(false);
+
+  // ── Shared "reset to default" logic ──
+  const handleResetDefault = async () => {
+    if (resetting) return;
+    setResetting(true);
+    try {
+      // 1. Reset theme
+      setTheme(DEFAULT_THEME_ID);
+      // 2. Reset background image
+      await api.resetBackground();
+      // 3. Reset opacity to 0 — both localStorage + API
+      try {
+        const { getCurrentUserId } = require('../utils/storage');
+        const uid = getCurrentUserId();
+        localStorage.setItem(uid ? `bg-opacity-${uid}` : 'bg-opacity', '0');
+        api.saveBackgroundSettings({ opacity: 0 }).catch(() => {});
+      } catch {}
+      try { localStorage.removeItem('bg-image'); } catch {}
+      // 4. Set localStorage flag for cross-screen sync
+      try { localStorage.setItem('__theme_reset_ts', String(Date.now())); } catch {}
+      // 5. Dispatch events
+      if (typeof (window as any).dispatchEvent === 'function') {
+        (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: '' } }));
+      }
+      // 6. Let caller close its modal
+      await onResetCover?.();
+    } finally {
+      setResetting(false);
+    }
+  };
+  // the "选择图片" button opens the system picker immediately.
+  // passed to BgCropModal. The image picker lives HERE so that clicking
 
   useEffect(() => {
     if (visible) {
@@ -165,8 +196,8 @@ export default function ThemePickerModal({
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.bgBtn, styles.bgBtnDanger]}
-                disabled={coverUploading}
-                onPress={onResetCover}
+                disabled={coverUploading || resetting}
+                onPress={handleResetDefault}
               >
                 <Text style={styles.bgBtnDangerText}>{t('resetDefault')}</Text>
               </TouchableOpacity>
