@@ -260,6 +260,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const [showProfile, setShowProfile] = useState(false);
   const [showUserMgmt, setShowUserMgmt] = useState(false);
   const [showUserDetail, setShowUserDetail] = useState<any | null>(null);
+  const goingToDetail = useRef(false);
   const [showInvoice, setShowInvoice] = useState<{ filterBatchId?: number | null } | null>(null);
   const [showProcurementDetail, setShowProcurementDetail] = useState<any | null>(null);
   const [showExpenseDetail, setShowExpenseDetail] = useState<any | null>(null);
@@ -492,11 +493,11 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
       <SlideScreen visible={!!showInvoice} onClose={() => setShowInvoice(null)}>
         {(onBack) => <InvoiceScreen onBack={onBack} filterBatchId={showInvoice?.filterBatchId ?? null} />}
       </SlideScreen>
-      <SlideScreen visible={showUserMgmt} onClose={() => { setShowUserMgmt(false); setShowProfile(true); }}>
+      <SlideScreen visible={showUserMgmt} onClose={() => { if (goingToDetail.current) return; setShowUserMgmt(false); setShowProfile(true); }}>
         {(onBack) => <UserManagementScreen
           key={userRefreshKey}
           onBack={onBack}
-          onSelectUser={(u) => { setShowUserMgmt(false); setTimeout(() => setShowUserDetail(u), 250); }}
+          onSelectUser={(u) => { goingToDetail.current = true; setShowUserMgmt(false); setTimeout(() => { setShowUserDetail(u); goingToDetail.current = false; }, 250); }}
         />}
       </SlideScreen>
       <SlideScreen visible={!!showUserDetail} onClose={() => { setShowUserDetail(null); setShowUserMgmt(true); }}>
