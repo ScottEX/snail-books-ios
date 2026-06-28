@@ -195,7 +195,6 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     if (typeof window !== 'undefined' && typeof (window as any).dispatchEvent === 'function') {
       (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: DEFAULT_BG } }));
     }
-    setToast(t('resetDefault') || '已恢复默认');
   };
 
   // ── Modal state ──

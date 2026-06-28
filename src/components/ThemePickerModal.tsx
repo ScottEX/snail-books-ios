@@ -163,6 +163,13 @@ export default function ThemePickerModal({
               >
                 <Text style={styles.bgBtnOutlineText}>{coverUploading ? t('uploading') : t('chooseImage')}</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.bgBtn, styles.bgBtnDanger]}
+                disabled={coverUploading}
+                onPress={onResetCover}
+              >
+                <Text style={styles.bgBtnDangerText}>{t('resetDefault')}</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
