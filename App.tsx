@@ -72,17 +72,20 @@ export default function App() {
     let lang = '';
     let rememberMe = '';
     let savedLogin = '';
+    let bgImage = '';
     let themeId = '';
     try {
       lang = localStorage.getItem('lang') || '';
       rememberMe = localStorage.getItem('remember_me') || '';
       savedLogin = localStorage.getItem('saved_login') || '';
+      bgImage = localStorage.getItem('bg-image') || '';
       const themeKey = (() => { try { const { getThemeKey } = require('./src/theme'); return getThemeKey(); } catch { return 'snail-books-theme'; } })();
       themeId = localStorage.getItem(themeKey) || '';
       localStorage.clear();
       if (lang) localStorage.setItem('lang', lang);
       if (rememberMe) localStorage.setItem('remember_me', rememberMe);
       if (savedLogin) localStorage.setItem('saved_login', savedLogin);
+      if (bgImage) localStorage.setItem('bg-image', bgImage);
       if (themeId) localStorage.setItem('snail-books-theme', themeId);
     } catch {}
     clearCredential().catch(() => {});
