@@ -604,13 +604,18 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
             </View>
             <Text style={st.iconLabel}>{t('language')}</Text>
             <View style={{ flexDirection: 'row' }}>
-              {(['zh-CN', 'zh-TW', 'en'] as const).map(l => (
+              {(['zh-CN', 'zh-TW', 'en'] as const).map(l => {
+                const active = getLang() === l;
+                return (
                 <TouchableOpacity key={l} onPress={() => setLang(l)}>
-                  <Text style={[st.langBtn, getLang() === l && st.langBtnActive]}>
-                    {l === 'zh-CN' ? '简' : l === 'zh-TW' ? '繁' : 'EN'}
-                  </Text>
+                  <View style={[st.langCapsule, active && st.langCapsuleActive]}>
+                    <Text style={[st.langBtn, active && st.langBtnActive]}>
+                      {l === 'zh-CN' ? '简' : l === 'zh-TW' ? '繁' : 'EN'}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
-              ))}
+                );
+              })}
             </View>
           </View>
           <Divider colors={colors} />
@@ -1061,8 +1066,10 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: withAlpha(colors.textMain, 0.05),
     paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
   },
-  langBtn: { fontSize: 13, fontWeight: FONTS.micro.weight, color: colors.textSub, paddingHorizontal: 8 },
-  langBtnActive: { color: colors.primary, fontWeight: FONTS.microBold.weight, backgroundColor: colors.card || 'rgba(128,128,128,0.12)', borderRadius: 8, overflow: 'hidden', paddingVertical: 2 },
+  langBtn: { fontSize: 13, fontWeight: FONTS.micro.weight, color: colors.textSub },
+  langBtnActive: { color: colors.primary, fontWeight: FONTS.microBold.weight },
+  langCapsule: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+  langCapsuleActive: { backgroundColor: withAlpha(colors.textMain, 0.08) },
   // Auth rows
   authRow: {
     flexDirection: 'column', paddingVertical: 14, paddingHorizontal: 0, gap: 10,
