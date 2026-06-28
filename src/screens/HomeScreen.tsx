@@ -496,7 +496,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         {(onBack) => <UserManagementScreen
           key={userRefreshKey}
           onBack={onBack}
-          onSelectUser={(u) => { setShowUserMgmt(false); setTimeout(() => setShowUserDetail(u), 250); }}
+          onSelectUser={(u) => { setTimeout(() => setShowUserDetail(u), 250); }}
         />}
       </SlideScreen>
       <SlideScreen visible={!!showUserDetail} onClose={() => setShowUserDetail(null)}>
