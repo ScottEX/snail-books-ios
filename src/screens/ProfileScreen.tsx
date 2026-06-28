@@ -368,7 +368,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     setSignature(draft);
     try {
       await api.saveSignature(draft);
-      setToast('签名已保存');
+      setToast(t('signatureSaved'));
     } catch (err: any) {
       setToast(err?.message || t('toastSubmitFailed'));
     }
@@ -378,14 +378,14 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const handleChangePw = async () => {
     if (pwLoading) return;
     setPwMsg('');
-    if (!oldPw || !newPw || !confirmPw) { setPwMsg('请填写完整'); return; }
-    if (newPw.length < 6) { setPwMsg('新密码至少 6 位'); return; }
-    if (newPw !== confirmPw) { setPwMsg('两次输入不一致'); return; }
+    if (!oldPw || !newPw || !confirmPw) { setPwMsg(t('errEmptyFields')); return; }
+    if (newPw.length < 6) { setPwMsg(t('errPwTooShort')); return; }
+    if (newPw !== confirmPw) { setPwMsg(t('errPwMismatch')); return; }
     setPwLoading(true);
     try {
       const r: any = await api.changePassword(oldPw, newPw);
       if (r?.status === 'ok' || r?.message) {
-        setToast(r?.message || '密码已修改');
+        setToast(r?.message || t('passwordChanged'));
         setShowPwModal(false);
         setOldPw(''); setNewPw(''); setConfirmPw('');
       } else {
@@ -402,7 +402,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const handleSendCode = async () => {
     if (emailLoading) return;
     setEmailMsg('');
-    if (!newEmail || !/^[^@]+@[^@]+\.[^@]+$/.test(newEmail)) { setEmailMsg('邮箱格式不正确'); return; }
+    if (!newEmail || !/^[^@]+@[^@]+\.[^@]+$/.test(newEmail)) { setEmailMsg(t('errEmailInvalid')); return; }
     setEmailLoading(true);
     try {
       const r: any = await api.sendEmailCode(newEmail);
@@ -422,13 +422,13 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const handleVerifyEmail = async () => {
     if (emailLoading) return;
     setEmailMsg('');
-    if (!emailCode) { setEmailMsg('请输入验证码'); return; }
+    if (!emailCode) { setEmailMsg(t('errEnterCode')); return; }
     setEmailLoading(true);
     try {
       const r: any = await api.verifyEmailCode(newEmail, emailCode);
       if (r?.status === 'ok') {
         setEmail(newEmail);
-        setToast(r?.message || '邮箱已更新');
+        setToast(r?.message || t('emailUpdated'));
         setShowEmailModal(false);
         setEmailStep('input');
         setNewEmail(''); setEmailCode('');
@@ -448,13 +448,13 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     setDeleteLoading(true);
     try {
       const rawUid = getCurrentUserId();
-      if (!rawUid) { setToast('无法获取用户信息'); setDeleteLoading(false); setShowDeleteModal(false); return; }
+      if (!rawUid) { setToast(t('errUserInfoUnavailable')); setDeleteLoading(false); setShowDeleteModal(false); return; }
       const data: any = await api.deleteAccount(Number(rawUid));
       setShowDeleteModal(false);
       setDeleteConfirmUsername('');
-      setToast(data?.message || '账户已进入冷静期');
+      setToast(data?.message || t('accountCooldown'));
     } catch (err: any) {
-      setToast(err?.message || '操作失败，请稍后重试');
+      setToast(err?.message || t('toastSubmitFailed'));
     } finally {
       setDeleteLoading(false);
     }
