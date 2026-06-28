@@ -498,13 +498,13 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           onBack={onBack}
           onSelectUser={async (u) => {
             if (!u.reviewed) {
-              try { await api.admin.markReviewed(u.id); setUserRefreshKey(k => k + 1); } catch {}
+              try { await api.admin.markReviewed(u.id); } catch {}
             }
             setTimeout(() => setShowUserDetail(u), 250);
           }}
         />}
       </SlideScreen>
-      <SlideScreen visible={!!showUserDetail} onClose={() => { setShowUserDetail(null); }} stackIndex={2}>
+      <SlideScreen visible={!!showUserDetail} onClose={() => { setShowUserDetail(null); setUserRefreshKey(k => k + 1); }} stackIndex={2}>
         {(onBack) => showUserDetail ? (
           <UserDetailScreen
             user={showUserDetail}
