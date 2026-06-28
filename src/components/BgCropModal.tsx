@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity, Image, StyleSheet, ActivityIndicator, useWindowDimensions, PanResponder } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { t } from '../i18n';
@@ -48,6 +49,7 @@ export default function BgCropModal({
   onConfirm, onUploaded, aspectRatio, title, confirmLabel, mode,
 }: BgCropModalProps) {
   const { width: WIN_W, height: WIN_H } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const isCover = mode === 'cover';
 
   // ── Internal crop state machine ──
@@ -114,6 +116,18 @@ export default function BgCropModal({
   const guideW = Math.min(WIN_W * 0.85, (WIN_H * 0.55) / aspect);
   const guideH = guideW * aspect;
 
+  // Drag clamping — ensures the crop guide stays within the image area
+  const clampDrag = () => {
+    const s = stateRef.current;
+    const halfImg = (guideW * 1.4 * s.scale) / 2;
+    const halfGW = guideW / 2;
+    const halfGH = guideH / 2;
+    const maxX = halfImg - halfGW;
+    const maxY = halfImg - halfGH;
+    if (maxX > 0) { s.tx = Math.max(-maxX, Math.min(maxX, s.tx)); } else { s.tx = 0; }
+    if (maxY > 0) { s.ty = Math.max(-maxY, Math.min(maxY, s.ty)); } else { s.ty = 0; }
+  };
+
   // PanResponder — drag only; pinch is approximated with double-tap-scale.
   const panResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => phase === 'cropping',
@@ -129,6 +143,7 @@ export default function BgCropModal({
       const s = stateRef.current;
       s.tx = s.startTx + gs.dx;
       s.ty = s.startTy + gs.dy;
+      clampDrag();
       setTx(s.tx);
       setTy(s.ty);
     },
@@ -140,7 +155,10 @@ export default function BgCropModal({
   const adjustScale = (delta: number) => {
     const s = stateRef.current;
     s.scale = Math.max(0.5, Math.min(3, s.scale + delta));
+    clampDrag();
     setScale(s.scale);
+    setTx(s.tx);
+    setTy(s.ty);
   };
 
   const cycleRotation = () => {
@@ -263,8 +281,8 @@ export default function BgCropModal({
   return (
     <View style={styles.overlay}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{title || t('editBg') || '裁剪背景'}</Text>
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+        <Text style={styles.headerTitle}>{title || (isCover ? t('coverCropTitle') : t('editBg'))}</Text>
         <TouchableOpacity onPress={close} style={styles.closeBtn}>
           <Svg width="14" height="14" viewBox="0 0 1088 1024">
             <Path d="M843.712 191.936l-6.08-5.568-5.184-3.84-5.696-3.328a67.712 67.712 0 0 0-80.448 11.264L520.768 416.064l-224.64-224.64-2.688-2.56c-27.968-24.32-68.224-24.256-92.672 0.128l-4.8 5.12-4.608 6.144-3.392 5.632a67.84 67.84 0 0 0 11.328 80.512L424.96 512l-227.2 227.328c-24.32 28.16-24.32 68.48 0 92.864l5.12 4.8 6.208 4.608 5.632 3.392c26.816 14.336 59.136 9.984 80.448-11.328l225.6-225.728 227.072 227.2c28.608 24.832 68.928 24 94.336-1.472l4.544-5.056 4.096-5.568a67.84 67.84 0 0 0-8.64-85.312L616.64 512.064l224.512-224.64 4.16-4.352c23.04-26.752 22.4-67.008-1.6-91.136z" fill="rgba(255,255,255,0.7)" />
@@ -316,12 +334,13 @@ export default function BgCropModal({
         {/* Preview phase (cover mode only) */}
         {phase === 'preview' && previewUri !== '' && (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}>
-            <View style={{ backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: 20, alignItems: 'center', width: '100%', maxWidth: 300 }}>
-              <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(75,181,132,0.2)', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
-                <Text style={{ fontSize: 16, color: '#4BB584' }}>✓</Text>
+            <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: 20, padding: 24, alignItems: 'center', width: '100%', maxWidth: 320 }}>
+              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(27,122,74,0.2)', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
+                <Text style={{ fontSize: 20, color: '#1B7A4A' }}>✓</Text>
               </View>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 12 }}>{t('coverPreview') || '封面预览'}</Text>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 12 }}>{t('coverUpdated')}</Text>
               <Image source={{ uri: previewUri }} style={{ width: 240, height: Math.round(240 * (260 / 375)), borderRadius: 4, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' }} resizeMode="cover" />
+              <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 10 }}>{t('coverHint')}</Text>
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 14, width: '100%' }}>
                 <TouchableOpacity
                   style={{ flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center' }}
@@ -394,7 +413,7 @@ export default function BgCropModal({
             <View style={styles.checkmark}>
               <Text style={styles.checkmarkText}>✓</Text>
             </View>
-            <Text style={styles.confirmText}>{confirmLabel || t('useThisBg') || '使用此图片'}</Text>
+            <Text style={styles.confirmText}>{confirmLabel || (isCover ? t('useThisCover') : t('useThisBg'))}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -412,7 +431,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(8,8,12,0.92)',
   },
   header: {
-    paddingTop: 10, paddingHorizontal: 16, paddingBottom: 8,
+    paddingHorizontal: 16, paddingBottom: 8,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
   headerTitle: { fontSize: 14, fontWeight: '600', color: '#fff', letterSpacing: -0.2 },
