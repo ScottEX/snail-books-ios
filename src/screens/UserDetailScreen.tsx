@@ -488,7 +488,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
 }
 
 const getStyles = (c: ThemeColors) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.bg },
+  container: { flex: 1 },
   backBtn: {
     width: 36, height: 36, borderRadius: 18,
     backgroundColor: 'rgba(0,0,0,0.25)',
@@ -497,7 +497,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   title: {
     flex: 1, fontSize: 15, fontWeight: '600', color: '#fff',
   },
-  body: { flex: 1 },
+  body: { flex: 1, backgroundColor: c.bg },
   avatarSection: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 16,
     paddingHorizontal: 20, paddingBottom: 20,
