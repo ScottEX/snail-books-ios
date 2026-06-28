@@ -227,8 +227,8 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
 
   return (
     <View style={s.container}>
-      {/* Status bar — dark backdrop, white text (matches ProfileScreen frozen navbar) */}
-      <BlurView intensity={20} tint="dark" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 36, zIndex: 100 }} />
+      {/* Status bar — dark backdrop, matches header */}
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 36, zIndex: 100, backgroundColor: 'rgba(0,0,0,0.7)' }} />
       <StatusBar barStyle="light-content" />
       {/* Header — dark semi-transparent, matches ProfileScreen frozen navbar */}
       <View style={[s.header, s.headerDark, { pointerEvents: 'box-none' as any }] as any}>
