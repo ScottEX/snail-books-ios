@@ -116,6 +116,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
   const [remark, setRemark] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [realName, setRealName] = useState('');
   const [toast, setToast] = useState('');
 
   const showToast = useCallback((msg: string) => {
@@ -133,6 +134,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       setRemark(d?.remark || '');
       setPhone(d?.phone || '');
       setEmail(d?.email || '');
+      setRealName(d?.real_name || '');
     } catch {
       showToast(t('toastLoadFailed'));
     }
@@ -318,30 +320,55 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
               </View>
               <View style={s.divider} />
               <View style={s.infoRow}>
+                <Text style={s.infoLabel}>{t('realName')}</Text>
+                {lang === 'zh-CN' ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end' }}>
+                    <TextInput
+                      style={s.editInput}
+                      value={realName}
+                      onChangeText={setRealName}
+                      onBlur={() => saveField('real_name', realName)}
+                      placeholder="—"
+                      placeholderTextColor={c.textSub}
+                    />
+                    <PencilSvg color={c.textSub} />
+                  </View>
+                ) : (
+                  <Text style={s.infoValue}>{realName || '—'}</Text>
+                )}
+              </View>
+              <View style={s.divider} />
+              <View style={s.infoRow}>
                 <Text style={s.infoLabel}>{t('phone')}</Text>
-                <TextInput
-                  style={s.editInput}
-                  value={phone}
-                  onChangeText={setPhone}
-                  onBlur={() => saveField('phone', phone)}
-                  placeholder="—"
-                  placeholderTextColor={c.textSub}
-                  keyboardType="phone-pad"
-                />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end' }}>
+                  <TextInput
+                    style={s.editInput}
+                    value={phone}
+                    onChangeText={setPhone}
+                    onBlur={() => saveField('phone', phone)}
+                    placeholder="—"
+                    placeholderTextColor={c.textSub}
+                    keyboardType="phone-pad"
+                  />
+                  <PencilSvg color={c.textSub} />
+                </View>
               </View>
               <View style={s.divider} />
               <View style={s.infoRow}>
                 <Text style={s.infoLabel}>{t('profileEmail')}</Text>
-                <TextInput
-                  style={s.editInput}
-                  value={email}
-                  onChangeText={setEmail}
-                  onBlur={() => saveField('email', email)}
-                  placeholder="—"
-                  placeholderTextColor={c.textSub}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end' }}>
+                  <TextInput
+                    style={s.editInput}
+                    value={email}
+                    onChangeText={setEmail}
+                    onBlur={() => saveField('email', email)}
+                    placeholder="—"
+                    placeholderTextColor={c.textSub}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                  <PencilSvg color={c.textSub} />
+                </View>
               </View>
               <View style={s.divider} />
               <View style={s.infoRow}>
@@ -353,15 +380,6 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
                 <Text style={s.infoLabel}>{t('lastLogin')}</Text>
                 <Text style={s.infoValue}>{fmtDate(detail.last_login)}</Text>
               </View>
-              {detail.signature ? (
-                <>
-                  <View style={s.divider} />
-                  <View style={[s.infoRow, { flexDirection: 'column', alignItems: 'flex-start', gap: 4 }]}>
-                    <Text style={s.infoLabel}>{getLang() === 'en' ? 'Signature' : '个性签名'}</Text>
-                    <Text style={[s.infoValue, { textAlign: 'left' }]}>{detail.signature}</Text>
-                  </View>
-                </>
-              ) : null}
             </View>
           </View>
 
