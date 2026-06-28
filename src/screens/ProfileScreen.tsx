@@ -361,7 +361,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     api.saveBackgroundSettings({ opacity: v }).catch(() => {});
   };
 
-  // ── Cover image picked (from ThemePickerModal's BgCropModal) ──
+  // ── Cover image picked (from standalone BgCropModal mode="cover") ──
   const handleCoverImagePicked = async (file: any) => {
     setUploadingCover(true);
     try {
@@ -373,6 +373,30 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       }
     } catch (err: any) {
       setToast(err?.message || t('uploadFailedShort'));
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  // ── Background image picked (from ThemePickerModal) ──
+  // ThemePickerModal is shared between HomeScreen and ProfileScreen for
+  // background image settings. This handler uploads to the BACKGROUND
+  // endpoint (not cover), matching HomeScreen's behaviour.
+  const handleBackgroundImagePicked = async (file: any) => {
+    setUploadingCover(true);
+    try {
+      const r: any = await api.uploadBackground(file);
+      if (r?.url) {
+        const resolved = resolveAssetUrl(r.url) || r.url;
+        try { localStorage.setItem('bg-image', resolved); } catch {}
+        if (typeof window !== 'undefined' && typeof (window as any).dispatchEvent === 'function') {
+          (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: resolved } }));
+        }
+      } else {
+        setToast(t('toastSubmitFailed'));
+      }
+    } catch {
+      setToast(t('toastSubmitFailed'));
     } finally {
       setUploadingCover(false);
     }
@@ -955,7 +979,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         showCoverTools
         coverOpacity={bgOpacity}
         onCoverOpacityChange={handleBgOpacityChange}
-        onCoverImagePicked={handleCoverImagePicked}
+        onCoverImagePicked={handleBackgroundImagePicked}
         onResetCover={() => setShowThemeModal(false)}
         coverUploading={uploadingCover}
       />
