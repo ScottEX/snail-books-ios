@@ -212,7 +212,12 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     try {
       const uid = getCurrentUserId();
       const saved = localStorage.getItem(uid ? `cover-opacity-${uid}` : 'cover-opacity');
-      if (saved !== null) setCoverOpacity(parseFloat(saved));
+      if (saved !== null) {
+        const v = parseFloat(saved);
+        // If saved opacity is ~0 but a cover exists, override to 1
+        // (stale "0" from old reset behavior — cover should be visible)
+        setCoverOpacity(v <= 0.05 ? 1 : v);
+      }
     } catch {}
   };
 
