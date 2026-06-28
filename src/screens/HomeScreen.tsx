@@ -182,12 +182,19 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
       };
     }
     // If no window events available, poll the flag
+    let lastTs = 0;
     pollTimer = setInterval(() => {
       try {
         const ts = localStorage.getItem('__theme_reset_ts');
-        if (ts && (Date.now() - parseInt(ts, 10) < 30000)) {
-          setShowBgModal(false);
-          localStorage.removeItem('__theme_reset_ts');
+        if (ts) {
+          const t = parseInt(ts, 10);
+          if (t !== lastTs && (Date.now() - t < 30000)) {
+            lastTs = t;
+            setShowBgModal(false);
+            setBgImageUri(DEFAULT_BG);
+            setBgVersion((v) => v + 1);
+            localStorage.removeItem('__theme_reset_ts');
+          }
         }
       } catch {}
     }, 2000);
