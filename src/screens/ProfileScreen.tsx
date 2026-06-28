@@ -219,6 +219,15 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         setCoverOpacity(v <= 0.05 ? 1 : v);
       }
     } catch {}
+    // Also load opacity from server (source of truth shared with web)
+    try {
+      const bg: any = await api.getBackground();
+      if (bg?.opacity !== null && bg?.opacity !== undefined) {
+        setCoverOpacity(bg.opacity);
+        const uid = getCurrentUserId();
+        localStorage.setItem(uid ? `cover-opacity-${uid}` : 'cover-opacity', String(bg.opacity));
+      }
+    } catch {}
   };
 
   const loadUserInfo = async () => {
@@ -369,6 +378,8 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: '' } }));
         (window as any).dispatchEvent(new CustomEvent('theme-reset'));
       }
+      // Fallback: localStorage flag (event may not work in RN)
+      try { localStorage.setItem('__theme_reset_ts', String(Date.now())); } catch {}
       setShowThemeModal(false);
     } catch (err: any) {
       setToast(err?.message || t('uploadFailedShort'));

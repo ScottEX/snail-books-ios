@@ -163,6 +163,15 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
       }
     };
     const onThemeReset = () => setShowBgModal(false);
+    // Also poll localStorage flag (fallback when window events don't fire in RN)
+    let pollTimer: any = null;
+    try {
+      const lastReset = localStorage.getItem('__theme_reset_ts');
+      if (lastReset && (Date.now() - parseInt(lastReset, 10) < 30000)) {
+        setShowBgModal(false);
+        localStorage.removeItem('__theme_reset_ts');
+      }
+    } catch {}
     const w: any = typeof window !== 'undefined' ? window : undefined;
     if (w && typeof w.addEventListener === 'function') {
       w.addEventListener('bg-changed', onBgChanged);
@@ -172,6 +181,17 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         w.removeEventListener('theme-reset', onThemeReset);
       };
     }
+    // If no window events available, poll the flag
+    pollTimer = setInterval(() => {
+      try {
+        const ts = localStorage.getItem('__theme_reset_ts');
+        if (ts && (Date.now() - parseInt(ts, 10) < 30000)) {
+          setShowBgModal(false);
+          localStorage.removeItem('__theme_reset_ts');
+        }
+      } catch {}
+    }, 2000);
+    return () => { if (pollTimer) clearInterval(pollTimer); };
     return undefined;
   }, []);
   const [bgOpacity, setBgOpacity] = useState<number>(() => {
