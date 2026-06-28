@@ -1062,7 +1062,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
   },
   langBtn: { fontSize: 13, fontWeight: FONTS.micro.weight, color: colors.textSub, paddingHorizontal: 8 },
-  langBtnActive: { color: colors.primary, fontWeight: FONTS.microBold.weight },
+  langBtnActive: { color: colors.primary, fontWeight: FONTS.microBold.weight, backgroundColor: colors.card || 'rgba(128,128,128,0.12)', borderRadius: 8, overflow: 'hidden', paddingVertical: 2 },
   // Auth rows
   authRow: {
     flexDirection: 'column', paddingVertical: 14, paddingHorizontal: 0, gap: 10,
