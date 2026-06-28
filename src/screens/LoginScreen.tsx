@@ -226,8 +226,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   };
 
   const goRegister = () => {
-    setStep('register'); reset();
-    setUsername('');
+    setStep('register');
   };
 
   const validatePassword = (pw: string): string => {
@@ -763,9 +762,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   </View>
                 </View>
                 <SubmitButton onPress={handleRegister} loading={loading} label={t('registerBtn')} style={styles.btnDark} textStyle={styles.btnDarkText} />
-                <TouchableOpacity onPress={goLogin}>
-                  <Text style={styles.forgotText}>{t('backToLogin')}</Text>
-                </TouchableOpacity>
               </View>
             )}
 
