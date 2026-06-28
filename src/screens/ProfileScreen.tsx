@@ -389,6 +389,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       if (r?.url) {
         const resolved = resolveAssetUrl(r.url) || r.url;
         try { localStorage.setItem('bg-image', resolved); } catch {}
+        try { localStorage.setItem('__bg_changed_ts', String(Date.now())); } catch {}
         if (typeof window !== 'undefined' && typeof (window as any).dispatchEvent === 'function') {
           (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: resolved } }));
         }

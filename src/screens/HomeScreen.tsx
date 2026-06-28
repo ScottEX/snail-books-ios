@@ -176,13 +176,10 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     if (w && typeof w.addEventListener === 'function') {
       w.addEventListener('bg-changed', onBgChanged);
       w.addEventListener('theme-reset', onThemeReset);
-      return () => {
-        w.removeEventListener('bg-changed', onBgChanged);
-        w.removeEventListener('theme-reset', onThemeReset);
-      };
     }
-    // If no window events available, poll the flag
+    // Always poll localStorage flags as fallback (window events are unreliable in RN)
     let lastTs = 0;
+    let lastBgTs = 0;
     pollTimer = setInterval(() => {
       try {
         const ts = localStorage.getItem('__theme_reset_ts');
@@ -202,9 +199,30 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             } catch {}
           }
         }
+        // Poll for background image changes from other screens (ProfileScreen)
+        const bgTs = localStorage.getItem('__bg_changed_ts');
+        if (bgTs) {
+          const bt = parseInt(bgTs, 10);
+          if (bt !== lastBgTs && (Date.now() - bt < 30000)) {
+            lastBgTs = bt;
+            const cached = localStorage.getItem('bg-image');
+            if (cached) {
+              const resolved = resolveAssetUrl(cached) || DEFAULT_BG;
+              setBgImageUri(resolved);
+              setBgVersion((v) => v + 1);
+            }
+            localStorage.removeItem('__bg_changed_ts');
+          }
+        }
       } catch {}
     }, 2000);
-    return () => { if (pollTimer) clearInterval(pollTimer); };
+    return () => {
+      if (w && typeof w.removeEventListener === 'function') {
+        w.removeEventListener('bg-changed', onBgChanged);
+        w.removeEventListener('theme-reset', onThemeReset);
+      }
+      if (pollTimer) clearInterval(pollTimer);
+    };
   }, []);
   const [bgOpacity, setBgOpacity] = useState<number>(() => {
     try {
