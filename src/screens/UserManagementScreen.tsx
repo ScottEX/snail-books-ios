@@ -227,11 +227,11 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
 
   return (
     <View style={s.container}>
-      {/* Status bar backdrop — white, no gray */}
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 36, zIndex: 99, backgroundColor: '#fff' }} />
+      {/* Status bar — transparent, inherits from behind */}
       <StatusBar barStyle="dark-content" />
-      {/* Header — white background, transparent glass */}
-      <View style={[s.header, { backgroundColor: '#fff', pointerEvents: 'box-none' as any }] as any}>
+      {/* Header — BlurView glass, matches web backdropFilter */}
+      <View style={[s.header, { pointerEvents: 'box-none' as any }] as any}>
+        <BlurView intensity={30} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
           <View style={s.backBtn}>
             <BackArrowSvg color="#000" />
@@ -468,7 +468,7 @@ export default function UserManagementScreen({ onBack, onSelectUser }: Props) {
 const getStyles = (c: ThemeColors) => {
   const hdr = historyHeader(c);
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: c.bg },
+    container: { flex: 1 },
     ...hdr as any,
     title: { ...hdr.title, color: c.textMain },
     body: {
