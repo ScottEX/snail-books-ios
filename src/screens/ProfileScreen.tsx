@@ -197,7 +197,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const headerOpacity = scrollY > 220 ? Math.min(1, (scrollY - 220) / 40) : 0;
   // Pull-down stretch + blur
   const pullDown = Math.max(0, -scrollY);
-  const coverHeight = 220 + pullDown;
   const blurIntensity = Math.min(pullDown / 3, 18);
 
   const username = useMemo(() => {
@@ -544,9 +543,21 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
         scrollEventThrottle={16}>
         {/* ── Cover ── */}
-        <TouchableOpacity style={[st.coverWrap, { height: coverHeight }]} onPress={handleCoverPress} activeOpacity={0.9} disabled={uploadingCover}>
+        <TouchableOpacity style={st.coverWrap} onPress={handleCoverPress} activeOpacity={0.9} disabled={uploadingCover}>
           {coverUrl ? (
-            <Image source={{ uri: coverUrl }} style={[st.coverImg, { opacity: coverOpacity }]} />
+            <Image
+              source={{ uri: coverUrl }}
+              style={[
+                st.coverImg,
+                { opacity: coverOpacity },
+                pullDown > 0 && {
+                  transform: [
+                    { translateY: pullDown / 2 },
+                    { scaleY: 1 + pullDown / 220 },
+                  ],
+                },
+              ]}
+            />
           ) : (
             <View style={st.coverGradient}>
               <Svg width="100%" height="100%" viewBox="0 0 360 260" preserveAspectRatio="none">
