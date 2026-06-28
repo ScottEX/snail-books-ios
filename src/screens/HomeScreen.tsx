@@ -90,18 +90,18 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   // doesn't trigger session_expired.
   const [avatarUrl, setAvatarUrl] = useState<string>('');
   const avatarReqId = useRef(0);
-  useEffect(() => {
+  const loadAvatar = useCallback(() => {
     const id = (usr || '').trim();
     if (!id) { setAvatarUrl(''); return; }
     const reqId = ++avatarReqId.current;
-    const timer = setTimeout(async () => {
+    setTimeout(async () => {
       try {
         const url = await api.getUserAvatarByLoginUri(id);
         if (reqId === avatarReqId.current && url) setAvatarUrl(url);
       } catch {}
     }, 300);
-    return () => { clearTimeout(timer); };
   }, [usr]);
+  useEffect(() => { loadAvatar(); }, [loadAvatar]);
 
   // ── Background image (mirrors web's two-layer approach) ──
   // The default bg.jpg is ALWAYS rendered in the base layer so the
@@ -437,6 +437,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           <ProfileScreen
             onBack={onBack}
             onLogout={onLogout}
+            onAvatarChange={loadAvatar}
             onManageUsers={() => { setTimeout(() => setShowUserMgmt(true), 250); }}
           />
         )}
