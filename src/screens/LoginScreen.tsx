@@ -466,17 +466,18 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   const handleReset = async () => {
     if (loading) return;
-    if (!code || !password) { setMsg(t('errEmptyFields')); triggerShake(); return; }
+    if (!code || !password) { setMsgOk(false); setMsg(t('errEmptyFields')); triggerShake(); return; }
     const pwErr = validatePassword(password);
-    if (pwErr) { setMsg(pwErr); triggerShake(); return; }
+    if (pwErr) { setMsgOk(false); setMsg(pwErr); triggerShake(); return; }
     setLoading(true);
     try {
       const r = await api.resetPassword(email, code, password);
       setLoading(false);
       if (r.status === 'ok') { setMsgOk(true); setMsg(t('msgResetOk')); setStep('login'); }
-      else { setMsg(r.message); triggerShake(); }
+      else { setMsgOk(false); setMsg(r.message); triggerShake(); }
     } catch (e: any) {
       setLoading(false);
+      setMsgOk(false);
       setMsg(e?.message || t('errNetworkError') || '网络错误，请检查网络后重试');
     }
   };
