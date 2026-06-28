@@ -842,7 +842,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                   loading={pwLoading}
                   disabled={!oldPw || !newPw || !confirmPw || !isPwValid(newPw)}
                   label={t('confirm')}
-                  style={mo.confirmBtn}
+                  style={[mo.confirmBtn, (!oldPw || !newPw || !confirmPw || !isPwValid(newPw)) && { opacity: 0.4 }]}
                   textStyle={mo.confirmText}
                 />
               </View>
@@ -882,7 +882,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                       loading={emailLoading}
                       disabled={!newEmail || !isEmailValid(newEmail)}
                       label={t('sendCode')}
-                      style={mo.confirmBtn}
+                      style={[mo.confirmBtn, (!newEmail || !isEmailValid(newEmail)) && { opacity: 0.4 }]}
                       textStyle={mo.confirmText}
                     />
                   </View>
