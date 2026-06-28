@@ -227,7 +227,10 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     try { await api.resetBackground(); } catch {}
     setBgImageUri(DEFAULT_BG);
     setBgVersion((v) => v + 1);
+    setBgOpacity(0);
     try { localStorage.removeItem('bg-image'); } catch {}
+    try { api.saveBackgroundSettings({ opacity: 0 }).catch(() => {}); } catch {}
+    setShowBgModal(false);
     if (typeof window !== 'undefined' && typeof (window as any).dispatchEvent === 'function') {
       (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: DEFAULT_BG } }));
     }
