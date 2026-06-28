@@ -1,5 +1,6 @@
 import { View, Text, TouchableOpacity, Image, StyleSheet, ActivityIndicator, useWindowDimensions, PanResponder } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import LoadingSpinner from './LoadingSpinner';
 import Svg, { Path } from 'react-native-svg';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { t } from '../i18n';
@@ -66,6 +67,7 @@ export default function BgCropModal({
   // Refs to live gesture state (so PanResponder sees fresh values without rerenders)
   const stateRef = useRef({
     scale: 1,
+    minScale: 0.5,
     rotation: 0,
     tx: 0,
     ty: 0,
@@ -96,13 +98,16 @@ export default function BgCropModal({
     Image.getSize(imageSrc, (imgW, imgH) => {
       const sw = guideW / imgW;
       const sh = guideH / imgH;
-      const fitScale = Math.max(sw, sh, 0.5) * 1.05;
+      const minFit = Math.max(sw, sh, 0.5);
+      const fitScale = minFit * 1.05;
       const clamped = Math.max(0.5, Math.min(3, fitScale));
       setScale(clamped);
       stateRef.current.scale = clamped;
+      stateRef.current.minScale = minFit;
     }, () => {
       setScale(1);
       stateRef.current.scale = 1;
+      stateRef.current.minScale = 0.5;
     });
   }, [imageSrc]);
 
@@ -166,7 +171,7 @@ export default function BgCropModal({
 
   const adjustScale = (delta: number) => {
     const s = stateRef.current;
-    s.scale = Math.max(0.5, Math.min(3, s.scale + delta));
+    s.scale = Math.max(s.minScale, Math.min(3, s.scale + delta));
     clampDrag();
     setScale(s.scale);
     setTx(s.tx);
@@ -428,7 +433,9 @@ export default function BgCropModal({
             disabled={!src || isProcessing}
           >
             {isProcessing ? (
-              <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />
+              <View style={{ marginRight: 6 }}>
+                <LoadingSpinner label={false} size={20} color="#fff" />
+              </View>
             ) : (
               <View style={styles.checkmark}>
                 <Text style={styles.checkmarkText}>✓</Text>
