@@ -543,7 +543,12 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
         scrollEventThrottle={16}>
         {/* ── Cover ── */}
-        <TouchableOpacity style={st.coverWrap} onPress={handleCoverPress} activeOpacity={0.9} disabled={uploadingCover}>
+        <TouchableOpacity
+          style={[
+            st.coverWrap,
+            pullDown > 0 && { transform: [{ translateY: -pullDown }] },
+          ]}
+          onPress={handleCoverPress} activeOpacity={0.9} disabled={uploadingCover}>
           {coverUrl ? (
             <Image
               source={{ uri: coverUrl }}
