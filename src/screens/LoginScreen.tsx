@@ -38,6 +38,15 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     try { return localStorage.getItem('bg-image') || ''; } catch { return ''; }
   });
   const [avatarUrl, setAvatarUrl] = useState<string>('');
+  // Ready states control when custom bg/avatar fade in — mirrors web's
+  // bgReady/avatarReady pattern so the transition is smooth (opacity
+  // animation) rather than a jarring source swap.
+  const [bgReady, setBgReady] = useState(() => {
+    try { return !!localStorage.getItem('bg-image'); } catch { return false; }
+  });
+  const [avatarReady, setAvatarReady] = useState(false);
+  const bgOpacity = useRef(new Animated.Value(bgUrl ? 1 : 0)).current;
+  const avatarOpacity = useRef(new Animated.Value(0)).current;
   // Use the LangProvider hook so the lang state and t() output stay
   // in sync within a single React render — using the legacy setLang
   // here updates globalThis.curLang synchronously but doesn't trigger
@@ -85,6 +94,15 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     if (remember) localStorage.setItem('remember_me', '1');
     else localStorage.removeItem('remember_me');
   }, [remember]);
+
+  // Animate custom background / avatar opacity when ready states change.
+  // Mirrors web's CSS transition: opacity 0.5s ease, filter blur.
+  useEffect(() => {
+    Animated.timing(bgOpacity, { toValue: bgReady && bgUrl ? 1 : 0, duration: 500, useNativeDriver: true }).start();
+  }, [bgReady, bgUrl]);
+  useEffect(() => {
+    Animated.timing(avatarOpacity, { toValue: avatarReady && avatarUrl ? 1 : 0, duration: 500, useNativeDriver: true }).start();
+  }, [avatarReady, avatarUrl]);
 
   // WebAuthn bootstrap on mount. Mirrors web LoginScreen L117-165:
   // read the cached bound state synchronously, then refresh from
@@ -147,31 +165,28 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   // short-circuit when the input is empty or just whitespace, and we
   // drop the response if the user has since continued typing (race-safe).
   const userReqId = useRef(0);
-  const bgFromCache = useRef(!!bgUrl); // true if bg came from localStorage cache
   useEffect(() => {
     const id = username.trim();
     if (!id) {
-      setAvatarUrl('');
-      // Don't clear bgUrl here — localStorage's cached bg (or the
-      // default bundled bg) should remain until we know the user
-      // explicitly wants no bg. Matches web.
+      setAvatarUrl(''); setAvatarReady(false);
+      // Don't clear bgUrl/bgReady — cached bg should stay visible. Matches web.
       return;
     }
+    // Don't reset bgReady — keep cached background visible while API refreshes
+    setAvatarReady(false);
     const reqId = ++userReqId.current;
     const timer = setTimeout(async () => {
       const [avatar, bg] = await Promise.all([
         api.getUserAvatarByLoginUri(id).catch(() => null),
         api.getUserBackgroundUri(id).catch(() => null),
       ]);
-      if (reqId !== userReqId.current) return; // a newer request superseded us
-      if (avatar) setAvatarUrl(avatar);
+      if (reqId !== userReqId.current) return;
+      if (avatar) { setAvatarUrl(avatar); setAvatarReady(true); }
+      else setAvatarReady(true); // no avatar — still mark ready
       if (bg) {
-        // If bg was already set from localStorage cache, don't replace
-        // it with a fresh data URI — the string changes (same image,
-        // different blob→dataURI) and causes ImageBackground to flash.
-        if (!bgFromCache.current) setBgUrl(bg);
+        setBgUrl(bg); setBgReady(true);
         try { localStorage.setItem('bg-image', bg); } catch {}
-      }
+      } else { setBgReady(true); }
     }, 400);
     return () => { clearTimeout(timer); };
   }, [username]);
@@ -484,14 +499,17 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   const styles = useMemo(() => getStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
-  // Memoize the image sources so lang-switch re-renders don't produce a
-  // fresh {uri: ...} object literal each render — RN's Image sees that
-  // as a source change and reloads the image, which looks like a flash.
-  const bgSource = useMemo(() => bgUrl ? { uri: bgUrl } : BG_IMAGE, [bgUrl]);
-  const avatarSource = useMemo(() => avatarUrl ? { uri: avatarUrl } : LOGO_IMAGE, [avatarUrl]);
 
   return (
-    <ImageBackground source={bgSource} style={styles.container} resizeMode="cover">
+    <View style={styles.container}>
+      {/* Default background — always visible */}
+      <ImageBackground source={BG_IMAGE} style={styles.bgLayer} resizeMode="cover">
+        <View style={styles.bgOverlay} />
+      </ImageBackground>
+      {/* Custom background — fades in over default (mirrors web's two-layer approach) */}
+      {bgUrl ? (
+        <Animated.Image source={{ uri: bgUrl }} style={[styles.bgLayer, styles.bgCustom, { opacity: bgOpacity }]} resizeMode="cover" />
+      ) : null}
       <View style={styles.bgOverlay} />
       <KeyboardAvoidingView
         style={styles.flex}
@@ -506,7 +524,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
           {/* Brand */}
           <View style={styles.brand}>
             <View style={styles.logoWrap}>
-              <Image source={avatarSource} style={{ width: 80, height: 80, borderRadius: 40 }} resizeMode="cover" />
+              <Image source={LOGO_IMAGE} style={{ width: 80, height: 80, borderRadius: 40 }} resizeMode="cover" />
+              {avatarUrl ? (
+                <Animated.Image source={{ uri: avatarUrl }} style={[styles.logoOver, { opacity: avatarOpacity }]} resizeMode="cover" />
+              ) : null}
             </View>
             <Text style={styles.subtitle}>{t('subtitle')}</Text>
             <View style={styles.langRow}>
@@ -851,7 +872,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </ImageBackground>
+    </View>
   );
 }
 
@@ -870,14 +891,17 @@ const AVATAR_RING = 'rgba(255,255,255,0.25)';
 const getStyles = (colors: ThemeColors) => StyleSheet.create({
   flex: { flex: 1 },
   container: { flex: 1 },
-  bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.30)' },
-  content: { flex: 1, width: '100%' },
+  bgLayer: { position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0 },
+  bgCustom: { zIndex: 0 },
+  bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.30)', zIndex: 1 },
+  content: { flex: 1, width: '100%', position: 'relative' as any, zIndex: 2 },
   contentScroll: { padding: 20, paddingTop: 32, paddingBottom: 40, maxWidth: 380, width: '100%', alignSelf: 'center' },
   brand: { alignItems: 'center', marginBottom: 32 },
   logoWrap: {
     width: 80, height: 80, borderRadius: 40, overflow: 'hidden', marginBottom: 20,
     backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 2, borderColor: AVATAR_RING,
   },
+  logoOver: { position: 'absolute' as any, top: 0, left: 0, width: 80, height: 80, borderRadius: 40 },
   subtitle: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.7)', marginTop: 6, letterSpacing: 1 },
   langRow: { flexDirection: 'row', gap: 4, marginTop: 12 },
   langBtn: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.4)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
