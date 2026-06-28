@@ -6,7 +6,7 @@ import {
 import Svg, { Path, Defs, LinearGradient as SVGGradient, Stop, Rect } from 'react-native-svg';
 import { t, getLang, langs, useLang } from '../i18n';
 import { api, resolveAssetUrl } from '../api/client';
-import { useTheme, withAlpha, ThemeColors } from '../theme';
+import { useTheme, withAlpha, ThemeColors, DEFAULT_THEME_ID } from '../theme';
 import { FONTS } from '../theme';
 import Toast from '../components/Toast';
 import BackArrow from '../components/icons/BackArrow';
@@ -348,8 +348,18 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const handleCoverReset = async () => {
     setUploadingCover(true);
     try {
+      // 1. Reset theme to default
+      setTheme(DEFAULT_THEME_ID);
+      // 2. Reset opacity to 100%
+      setCoverOpacity(1);
+      try { localStorage.setItem('cover-opacity', '1'); } catch {}
+      // 3. Reset background image
       await api.resetBackground();
       try { localStorage.removeItem('bg-image'); } catch {}
+      setCoverUrl('');
+      // 4. Reset profile cover (avatar area)
+      await api.resetProfileCover();
+      setAvatarUrl('');
       setShowThemeModal(false);
     } catch (err: any) {
       setToast(err?.message || t('uploadFailedShort'));
