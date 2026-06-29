@@ -864,9 +864,9 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               </TouchableOpacity>
             </View>
             <View style={mo.body}>
-            <Text style={mo.warnMsg}>
-                {t('adminCannotDelete')}
-              </Text>
+            <View style={mo.warnBox}>
+                <Text style={mo.warnMsg}>{t('adminCannotDelete')}</Text>
+              </View>
               <TouchableOpacity
                 style={{ backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 12, alignItems: 'center' }}
                 onPress={() => setShowAdminBlockModal(false)}
@@ -887,9 +887,9 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               </TouchableOpacity>
             </View>
             <View style={mo.body}>
-              <Text style={mo.warnMsg}>
-                {t('err_partner_cannot_delete')}
-              </Text>
+              <View style={mo.warnBox}>
+                <Text style={mo.warnMsg}>{t('err_partner_cannot_delete')}</Text>
+              </View>
               <TouchableOpacity
                 style={{ backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 12, alignItems: 'center' }}
                 onPress={() => setShowPartnerBlockModal(false)}
@@ -1266,10 +1266,12 @@ const getMo = (colors: ThemeColors) => StyleSheet.create({
   },
   pwHint: { fontSize: FONTS.micro.size, color: colors.textSub, lineHeight: 18 },
   err: { fontSize: FONTS.micro.size, color: colors.danger },
-  warnMsg: {
-    fontSize: FONTS.micro.size, color: colors.textSub, textAlign: 'center', lineHeight: 22,
+  warnBox: {
     backgroundColor: withAlpha(colors.primary, 0.1), borderRadius: 12, padding: 12,
     marginBottom: 16,
+  },
+  warnMsg: {
+    fontSize: FONTS.micro.size, color: colors.textSub, textAlign: 'center', lineHeight: 22,
   },
   btnRow: { flexDirection: 'row', gap: 12, marginTop: 0 },
   cancelBtn: {
