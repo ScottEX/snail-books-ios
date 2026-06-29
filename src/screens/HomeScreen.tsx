@@ -192,11 +192,11 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             setShowBgModal(false);
             setBgImageUri(DEFAULT_BG);
             setBgVersion((v) => v + 1);
-            setBgOpacity(0);
+            setBgOpacity(1);
             try {
               const uid = getCurrentUserId();
-              localStorage.setItem(uid ? `bg-opacity-${uid}` : 'bg-opacity', '0');
-              api.saveBackgroundSettings({ opacity: 0 }).catch(() => {});
+              localStorage.setItem(uid ? `bg-opacity-${uid}` : 'bg-opacity', '1');
+              api.saveBackgroundSettings({ opacity: 1 }).catch(() => {});
               localStorage.removeItem('__theme_reset_ts');
             } catch {}
           }
@@ -231,8 +231,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
       const uid = getCurrentUserId();
       const key = uid ? `bg-opacity-${uid}` : 'bg-opacity';
       const s = localStorage.getItem(key);
-      return s !== null ? parseFloat(s) : 0.5;
-    } catch { return 0.5; }
+      return s !== null ? parseFloat(s) : 1;
+    } catch { return 1; }
   });
   // Web's headerColor: when the bg image is fully opaque the text
   // sits on the image alone → white. When the bg has any transparency
@@ -305,8 +305,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const [revTurnover, setRevTurnover] = useState('');
   const [revJD, setRevJD] = useState('');
   const [revNote, setRevNote] = useState('');
-  const [revYear] = useState(new Date().getFullYear());
-  const [revMonth] = useState(new Date().getMonth() + 1);
+  const revYear = sd.year;
+  const revMonth = sd.month;
   const [revSaving, setRevSaving] = useState(false);
   const [editingRevId, setEditingRevId] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -383,8 +383,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   useEffect(() => { loadLast7(); loadYesterday(); loadWeekTotals(); loadBusinessSummary(); }, [loadLast7, loadYesterday, loadWeekTotals, loadBusinessSummary]);
 
   useEffect(() => {
-    if (tab === 'list') { loadYesterday(); loadWeekTotals(); }
-  }, [tab, loadYesterday, loadWeekTotals]);
+    if (tab === 'list') { loadLast7(); loadYesterday(); loadWeekTotals(); }
+  }, [tab, loadLast7, loadYesterday, loadWeekTotals]);
 
   useEffect(() => {
     if (tab === 'chart') { loadChartMonthly(); loadBusinessSummary(); }
@@ -400,38 +400,49 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
 
   // ── Daily revenue submit ──
   const submitDailyRev = async () => {
-    if (!revTurnover || parseFloat(revTurnover) <= 0) { setToast(t('revTurnover') + ' 不能为空'); return; }
+    const isClosed = revMarkedClosed;
+    if (!isClosed && (!revTurnover || parseFloat(revTurnover) <= 0)) {
+      setToast(t('revTurnover') + ' 不能为空');
+      return;
+    }
     setRevSaving(true);
     try {
-      const payload = {
-        date: revDate,
-        revenue: parseFloat(revRevenue) || 0,
-        turnover: parseFloat(revTurnover) || 0,
-        jd_revenue: parseFloat(revJD) || 0,
-        note: revNote,
-        archived: revMarkedClosed ? 1 : 0,
-      };
       if (editingRevId) {
-        await api.updateDailyRevenue(editingRevId, payload);
+        await api.updateDailyRevenue(editingRevId, {
+          revenue: parseFloat(revRevenue) || 0,
+          turnover: parseFloat(revTurnover) || 0,
+          jd_revenue: parseFloat(revJD) || 0,
+          note: revNote,
+          archived: revMarkedClosed ? 1 : 0,
+        });
       } else {
-        await api.createDailyRevenue(payload);
+        const r = await api.createDailyRevenue({
+          date: revDate,
+          revenue: parseFloat(revRevenue) || 0,
+          turnover: parseFloat(revTurnover) || 0,
+          jd_revenue: parseFloat(revJD) || 0,
+          note: revNote,
+          archived: revMarkedClosed ? 1 : 0,
+        });
+        if (r?.status === 'error') {
+          setToast(r.message);
+          setRevSaving(false);
+          return;
+        }
       }
-      setToast(t('revSaveToday') || '已保存');
-      // Reset form
+      setRevRevenue('');
+      setRevTurnover('');
+      setRevJD('');
+      setRevNote('');
+      setEditingRevId(null);
       setRevDate(sd.today);
-      setRevRevenue(''); setRevTurnover(''); setRevJD(''); setRevNote('');
-      setEditingRevId(null); setRevMarkedClosed(false);
-      // Reload
-      loadLast7(); loadYesterday(); loadWeekTotals();
+      setRevMarkedClosed(false);
+      await loadLast7();
+      loadYesterday();
+      loadWeekTotals();
     } catch (e: any) { setToast(t('toastSubmitFailed') || e?.message); }
     setRevSaving(false);
   };
-  const cancelEdit = () => {
-    setEditingRevId(null);
-    setRevRevenue(''); setRevTurnover(''); setRevJD(''); setRevNote('');
-    setRevMarkedClosed(false);
-  };
-
   const styles = useMemo(() => getStyles(colors, headerColor), [colors, headerColor]);
   const switchLang = (l: string) => {
     setLang(l);
@@ -625,7 +636,6 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
               styles={styles}
               revDate={revDate} setRevDate={setRevDate} revDateErr={revDateErr} setRevDateErr={setRevDateErr}
               loadRevForDate={loadRevForDate} td={td} sdYesterday={sd.yesterday} sdDb4={sd.offset(-2)} fmtDateLabel={fmtDateLabel}
-              editingRevId={editingRevId} cancelEdit={cancelEdit}
               showDatePicker={showDatePicker} setShowDatePicker={setShowDatePicker}
               revRevenue={revRevenue} setRevRevenue={setRevRevenue}
               revTurnover={revTurnover} setRevTurnover={setRevTurnover}
@@ -944,7 +954,6 @@ interface DailyRevProps {
   styles: ReturnType<typeof getStyles>;
   revDate: string; setRevDate: (v: string) => void; revDateErr: number; setRevDateErr: (v: number) => void;
   loadRevForDate: (d: string) => void; td: string; sdYesterday: string; sdDb4: string; fmtDateLabel: (s: string) => string;
-  editingRevId: number | null; cancelEdit: () => void;
   showDatePicker: boolean; setShowDatePicker: (v: boolean) => void;
   revRevenue: string; setRevRevenue: (v: string) => void;
   revTurnover: string; setRevTurnover: (v: string) => void;
@@ -976,11 +985,6 @@ function DailyRevenueView(p: DailyRevProps) {
               </Svg>
               <Text style={styles.revTitle}>{t('dailyRevenue')}</Text>
             </View>
-            {p.editingRevId && (
-              <TouchableOpacity onPress={p.cancelEdit} style={styles.cancelEditBtn}>
-                <Text style={styles.cancelEditText}>✕ 取消</Text>
-              </TouchableOpacity>
-            )}
           </View>
 
           {/* Quick date pills */}
@@ -1058,9 +1062,9 @@ function DailyRevenueView(p: DailyRevProps) {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.revSubmitBtn, { flex: 4 }, (!p.revTurnover || parseFloat(p.revTurnover) <= 0 || p.revSaving) && { opacity: 0.5 }]}
+              style={[styles.revSubmitBtn, { flex: 4 }, (!p.revMarkedClosed && (!p.revTurnover || parseFloat(p.revTurnover) <= 0) || p.revSaving) && { opacity: 0.5 }]}
               onPress={p.submitDailyRev}
-              disabled={!p.revTurnover || parseFloat(p.revTurnover) <= 0 || p.revSaving}
+              disabled={(!p.revMarkedClosed && (!p.revTurnover || parseFloat(p.revTurnover) <= 0)) || p.revSaving}
               activeOpacity={0.8}
             >
               {p.revSaving ? <ActivityIndicator color={colors.surface} /> : (
@@ -1070,8 +1074,7 @@ function DailyRevenueView(p: DailyRevProps) {
                     <Path d="M17 21v-8H7v8" />
                   </Svg>
                   <Text style={styles.revSubmitText}>
-                    {p.editingRevId ? t('revEdit') :
-                      p.revDate === p.td ? t('revSaveToday') :
+                    {p.revDate === p.td ? t('revSaveToday') :
                       p.revDate === p.sdYesterday ? t('revSaveYesterday') :
                       p.revDate === p.sdDb4 ? t('revSaveDayBefore') :
                       t('revSaveDate').replace('{date}', p.revDate.slice(5).replace('-', ''))}
@@ -1129,10 +1132,10 @@ function DailyRevenueView(p: DailyRevProps) {
                       </View>
                     )}
                   </View>
-                  <View style={[styles.rev7CardBadge, (!rec.recorded_by) ? styles.rev7CardBadgeGap : styles.rev7CardBadgeOk]}>
-                    <View style={[styles.rev7CardDot, { backgroundColor: !rec.recorded_by ? colors.danger : colors.success }]} />
-                    <Text style={[styles.rev7CardStatus, { color: !rec.recorded_by ? colors.danger : colors.success }]}>
-                      {!rec.recorded_by ? t('revNotEntered') : t('revEntered')}
+                  <View style={[styles.rev7CardBadge, (rec.status === '未录入' || !rec.recorded_by) ? styles.rev7CardBadgeGap : styles.rev7CardBadgeOk]}>
+                    <View style={[styles.rev7CardDot, { backgroundColor: (rec.status === '未录入' || !rec.recorded_by) ? colors.danger : colors.success }]} />
+                    <Text style={[styles.rev7CardStatus, { color: (rec.status === '未录入' || !rec.recorded_by) ? colors.danger : colors.success }]}>
+                      {rec.status === '未录入' || !rec.recorded_by ? t('revNotEntered') : t('revEntered')}
                     </Text>
                   </View>
                 </View>
