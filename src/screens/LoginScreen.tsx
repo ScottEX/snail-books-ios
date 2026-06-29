@@ -573,6 +573,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
               style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
               pointerEvents="none"
             />
+            <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 16 }]} pointerEvents="none" />
             {msg ? (
               <View style={[styles.msgBox, msgOk ? styles.msgOk : styles.msgErr]}>
                 <Text style={[styles.msgText, msgOk ? styles.msgOkText : styles.msgErrText]}>{msg}</Text>
