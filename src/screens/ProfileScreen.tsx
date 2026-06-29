@@ -20,7 +20,7 @@ import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { pickImages } from '../utils/imagePicker';
 import { modalCardAnimation, modalClose } from '../sharedStyles';
 import { useSwipeBack } from '../hooks/useSwipeBack';
-import { isBiometricAvailable, hasStoredCredential, clearCredential, saveCredential, promptBiometric } from '../utils/biometric';
+import { isBiometricAvailable, hasStoredCredential, clearCredential, saveCredential, promptBiometric, getCredential } from '../utils/biometric';
 
 interface Props {
   onBack: () => void;
@@ -347,13 +347,20 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         setFaceIDLoading(false);
         return;
       }
-      const { ok } = await saveCredential(username, faceIDPassword);
+      const { ok, error: saveErr } = await saveCredential(username, faceIDPassword);
       if (ok) {
+        // Verify immediately
+        const verify = await getCredential();
+        if (!verify) {
+          setToast('Keychain 写入失败，请重试');
+          setFaceIDLoading(false);
+          return;
+        }
         setHasFaceID(true);
         setShowFaceIDSetup(false);
         setFaceIDPassword('');
       } else {
-        setToast(t('toastSubmitFailed'));
+        setToast(saveErr || t('toastSubmitFailed'));
       }
     } catch {
       setToast(t('toastSubmitFailed'));
