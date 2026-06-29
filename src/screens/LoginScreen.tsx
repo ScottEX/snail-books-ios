@@ -615,7 +615,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                       <Text style={styles.fieldLabel}>{t('username')}</Text>
                       <View style={styles.pwWrap}>
                         <TextInput style={[styles.textInput, { paddingRight: username ? 44 : 16 }]} value={username} onChangeText={setUsername}
-                          placeholder={t('loginPlaceholder') || '用户名 / 邮箱'} placeholderTextColor="rgba(255,255,255,0.4)"
+                          placeholder={t('loginPlaceholder') || '用户名 / 邮箱'} placeholderTextColor="rgba(255,255,255,0.55)"
                           onSubmitEditing={handleLogin} autoCapitalize="none" onBlur={handleUsernameBlur} />
                         {username ? (
                           <TouchableOpacity style={styles.clearBtn} onPress={() => setUsername('')}>
@@ -631,7 +631,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                       <Text style={styles.fieldLabel}>{t('password')}</Text>
                       <View style={styles.pwWrap}>
                         <TextInput style={styles.pwInput} value={password} onChangeText={setPassword}
-                          placeholder={t('password')} placeholderTextColor="rgba(255,255,255,0.4)"
+                          placeholder={t('password')} placeholderTextColor="rgba(255,255,255,0.55)"
                           secureTextEntry={!showPw} onSubmitEditing={handleLogin} />
                         <TouchableOpacity style={styles.pwEye} onPress={() => setShowPw(!showPw)}>
                           <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -652,29 +652,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                         </TouchableOpacity>
                       </View>
                     </View>
-                    <SubmitButton onPress={handleLogin} loading={loading} disabled={!username || !password || !!validatePassword(password)} label={t('loginBtn')} style={[styles.btnDark, (!username || !password || !!validatePassword(password)) && styles.btnDisabled]} textStyle={styles.btnDarkText} />
-                    {/* Face ID entry link — only shown when biometric is
-                        available AND the typed username has any WebAuthn
-                        credential bound server-side. */}
-                    {faceAvailable && pwdHasFaceID ? (
-                      <TouchableOpacity
-                        style={styles.faceLinkRow}
-                        onPress={async () => {
-                          setFaceMode(true);
-                          setMsg('');
-                          // Auto-trigger biometric as soon as we enter
-                          // face mode so a single tap = "log me in".
-                          setTimeout(() => handleFaceIDLogin(), 250);
-                        }}
-                      >
-                        <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
-                          <Path d="M12 2C9.24 2 7 4.24 7 7v3H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-2V7c0-2.76-2.24-5-5-5z" />
-                          <Path d="M9 7c0-1.66 1.34-3 3-3s3 1.34 3 3v3H9V7z" />
-                          <Circle cx="12" cy="15" r="1.5" fill={colors.primary} stroke="none" />
-                        </Svg>
-                        <Text style={styles.faceLinkText}>{t('faceIDLogin') || 'Face ID 登录'}</Text>
-                      </TouchableOpacity>
-                    ) : null}
+                    <SubmitButton onPress={handleLogin} loading={loading} label={t('loginBtn')} style={[styles.btnDark, (!username || !password || !!validatePassword(password)) && styles.btnDisabled]} textStyle={styles.btnDarkText} />
                     <View style={styles.rowBetween}>
                       <TouchableOpacity onPress={() => setRemember(!remember)} style={styles.row}>
                         <View style={[styles.checkbox, remember && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
@@ -682,6 +660,15 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                         </View>
                         <Text style={styles.rememberText}>{t('rememberMe') || '记住我'}</Text>
                       </TouchableOpacity>
+                      {faceAvailable && pwdHasFaceID ? (
+                        <TouchableOpacity onPress={async () => {
+                          setFaceMode(true);
+                          setMsg('');
+                          setTimeout(() => handleFaceIDLogin(), 250);
+                        }}>
+                          <Text style={{ fontSize: FONTS.micro.size, color: colors.primary }}>{t('faceIDLogin') || '面容登录'}</Text>
+                        </TouchableOpacity>
+                      ) : null}
                       <TouchableOpacity onPress={() => { setStep('forgot'); setEmail(''); setPassword(''); reset(); }}>
                         <Text style={styles.forgotText}>{t('forgotPassword')}</Text>
                       </TouchableOpacity>
@@ -697,7 +684,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   <Text style={styles.fieldLabel}>{t('username')}</Text>
                   <View style={styles.pwWrap}>
                     <TextInput style={[styles.textInput, { paddingRight: regUsername ? 44 : 16 }]} value={regUsername} onChangeText={setRegUsername}
-                      placeholder={t('username')} placeholderTextColor="rgba(255,255,255,0.4)" autoCapitalize="none" />
+                      placeholder={t('username')} placeholderTextColor="rgba(255,255,255,0.55)" autoCapitalize="none" />
                     {regUsername ? (
                       <TouchableOpacity style={styles.clearBtn} onPress={() => setRegUsername('')}>
                         <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -711,7 +698,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('email') || 'Email'}</Text>
                   <TextInput style={styles.textInput} value={email} onChangeText={setEmail}
-                    placeholder={t('email') || 'Email'} placeholderTextColor="rgba(255,255,255,0.4)" keyboardType="email-address" autoCapitalize="none" />
+                    placeholder={t('email') || 'Email'} placeholderTextColor="rgba(255,255,255,0.55)" keyboardType="email-address" autoCapitalize="none" />
                 </View>
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>
@@ -720,7 +707,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   </Text>
                   <View style={styles.pwWrap}>
                     <TextInput style={styles.pwInput} value={regPassword} onChangeText={setRegPassword}
-                      placeholder={t('password')} placeholderTextColor="rgba(255,255,255,0.4)" secureTextEntry={!showPw} />
+                      placeholder={t('password')} placeholderTextColor="rgba(255,255,255,0.55)" secureTextEntry={!showPw} />
                     <TouchableOpacity style={styles.pwEye} onPress={() => setShowPw(!showPw)}>
                       <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
                         {showPw ? (
@@ -744,7 +731,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   <Text style={styles.fieldLabel}>{t('confirmPassword')}</Text>
                   <View style={styles.pwWrap}>
                     <TextInput style={styles.pwInput} value={password2} onChangeText={setPassword2}
-                      placeholder={t('confirmPassword')} placeholderTextColor="rgba(255,255,255,0.4)"
+                      placeholder={t('confirmPassword')} placeholderTextColor="rgba(255,255,255,0.55)"
                       secureTextEntry={!showPw2} onSubmitEditing={handleRegister} />
                     <TouchableOpacity style={styles.pwEye} onPress={() => setShowPw2(!showPw2)}>
                       <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -786,7 +773,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('verifyCode')}</Text>
                   <TextInput ref={codeRef} style={[styles.textInput, styles.codeInput]} maxLength={6} value={code} onChangeText={setCode}
-                    placeholder={t('verifyCode')} placeholderTextColor="rgba(255,255,255,0.4)"
+                    placeholder={t('verifyCode')} placeholderTextColor="rgba(255,255,255,0.55)"
                     keyboardType="number-pad" onSubmitEditing={handleVerify} autoFocus />
                 </View>
                 <SubmitButton
@@ -819,7 +806,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('email') || 'Email'}</Text>
                   <TextInput style={styles.textInput} value={email} onChangeText={setEmail}
-                    placeholder="Email" placeholderTextColor="rgba(255,255,255,0.4)"
+                    placeholder="Email" placeholderTextColor="rgba(255,255,255,0.55)"
                     keyboardType="email-address" onSubmitEditing={handleForgot} autoCapitalize="none" />
                 </View>
                 <SubmitButton onPress={handleForgot} loading={loading} label={t('forgotSendBtn') || 'Send Code'} style={styles.btnDark} textStyle={styles.btnDarkText} />
@@ -843,13 +830,13 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('verifyCode')}</Text>
                   <TextInput ref={codeRef} style={[styles.textInput, styles.codeInput]} maxLength={6} value={code} onChangeText={setCode}
-                    placeholder={t('verifyCode')} placeholderTextColor="rgba(255,255,255,0.4)" keyboardType="number-pad" autoFocus />
+                    placeholder={t('verifyCode')} placeholderTextColor="rgba(255,255,255,0.55)" keyboardType="number-pad" autoFocus />
                 </View>
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('newPassword')}</Text>
                   <View style={styles.pwWrap}>
                     <TextInput style={styles.pwInput} value={password} onChangeText={setPassword}
-                      placeholder={t('newPassword')} placeholderTextColor="rgba(255,255,255,0.4)" secureTextEntry={!showPwNew} />
+                      placeholder={t('newPassword')} placeholderTextColor="rgba(255,255,255,0.55)" secureTextEntry={!showPwNew} />
                     <TouchableOpacity style={styles.pwEye} onPress={() => setShowPwNew(!showPwNew)}>
                       <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
                         {showPwNew ? (
@@ -958,8 +945,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   faceTitle: { fontSize: FONTS.sub.size, fontWeight: FONTS.subBold.weight, color: colors.surface },
   faceHint: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.6)', marginBottom: 8 },
-  faceLinkRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8, marginBottom: 4 },
-  faceLinkText: { fontSize: FONTS.micro.size, color: colors.primary, fontWeight: FONTS.subBold.weight },
   textInput: {
     backgroundColor: GLASS_BG, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12,
     fontSize: FONTS.body.size, color: colors.surface,
