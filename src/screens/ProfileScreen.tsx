@@ -20,7 +20,7 @@ import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { pickImages } from '../utils/imagePicker';
 import { modalCardAnimation, modalClose } from '../sharedStyles';
 import { useSwipeBack } from '../hooks/useSwipeBack';
-import { isBiometricAvailable, hasStoredCredential, clearCredential } from '../utils/biometric';
+import { isBiometricAvailable, hasStoredCredential, clearCredential, saveCredential, promptBiometric } from '../utils/biometric';
 
 interface Props {
   onBack: () => void;
@@ -185,6 +185,8 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [faceAvailable, setFaceAvailable] = useState(false);
   const [hasFaceID, setHasFaceID] = useState(false);
   const [faceIDLoading, setFaceIDLoading] = useState(false);
+  const [showFaceIDSetup, setShowFaceIDSetup] = useState(false);
+  const [faceIDPassword, setFaceIDPassword] = useState('');
 
   // Modals
   const [showPwModal, setShowPwModal] = useState(false);
@@ -312,15 +314,45 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
   const toggleFaceID = async (v: boolean) => {
     if (faceIDLoading) return;
-    setFaceIDLoading(true);
-    try {
-      if (v) {
-        // Enable requires password — redirect to login for enrollment
-        setToast(t('faceIDEnableInLogin') || '请在登录页面启用面容登录');
-      } else {
+    if (v) {
+      // Show password input to enable Face ID
+      setFaceIDPassword('');
+      setShowFaceIDSetup(true);
+    } else {
+      setFaceIDLoading(true);
+      try {
         await clearCredential();
         setHasFaceID(false);
         setToast(t('faceIDDisabled') || '面容登录已关闭');
+      } catch {
+        setToast(t('toastSubmitFailed'));
+      }
+      setFaceIDLoading(false);
+    }
+  };
+
+  const enrollFaceID = async () => {
+    if (!faceIDPassword) {
+      setToast(t('errEmptyFields'));
+      return;
+    }
+    setFaceIDLoading(true);
+    try {
+      const username = getCurrentUser() || '';
+      const { success, error } = await promptBiometric(t('faceIDEnrollPrompt') || '启用面容登录');
+      if (!success) {
+        if (error !== 'cancelled') setToast(t('toastSubmitFailed'));
+        setFaceIDLoading(false);
+        return;
+      }
+      const { ok } = await saveCredential(username, faceIDPassword);
+      if (ok) {
+        setHasFaceID(true);
+        setShowFaceIDSetup(false);
+        setFaceIDPassword('');
+        setToast(t('faceIDEnabled') || '面容登录已启用');
+      } else {
+        setToast(t('toastSubmitFailed'));
       }
     } catch {
       setToast(t('toastSubmitFailed'));
@@ -1138,6 +1170,43 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
           setCoverCropFile(null);
         }}
       />
+      {/* Face ID setup modal */}
+      <ModalOverlay visible={showFaceIDSetup} onClose={() => { setShowFaceIDSetup(false); setFaceIDPassword(''); }}>
+          <View style={mo.card}>
+            <View style={mo.header}>
+              <Text style={mo.title}>{t('faceIDLabel') || '面容登录'}</Text>
+              <TouchableOpacity onPress={() => { setShowFaceIDSetup(false); setFaceIDPassword(''); }}>
+                <Text style={mo.close}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={mo.body}>
+              <Text style={{ color: colors.textMain, fontSize: 14, lineHeight: 22, textAlign: 'center', marginBottom: 8 }}>
+                请输入密码以启用面容登录
+              </Text>
+              <TextInput
+                style={mo.input}
+                placeholder={t('password')}
+                placeholderTextColor={colors.textSub}
+                secureTextEntry
+                value={faceIDPassword}
+                onChangeText={setFaceIDPassword}
+                autoFocus
+              />
+              <View style={mo.btnRow}>
+                <TouchableOpacity style={mo.cancelBtn} onPress={() => { setShowFaceIDSetup(false); setFaceIDPassword(''); }}>
+                  <Text style={mo.cancelText}>{t('cancel')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[mo.confirmBtn, (faceIDLoading || !faceIDPassword) && { opacity: 0.4 }]}
+                  onPress={enrollFaceID}
+                  disabled={faceIDLoading || !faceIDPassword}
+                >
+                  <Text style={mo.confirmText}>{faceIDLoading ? '...' : t('confirm')}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+      </ModalOverlay>
     </View>
   );
 }
