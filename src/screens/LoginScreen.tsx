@@ -656,7 +656,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                         </TouchableOpacity>
                       </View>
                     </View>
-                    <SubmitButton onPress={handleLogin} loading={loading} disabled={!username || !password || !!validatePassword(password)} label={t('loginBtn')} style={[styles.btnRed, (!username || !password || !!validatePassword(password)) && styles.btnDisabled]} textStyle={styles.btnRedText} />
+                    <SubmitButton onPress={handleLogin} loading={loading} disabled={!username || !password || !!validatePassword(password)} label={t('loginBtn')} style={[styles.btnDark, (!username || !password || !!validatePassword(password)) && styles.btnDisabled]} textStyle={styles.btnDarkText} />
                     <View style={styles.rowBetween}>
                       <TouchableOpacity onPress={() => setRemember(!remember)} style={styles.row}>
                         <View style={[styles.checkbox, remember && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
