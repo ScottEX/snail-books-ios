@@ -610,7 +610,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                     <Text style={styles.faceTitle}>{t('faceIDLogin') || 'Face ID 登录'}</Text>
                     <Text style={styles.faceHint}>{username}</Text>
                     <TouchableOpacity onPress={() => { setFaceMode(false); setMsg(''); }}>
-                      <Text style={styles.forgotText}>{t('usePasswordLogin') || '使用密码登录'}</Text>
+                      <Text style={{ fontSize: 14, color: colors.primary }}>{t('usePasswordLogin') || '使用密码登录'}</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
