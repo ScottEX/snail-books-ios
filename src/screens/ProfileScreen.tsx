@@ -137,13 +137,9 @@ function LogoutIcon({ color }: { color: string }) {
 function FaceIDIcon({ color }: { color: string }) {
   return (
     <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M4 8V6a2 2 0 012-2h2" />
-      <Path d="M16 4h2a2 2 0 012 2v2" />
-      <Path d="M4 16v2a2 2 0 002 2h2" />
-      <Path d="M16 20h2a2 2 0 002-2v-2" />
-      <Path d="M9 10h.01" />
-      <Path d="M15 10h.01" />
-      <Path d="M9 15c.83.67 2 1 3 1s2.17-.33 3-1" />
+      <Path d="M12 2a4 4 0 014 4v2a4 4 0 01-8 0V6a4 4 0 014-4z" />
+      <Path d="M3 14c0-4.97 4.03-9 9-9s9 4.03 9 9" />
+      <Path d="M3 18h18" />
     </Svg>
   );
 }
