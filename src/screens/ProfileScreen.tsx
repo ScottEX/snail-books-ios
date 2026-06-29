@@ -20,6 +20,7 @@ import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { pickImages } from '../utils/imagePicker';
 import { modalCardAnimation, modalClose } from '../sharedStyles';
 import { useSwipeBack } from '../hooks/useSwipeBack';
+import { isBiometricAvailable, hasStoredCredential, clearCredential } from '../utils/biometric';
 
 interface Props {
   onBack: () => void;
@@ -133,7 +134,21 @@ function LogoutIcon({ color }: { color: string }) {
   );
 }
 
-/* ════════════════ MAIN ════════════════ */
+function FaceIDIcon({ color }: { color: string }) {
+  return (
+    <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M4 8V6a2 2 0 012-2h2" />
+      <Path d="M16 4h2a2 2 0 012 2v2" />
+      <Path d="M4 16v2a2 2 0 002 2h2" />
+      <Path d="M16 20h2a2 2 0 002-2v-2" />
+      <Path d="M9 10h.01" />
+      <Path d="M15 10h.01" />
+      <Path d="M9 15c.83.67 2 1 3 1s2.17-.33 3-1" />
+    </Svg>
+  );
+}
+
+/* ════════════ MAIN ════════════ */
 
 export default function ProfileScreen({ onBack, onLogout, onLangChange, onManageUsers, onAvatarChange, refreshKey }: Props) {
   const { colors, theme, setTheme, allThemes } = useTheme();
@@ -165,6 +180,11 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [enforceSingleSession, setEnforceSingleSession] = useState(0);
   const [sessionTimeoutHours, setSessionTimeoutHours] = useState(1);
   const authPrefsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Face ID
+  const [faceAvailable, setFaceAvailable] = useState(false);
+  const [hasFaceID, setHasFaceID] = useState(false);
+  const [faceIDLoading, setFaceIDLoading] = useState(false);
 
   // Modals
   const [showPwModal, setShowPwModal] = useState(false);
@@ -278,10 +298,41 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     } catch {}
   };
 
+  // Face ID
+  const loadFaceIDStatus = async () => {
+    try {
+      const { available } = await isBiometricAvailable();
+      setFaceAvailable(available);
+      if (available) {
+        const stored = await hasStoredCredential();
+        setHasFaceID(stored);
+      }
+    } catch {}
+  };
+
+  const toggleFaceID = async (v: boolean) => {
+    if (faceIDLoading) return;
+    setFaceIDLoading(true);
+    try {
+      if (v) {
+        // Enable requires password — redirect to login for enrollment
+        setToast(t('faceIDEnableInLogin') || '请在登录页面启用面容登录');
+      } else {
+        await clearCredential();
+        setHasFaceID(false);
+        setToast(t('faceIDDisabled') || '面容登录已关闭');
+      }
+    } catch {
+      setToast(t('toastSubmitFailed'));
+    }
+    setFaceIDLoading(false);
+  };
+
   useEffect(() => {
     loadAvatar();
     loadCover();
     loadUserInfo();
+    loadFaceIDStatus();
     checkAdmin().then(ok => { if (ok) fetchUnreviewedCount(); });
   }, []);
 
@@ -719,6 +770,29 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
         {/* ── Section: Sign-in Security ── */}
         <Section title={t('authSettingsTitle')} colors={colors} styles={st}>
+          {/* Face ID row */}
+          {faceAvailable && (
+            <View style={st.authRow}>
+              <View style={st.authHeaderRow}>
+                <View style={[st.iconWrap, { backgroundColor: withAlpha(colors.primary, 0.12) }]}>
+                  <FaceIDIcon color={colors.primary} />
+                </View>
+                <Text style={st.authLabel}>{t('faceIDLabel') || '面容登录'}</Text>
+                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                  <Switch
+                    value={hasFaceID}
+                    onValueChange={toggleFaceID}
+                    trackColor={{ false: withAlpha(colors.textMain, 0.18), true: colors.primary }}
+                    thumbColor="#fff"
+                    disabled={faceIDLoading}
+                    style={{ transform: [{ scale: 0.75 }] }}
+                  />
+                </View>
+              </View>
+              <Text style={st.authDesc}>{t('faceIDDesc') || '使用面容快速登录'}</Text>
+            </View>
+          )}
+          {faceAvailable && <Divider colors={colors} />}
           {/* SSO toggle */}
           <View style={st.authRow}>
             <View style={st.authHeaderRow}>
