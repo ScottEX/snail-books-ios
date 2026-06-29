@@ -339,6 +339,13 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     setFaceIDLoading(true);
     try {
       const username = getCurrentUser() || '';
+      // Verify password before storing
+      const loginR = await api.login(username, faceIDPassword, false);
+      if (loginR.status !== 'ok') {
+        setToast(loginR.message || t('errWrongCredentials'));
+        setFaceIDLoading(false);
+        return;
+      }
       const { success, error } = await promptBiometric(t('faceIDEnrollPrompt') || '启用面容登录');
       if (!success) {
         if (error !== 'cancelled') setToast(t('toastSubmitFailed'));
