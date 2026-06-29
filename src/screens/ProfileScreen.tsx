@@ -187,6 +187,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [faceIDLoading, setFaceIDLoading] = useState(false);
   const [showFaceIDSetup, setShowFaceIDSetup] = useState(false);
   const [faceIDPassword, setFaceIDPassword] = useState('');
+  const [faceIDError, setFaceIDError] = useState('');
 
   // Modals
   const [showPwModal, setShowPwModal] = useState(false);
@@ -317,6 +318,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     if (v) {
       // Show password input to enable Face ID
       setFaceIDPassword('');
+      setFaceIDError('');
       setShowFaceIDSetup(true);
     } else {
       setFaceIDLoading(true);
@@ -342,7 +344,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       // Verify password before storing
       const loginR = await api.login(username, faceIDPassword, false);
       if (loginR.status !== 'ok') {
-        setToast(loginR.message || t('errWrongCredentials'));
+        setFaceIDError(loginR.message || t('errWrongCredentials'));
         setFaceIDLoading(false);
         return;
       }
@@ -1177,11 +1179,11 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         }}
       />
       {/* Face ID setup modal */}
-      <ModalOverlay visible={showFaceIDSetup} onClose={() => { setShowFaceIDSetup(false); setFaceIDPassword(''); }}>
+      <ModalOverlay visible={showFaceIDSetup} onClose={() => { setShowFaceIDSetup(false); setFaceIDPassword(''); setFaceIDError(''); }}>
           <View style={mo.card}>
             <View style={mo.header}>
               <Text style={mo.title}>{t('faceIDLabel') || '面容登录'}</Text>
-              <TouchableOpacity onPress={() => { setShowFaceIDSetup(false); setFaceIDPassword(''); }}>
+              <TouchableOpacity onPress={() => { setShowFaceIDSetup(false); setFaceIDPassword(''); setFaceIDError(''); }}>
                 <Text style={mo.close}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -1195,11 +1197,12 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                 placeholderTextColor={colors.textSub}
                 secureTextEntry
                 value={faceIDPassword}
-                onChangeText={setFaceIDPassword}
+                onChangeText={(t) => { setFaceIDPassword(t); setFaceIDError(''); }}
                 autoFocus
               />
+              {faceIDError ? <Text style={mo.err}>{faceIDError}</Text> : null}
               <View style={mo.btnRow}>
-                <TouchableOpacity style={mo.cancelBtn} onPress={() => { setShowFaceIDSetup(false); setFaceIDPassword(''); }}>
+                <TouchableOpacity style={mo.cancelBtn} onPress={() => { setShowFaceIDSetup(false); setFaceIDPassword(''); setFaceIDError(''); }}>
                   <Text style={mo.cancelText}>{t('cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
