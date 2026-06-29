@@ -670,7 +670,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                           setMsg('');
                           setTimeout(() => handleFaceIDLogin(), 250);
                         }}>
-                          <Text style={{ fontSize: FONTS.micro.size, color: colors.primary }}>{t('faceIDLogin') || '面容登录'}</Text>
+                          <Text style={{ fontSize: 14, color: colors.primary }}>{t('faceIDLogin') || '面容登录'}</Text>
                         </TouchableOpacity>
                       ) : null}
                       <TouchableOpacity onPress={() => { setStep('forgot'); setEmail(''); setPassword(''); reset(); }}>
@@ -790,14 +790,14 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 />
                 <Text style={styles.verifyHint}>
                   {t('verifyNewNoEmail') || '一直没收到？别着急，您可以 '}
-                  <Text style={{ color: colors.surface, fontWeight: FONTS.micro.weight }} onPress={resendCooldown > 0 ? undefined : handleResend}>
+                  <Text style={{ color: colors.surface, fontWeight: '500' }} onPress={resendCooldown > 0 ? undefined : handleResend}>
                     {resendCooldown > 0 ? `${resendCooldown}s 后${t('verifyNewResend') || '重新发送'}` : t('verifyNewResend') || '重新发送'}
                   </Text>
                   {t('verifyNewOrSpam') || ' 或检查一下垃圾箱。'}
                 </Text>
                 <Text style={styles.verifyHint}>
                   {t('verifyNewWrongEmail') || '填错邮箱了？'}
-                  <Text style={{ color: colors.surface, fontWeight: FONTS.micro.weight }} onPress={() => { setStep('register'); reset(); }}>
+                  <Text style={{ color: colors.surface, fontWeight: '500' }} onPress={() => { setStep('register'); reset(); }}>
                     {t('verifyNewEditEmail') || '修改邮箱地址'}
                   </Text>
                 </Text>
@@ -900,9 +900,9 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 2, borderColor: AVATAR_RING,
   },
   logoOver: { position: 'absolute' as any, top: 0, left: 0, width: 80, height: 80, borderRadius: 40 },
-  subtitle: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.7)', marginTop: 6, letterSpacing: 1 },
+  subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.7)', marginTop: 6, letterSpacing: 1 },
   langRow: { flexDirection: 'row', gap: 4, marginTop: 12 },
-  langBtn: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.4)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  langBtn: { fontSize: 14, color: 'rgba(255,255,255,0.4)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   langActive: { color: colors.surface, backgroundColor: 'rgba(255,255,255,0.15)' },
   glassCard: {
     backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 16, padding: 28, gap: 8, overflow: 'hidden',
@@ -911,7 +911,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   msgBox: { paddingVertical: 4, marginBottom: 8 },
   msgOk: {},
   msgErr: {},
-  msgText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, textAlign: 'left' },
+  msgText: { fontSize: 14, fontWeight: '500', textAlign: 'left' },
   msgOkText: { color: colors.success },
   msgErrText: { color: colors.danger },
   tabRow: {
@@ -920,16 +920,16 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   tabBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
   tabActive: { backgroundColor: GLASS_BG_STRONG },
-  tabText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.65)' },
+  tabText: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.65)' },
   tabActiveText: { color: colors.surface },
   formSection: { gap: 12, marginTop: 4 },
   fieldWrap: { gap: 6 },
-  fieldLabel: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.6)' },
-  hintText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.4)' },
+  fieldLabel: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.6)' },
+  hintText: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.4)' },
   pwWrap: { position: 'relative' },
   pwInput: {
     backgroundColor: GLASS_BG, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
-    paddingRight: 44, fontSize: FONTS.body.size, color: colors.surface,
+    paddingRight: 44, fontSize: 18, color: colors.surface,
     borderWidth: 1, borderColor: GLASS_BORDER,
   },
   pwEye: {
@@ -947,11 +947,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.4)',
     justifyContent: 'center', alignItems: 'center', marginBottom: 8,
   },
-  faceTitle: { fontSize: FONTS.sub.size, fontWeight: FONTS.subBold.weight, color: colors.surface },
-  faceHint: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.6)', marginBottom: 8 },
+  faceTitle: { fontSize: 16, fontWeight: '700', color: colors.surface },
+  faceHint: { fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 8 },
   textInput: {
     backgroundColor: GLASS_BG, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
-    fontSize: FONTS.body.size, color: colors.surface,
+    fontSize: 18, color: colors.surface,
     borderWidth: 1, borderColor: GLASS_BORDER,
   },
   codeInput: { textAlign: 'center', letterSpacing: 6 },
@@ -959,12 +959,12 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 12,
     borderWidth: 1, borderColor: GLASS_BORDER,
   },
-  btnDarkText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.surface, letterSpacing: 1 },
+  btnDarkText: { fontSize: 16, fontWeight: '500', color: colors.surface, letterSpacing: 1 },
   btnRed: {
     backgroundColor: withAlpha(colors.primary, 0.85), borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 8,
     borderWidth: 1, borderColor: GLASS_BORDER,
   },
-  btnRedText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.surface, letterSpacing: 1 },
+  btnRedText: { fontSize: 16, fontWeight: '500', color: colors.surface, letterSpacing: 1 },
   btnDisabled: { opacity: 0.4 },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -972,22 +972,22 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     width: 16, height: 16, borderRadius: 4, borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.5)', justifyContent: 'center', alignItems: 'center',
   },
-  checkmark: { fontSize: FONTS.micro.size, color: colors.surface, fontWeight: '700' },
-  rememberText: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.6)' },
-  forgotText: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: 8 },
+  checkmark: { fontSize: 14, color: colors.surface, fontWeight: '700' },
+  rememberText: { fontSize: 14, color: 'rgba(255,255,255,0.6)' },
+  forgotText: { fontSize: 14, color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: 8 },
   disabledText: { opacity: 0.3 },
-  infoText: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 20 },
-  infoStrong: { fontWeight: FONTS.subBold.weight, color: colors.surface },
-  verifyTitle: { fontSize: FONTS.sub.size, fontWeight: FONTS.subBold.weight, color: colors.surface, textAlign: 'center', marginBottom: 12 },
-  verifyBody: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 20 },
-  verifyEmail: { fontWeight: FONTS.subBold.weight, color: colors.surface },
-  verifyHint: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.45)', textAlign: 'center', lineHeight: 18 },
-  verifyLink: { color: colors.primary, fontWeight: FONTS.micro.weight },
+  infoText: { fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 20 },
+  infoStrong: { fontWeight: '700', color: colors.surface },
+  verifyTitle: { fontSize: 16, fontWeight: '700', color: colors.surface, textAlign: 'center', marginBottom: 12 },
+  verifyBody: { fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 20 },
+  verifyEmail: { fontWeight: '700', color: colors.surface },
+  verifyHint: { fontSize: 14, color: 'rgba(255,255,255,0.45)', textAlign: 'center', lineHeight: 18 },
+  verifyLink: { color: colors.primary, fontWeight: '500' },
   devCodeCard: {
     backgroundColor: withAlpha(colors.warning, 0.15), borderRadius: 12, padding: 16,
     alignItems: 'center', borderWidth: 1, borderColor: withAlpha(colors.warning, 0.3),
   },
-  devCodeLabel: { fontSize: FONTS.micro.size, color: colors.warning, fontWeight: FONTS.micro.weight, marginBottom: 8 },
-  devCodeValue: { fontSize: FONTS.amount.size, fontWeight: FONTS.amount.weight, color: colors.surface, letterSpacing: 8 },
-  copyright: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: 20 },
+  devCodeLabel: { fontSize: 14, color: colors.warning, fontWeight: '500', marginBottom: 8 },
+  devCodeValue: { fontSize: 26, fontWeight: '700', color: colors.surface, letterSpacing: 8 },
+  copyright: { fontSize: 14, color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: 20 },
 });
