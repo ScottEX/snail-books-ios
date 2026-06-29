@@ -918,7 +918,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     flexDirection: 'row', backgroundColor: GLASS_BG, borderRadius: 12, padding: 4, marginBottom: 16,
     borderWidth: 1, borderColor: GLASS_BORDER,
   },
-  tabBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center' },
+  tabBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
   tabActive: { backgroundColor: GLASS_BG_STRONG },
   tabText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.65)' },
   tabActiveText: { color: colors.surface },
@@ -928,7 +928,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   hintText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.4)' },
   pwWrap: { position: 'relative' },
   pwInput: {
-    backgroundColor: GLASS_BG, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12,
+    backgroundColor: GLASS_BG, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
     paddingRight: 44, fontSize: FONTS.body.size, color: colors.surface,
     borderWidth: 1, borderColor: GLASS_BORDER,
   },
@@ -950,7 +950,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   faceTitle: { fontSize: FONTS.sub.size, fontWeight: FONTS.subBold.weight, color: colors.surface },
   faceHint: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.6)', marginBottom: 8 },
   textInput: {
-    backgroundColor: GLASS_BG, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12,
+    backgroundColor: GLASS_BG, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
     fontSize: FONTS.body.size, color: colors.surface,
     borderWidth: 1, borderColor: GLASS_BORDER,
   },
