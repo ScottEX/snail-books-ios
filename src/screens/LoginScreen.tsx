@@ -893,7 +893,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.30)', zIndex: 1 },
   flex: { flex: 1, position: 'relative' as any, zIndex: 10 },
   content: { flex: 1, width: '100%', maxWidth: 420, alignSelf: 'center', paddingHorizontal: 20 } as any,
-  contentScroll: { paddingTop: 32, paddingBottom: 40 },
+  contentScroll: { paddingTop: 48, paddingBottom: 60 },
   brand: { alignItems: 'center', marginBottom: 32 },
   logoWrap: {
     width: 80, height: 80, borderRadius: 40, overflow: 'hidden', marginBottom: 20,
