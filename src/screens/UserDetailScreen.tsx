@@ -16,9 +16,12 @@ import Svg, { Path } from 'react-native-svg';
 import { t, getLang } from '../i18n';
 import { api, resolveAssetUrl } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
+import { FONTS } from '../theme';
 import ConfirmModal from '../components/ConfirmModal';
+import ModalOverlay from '../components/ModalOverlay';
 import Toast from '../components/Toast';
 import AdminHeader from '../components/AdminHeader';
+import CloseButton from '../components/CloseButton';
 import { getCurrentUserId } from '../utils/storage';
 
 interface UserData {
@@ -126,6 +129,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
   const [linkedPartnerName, setLinkedPartnerName] = useState('');
   const [showPartnerPicker, setShowPartnerPicker] = useState(false);
   const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false);
+  const [showLinkedPartnerHint, setShowLinkedPartnerHint] = useState(false);
   const [partnerList, setPartnerList] = useState<any[]>([]);
   const [toast, setToast] = useState('');
 
@@ -299,7 +303,13 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
                 <Text style={s.avatarName}>{detail.username}</Text>
                 {/* Delete / Restore button (hidden for self) */}
                 {!isSelf && !isGrace && (
-                  <TouchableOpacity onPress={() => setShowDeleteConfirm(true)} activeOpacity={0.7} disabled={deleting}>
+                  <TouchableOpacity onPress={() => {
+                    if (linkedPartnerId) {
+                      setShowLinkedPartnerHint(true);
+                      return;
+                    }
+                    setShowDeleteConfirm(true);
+                  }} activeOpacity={0.7} disabled={deleting}>
                     <View style={[s.actionBtn, { backgroundColor: withAlpha(c.danger, 0.08) }]}>
                       <TrashIconSvg color={c.danger} />
                     </View>
@@ -594,6 +604,22 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
         onCancel={() => setShowUnlinkConfirm(false)}
       />
 
+      {/* Linked-partner delete hint modal */}
+      <ModalOverlay visible={showLinkedPartnerHint} onClose={() => setShowLinkedPartnerHint(false)}>
+        <View style={s.hintCard} onStartShouldSetResponder={() => true}>
+          <View style={s.hintHeader}>
+            <Text style={s.hintTitle}>{t('friendlyReminder')}</Text>
+            <CloseButton onPress={() => setShowLinkedPartnerHint(false)} />
+          </View>
+          <View style={s.hintBody}>
+            <Text style={s.hintMsg}>{t('err_user_linked_partner')}</Text>
+            <TouchableOpacity style={s.hintBtn} onPress={() => setShowLinkedPartnerHint(false)} activeOpacity={0.7}>
+              <Text style={s.hintBtnText}>{t('confirm')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ModalOverlay>
+
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
     </View>
   );
@@ -666,4 +692,24 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
   },
   roleItemText: { fontSize: 13 },
+  /* Linked-partner delete hint modal */
+  hintCard: {
+    backgroundColor: c.surface, borderRadius: 16,
+    width: 340, maxWidth: '100%', overflow: 'hidden',
+  },
+  hintHeader: {
+    backgroundColor: c.primary, paddingVertical: 14, paddingHorizontal: 20,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+  },
+  hintTitle: { fontSize: 14, fontWeight: '700', color: c.surface },
+  hintBody: { padding: 24, gap: 18 },
+  hintMsg: {
+    fontSize: 14, color: c.textSub, textAlign: 'center', lineHeight: 22,
+    backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 12, padding: 12,
+  },
+  hintBtn: {
+    width: '100%', paddingVertical: 12, borderRadius: 10,
+    backgroundColor: c.primary, justifyContent: 'center', alignItems: 'center',
+  },
+  hintBtnText: { fontSize: 14, fontWeight: '600', color: c.surface },
 });

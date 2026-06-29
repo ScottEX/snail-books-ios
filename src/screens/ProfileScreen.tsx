@@ -157,6 +157,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [signatureDraft, setSignatureDraft] = useState('');
   const [daysSince, setDaysSince] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isPartner, setIsPartner] = useState(false);
   const [unreviewedCount, setUnreviewedCount] = useState(0);
 
   // Auth prefs
@@ -174,6 +175,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showAdminBlockModal, setShowAdminBlockModal] = useState(false);
+  const [showPartnerBlockModal, setShowPartnerBlockModal] = useState(false);
 
   // Password form
   const [oldPw, setOldPw] = useState('');
@@ -251,6 +253,9 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       }
       if (typeof data?.session_timeout_hours === 'number' && [1, 2, 6, 24].includes(data.session_timeout_hours)) {
         setSessionTimeoutHours(data.session_timeout_hours);
+      }
+      if (data.partner_name) {
+        setIsPartner(true);
       }
     } catch {}
   };
@@ -784,7 +789,8 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         {/* ── Section: Danger ── */}
         <Section title={t('dangerZone')} colors={colors} styles={st}>
           <TouchableOpacity onPress={() => {
-            if (isAdmin) setShowAdminBlockModal(true);
+            if (isAdmin) { setShowAdminBlockModal(true); }
+            else if (isPartner) { setShowPartnerBlockModal(true); }
             else { setDeleteConfirmUsername(''); setShowDeleteModal(true); }
           }} activeOpacity={0.7}>
             <View style={st.iconRow}>
@@ -856,12 +862,35 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               </TouchableOpacity>
             </View>
             <View style={mo.body}>
-              <Text style={{ color: colors.textMain, fontSize: 15, lineHeight: 22, marginBottom: 16 }}>
+            <Text style={mo.warnMsg}>
                 {t('adminCannotDelete')}
               </Text>
               <TouchableOpacity
                 style={{ backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 12, alignItems: 'center' }}
                 onPress={() => setShowAdminBlockModal(false)}
+              >
+                <Text style={{ color: '#fff', fontSize: 15, fontWeight: 'bold' }}>{t('confirm')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+      </ModalOverlay>
+
+      {/* ══════ Partner block modal ══════ */}
+      <ModalOverlay visible={showPartnerBlockModal} onClose={() => setShowPartnerBlockModal(false)}>
+          <View style={mo.card}>
+            <View style={mo.header}>
+              <Text style={mo.title}>{t('deleteAccount')}</Text>
+              <TouchableOpacity onPress={() => setShowPartnerBlockModal(false)}>
+                <Text style={mo.close}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={mo.body}>
+              <Text style={mo.warnMsg}>
+                {t('err_partner_cannot_delete')}
+              </Text>
+              <TouchableOpacity
+                style={{ backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 12, alignItems: 'center' }}
+                onPress={() => setShowPartnerBlockModal(false)}
               >
                 <Text style={{ color: '#fff', fontSize: 15, fontWeight: 'bold' }}>{t('confirm')}</Text>
               </TouchableOpacity>
@@ -1235,6 +1264,11 @@ const getMo = (colors: ThemeColors) => StyleSheet.create({
   },
   pwHint: { fontSize: FONTS.micro.size, color: colors.textSub, lineHeight: 18 },
   err: { fontSize: FONTS.micro.size, color: colors.danger },
+  warnMsg: {
+    fontSize: FONTS.micro.size, color: colors.textSub, textAlign: 'center', lineHeight: 22,
+    backgroundColor: withAlpha(colors.primary, 0.1), borderRadius: 12, padding: 12,
+    marginBottom: 16,
+  },
   btnRow: { flexDirection: 'row', gap: 12, marginTop: 0 },
   cancelBtn: {
     flex: 1, borderRadius: 10, borderWidth: 1,
