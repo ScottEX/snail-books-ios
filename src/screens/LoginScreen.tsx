@@ -607,8 +607,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                         <FaceIDIcon color="rgba(255,255,255,0.85)" />
                       </TouchableOpacity>
                     </Animated.View>
-                    <Text style={styles.faceTitle}>{t('faceIDLogin') || 'Face ID 登录'}</Text>
-                    <Text style={styles.faceHint}>{username}</Text>
+                    <Text style={{ fontSize: 18, fontWeight: '500', color: 'rgba(255,255,255,0.8)', marginBottom: 16 }}>{username}</Text>
                     <TouchableOpacity onPress={() => { setFaceMode(false); setMsg(''); }}>
                       <Text style={{ fontSize: 14, color: colors.primary }}>{t('usePasswordLogin') || '使用密码登录'}</Text>
                     </TouchableOpacity>
@@ -936,14 +935,13 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     position: 'absolute', right: 0, top: 0, bottom: 0,
     paddingHorizontal: 14, justifyContent: 'center', alignItems: 'center',
   },
-  faceModeWrap: { alignItems: 'center', paddingVertical: 24, gap: 12 },
+  faceModeWrap: { alignItems: 'center', gap: 16 },
   faceBtn: {
     width: 88, height: 88, borderRadius: 44,
     backgroundColor: 'rgba(0,0,0,0.35)', borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.4)',
     justifyContent: 'center', alignItems: 'center', marginBottom: 8,
   },
-  faceTitle: { fontSize: 16, fontWeight: '700', color: colors.surface },
   faceHint: { fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 8 },
   textInput: {
     backgroundColor: GLASS_BG, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
