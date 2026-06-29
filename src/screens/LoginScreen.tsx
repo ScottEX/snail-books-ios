@@ -892,8 +892,8 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   bgLayer: { position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 },
   bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.30)', zIndex: 1 },
   flex: { flex: 1, position: 'relative' as any, zIndex: 10 },
-  content: { flex: 1, width: '100%' },
-  contentScroll: { padding: 20, paddingTop: 32, paddingBottom: 40, maxWidth: 380, width: '100%', alignSelf: 'center' },
+  content: { flex: 1, width: '100%', maxWidth: 380, alignSelf: 'center', paddingHorizontal: 20 } as any,
+  contentScroll: { paddingTop: 32, paddingBottom: 40 },
   brand: { alignItems: 'center', marginBottom: 32 },
   logoWrap: {
     width: 80, height: 80, borderRadius: 40, overflow: 'hidden', marginBottom: 20,
@@ -905,8 +905,8 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   langBtn: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.4)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   langActive: { color: colors.surface, backgroundColor: 'rgba(255,255,255,0.15)' },
   glassCard: {
-    borderRadius: 24, padding: 28, gap: 8, overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth, borderColor: GLASS_BORDER_STRONG,
+    backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 16, padding: 28, gap: 8, overflow: 'hidden',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
   },
   msgBox: { paddingVertical: 4, marginBottom: 8 },
   msgOk: {},
