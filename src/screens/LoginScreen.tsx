@@ -665,11 +665,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                         <Text style={styles.rememberText}>{t('rememberMe') || '记住我'}</Text>
                       </TouchableOpacity>
                       {faceAvailable && pwdHasFaceID ? (
-                        <TouchableOpacity onPress={async () => {
-                          setFaceMode(true);
-                          setMsg('');
-                          setTimeout(() => handleFaceIDLogin(), 250);
-                        }}>
+                        <TouchableOpacity onPress={() => { setFaceMode(true); setMsg(''); }}>
                           <Text style={{ fontSize: 14, color: colors.primary }}>{t('faceIDLogin') || '面容登录'}</Text>
                         </TouchableOpacity>
                       ) : null}
