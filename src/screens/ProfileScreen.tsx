@@ -19,6 +19,7 @@ import ModalOverlay from '../components/ModalOverlay';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { pickImages } from '../utils/imagePicker';
 import { modalCardAnimation, modalClose } from '../sharedStyles';
+import { useSwipeBack } from '../hooks/useSwipeBack';
 
 interface Props {
   onBack: () => void;
@@ -210,6 +211,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
   const st = useMemo(() => getStyles(colors), [colors]);
   const mo = useMemo(() => getMo(colors), [colors]);
+  const swipeBack = useSwipeBack(onBack);
 
   // ── Loaders ──
   const loadAvatar = async () => {
@@ -536,7 +538,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   };
 
   return (
-    <View style={st.root}>
+    <View style={st.root} {...swipeBack}>
       {/* Nav bar — always visible, fixed at top */}
       <View
         style={[
