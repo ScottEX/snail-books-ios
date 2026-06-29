@@ -19,6 +19,20 @@ const LOGO_IMAGE = require('../../assets/img/logo.jpg');
 
 type Step = 'login' | 'register' | 'verify' | 'forgot' | 'reset';
 
+function FaceIDIcon({ color = 'rgba(255,255,255,0.85)' }: { color?: string }) {
+  return (
+    <Svg width={56} height={56} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M4 8V6a2 2 0 012-2h2" />
+      <Path d="M16 4h2a2 2 0 012 2v2" />
+      <Path d="M4 16v2a2 2 0 002 2h2" />
+      <Path d="M16 20h2a2 2 0 002-2v-2" />
+      <Path d="M9 10h.01" />
+      <Path d="M15 10h.01" />
+      <Path d="M9 15c.83.67 2 1 3 1s2.17-.33 3-1" />
+    </Svg>
+  );
+}
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SPECIAL_RE = /[!@#$%^&*(),.?":{}|<>]/;
 
@@ -596,11 +610,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                         onPress={handleFaceIDLogin}
                         disabled={loading}
                       >
-                        <Svg width={56} height={56} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                          <Path d="M12 2C9.24 2 7 4.24 7 7v3H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-2V7c0-2.76-2.24-5-5-5z" />
-                          <Path d="M9 7c0-1.66 1.34-3 3-3s3 1.34 3 3v3H9V7z" />
-                          <Circle cx="12" cy="15" r="1.5" fill="rgba(255,255,255,0.85)" stroke="none" />
-                        </Svg>
+                        <FaceIDIcon color="rgba(255,255,255,0.85)" />
                       </TouchableOpacity>
                     </Animated.View>
                     <Text style={styles.faceTitle}>{t('faceIDLogin') || 'Face ID 登录'}</Text>
