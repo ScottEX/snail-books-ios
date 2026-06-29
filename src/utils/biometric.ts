@@ -90,7 +90,6 @@ export async function saveCredential(
     // backups and isn't readable while the device is locked.
     await Keychain.setGenericPassword(username, password, {
       service: KEYCHAIN_SERVICE,
-      accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
     });
     try { localStorage.setItem(KEYCHAIN_USERNAME, username); } catch {}
     return { ok: true };
