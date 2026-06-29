@@ -56,28 +56,22 @@ export async function saveCredential(
   password: string,
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    console.log('[saveCredential] saving, service:', KEYCHAIN_SERVICE, 'user:', username);
     await Keychain.setGenericPassword(username, password, {
       service: KEYCHAIN_SERVICE,
     });
-    console.log('[saveCredential] OK');
     try { localStorage.setItem(KEYCHAIN_USERNAME, username); } catch {}
     return { ok: true };
   } catch (e: any) {
-    console.log('[saveCredential] FAIL:', e?.message);
     return { ok: false, error: e?.message || 'unknown' };
   }
 }
 
 export async function getCredential(): Promise<BiometricCredential | null> {
   try {
-    console.log('[getCredential] reading, service:', KEYCHAIN_SERVICE);
     const r = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE });
-    console.log('[getCredential] result:', r ? 'found' : 'NULL');
     if (!r) return null;
     return { username: r.username, password: r.password };
-  } catch (e: any) {
-    console.log('[getCredential] FAIL:', e?.message);
+  } catch {
     return null;
   }
 }
@@ -85,7 +79,6 @@ export async function getCredential(): Promise<BiometricCredential | null> {
 export async function hasStoredCredential(): Promise<boolean> {
   try {
     const r = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE });
-    console.log('[hasStoredCredential]', !!r);
     return !!r;
   } catch {
     return false;

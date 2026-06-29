@@ -9,7 +9,6 @@ import { ThemeProvider } from './src/theme';
 import { LangProvider } from './src/i18n';
 import { onSessionKicked, onUserChange, setSessionExpiredHandler } from './src/api/client';
 import { initStorageCache } from './src/platform';
-import { clearCredential } from './src/utils/biometric';
 import { clearWebAuthn } from './src/utils/storage';
 
 export default function App() {
