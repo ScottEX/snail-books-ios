@@ -197,14 +197,14 @@ export interface FontToken {
 }
 
 export const FONTS = {
-  h1:       { size: 24, weight: '600' as const, color: 'textMain' as const },
-  h2:       { size: 18, weight: '700' as const, color: 'textMain' as const },
-  body:     { size: 16, weight: '500' as const, color: 'textMain' as const },
-  sub:      { size: 14, weight: '500' as const, color: 'textSub'  as const },
-  subBold:  { size: 14, weight: '700' as const, color: 'textSub'  as const },
-  micro:    { size: 12, weight: '500' as const, color: 'textSub'  as const },
-  microBold:{ size: 12, weight: '700' as const, color: 'textSub'  as const },
-  amount:   { size: 24, weight: '700' as const, color: 'textMain' as const },
+  h1:       { size: 28, weight: '600' as const, color: 'textMain' as const },
+  h2:       { size: 20, weight: '700' as const, color: 'textMain' as const },
+  body:     { size: 18, weight: '500' as const, color: 'textMain' as const },
+  sub:      { size: 16, weight: '500' as const, color: 'textSub'  as const },
+  subBold:  { size: 16, weight: '700' as const, color: 'textSub'  as const },
+  micro:    { size: 14, weight: '500' as const, color: 'textSub'  as const },
+  microBold:{ size: 14, weight: '700' as const, color: 'textSub'  as const },
+  amount:   { size: 28, weight: '700' as const, color: 'textMain' as const },
 } as const;
 
 // ═══════════════════════════════════════════
