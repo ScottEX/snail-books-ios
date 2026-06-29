@@ -33,7 +33,7 @@
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Keychain from 'react-native-keychain';
 
-const KEYCHAIN_SERVICE = 'snailbooks.biometric';
+const KEYCHAIN_SERVICE = 'snailbooks.biometric.v2';
 const KEYCHAIN_USERNAME = 'snailbooks-biometric-user';
 
 export type BiometricCredential = {
