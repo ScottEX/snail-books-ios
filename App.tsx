@@ -90,7 +90,6 @@ export default function App() {
       if (avatarUri) localStorage.setItem('avatar-uri', avatarUri);
       if (themeId) localStorage.setItem('snail-books-theme', themeId);
     } catch {}
-    clearCredential().catch(() => {});
     clearWebAuthn();
     // If onUserChange already switched to login (e.g. HomeScreen modal
     // called api.logout() before us), skip the duplicate remount.
