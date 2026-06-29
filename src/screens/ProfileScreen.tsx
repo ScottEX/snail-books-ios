@@ -350,7 +350,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         setHasFaceID(true);
         setShowFaceIDSetup(false);
         setFaceIDPassword('');
-        setToast(t('faceIDEnabled') || '面容登录已启用');
       } else {
         setToast(t('toastSubmitFailed'));
       }
