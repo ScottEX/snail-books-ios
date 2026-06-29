@@ -568,9 +568,9 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
               style array stays stable across shake on/off transitions. */}
           <Animated.View style={[styles.glassCard, { transform: [{ translateX: shakeAnim }] }]}>
             <BlurView
-              intensity={85}
-              tint="systemUltraThinMaterialLight"
-              style={[StyleSheet.absoluteFillObject, { borderRadius: 24 }]}
+              intensity={24}
+              tint="light"
+              style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
               pointerEvents="none"
             />
             {msg ? (
