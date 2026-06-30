@@ -1294,7 +1294,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   // Profile head
   profileHead: { paddingHorizontal: 20, paddingTop: 44, paddingBottom: 12 },
-  profileName: { fontSize: 26, fontWeight: '700', color: colors.textMain, letterSpacing: -0.2 },
+  profileName: { fontSize: FONTS.h1.size, fontWeight: FONTS.h1.weight, color: colors.textMain, letterSpacing: -0.2 },
   profileEmail: { fontSize: 12, color: colors.textSub, marginTop: 4 },
   signatureText: { fontSize: 12, color: colors.textSub, marginTop: 6, fontStyle: 'italic' },
   signatureEditRow: {
