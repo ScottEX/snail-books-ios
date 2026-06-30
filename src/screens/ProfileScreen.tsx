@@ -220,7 +220,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [deleteConfirmUsername, setDeleteConfirmUsername] = useState('');
   // Sticky header on scroll (matches web)
   const [scrollY, setScrollY] = useState(0);
-  const FREEZE_POINT = 76; // cover freezes after scrolling 76px
+  const FREEZE_POINT = 92; // cover freezes after scrolling 76px
   const coverOffset = scrollY > 0 ? Math.min(scrollY, FREEZE_POINT) : 0; // how far cover has scrolled up
   // Pull-down stretch + blur (scrollY < 0 = pull-down, scrollY > 0 = scroll-up blur)
   const pullDown = Math.max(0, -scrollY);
@@ -722,7 +722,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
         scrollEventThrottle={16}>
         {/* Spacer — keeps content below the absolutely-positioned cover */}
-        <View style={{ height: 220 }} />
+        <View style={{ height: 260 }} />
 
         {/* ── Profile head ── */}
         <View style={st.profileHead}>
@@ -1266,7 +1266,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   navTitle: { flex: 1, fontSize: FONTS.sub.size, fontWeight: '600', marginLeft: 12 },
   // Cover
-  coverWrap: { height: 220, position: 'relative', overflow: 'visible' as any },
+  coverWrap: { height: 260, position: 'relative', overflow: 'visible' as any },
   coverImg: { width: '100%', height: '100%' } as any,
   coverGradient: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   coverOverlay: {
