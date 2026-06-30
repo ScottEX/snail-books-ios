@@ -347,10 +347,10 @@ export default function BgCropModal({
               <View style={{
                 position: 'absolute',
                 left: `${((scale - stateRef.current.minScale) / ((stateRef.current.maxScale - stateRef.current.minScale) * 0.5 || 0.01)) * 100}%`,
-                marginLeft: -10, top: 10,
-                width: 20, height: 20, borderRadius: 10,
+                marginLeft: -12, top: 9,
+                width: 24, height: 18, borderRadius: 9,
                 backgroundColor: '#fff',
-                shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2,
+                shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.15, shadowRadius: 3,
                 elevation: 2,
               }} />
             </View>
