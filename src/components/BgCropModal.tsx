@@ -314,12 +314,12 @@ export default function BgCropModal({
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
             <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>A</Text>
             <View
-              style={{ flex: 1, height: 40, justifyContent: 'center' }}
-              onLayout={(e) => { stateRef.current.trackW = e.nativeEvent.layout.width; }}
+              style={{ flex: 1, height: 40, justifyContent: 'center', position: 'relative' }}
+              onLayout={(e) => { (stateRef.current as any).trackW = e.nativeEvent.layout.width; }}
               onStartShouldSetResponder={() => true}
               onMoveShouldSetResponder={() => true}
               onResponderGrant={(evt) => {
-                const ratio = Math.max(0, Math.min(1, evt.nativeEvent.locationX / (stateRef.current.trackW || 1)));
+                const ratio = Math.max(0, Math.min(1, evt.nativeEvent.locationX / ((stateRef.current as any).trackW || 1)));
                 const s = stateRef.current;
                 s.scale = s.minScale + (s.maxScale - s.minScale) * ratio * 0.5;
                 s.scale = Math.max(s.minScale, s.scale);
@@ -328,7 +328,7 @@ export default function BgCropModal({
                 setTx(s.tx); setTy(s.ty);
               }}
               onResponderMove={(evt) => {
-                const ratio = Math.max(0, Math.min(1, evt.nativeEvent.locationX / (stateRef.current.trackW || 1)));
+                const ratio = Math.max(0, Math.min(1, evt.nativeEvent.locationX / ((stateRef.current as any).trackW || 1)));
                 const s = stateRef.current;
                 s.scale = s.minScale + (s.maxScale - s.minScale) * ratio * 0.5;
                 s.scale = Math.max(s.minScale, s.scale);
@@ -344,6 +344,15 @@ export default function BgCropModal({
                   backgroundColor: '#5B5BD6',
                 }} />
               </View>
+              <View style={{
+                position: 'absolute',
+                left: `${((scale - stateRef.current.minScale) / ((stateRef.current.maxScale - stateRef.current.minScale) * 0.5 || 0.01)) * 100}%`,
+                marginLeft: -10, top: 10,
+                width: 20, height: 20, borderRadius: 10,
+                backgroundColor: '#fff',
+                shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2,
+                elevation: 2,
+              }} />
             </View>
             <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>A</Text>
           </View>
