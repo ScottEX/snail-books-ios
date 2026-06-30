@@ -13,6 +13,7 @@ import { formatDate } from '../utils/format';
 import { fmtDecInput } from '../utils/numbers';
 import { getCurrentUserId } from '../utils/storage';
 import { pickImages } from '../utils/imagePicker';
+import { useSwipeBack } from '../hooks/useSwipeBack';
 
 /* ========== SHARED DATA ========== */
 const partnerShare: Record<string, number> = { '张安武': 0.34, '江宽': 0.33, '蓝柳富': 0.33 };
@@ -108,6 +109,7 @@ function MinusIcon({ color, size = 16 }: { color: string; size?: number }) {
 
 export default function PartnerScreen({ onBack, refreshKey = 0 }: { onBack: () => void; refreshKey?: number }) {
   const sd = useServerDate();
+  const swipeBack = useSwipeBack(onBack);
   const [partners, setPartners] = useState<any[]>([]);
   const [dividends, setDividends] = useState<any[]>([]);
   const [totalDiv, setTotalDiv] = useState(0);
@@ -269,7 +271,7 @@ export default function PartnerScreen({ onBack, refreshKey = 0 }: { onBack: () =
   };
 
   return (
-    <View style={s.root}>
+    <View style={s.root} {...swipeBack}>
       <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
         <View style={s.container}>
 

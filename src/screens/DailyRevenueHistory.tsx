@@ -9,6 +9,7 @@ import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import Toast from '../components/Toast';
 import DatePickerModal from '../components/DatePickerModal';
+import { useSwipeBack } from '../hooks/useSwipeBack';
 
 interface Props { onBack: () => void }
 
@@ -26,6 +27,7 @@ export default function DailyRevenueHistory({ onBack }: Props) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const sd = useServerDate();
+  const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   // Filter
@@ -64,7 +66,7 @@ export default function DailyRevenueHistory({ onBack }: Props) {
   const rangeInvalid = !!(dateFrom && dateTo && dateFrom > dateTo);
 
   return (
-    <View style={styles.root}>
+    <View style={styles.root} {...swipeBack}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={styles.backBtn}>

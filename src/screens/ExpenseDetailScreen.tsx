@@ -22,6 +22,7 @@ import { PickedImage } from '../utils/imagePicker';
 import { parseImages } from '../utils/parseImages';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 import ReceiptUpload from '../components/ReceiptUpload';
+import { useSwipeBack } from '../hooks/useSwipeBack';
 
 /* ── Date helpers ── */
 const fmtLocalDate = (s: string, lang: string) => {
@@ -84,6 +85,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
   const { colors: c, theme } = useTheme();
   const lang = getLang();
   const { width: w } = useWindowDimensions();
+  const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(c), [c]);
   const thumbSize = (w - 16 * 2 - 8 * 3) / 4;
 
@@ -215,7 +217,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
   const amtBg = withAlpha(amtColor, 0.10);
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} {...swipeBack}>
       <HistoryHeader
         onBack={onBack}
         title={t('expDetail')}

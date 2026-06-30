@@ -16,6 +16,7 @@ import DatePickerModal from '../components/DatePickerModal';
 import HistoryHeader from '../components/HistoryHeader';
 import { parseImages } from '../utils/parseImages';
 import ImagePreviewModal from '../components/ImagePreviewModal';
+import { useSwipeBack } from '../hooks/useSwipeBack';
 
 /* ── Helpers ── */
 const fmtDate = (d: string) => { if (!d) return ''; const [y, m, day] = d.split('-'); const l = getLang(); if (l.startsWith('en')) { const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return `${months[+m-1]} ${+day}, ${y}`; } return `${y}年${m}月${day}日`; };
@@ -63,6 +64,7 @@ interface Props {
 
 export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice }: Props) {
   const { colors } = useTheme();
+  const swipeBack = useSwipeBack(onBack);
   const st = useMemo(() => getSt(colors), [colors]);
   const sd = useServerDate();
   const currentUser = getCurrentUser();
@@ -145,7 +147,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice }:
     const resolvedImgs = displayImgs.map((u: string) => resolveAssetUrl(u) || u);
     return (
     <TouchableOpacity onPress={() => onExpDetail?.(e)} activeOpacity={0.7}>
-      <View style={st.row}>
+      <View style={st.row} {...swipeBack}>
       <View style={{ flex: 1, minWidth: 0 }}>
         <View style={st.rowTop}>
           <View style={st.badges}>

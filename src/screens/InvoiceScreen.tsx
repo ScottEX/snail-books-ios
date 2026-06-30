@@ -18,6 +18,7 @@ import ExpenseNoteInput from '../components/ExpenseNoteInput';
 import SubmitButton from '../components/SubmitButton';
 import TrashIcon from '../components/icons/TrashIcon';
 import ImagePreview from '../components/ImagePreview';
+import { useSwipeBack } from '../hooks/useSwipeBack';
 
 /* ═══════════════ ICONS ═══════════════ */
 
@@ -207,6 +208,7 @@ interface Props {
 export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const { colors: c } = useTheme();
   const { width: w } = useWindowDimensions();
+  const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(c), [c]);
 
   // Tabs: 0 = info, 1 = records
@@ -523,7 +525,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   };
 
   return (
-    <View style={styles.root}>
+    <View style={styles.root} {...swipeBack}>
       {/* ═══ ENTRY CARD ═══ */}
       <View
         style={[styles.entryCard, { backgroundColor: '#D15F6C' }]}

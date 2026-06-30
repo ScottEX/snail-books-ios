@@ -16,6 +16,7 @@ import TrashIcon from '../components/icons/TrashIcon';
 import { getCurrentUser } from '../utils/storage';
 import { formatDate } from '../utils/format';
 import Toast from '../components/Toast';
+import { useSwipeBack } from '../hooks/useSwipeBack';
 
 interface BatchItem {
   name?: string;
@@ -95,6 +96,7 @@ function InvoiceIcon({ color }: { color: string }) {
 
 export default function ProcurementDetailScreen({ batch, onBack, onEdit, onDelete, onOpenInvoice }: Props) {
   const { colors: c } = useTheme();
+  const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(c), [c]);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -107,7 +109,7 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onDelet
 
   if (!cur) {
     return (
-      <View style={styles.container}>
+      <View style={styles.container} {...swipeBack}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
             <View style={styles.backBtn}>

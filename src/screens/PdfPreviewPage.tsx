@@ -5,6 +5,7 @@ import Svg, { Path, Rect, Circle, Line } from 'react-native-svg';
 import { t } from '../i18n';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { api } from '../api/client';
+import { useSwipeBack } from '../hooks/useSwipeBack';
 
 interface Props {
   batchId: number;
@@ -26,6 +27,7 @@ interface Props {
 export default function PdfPreviewPage({ batchId, invoiceNumber, onBack }: Props) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   // The web version uses a backend route at /api/procurement-batches/{id}/pdf
@@ -48,7 +50,7 @@ export default function PdfPreviewPage({ batchId, invoiceNumber, onBack }: Props
   };
 
   return (
-    <View style={styles.root}>
+    <View style={styles.root} {...swipeBack}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity
