@@ -314,7 +314,7 @@ export default function BgCropModal({
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
             <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>A</Text>
             <View
-              style={{ flex: 1, height: 40, justifyContent: 'center', position: 'relative' }}
+              style={{ flex: 1, height: 40, justifyContent: 'center' }}
               onLayout={(e) => { stateRef.current.trackW = e.nativeEvent.layout.width; }}
               onStartShouldSetResponder={() => true}
               onMoveShouldSetResponder={() => true}
@@ -337,20 +337,13 @@ export default function BgCropModal({
                 setTx(s.tx); setTy(s.ty);
               }}
             >
-              <View style={{ height: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, overflow: 'hidden' }}>
+              <View style={{ height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)' }}>
                 <View style={{
-                  height: 4,
+                  height: 3, borderRadius: 2,
                   width: `${((scale - stateRef.current.minScale) / ((stateRef.current.maxScale - stateRef.current.minScale) * 0.5 || 0.01)) * 100}%`,
-                  backgroundColor: '#5B5BD6', borderRadius: 2,
+                  backgroundColor: '#5B5BD6',
                 }} />
               </View>
-              <View style={{
-                position: 'absolute',
-                left: `${((scale - stateRef.current.minScale) / ((stateRef.current.maxScale - stateRef.current.minScale) * 0.5 || 0.01)) * 100}%`,
-                marginLeft: -8, top: 12,
-                width: 16, height: 16, borderRadius: 8,
-                backgroundColor: '#5B5BD6',
-              }} />
             </View>
             <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>A</Text>
           </View>
