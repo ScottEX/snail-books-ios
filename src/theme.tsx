@@ -197,7 +197,7 @@ export interface FontToken {
 }
 
 // RN 原生渲染字号偏小，加系数缩放对齐 web 视觉
-const S = 1.25;
+const S = 1.15;
 
 export const FONTS = {
   h1:       { size: Math.round(24 * S), weight: '600' as const, color: 'textMain' as const },
