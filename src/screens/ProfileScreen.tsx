@@ -1265,7 +1265,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.25)',
     justifyContent: 'center', alignItems: 'center',
   },
-  navTitle: { flex: 1, fontSize: 15, fontWeight: '600', marginLeft: 12 },
+  navTitle: { flex: 1, fontSize: FONTS.sub.size, fontWeight: '600', marginLeft: 12 },
   // Cover
   coverWrap: { height: 220, position: 'relative', overflow: 'visible' as any },
   coverImg: { width: '100%', height: '100%' } as any,
