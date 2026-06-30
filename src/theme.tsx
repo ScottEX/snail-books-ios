@@ -196,18 +196,16 @@ export interface FontToken {
   color: 'textMain' | 'textSub';
 }
 
-// RN 原生渲染字号偏小，加 15% 缩放对齐 web 视觉
-const S = 1.30;
-
+// RN 原生渲染字号偏小，手动调大
 export const FONTS = {
-  h1:       { size: Math.round(24 * S), weight: '600' as const, color: 'textMain' as const },
-  h2:       { size: Math.round(18 * S), weight: '700' as const, color: 'textMain' as const },
-  body:     { size: Math.round(16 * S), weight: '500' as const, color: 'textMain' as const },
-  sub:      { size: Math.round(14 * S), weight: '500' as const, color: 'textSub'  as const },
-  subBold:  { size: Math.round(14 * S), weight: '700' as const, color: 'textSub'  as const },
-  micro:    { size: Math.round(12 * S), weight: '500' as const, color: 'textSub'  as const },
-  microBold:{ size: Math.round(12 * S), weight: '700' as const, color: 'textSub'  as const },
-  amount:   { size: Math.round(24 * S), weight: '700' as const, color: 'textMain' as const },
+  h1:       { size: 28, weight: '600' as const, color: 'textMain' as const },
+  h2:       { size: 22, weight: '700' as const, color: 'textMain' as const },
+  body:     { size: 20, weight: '500' as const, color: 'textMain' as const },
+  sub:      { size: 17, weight: '500' as const, color: 'textSub'  as const },
+  subBold:  { size: 17, weight: '700' as const, color: 'textSub'  as const },
+  micro:    { size: 15, weight: '500' as const, color: 'textSub'  as const },
+  microBold:{ size: 15, weight: '700' as const, color: 'textSub'  as const },
+  amount:   { size: 28, weight: '700' as const, color: 'textMain' as const },
 } as const;
 
 // ═══════════════════════════════════════════
