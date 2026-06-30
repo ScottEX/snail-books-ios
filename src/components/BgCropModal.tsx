@@ -48,7 +48,8 @@ export default function BgCropModal({
     // Pinch
     pinchStartDist: 0, startScale: 1,
     pinchCX: 0, pinchCY: 0, startTxP: 0, startTyP: 0,
-  });
+    trackW: 0,
+  } as any);
 
   // Guide dimensions (match web: cropW ≈ 80% stage width, cropH = cropW * ratio)
   const aspect = aspectRatio != null
@@ -313,36 +314,43 @@ export default function BgCropModal({
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
             <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>A</Text>
             <View
-              style={{ flex: 1, height: 40, justifyContent: 'center' }}
+              style={{ flex: 1, height: 40, justifyContent: 'center', position: 'relative' }}
+              onLayout={(e) => { stateRef.current.trackW = e.nativeEvent.layout.width; }}
               onStartShouldSetResponder={() => true}
               onMoveShouldSetResponder={() => true}
               onResponderGrant={(evt) => {
-                const { locationX } = evt.nativeEvent;
-                const trackW = evt.nativeEvent.target ? 200 : 150; // approximate
-                const ratio = Math.max(0, Math.min(1, locationX / trackW));
+                const ratio = Math.max(0, Math.min(1, evt.nativeEvent.locationX / (stateRef.current.trackW || 1)));
                 const s = stateRef.current;
                 s.scale = s.minScale + (s.maxScale - s.minScale) * ratio * 0.5;
+                s.scale = Math.max(s.minScale, s.scale);
                 clampDrag();
                 setScale(s.scale);
                 setTx(s.tx); setTy(s.ty);
               }}
               onResponderMove={(evt) => {
-                const { locationX } = evt.nativeEvent;
-                const ratio = Math.max(0, Math.min(1, locationX / 200));
+                const ratio = Math.max(0, Math.min(1, evt.nativeEvent.locationX / (stateRef.current.trackW || 1)));
                 const s = stateRef.current;
                 s.scale = s.minScale + (s.maxScale - s.minScale) * ratio * 0.5;
+                s.scale = Math.max(s.minScale, s.scale);
                 clampDrag();
                 setScale(s.scale);
                 setTx(s.tx); setTy(s.ty);
               }}
             >
-              <View style={{ height: 3, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, overflow: 'hidden' }}>
+              <View style={{ height: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, overflow: 'hidden' }}>
                 <View style={{
-                  height: 3,
-                  width: `${((scale - stateRef.current.minScale) / ((stateRef.current.maxScale - stateRef.current.minScale) * 0.5)) * 100}%`,
-                  backgroundColor: '#5B5BD6', borderRadius: 2
+                  height: 4,
+                  width: `${((scale - stateRef.current.minScale) / ((stateRef.current.maxScale - stateRef.current.minScale) * 0.5 || 0.01)) * 100}%`,
+                  backgroundColor: '#5B5BD6', borderRadius: 2,
                 }} />
               </View>
+              <View style={{
+                position: 'absolute',
+                left: `${((scale - stateRef.current.minScale) / ((stateRef.current.maxScale - stateRef.current.minScale) * 0.5 || 0.01)) * 100}%`,
+                marginLeft: -8, top: 12,
+                width: 16, height: 16, borderRadius: 8,
+                backgroundColor: '#5B5BD6',
+              }} />
             </View>
             <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>A</Text>
           </View>
