@@ -1302,8 +1302,8 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   signatureInput: {
     flex: 1, fontSize: 13, color: colors.textMain,
-    paddingVertical: 4, borderBottomWidth: 0.5, borderBottomColor: withAlpha(colors.textMain, 0.2),
-  },
+    paddingVertical: 4, borderWidth: 0,
+  } as any,
   // Cards & sections
   card: {
     marginTop: 4, backgroundColor: colors.surface,
