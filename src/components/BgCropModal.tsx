@@ -3,7 +3,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import LoadingSpinner from './LoadingSpinner';
 import Svg, { Path } from 'react-native-svg';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
-import Slider from '@react-native-community/slider';
 import { t } from '../i18n';
 import { useEffect, useRef, useState, useMemo } from 'react';
 
@@ -313,23 +312,15 @@ export default function BgCropModal({
         <View style={styles.toolbar}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
             <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>A</Text>
-            <Slider
-              style={{ flex: 1, height: 40 }}
-              minimumValue={0}
-              maximumValue={1}
-              value={0}
-              onValueChange={(val: number) => {
-                const s = stateRef.current;
-                const ns = s.minScale + (s.maxScale - s.minScale) * val * 0.5;
-                s.scale = Math.max(s.minScale, ns);
-                clampDrag();
-                setScale(s.scale);
-                setTx(s.tx); setTy(s.ty);
-              }}
-              minimumTrackTintColor="#5B5BD6"
-              maximumTrackTintColor="rgba(255,255,255,0.2)"
-              thumbTintColor="#5B5BD6"
-            />
+            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <TouchableOpacity style={styles.scaleBtn} onPress={() => { updateScale(stateRef.current.scale - 0.1); }}>
+                <Text style={styles.scaleBtnText}>−</Text>
+              </TouchableOpacity>
+              <View style={{ flex: 1, height: 3, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2 }} />
+              <TouchableOpacity style={styles.scaleBtn} onPress={() => { updateScale(stateRef.current.scale + 0.1); }}>
+                <Text style={styles.scaleBtnText}>+</Text>
+              </TouchableOpacity>
+            </View>
             <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>A</Text>
           </View>
           <View style={styles.dividerV} />
@@ -377,6 +368,8 @@ const styles = StyleSheet.create({
   toolbar: { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: 'rgba(0,0,0,0.6)', flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
   dividerV: { width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 10 },
   toolBtn: { paddingVertical: 6, paddingHorizontal: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  scaleBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  scaleBtnText: { color: 'rgba(255,255,255,0.85)', fontSize: 16, fontWeight: '600' },
   toolBtnText: { fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: '500' },
   actions: { paddingTop: 10, paddingHorizontal: 16, paddingBottom: 12, backgroundColor: 'rgba(0,0,0,0.6)', flexDirection: 'row', gap: 10 },
   actionBtn: { padding: 11, borderRadius: 12, justifyContent: 'center', alignItems: 'center', flexDirection: 'row' },
