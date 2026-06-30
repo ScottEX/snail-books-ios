@@ -9,42 +9,16 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 interface BgCropModalProps {
   visible: boolean;
   onClose: () => void;
-  /** URI of the image to crop. When this changes from '' to a URI,
-   *  the modal loads it. When cleared, the modal is reset. The image
-   *  picker lives in the parent (ThemePickerModal). */
   imageSrc: string;
-  /** Called when the modal wants to clear the image (e.g. on close /
-   *  cancel / recrop reset). Parent should set imageSrc back to ''. */
   onClearImage: () => void;
-  /** Called with the cropped file after user confirms. For 'cover' mode,
-   *  this receives an actual cropped bitmap (via expo-image-manipulator).
-   *  For default mode, passes original file with crop hints. */
   onConfirm: (file: any) => void | Promise<void>;
-  /** Called after the upload triggered by onConfirm has resolved
-   *  successfully. */
   onUploaded?: () => void;
-  /** Optional crop aspect ratio (height/width). Default: viewport ratio. */
   aspectRatio?: number;
-  /** Title shown in the header. */
   title?: string;
-  /** Label of the confirm button. */
   confirmLabel?: string;
-  /** 'cover' mode: uses cover aspect ratio + two-step preview flow */
   mode?: 'cover';
 }
 
-/** Fullscreen crop modal used by the background image flow.
- *
- *  Web uses an HTML canvas with pinch / drag / rotate / flip. RN
- *  doesn't expose Canvas, so this port provides a simpler
- *  approximation: a draggable + pinchable + rotatable preview of the
- *  picked image inside a fixed crop frame. The final crop is intended
- *  to be performed server-side; the metadata returned to onConfirm
- *  includes the chosen scale and rotation so the backend can crop
- *  accordingly.
- *
- *  Output aspect ratio is viewport-adaptive by default — the cropped
- *  image is intended to fill the screen. */
 export default function BgCropModal({
   visible, onClose, imageSrc, onClearImage,
   onConfirm, onUploaded, aspectRatio, title, confirmLabel, mode,
@@ -53,7 +27,6 @@ export default function BgCropModal({
   const insets = useSafeAreaInsets();
   const isCover = mode === 'cover';
 
-  // ── Internal crop state machine ──
   const [src, setSrc] = useState('');
   const [msg, setMsg] = useState('');
   const [phase, setPhase] = useState<'cropping' | 'preview' | 'uploading'>('cropping');
@@ -61,30 +34,37 @@ export default function BgCropModal({
   const [rotation, setRotation] = useState(0);
   const [tx, setTx] = useState(0);
   const [ty, setTy] = useState(0);
-  const [previewUri, setPreviewUri] = useState(''); // cropped preview image
-  const [isProcessing, setIsProcessing] = useState(false); // crop in progress (don't show full spinner)
+  const [previewUri, setPreviewUri] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [imgSize, setImgSize] = useState<{ w: number; h: number } | null>(null);
 
-  // Refs to live gesture state (so PanResponder sees fresh values without rerenders)
   const stateRef = useRef({
     scale: 1,
     minScale: 0.5,
     rotation: 0,
     tx: 0,
     ty: 0,
+    // Drag state (single finger)
     dragStartX: 0,
     dragStartY: 0,
     startTx: 0,
     startTy: 0,
-    pinchStart: 0,
+    // Pinch state (two fingers)
+    pinchStartDist: 0,
     startScale: 1,
-    isDragging: false,
+    pinchCenterX: 0,
+    pinchCenterY: 0,
+    startTxPinch: 0,
+    startTyPinch: 0,
+    touchCount: 0,
   });
 
-  // Load image whenever parent passes a new imageSrc
+  // Load image
   useEffect(() => {
     if (!imageSrc) {
       setSrc('');
       setIsProcessing(false);
+      setImgSize(null);
       return;
     }
     setSrc(imageSrc);
@@ -94,39 +74,47 @@ export default function BgCropModal({
     stateRef.current.rotation = 0;
     stateRef.current.tx = 0;
     stateRef.current.ty = 0;
-    // Fit image to cover the crop guide (matching web's coverFitImage).
-    // The image fills the container via resizeMode="cover" — minScale is
-    // purely geometric: guide must stay covered on both axes.
-    const geoMinScale = Math.max(1 / 1.4, guideH / (guideW * 1.4));
-    const clamped = Math.max(geoMinScale, Math.min(3, geoMinScale * 1.05));
-    setScale(clamped);
-    stateRef.current.scale = clamped;
-    stateRef.current.minScale = geoMinScale;
+    // Get original image dimensions
+    Image.getSize(imageSrc, (w, h) => {
+      setImgSize({ w, h });
+      const geoMinScale = Math.max(1 / 1.4, guideH / (guideW * 1.4));
+      const clamped = Math.max(geoMinScale, Math.min(3, geoMinScale * 1.05));
+      setScale(clamped);
+      stateRef.current.scale = clamped;
+      stateRef.current.minScale = geoMinScale;
+    }, () => {});
   }, [imageSrc]);
 
-  // Reset internal state on close
+  // Reset on close
   useEffect(() => {
     if (!visible) {
       setSrc(''); setMsg(''); setPhase('cropping'); setPreviewUri(''); setIsProcessing(false);
-      setScale(1); setRotation(0); setTx(0); setTy(0);
+      setScale(1); setRotation(0); setTx(0); setTy(0); setImgSize(null);
     }
   }, [visible]);
 
   const close = () => {
     setSrc(''); setMsg(''); setPhase('cropping'); setPreviewUri(''); setIsProcessing(false);
-    setScale(1); setRotation(0); setTx(0); setTy(0);
+    setScale(1); setRotation(0); setTx(0); setTy(0); setImgSize(null);
     onClearImage();
     onClose();
   };
 
-  // Crop guide box — cover uses fixed ratio (260/375), bg uses viewport
+  // Crop guide
   const aspect = aspectRatio != null
     ? Math.max(0.5, Math.min(2.4, aspectRatio))
     : isCover ? 260 / 375 : WIN_H / WIN_W;
   const guideW = Math.min(WIN_W * 0.85, (WIN_H * 0.55) / aspect);
   const guideH = guideW * aspect;
 
-  // Drag clamping — ensures the crop guide stays within the image area
+  // Distance between two touch points
+  const touchDist = (touches: any[]) => {
+    if (touches.length < 2) return 0;
+    const dx = touches[0].pageX - touches[1].pageX;
+    const dy = touches[0].pageY - touches[1].pageY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
   const clampDrag = () => {
     const s = stateRef.current;
     const halfImg = (guideW * 1.4 * s.scale) / 2;
@@ -138,33 +126,70 @@ export default function BgCropModal({
     if (maxY > 0) { s.ty = Math.max(-maxY, Math.min(maxY, s.ty)); } else { s.ty = 0; }
   };
 
-  // PanResponder — drag only; pinch is approximated with double-tap-scale.
+  const clampScale = (s: number) => {
+    return Math.max(stateRef.current.minScale, Math.min(3, s));
+  };
+
+  // PanResponder with pinch-to-zoom support
   const panResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => phase === 'cropping',
     onMoveShouldSetPanResponder: (_, gs) =>
-      phase === 'cropping' && (Math.abs(gs.dx) > 4 || Math.abs(gs.dy) > 4),
-    onPanResponderGrant: () => {
+      phase === 'cropping' && (Math.abs(gs.dx) > 4 || Math.abs(gs.dy) > 4 || (gs as any).numberActiveTouches >= 2),
+    onPanResponderGrant: (evt) => {
       const s = stateRef.current;
-      s.isDragging = true;
-      s.startTx = s.tx;
-      s.startTy = s.ty;
+      const touches = evt.nativeEvent.touches;
+      s.touchCount = touches?.length || 1;
+      if (touches && touches.length >= 2) {
+        // Pinch start
+        s.pinchStartDist = touchDist([touches[0], touches[1]]);
+        s.startScale = s.scale;
+        s.startTxPinch = s.tx;
+        s.startTyPinch = s.ty;
+        s.pinchCenterX = (touches[0].pageX + touches[1].pageX) / 2;
+        s.pinchCenterY = (touches[0].pageY + touches[1].pageY) / 2;
+      } else {
+        // Drag start
+        s.startTx = s.tx;
+        s.startTy = s.ty;
+      }
     },
-    onPanResponderMove: (_, gs) => {
+    onPanResponderMove: (evt, gs) => {
       const s = stateRef.current;
-      s.tx = s.startTx + gs.dx;
-      s.ty = s.startTy + gs.dy;
-      clampDrag();
+      const touches = evt.nativeEvent.touches;
+      
+      if (touches && touches.length >= 2) {
+        // Pinch: adjust scale around center point
+        const dist = touchDist([touches[0], touches[1]]);
+        const scaleDelta = dist / (s.pinchStartDist || 1);
+        const newScale = clampScale(s.startScale * scaleDelta);
+        s.scale = newScale;
+        
+        // Adjust tx/ty to zoom towards pinch center
+        const centerX = (touches[0].pageX + touches[1].pageX) / 2;
+        const centerY = (touches[0].pageY + touches[1].pageY) / 2;
+        const scaleRatio = newScale / s.startScale;
+        s.tx = s.startTxPinch * scaleRatio + (s.pinchCenterX - centerX) * (1 - scaleRatio);
+        s.ty = s.startTyPinch * scaleRatio + (s.pinchCenterY - centerY) * (1 - scaleRatio);
+        clampDrag();
+      } else {
+        // Drag
+        s.tx = s.startTx + gs.dx;
+        s.ty = s.startTy + gs.dy;
+        clampDrag();
+      }
+      
+      setScale(s.scale);
       setTx(s.tx);
       setTy(s.ty);
     },
     onPanResponderRelease: () => {
-      stateRef.current.isDragging = false;
+      stateRef.current.touchCount = 0;
     },
-  }), [phase]);
+  }), [phase, guideW, guideH]);
 
   const adjustScale = (delta: number) => {
     const s = stateRef.current;
-    s.scale = Math.max(s.minScale, Math.min(3, s.scale + delta));
+    s.scale = clampScale(s.scale + delta);
     clampDrag();
     setScale(s.scale);
     setTx(s.tx);
@@ -179,44 +204,78 @@ export default function BgCropModal({
 
   const resetTransform = () => {
     const s = stateRef.current;
-    s.scale = 1; s.rotation = 0; s.tx = 0; s.ty = 0;
-    setScale(1); setRotation(0); setTx(0); setTy(0);
+    const geoMinScale = imgSize
+      ? Math.max(1 / 1.4, guideH / (guideW * 1.4))
+      : 1;
+    s.scale = Math.max(geoMinScale, Math.min(3, geoMinScale * 1.05));
+    s.rotation = 0; s.tx = 0; s.ty = 0;
+    setScale(s.scale); setRotation(0); setTx(0); setTy(0);
   };
 
-  // Confirm: crop client-side via expo-image-manipulator, show preview, then upload.
+  // Crop: use the rendered image position and guide frame to calculate crop rect
   const handleConfirm = async () => {
-    if (isProcessing || !src) return;
+    if (isProcessing || !src || !imgSize) return;
     setIsProcessing(true);
     try {
       const s = stateRef.current;
-      // Get original image dimensions for accurate crop
-      const imgSize = await new Promise<{ w: number; h: number }>((resolve, reject) => {
-        Image.getSize(src, (w, h) => resolve({ w, h }), reject);
-      });
-      // Image display size: guideW * 1.4, resizeMode cover → image fits within
-      const displayW = guideW * 1.4;
-      const displayH = guideW * 1.4;
+      // Image render area: guideW * 1.4 square, with resizeMode cover
+      const renderW = guideW * 1.4;
+      const renderH = guideW * 1.4;
+      
+      // Calculate how the image fills the render area with cover mode
       const imgAspect = imgSize.w / imgSize.h;
-      const displayAspect = displayW / displayH;
-      let renderW: number, renderH: number;
-      if (imgAspect > displayAspect) {
-        renderH = displayH;
-        renderW = displayH * imgAspect;
+      const renderAspect = renderW / renderH;
+      let imgRenderW: number, imgRenderH: number;
+      if (imgAspect > renderAspect) {
+        // Image is wider → height fills, width overflows
+        imgRenderH = renderH;
+        imgRenderW = renderH * imgAspect;
       } else {
-        renderW = displayW;
-        renderH = displayW / imgAspect;
+        // Image is taller → width fills, height overflows
+        imgRenderW = renderW;
+        imgRenderH = renderW / imgAspect;
       }
-      // Map guide center (in display coords) to image pixel coords
-      const scaleImgToDisp = renderW / imgSize.w;
-      const guideCenterX = displayW / 2 - s.tx;
-      const guideCenterY = displayH / 2 - s.ty;
-      // Crop size in display coords, then convert to original px
-      const cropW = (guideW / s.scale) / scaleImgToDisp;
-      const cropH = (guideH / s.scale) / scaleImgToDisp;
-      const originX = Math.max(0, (guideCenterX - (renderW - displayW) / 2) / scaleImgToDisp - cropW / 2);
-      const originY = Math.max(0, (guideCenterY - (renderH - displayH) / 2) / scaleImgToDisp - cropH / 2);
+      
+      // Scale factor: image pixels → render pixels
+      const pxToRender = imgRenderW / imgSize.w;
+      
+      // Center of the render area in screen coords (the stage center)
+      // The guide is centered in the stage, so guide center = render center
+      // Image is translated by (tx, ty) from center, then scaled and rotated
+      // After scale & rotation, the image's "center point" moves by tx,ty
+      
+      // The guide frame in render coordinates (center of render area)
+      const renderCenterX = renderW / 2;
+      const renderCenterY = renderH / 2;
+      
+      // With transforms: the image is at (renderCenterX + tx, renderCenterY + ty)
+      // after scale is applied. The scale is centered on the image's center.
+      // So the visible area in image coordinates is:
+      // imageCenter = (imgSize.w/2, imgSize.h/2)
+      // After scale, 1 image pixel = s.scale * pxToRender render pixels
+      const scaleRatio = s.scale * pxToRender;
+      
+      // Guide center in image pixel coordinates
+      // Guide is at (renderCenterX, renderCenterY) in render coords
+      // Image center in render coords after transform = (renderCenterX + s.tx, renderCenterY + s.ty)
+      // Offset from image center to guide center = (-s.tx, -s.ty)
+      // In image pixels (at current scale): (-s.tx / scaleRatio, -s.ty / scaleRatio)
+      const imgCenterX = imgSize.w / 2;
+      const imgCenterY = imgSize.h / 2;
+      const offsetX = -s.tx / scaleRatio;
+      const offsetY = -s.ty / scaleRatio;
+      
+      // Crop dimensions in image pixels
+      const cropW = guideW / scaleRatio;
+      const cropH = guideH / scaleRatio;
+      
+      // Crop origin (top-left) in image pixel coordinates
+      const originX = Math.max(0, Math.min(imgSize.w - cropW, imgCenterX + offsetX - cropW / 2));
+      const originY = Math.max(0, Math.min(imgSize.h - cropH, imgCenterY + offsetY - cropH / 2));
       const finalW = Math.min(cropW, imgSize.w - originX);
       const finalH = Math.min(cropH, imgSize.h - originY);
+
+      console.log('Crop:', { imgSize, scale: s.scale, tx: s.tx, ty: s.ty, originX, originY, finalW, finalH, cropW, cropH });
 
       const result = await manipulateAsync(
         src,
@@ -233,7 +292,6 @@ export default function BgCropModal({
     }
   };
 
-  // Preview confirm: upload the cropped bitmap
   const handlePreviewConfirm = async () => {
     if (!previewUri || isProcessing) return;
     setIsProcessing(true);
@@ -260,7 +318,6 @@ export default function BgCropModal({
 
   return (
     <View style={styles.overlay}>
-      {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Text style={styles.headerTitle}>{title || (isCover ? t('coverCropTitle') : t('editBg'))}</Text>
         <TouchableOpacity onPress={close} style={styles.closeBtn}>
@@ -270,14 +327,12 @@ export default function BgCropModal({
         </TouchableOpacity>
       </View>
 
-      {/* Stage */}
       <View style={styles.stage}>
         {src !== '' && phase === 'cropping' && (
           <View
             style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' }}
             {...panResponder.panHandlers}
           >
-            {/* Render image with transforms */}
             <Image
               source={{ uri: src }}
               style={{
@@ -292,7 +347,6 @@ export default function BgCropModal({
               }}
               resizeMode="cover"
             />
-            {/* Crop guide frame (decorative — visual only) */}
             <View pointerEvents="none" style={[styles.guide, { width: guideW, height: guideH }]}>
               <View style={[styles.gridLine, { top: '33.3%' }]} />
               <View style={[styles.gridLine, { top: '66.6%' }]} />
@@ -300,12 +354,11 @@ export default function BgCropModal({
               <View style={[styles.gridLineV, { left: '66.6%' }]} />
             </View>
             <View pointerEvents="none" style={styles.pill}>
-              <Text style={styles.pillText}>{t('cropPill') || '拖动图片 · 选择区域'}</Text>
+              <Text style={styles.pillText}>{t('cropPill') || '捏合缩放 · 拖动图片 · 选择区域'}</Text>
             </View>
           </View>
         )}
 
-        {/* Preview phase — shows cropped result with mode-appropriate text */}
         {phase === 'preview' && previewUri !== '' && (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}>
             <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: 20, padding: 24, alignItems: 'center', width: '100%', maxWidth: 320 }}>
@@ -352,7 +405,6 @@ export default function BgCropModal({
         )}
       </View>
 
-      {/* Toolbar */}
       {phase === 'cropping' && (
         <View style={styles.toolbar}>
           <View style={styles.toolbarRow}>
@@ -388,7 +440,6 @@ export default function BgCropModal({
         </View>
       )}
 
-      {/* Actions */}
       {phase === 'cropping' && (
         <View style={styles.actions}>
           <TouchableOpacity
