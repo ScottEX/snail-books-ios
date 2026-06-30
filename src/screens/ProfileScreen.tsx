@@ -727,7 +727,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         {/* ── Profile head ── */}
         <View style={st.profileHead}>
           <Text style={st.profileName}>{username}</Text>
-          <Text style={st.profileEmail}>{email || '—'}</Text>
 
           {/* Signature */}
           {signatureEditing ? (
