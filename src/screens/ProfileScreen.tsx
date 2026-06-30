@@ -1296,7 +1296,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   profileHead: { paddingHorizontal: 20, paddingTop: 44, paddingBottom: 12 },
   profileName: { fontSize: FONTS.h1.size, fontWeight: FONTS.h1.weight, color: colors.textMain, letterSpacing: -0.2 },
   profileEmail: { fontSize: 12, color: colors.textSub, marginTop: 4 },
-  signatureText: { fontSize: 12, color: colors.textSub, marginTop: 6, transform: [{ skewX: '-8deg' }] },
+  signatureText: { fontSize: FONTS.micro.size, color: colors.textSub, marginTop: 6, transform: [{ skewX: '-8deg' }] },
   signatureEditRow: {
     flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 8,
   },
