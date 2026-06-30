@@ -77,11 +77,10 @@ export default function BgCropModal({
     // Get original image dimensions
     Image.getSize(imageSrc, (w, h) => {
       setImgSize({ w, h });
-      const geoMinScale = Math.max(1 / 1.4, guideH / (guideW * 1.4));
-      const clamped = Math.max(geoMinScale, Math.min(3, geoMinScale * 1.05));
-      setScale(clamped);
-      stateRef.current.scale = clamped;
-      stateRef.current.minScale = geoMinScale;
+      // Start at scale 1 so user sees the full image, then pinch to zoom
+      setScale(1);
+      stateRef.current.scale = 1;
+      stateRef.current.minScale = 0.5;
     }, () => {});
   }, [imageSrc]);
 
@@ -204,12 +203,8 @@ export default function BgCropModal({
 
   const resetTransform = () => {
     const s = stateRef.current;
-    const geoMinScale = imgSize
-      ? Math.max(1 / 1.4, guideH / (guideW * 1.4))
-      : 1;
-    s.scale = Math.max(geoMinScale, Math.min(3, geoMinScale * 1.05));
-    s.rotation = 0; s.tx = 0; s.ty = 0;
-    setScale(s.scale); setRotation(0); setTx(0); setTy(0);
+    s.scale = 1; s.rotation = 0; s.tx = 0; s.ty = 0;
+    setScale(1); setRotation(0); setTx(0); setTy(0);
   };
 
   // Crop: use the rendered image position and guide frame to calculate crop rect
