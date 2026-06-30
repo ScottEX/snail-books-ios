@@ -312,14 +312,37 @@ export default function BgCropModal({
         <View style={styles.toolbar}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
             <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>A</Text>
-            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <TouchableOpacity style={styles.scaleBtn} onPress={() => { updateScale(stateRef.current.scale - 0.1); }}>
-                <Text style={styles.scaleBtnText}>−</Text>
-              </TouchableOpacity>
-              <View style={{ flex: 1, height: 3, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2 }} />
-              <TouchableOpacity style={styles.scaleBtn} onPress={() => { updateScale(stateRef.current.scale + 0.1); }}>
-                <Text style={styles.scaleBtnText}>+</Text>
-              </TouchableOpacity>
+            <View
+              style={{ flex: 1, height: 40, justifyContent: 'center' }}
+              onStartShouldSetResponder={() => true}
+              onMoveShouldSetResponder={() => true}
+              onResponderGrant={(evt) => {
+                const { locationX } = evt.nativeEvent;
+                const trackW = evt.nativeEvent.target ? 200 : 150; // approximate
+                const ratio = Math.max(0, Math.min(1, locationX / trackW));
+                const s = stateRef.current;
+                s.scale = s.minScale + (s.maxScale - s.minScale) * ratio * 0.5;
+                clampDrag();
+                setScale(s.scale);
+                setTx(s.tx); setTy(s.ty);
+              }}
+              onResponderMove={(evt) => {
+                const { locationX } = evt.nativeEvent;
+                const ratio = Math.max(0, Math.min(1, locationX / 200));
+                const s = stateRef.current;
+                s.scale = s.minScale + (s.maxScale - s.minScale) * ratio * 0.5;
+                clampDrag();
+                setScale(s.scale);
+                setTx(s.tx); setTy(s.ty);
+              }}
+            >
+              <View style={{ height: 3, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2, overflow: 'hidden' }}>
+                <View style={{
+                  height: 3,
+                  width: `${((scale - stateRef.current.minScale) / ((stateRef.current.maxScale - stateRef.current.minScale) * 0.5)) * 100}%`,
+                  backgroundColor: '#5B5BD6', borderRadius: 2
+                }} />
+              </View>
             </View>
             <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>A</Text>
           </View>
