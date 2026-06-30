@@ -145,9 +145,9 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       // If we already have a stored credential AND the typed username
       // (from saved_login) matches, drop into face mode automatically
       // — mirrors web's "if (webauthn_bound && pwdHasFaceID)" behaviour.
-      if (a.available && cached.bound) {
+      if (a.available) {
         const stored = await hasStoredCredential();
-        if (stored) {
+        if (stored || cached.bound) {
           try {
             const savedUser = localStorage.getItem('saved_login') || '';
             if (savedUser) setUsername(savedUser);
