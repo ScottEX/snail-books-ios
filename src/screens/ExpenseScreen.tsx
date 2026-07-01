@@ -15,6 +15,7 @@ import ExpenseNoteInput from '../components/ExpenseNoteInput';
 import ReceiptUpload from '../components/ReceiptUpload';
 import ButtonPair from '../components/ButtonPair';
 import CloseButton from '../components/CloseButton';
+import EmptyState from '../components/EmptyState';
 import SubmitButton from '../components/SubmitButton';
 import { useTheme, withAlpha, ThemeColors, FONTS, MODAL_BACKDROP_OPACITY } from '../theme';
 import { modalCardAnimation, modalClose, uploadReceiptStyles } from '../sharedStyles';
@@ -361,6 +362,18 @@ export default function ExpenseScreen({
   const thisYear = sd.year || new Date().getFullYear();
   const thisMonth = sd.month || new Date().getMonth() + 1;
 
+  // Generate full month list 2024-05 → current (not limited to DB data)
+  const feeMonthList = useMemo(() => {
+    const list: { year: number; month: number }[] = [];
+    let y = 2024, m = 5;
+    while (y < thisYear || (y === thisYear && m <= thisMonth)) {
+      list.push({ year: y, month: m });
+      m++;
+      if (m > 12) { m = 1; y++; }
+    }
+    return list.reverse(); // newest first
+  }, [thisYear, thisMonth]);
+
   const [feeData, setFeeData] = useState<any>(null);        // current month
   const [allFees, setAllFees] = useState<any[]>([]);         // all months for detail
   const [feeMonth, setFeeMonth] = useState<'all' | { year: number; month: number }>({ year: thisYear, month: thisMonth });
@@ -670,7 +683,7 @@ export default function ExpenseScreen({
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
                 <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.textMain }}>{t('platformFee')}</Text>
-                <MonthPicker selected={feeMonth} onSelect={(v) => setFeeMonth(v)} months={allFees} colors={colors} />
+                <MonthPicker selected={feeMonth} onSelect={(v) => setFeeMonth(v)} months={feeMonthList} colors={colors} />
               </View>
               {(feeMonth !== 'all' || allFees.length > 0) && (
               <TouchableOpacity
@@ -1100,7 +1113,7 @@ export default function ExpenseScreen({
                 loading={savingFee}
                 disabled={toNum(feeMc) + toNum(feeMw) + toNum(feeEw) + toNum(feeMt) === 0}
                 label={t('confirm')}
-                style={{ backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 8 }}
+                style={{ backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 14, alignItems: 'center', marginTop: 16, opacity: (toNum(feeMc) + toNum(feeMw) + toNum(feeEw) + toNum(feeMt) === 0) ? 0.35 : 1 }}
                 textStyle={{ color: colors.surface, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight }}
               />
             </View>
@@ -1117,11 +1130,21 @@ export default function ExpenseScreen({
             </View>
             {/* Month filter */}
             <View style={{ paddingHorizontal: 20, paddingBottom: 6, paddingTop: 8, flexDirection: 'row', alignItems: 'center' }}>
-              <MonthPicker selected={feeHistoryFilter} onSelect={(v) => setFeeHistoryFilter(v)} months={allFees} colors={colors} />
+              <MonthPicker selected={feeHistoryFilter} onSelect={(v) => setFeeHistoryFilter(v)} months={feeMonthList} colors={colors} />
             </View>
             {/* Scrollable list area */}
             <ScrollView style={{ flex: 1, paddingHorizontal: 12 }} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
-              {(feeHistoryFilter === 'all' ? allFees : allFees.filter((f: any) => f.year === feeHistoryFilter.year && f.month === feeHistoryFilter.month)).map((f: any, idx: number) => {
+              {(() => {
+                const filtered = feeHistoryFilter === 'all' ? allFees : allFees.filter((f: any) => f.year === feeHistoryFilter.year && f.month === feeHistoryFilter.month);
+                if (filtered.length === 0) {
+                  return (
+                    <EmptyState
+                      icon={<Svg width={40} height={40} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><Rect x="3" y="4" width="18" height="17" rx="2" /><Line x1="9" y1="8" x2="15" y2="8" /><Line x1="9" y1="12" x2="15" y2="12" /><Line x1="9" y1="16" x2="13" y2="16" /></Svg>}
+                      title={feeHistoryFilter === 'all' ? '暂无手续费数据' : '该月份暂无手续费记录'}
+                    />
+                  );
+                }
+                return filtered.map((f: any, idx: number) => {
                 const monthTotal = (f.meituan_cashier || 0) + (f.meituan_waimai || 0) + (f.shangou_waimai || 0) + (f.meituan_tuan || 0);
                 const platforms = [
                   { label: t('meituanCashier'), value: f.meituan_cashier || 0, color: colors.info },
@@ -1146,7 +1169,7 @@ export default function ExpenseScreen({
                     </View>
                   </View>
                 );
-              })}
+              }); })()}
             </ScrollView>
           </View>
         </ModalOverlay>
