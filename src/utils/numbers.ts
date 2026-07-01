@@ -4,11 +4,17 @@ export const blockNeg = (s: string) => s.replace(/[^0-9.]/g, '');
 /** Strip leading zeros — keeps '0' and '0.xxx' intact */
 const stripLeadingZeros = (s: string) => s.replace(/^0+(?=\d)/, '');
 
-/** Format decimal input — strip non-numeric, strip leading zeros, prepend '0' if starts with '.' */
+/** Format decimal input — strip non-numeric, strip leading zeros, prepend '0' if starts with '.', limit to 2 decimal places */
 export const fmtDecInput = (s: string) => {
   let clean = blockNeg(s);
   clean = stripLeadingZeros(clean);
-  return clean.startsWith('.') ? '0' + clean : clean;
+  clean = clean.startsWith('.') ? '0' + clean : clean;
+  // Limit to 2 decimal places
+  const dotIdx = clean.indexOf('.');
+  if (dotIdx !== -1 && clean.length > dotIdx + 3) {
+    clean = clean.slice(0, dotIdx + 3);
+  }
+  return clean;
 };
 
 /** Round to 2 decimal places, return string (e.g. '123.00') */

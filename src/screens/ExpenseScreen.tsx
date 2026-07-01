@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, useReducer } from 'react';
 import {
-  View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated, Dimensions, Modal,
+  View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated, Dimensions, Modal, Switch,
 } from 'react-native';
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -44,7 +44,14 @@ const fmtMonth = (year: number, month: number) => {
 };
 const toNum = (s: string) => parseFloat(s) || 0;
 const blockNeg = (s: string) => s.replace(/[^0-9.]/g, '');
-const fmtDecInput = (s: string) => { s = blockNeg(s); return s.startsWith('.') ? '0' + s : s; };
+const fmtDecInput = (s: string) => {
+  let clean = blockNeg(s);
+  clean = clean.startsWith('.') ? '0' + clean : clean;
+  // Limit to 2 decimal places
+  const dotIdx = clean.indexOf('.');
+  if (dotIdx !== -1 && clean.length > dotIdx + 3) clean = clean.slice(0, dotIdx + 3);
+  return clean;
+};
 const toDec2 = (v: any) => String((parseFloat(String(v ?? 0)) || 0).toFixed(2));
 const fmtRefundInput = (v: string, refund: boolean) => {
   if (!refund) return fmtDecInput(v);
@@ -367,6 +374,7 @@ export default function ExpenseScreen({
   const [feeEw, setFeeEw] = useState('');
   const [feeMt, setFeeMt] = useState('');
   const [savingFee, setSavingFee] = useState(false);
+  const [negativeMode, setNegativeMode] = useState(false);
 
   const loadFeeData = async () => {
     try {
@@ -387,7 +395,8 @@ export default function ExpenseScreen({
   const handleAddFee = async () => {
     if (feeMonth === 'all') return;
     if (sd.isFuture(feeEntryDate)) { setToast(t('errDateFuture')); return; }
-    const mc = toNum(feeMc), mw = toNum(feeMw), ew = toNum(feeEw), mt = toNum(feeMt);
+    const factor = negativeMode ? -1 : 1;
+    const mc = toNum(feeMc) * factor, mw = toNum(feeMw) * factor, ew = toNum(feeEw) * factor, mt = toNum(feeMt) * factor;
     if (mc + mw + ew + mt === 0) { setToast(t('atLeastOneFee')); return; }
     setSavingFee(true);
     try {
@@ -400,6 +409,7 @@ export default function ExpenseScreen({
       if (r?.status === 'ok') {
         setFeeData(r.data);
         setFeeMc(''); setFeeMw(''); setFeeEw(''); setFeeMt('');
+        setNegativeMode(false);
         setShowFeeSheet(false);
         // Reload all months to keep totals accurate
         api.getPlatformFees().then((all: any) => setAllFees(Array.isArray(all) ? all : []));
@@ -670,6 +680,7 @@ export default function ExpenseScreen({
                     setShowFeeHistory(true); setFeeHistoryFilter('all');
                   } else {
                     setFeeMc(''); setFeeMw(''); setFeeEw(''); setFeeMt('');
+                    setNegativeMode(false);
                     setFeeDateErr(0); loadFeeData(); setShowFeeSheet(true);
                   }
                 }}
@@ -1021,10 +1032,10 @@ export default function ExpenseScreen({
               <CloseButton onPress={() => setShowFeeSheet(false)} />
             </View>
             <View style={{ paddingHorizontal: 14, paddingTop: 12, paddingBottom: 16 }}>
-              {/* Date */}
+              {/* Date + Negative toggle */}
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 16 }}>
                 <Text style={{ fontSize: FONTS.sub.size, color: colors.textSub, fontWeight: FONTS.sub.weight, marginTop: 2 }}>{t('entryDate')}</Text>
-                <View>
+                <View style={{ flex: 1 }}>
                   <TouchableOpacity onPress={() => setShowFeeDatePicker(true)} style={{ flexDirection: 'row', alignItems: 'center', position: 'relative' }} activeOpacity={0.7}>
                     <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub }}>
                       {(() => { return fmtLocalDate(feeEntryDate); })()}
@@ -1032,6 +1043,14 @@ export default function ExpenseScreen({
                     <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 4, transform: [{ translateY: -1 }] }}><Path d="M10 6l6 6-6 6"/></Svg>
                   </TouchableOpacity>
                   <DateErrorHint trigger={feeDateErr} message={t('errDateFuture')} colors={colors} />
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 2 }}>
+                  <Text style={{ fontSize: 10, color: colors.danger }}>负数</Text>
+                  <Switch value={negativeMode} onValueChange={setNegativeMode}
+                    trackColor={{ false: colors.secondary, true: colors.danger }}
+                    thumbColor={negativeMode ? colors.danger : colors.surface}
+                    style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
+                  />
                 </View>
               </View>
 
@@ -1051,20 +1070,26 @@ export default function ExpenseScreen({
                 { k: 'meituanTuan', cur: feeData?.meituan_tuan || 0, val: feeMt, set: setFeeMt },
               ] as const).map((row) => {
                 const inputNum = toNum(row.val);
+                const sign = negativeMode ? -1 : 1;
                 return (
                   <View key={row.k} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10, gap: 4 }}>
                     <Text style={{ flex: 1.5, fontSize: FONTS.sub.size, color: colors.textSub, fontWeight: FONTS.sub.weight, marginTop: 8 }}>{t(row.k)}</Text>
                     <Text style={{ flex: 1.5, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain, textAlign: 'left', marginTop: 8 }}>
-                      ¥{(row.cur + inputNum).toFixed(2)}
+                      ¥{(row.cur + inputNum * sign).toFixed(2)}
                     </Text>
                     <Text style={{ flex: 1.2, fontSize: FONTS.micro.size, color: colors.textSub, textAlign: 'left', marginTop: 10 }}>
                       ¥{row.cur.toFixed(2)}
                     </Text>
-                    <TextInput
-                      style={{ flex: 1.2, height: 38, borderWidth: 1, borderColor: colors.secondary, borderRadius: 8, paddingHorizontal: 6, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub, textAlign: 'right', backgroundColor: colors.surface, outline: 'none' } as any}
-                      value={row.val} onChangeText={(v: string) => row.set(fmtDecInput(v))}
-                      keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={colors.textSub}
-                    />
+                    <View style={{ flex: 1.2, position: 'relative' }}>
+                      {negativeMode && (
+                        <Text style={{ position: 'absolute', left: 6, top: 0, height: 38, lineHeight: 38, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.danger, zIndex: 1 }}>−</Text>
+                      )}
+                      <TextInput
+                        style={{ flex: 1, height: 38, borderWidth: 1, borderColor: negativeMode ? colors.danger : colors.secondary, borderRadius: 8, paddingHorizontal: negativeMode ? 20 : 6, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub, textAlign: 'right', backgroundColor: colors.surface } as any}
+                        value={row.val} onChangeText={(v: string) => row.set(fmtDecInput(v))}
+                        keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={colors.textSub}
+                      />
+                    </View>
                   </View>
                 );
               })}
