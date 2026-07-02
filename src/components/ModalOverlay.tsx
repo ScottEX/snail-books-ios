@@ -70,6 +70,7 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }}
+        keyboardVerticalOffset={40}
       >
         <Animated.View style={[{ alignItems: 'center', justifyContent: 'center' }, contentStyle, { transform: getTrans() }]}>
           {children}
