@@ -14,11 +14,12 @@ import BackArrow from '../components/icons/BackArrow';
 import CameraIcon from '../components/icons/CameraIcon';
 import ThemePickerModal from '../components/ThemePickerModal';
 import BgCropModal from '../components/BgCropModal';
-import SubmitButton from '../components/SubmitButton';
+import CloseButton from '../components/CloseButton';
+import ButtonPair from '../components/ButtonPair';
 import ModalOverlay from '../components/ModalOverlay';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { pickImages } from '../utils/imagePicker';
-import { modalCardAnimation, modalClose } from '../sharedStyles';
+import { modalClose } from '../sharedStyles';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 import { isBiometricAvailable, hasStoredCredential, clearCredential, saveCredential, promptBiometric, getCredential } from '../utils/biometric';
 
@@ -1050,13 +1051,11 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       </ModalOverlay>
 
       {/* ══════ Change password modal ══════ */}
-      <ModalOverlay visible={showPwModal} onClose={() => setShowPwModal(false)}>
+      <ModalOverlay visible={showPwModal} onClose={() => setShowPwModal(false)} animation="springScale">
           <View style={mo.card}>
             <View style={mo.header}>
               <Text style={mo.title}>{t('changePassword')}</Text>
-              <TouchableOpacity onPress={() => setShowPwModal(false)}>
-                <Text style={mo.close}>✕</Text>
-              </TouchableOpacity>
+              <CloseButton onPress={() => setShowPwModal(false)} />
             </View>
             <View style={mo.body}>
               <TextInput style={mo.input} placeholder={t('oldPassword')} placeholderTextColor={colors.textSub} secureTextEntry value={oldPw} onChangeText={setOldPw} autoFocus />
@@ -1064,31 +1063,24 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               <Text style={mo.pwHint}>{t('pwHint')}</Text>
               <TextInput style={mo.input} placeholder={t('confirmNewPassword')} placeholderTextColor={colors.textSub} secureTextEntry value={confirmPw} onChangeText={setConfirmPw} />
               {pwMsg ? <Text style={mo.err}>{pwMsg}</Text> : null}
-              <View style={mo.btnRow}>
-                <TouchableOpacity style={mo.cancelBtn} onPress={() => setShowPwModal(false)}>
-                  <Text style={mo.cancelText}>{t('cancel')}</Text>
-                </TouchableOpacity>
-                <SubmitButton
-                  onPress={handleChangePw}
-                  loading={pwLoading}
-                  disabled={!oldPw || !newPw || !confirmPw || !isPwValid(newPw)}
-                  label={t('confirm')}
-                  style={[mo.confirmBtn, (!oldPw || !newPw || !confirmPw || !isPwValid(newPw)) && { opacity: 0.4 }]}
-                  textStyle={mo.confirmText}
-                />
-              </View>
+              <ButtonPair
+                leftLabel={t('cancel')}
+                leftOnPress={() => setShowPwModal(false)}
+                rightLabel={t('confirm')}
+                rightOnPress={handleChangePw}
+                rightDisabled={!oldPw || !newPw || !confirmPw || !isPwValid(newPw)}
+                rightLoading={pwLoading}
+              />
             </View>
           </View>
       </ModalOverlay>
 
       {/* ══════ Change email modal ══════ */}
-      <ModalOverlay visible={showEmailModal} onClose={() => setShowEmailModal(false)}>
+      <ModalOverlay visible={showEmailModal} onClose={() => setShowEmailModal(false)} animation="springScale">
           <View style={mo.card}>
             <View style={mo.header}>
               <Text style={mo.title}>{t('changeEmail')}</Text>
-              <TouchableOpacity onPress={() => setShowEmailModal(false)}>
-                <Text style={mo.close}>✕</Text>
-              </TouchableOpacity>
+              <CloseButton onPress={() => setShowEmailModal(false)} />
             </View>
             <View style={mo.body}>
               {emailStep === 'input' ? (
@@ -1104,19 +1096,14 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                     autoCapitalize="none"
                   />
                   {emailMsg ? <Text style={mo.err}>{emailMsg}</Text> : null}
-                  <View style={mo.btnRow}>
-                    <TouchableOpacity style={mo.cancelBtn} onPress={() => setShowEmailModal(false)}>
-                      <Text style={mo.cancelText}>{t('cancel')}</Text>
-                    </TouchableOpacity>
-                    <SubmitButton
-                      onPress={handleSendCode}
-                      loading={emailLoading}
-                      disabled={!newEmail || !isEmailValid(newEmail)}
-                      label={t('sendCode')}
-                      style={[mo.confirmBtn, (!newEmail || !isEmailValid(newEmail)) && { opacity: 0.4 }]}
-                      textStyle={mo.confirmText}
-                    />
-                  </View>
+                  <ButtonPair
+                    leftLabel={t('cancel')}
+                    leftOnPress={() => setShowEmailModal(false)}
+                    rightLabel={t('sendCode')}
+                    rightOnPress={handleSendCode}
+                    rightDisabled={!newEmail || !isEmailValid(newEmail)}
+                    rightLoading={emailLoading}
+                  />
                 </>
               ) : (
                 <>
@@ -1134,18 +1121,14 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                     keyboardType="number-pad"
                   />
                   {emailMsg ? <Text style={mo.err}>{emailMsg}</Text> : null}
-                  <View style={mo.btnRow}>
-                    <TouchableOpacity style={mo.cancelBtn} onPress={() => setEmailStep('input')}>
-                      <Text style={mo.cancelText}>{t('back')}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[mo.confirmBtn, (emailLoading || !emailCode) && { opacity: 0.4 }]}
-                      onPress={handleVerifyEmail}
-                      disabled={emailLoading || !emailCode}
-                    >
-                      <Text style={mo.confirmText}>{emailLoading ? '...' : t('confirm')}</Text>
-                    </TouchableOpacity>
-                  </View>
+                  <ButtonPair
+                    leftLabel={t('back')}
+                    leftOnPress={() => setEmailStep('input')}
+                    rightLabel={t('confirm')}
+                    rightOnPress={handleVerifyEmail}
+                    rightDisabled={!emailCode}
+                    rightLoading={emailLoading}
+                  />
                 </>
               )}
             </View>
@@ -1400,7 +1383,6 @@ const getMo = (colors: ThemeColors) => StyleSheet.create({
   card: {
     backgroundColor: colors.surface, borderRadius: 16,
     width: 340, maxWidth: '90%', overflow: 'hidden' as any,
-    ...modalCardAnimation,
   },
   header: {
     backgroundColor: colors.primary,
@@ -1409,7 +1391,7 @@ const getMo = (colors: ThemeColors) => StyleSheet.create({
   },
   title: { fontSize: 14, fontWeight: '700', color: colors.surface },
   close: { ...modalClose },
-  body: { padding: 24, gap: 18 } as any,
+  body: { padding: 20, gap: 12 } as any,
   input: {
     paddingHorizontal: 10, paddingVertical: 9, borderRadius: 8,
     fontSize: FONTS.sub.size, color: colors.textMain,
