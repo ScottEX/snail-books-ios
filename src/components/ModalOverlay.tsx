@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, Animated, Easing, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, TouchableOpacity, Animated, Easing } from 'react-native';
 import { MODAL_BACKDROP_OPACITY } from '../theme';
 import { useEffect, useRef, useState } from 'react';
 
@@ -65,18 +65,13 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
   };
 
   return (
-    <View style={{ position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'position' : undefined}
-        style={{ flex: 1 }}
-      >
-        <Animated.View style={[{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }, { opacity: fade }, overlayStyle]}>
-          <TouchableOpacity activeOpacity={1} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', opacity: MODAL_BACKDROP_OPACITY }} onPress={onClose} />
-          <Animated.View style={[{ alignItems: 'center', justifyContent: 'center' }, contentStyle, { transform: getTrans() }]}>
-            {children}
-          </Animated.View>
+    <Animated.View style={[{ position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }, { opacity: fade }, overlayStyle]}>
+      <TouchableOpacity activeOpacity={1} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', opacity: MODAL_BACKDROP_OPACITY }} onPress={onClose} />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+        <Animated.View style={[{ alignItems: 'center', justifyContent: 'center' }, contentStyle, { transform: getTrans() }]}>
+          {children}
         </Animated.View>
-      </KeyboardAvoidingView>
-    </View>
+      </View>
+    </Animated.View>
   );
 }
