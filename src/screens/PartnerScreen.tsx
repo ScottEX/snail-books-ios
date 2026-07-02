@@ -702,7 +702,7 @@ const getS = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   langActive: { color: colors.primary, backgroundColor: withAlpha(colors.danger, 0.1), fontWeight: FONTS.microBold.weight as any },
-  statGrid: { flexDirection: 'column', gap: 12, marginTop: 16, paddingHorizontal: 18 },
+  statGrid: { flexDirection: 'column', gap: 12, marginTop: 16 },
   statCard: {
     flex: 1, minWidth: 200, backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1, borderColor: colors.bg,
     padding: 14, flexDirection: 'row', alignItems: 'center', gap: 14,
@@ -714,7 +714,7 @@ const getS = (colors: ThemeColors) => StyleSheet.create({
   statSub: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight, marginTop: 2 },
   dividendBtn: { backgroundColor: colors.primary, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12 },
   dividendBtnText: { color: colors.surface, fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight },
-  partnerGrid: { flexDirection: 'column', gap: 12, marginTop: 12, paddingHorizontal: 18 },
+  partnerGrid: { flexDirection: 'column', gap: 12, marginTop: 12 },
   partnerCard: {
     flex: 1, minWidth: 200, backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1, borderColor: colors.bg,
     padding: 16, gap: 10,
@@ -734,7 +734,6 @@ const getS = (colors: ThemeColors) => StyleSheet.create({
   footerSub: { fontSize: FONTS.micro.size, color: colors.textSub },
   ledgerCard: {
     backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.bg, marginTop: 16,
-    marginHorizontal: 18,
   },
   ledgerHeader: { padding: 20, borderBottomWidth: 1, borderBottomColor: colors.bg, gap: 12 },
   ledgerTitle: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.textSub, letterSpacing: 0.5 },

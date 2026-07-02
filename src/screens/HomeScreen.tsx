@@ -625,7 +625,9 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             onExpenseAdded={loadBusinessSummary}
           />
         ) : isHome && tab === 'partner' ? (
-          <PartnerScreen onBack={() => setTab('list')} onProfile={() => openModal(() => setShowProfile(true))} refreshKey={partnerRefreshKey} />
+          <View style={styles.page}>
+            <PartnerScreen onBack={() => setTab('list')} onProfile={() => openModal(() => setShowProfile(true))} refreshKey={partnerRefreshKey} />
+          </View>
         ) : isHome && tab === 'supply' ? (
           <ProcurementScreen />
         ) : isHome && (
@@ -1268,6 +1270,12 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   bgLayer: { ...StyleSheet.absoluteFillObject },
   bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)' },
   root: { flex: 1 },
+
+  // Page wrapper — mirrors web HomeScreen.tsx styles.page (L973).
+  // Web wraps all tabs (partner/supply/expense/list/chart) in this view
+  // for consistent horizontal padding. Applied per-tab here so iOS
+  // (which has a fixed bottom-nav overlay) matches the visual inset.
+  page: { flex: 1, paddingHorizontal: 16, paddingBottom: 12 },
 
   // Header — frosted-glass bar at top of root, mirrors web's zIndex:200
   // header with backdropFilter blur(30px) (we use expo-blur since RN has
