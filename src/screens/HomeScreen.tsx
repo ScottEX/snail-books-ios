@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet, TextInput,
-  Animated, ImageBackground, Image, ActivityIndicator,
+  Animated, ImageBackground, Image, ActivityIndicator, Keyboard, Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle } from 'react-native-svg';
@@ -296,6 +296,28 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   }>({});
   const navScaleAnims = useRef([...Array(5)].map(() => new Animated.Value(1))).current;
 
+  // ── Keyboard avoidance — shift entire screen up (content + bottom nav) ──
+  const keyboardShift = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, (e: any) => {
+      Animated.timing(keyboardShift, {
+        toValue: -e.endCoordinates.height,
+        duration: e.duration || 250,
+        useNativeDriver: true,
+      }).start();
+    });
+    const hideSub = Keyboard.addListener(hideEvent, (e: any) => {
+      Animated.timing(keyboardShift, {
+        toValue: 0,
+        duration: e.duration || 200,
+        useNativeDriver: true,
+      }).start();
+    });
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
+
   // ── Daily revenue state ──
   const [revDate, setRevDate] = useState('');
   useEffect(() => { if (sd.ready && revDate === '') setRevDate(sd.today); }, [sd.ready, sd.today, revDate]);
@@ -560,7 +582,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         ) : null}
       </SlideScreen>
 
-      <View style={[styles.root, { paddingTop: insets.top }]}>
+      <Animated.View style={[styles.root, { paddingTop: insets.top }, { transform: [{ translateY: keyboardShift }] }]}>
         {/* Header — fixed frosted-glass bar matching web (zIndex 200,
             backdropFilter:blur(30px) achieved here via expo-blur). Sits
             ABOVE the scrollable content so the avatar/user row stays
@@ -703,7 +725,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           </View>
         </View>
         )}
-      </View>
+      </Animated.View>
 
       {/* BG settings modal — uses shared ThemePickerModal (matches web) */}
       <ThemePickerModal

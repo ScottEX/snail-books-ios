@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, useReducer } from 'react';
 import {
-  View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated, Dimensions, Modal, Switch, KeyboardAvoidingView, Platform,
+  View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated, Dimensions, Modal, Switch,
 } from 'react-native';
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -554,8 +554,7 @@ export default function ExpenseScreen({
   /* ── Render ── */
   return (
     <>
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }} keyboardVerticalOffset={10}>
-      <View style={st.root}>
+    <View style={st.root}>
       {/* ══════ 卡片式Tab ══════ */}
       <View style={st.tabBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
@@ -1036,7 +1035,7 @@ export default function ExpenseScreen({
           title={t('entryDate')}
         />
       </Modal>
-      </View>
+    </View>
       {/* Fee entry modal — full-screen via RN <Modal> */}
       <Modal transparent animationType="none" visible={showFeeSheet} onRequestClose={() => setShowFeeSheet(false)}>
         <ModalOverlay visible={showFeeSheet} onClose={() => setShowFeeSheet(false)}>
@@ -1175,7 +1174,6 @@ export default function ExpenseScreen({
           </View>
         </ModalOverlay>
       </Modal>
-    </KeyboardAvoidingView>
     </>
   );
 }
