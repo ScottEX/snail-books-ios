@@ -24,8 +24,11 @@
 - (NSURL *)bundleURL
 {
 #if DEBUG
-  // Use frp tunnel for remote device development
-  [[RCTBundleURLProvider sharedSettings] setJsLocation:@"8.135.58.90:8081"];
+  // Default to frp tunnel for remote device development,
+  // but respect dev-menu override (shake → Configure Bundler).
+  if (![[NSUserDefaults standardUserDefaults] stringForKey:@"RCT_jsLocation"]) {
+    [[RCTBundleURLProvider sharedSettings] setJsLocation:@"8.135.58.90:8081"];
+  }
   return [[RCTBundleURLProvider sharedSettings] jsBundleURLForBundleRoot:@".expo/.virtual-metro-entry"];
 #else
   return [[NSBundle mainBundle] URLForResource:@"main" withExtension:@"jsbundle"];
