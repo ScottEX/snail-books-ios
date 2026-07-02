@@ -65,17 +65,18 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
   };
 
   return (
-    <Animated.View style={[{ position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }, { opacity: fade }, overlayStyle]}>
-      <TouchableOpacity activeOpacity={1} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', opacity: MODAL_BACKDROP_OPACITY }} onPress={onClose} />
+    <View style={{ position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'position' : undefined}
-        style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }}
-        keyboardVerticalOffset={250}
+        style={{ flex: 1 }}
       >
-        <Animated.View style={[{ alignItems: 'center', justifyContent: 'center' }, contentStyle, { transform: getTrans() }]}>
-          {children}
+        <Animated.View style={[{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }, { opacity: fade }, overlayStyle]}>
+          <TouchableOpacity activeOpacity={1} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', opacity: MODAL_BACKDROP_OPACITY }} onPress={onClose} />
+          <Animated.View style={[{ alignItems: 'center', justifyContent: 'center' }, contentStyle, { transform: getTrans() }]}>
+            {children}
+          </Animated.View>
         </Animated.View>
       </KeyboardAvoidingView>
-    </Animated.View>
+    </View>
   );
 }
