@@ -16,9 +16,10 @@ interface ConfirmModalProps {
   loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  animation?: 'slide' | 'springScale' | 'blurMorph';
 }
 
-/** Standardized confirmation modal with spring animation, used for all delete/confirm dialogs. */
+/** Standardized confirmation modal with blurMorph animation, used for all delete/confirm dialogs. */
 export default function ConfirmModal({
   visible,
   title,
@@ -30,6 +31,7 @@ export default function ConfirmModal({
   loading,
   onConfirm,
   onCancel,
+  animation = 'blurMorph',
 }: ConfirmModalProps) {
   const { colors: c } = useTheme();
   const styles = getStyles(c);
@@ -37,7 +39,7 @@ export default function ConfirmModal({
   const btn = confirmColor || c.primary;
 
   return (
-    <ModalOverlay visible={visible} onClose={onCancel}>
+    <ModalOverlay visible={visible} onClose={onCancel} animation={animation}>
       <View style={styles.card}>
         <View style={[styles.header, { backgroundColor: hdr }]}>
           <Text style={styles.title}>{title}</Text>

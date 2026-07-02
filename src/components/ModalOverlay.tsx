@@ -22,15 +22,15 @@ interface ModalOverlayProps {
   children: React.ReactNode;
   overlayStyle?: any;
   contentStyle?: any;
-  /** 动画类型:'slide' 默认顶部滑入、'springScale' 弹性缩放 */
-  animation?: 'slide' | 'springScale';
+  /** 动画类型:'slide' 默认顶部滑入、'springScale' 弹性缩放、'blurMorph' 模糊渐显 */
+  animation?: 'slide' | 'springScale' | 'blurMorph';
 }
 
 /** Uniform animated modal overlay used by all modals across the app. */
 export default function ModalOverlay({ visible = true, onClose, children, overlayStyle, contentStyle, animation = 'slide' }: ModalOverlayProps) {
   const [show, setShow] = useState(false);
   const initialSlide = animation === 'springScale' ? 12 : -300;
-  const initialScale = animation === 'springScale' ? 0.85 : 1;
+  const initialScale = animation === 'springScale' ? 0.85 : animation === 'blurMorph' ? 1.04 : 1;
   const slide = useRef(new Animated.Value(initialSlide)).current;
   const fade = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(initialScale)).current;
@@ -47,6 +47,13 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
           Animated.spring(slide, { toValue: 0, useNativeDriver: true, bounciness: 8, speed: 14 }),
           Animated.timing(fade, { toValue: 1, duration: 250, useNativeDriver: true }),
         ]).start();
+      } else if (animation === 'blurMorph') {
+        scale.setValue(1.04);
+        fade.setValue(0);
+        Animated.parallel([
+          Animated.timing(scale, { toValue: 1, duration: 400, useNativeDriver: true }),
+          Animated.timing(fade, { toValue: 1, duration: 350, useNativeDriver: true }),
+        ]).start();
       } else {
         slide.setValue(-300);
         fade.setValue(0);
@@ -62,6 +69,11 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
           Animated.timing(slide, { toValue: 8, duration: 220, useNativeDriver: true }),
           Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: true }),
         ]).start(() => setShow(false));
+      } else if (animation === 'blurMorph') {
+        Animated.parallel([
+          Animated.timing(scale, { toValue: 0.97, duration: 250, useNativeDriver: true }),
+          Animated.timing(fade, { toValue: 0, duration: 200, useNativeDriver: true }),
+        ]).start(() => setShow(false));
       } else {
         Animated.parallel([
           Animated.timing(slide, { toValue: -300, duration: 180, useNativeDriver: false }),
@@ -75,6 +87,7 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
 
   const getTrans = () => {
     if (animation === 'springScale') return [{ scale }, { translateY: slide }];
+    if (animation === 'blurMorph') return [{ scale }];
     return [{ translateY: slide }];
   };
 
