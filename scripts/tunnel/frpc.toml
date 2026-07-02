@@ -1,0 +1,10 @@
+serverAddr = "127.0.0.1"
+serverPort = 14443
+loginFailExit = false
+
+[[proxies]]
+name = "metro"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 8081
+remotePort = 8081

@@ -55,6 +55,42 @@ snail-books-ios/
     └── expo-localization+16.0.1.patch
 ```
 
+## 远程热更新 (frp 隧道)
+
+App 在 DEBUG 模式下通过阿里云服务器 `8.135.58.90` 拉取 JS bundle，实现远程真机热更新。
+
+### 链路
+
+```
+iPhone (半山聽雨 / ScottEX-3)
+  ↓ http://8.135.58.90:8081
+frps (8.135.58.90:4443→8081)
+  ↓ frp tunnel
+SSH 隧道 (localhost:14443 → 8.135.58.90:4443)
+  ↓
+frpc (localhost:14443)
+  ↓
+Metro (localhost:8081)
+```
+
+### 文件
+
+| 文件 | 用途 |
+|------|------|
+| `scripts/tunnel/frpc.toml` | frpc 配置 |
+| `scripts/tunnel/metro-tunnel.sh` | 隧道启动脚本 |
+| `scripts/tunnel/check-prebuild.sh` | postinstall 守卫，检测 AppDelegate 配置是否被覆盖 |
+| `scripts/tunnel/fix-prebuild.sh` | 自动修复被 prebuild 覆盖的 AppDelegate |
+| `ios/app/AppDelegate.mm` | DEBUG 模式下 `setJsLocation:@"8.135.58.90:8081"` |
+
+### ⚠️ 重要
+
+- **`expo prebuild` 可能覆盖 AppDelegate.mm**。`postinstall` 钩子会自动检测并报警告，跑 `bash scripts/tunnel/fix-prebuild.sh` 即可修复。
+- 隧道由 launchd 管理（`com.snailbooks.metro` / `com.snailbooks.metro-tunnel`），开机自启。
+- 检查连通性：`curl http://8.135.58.90:8081/status` 应返回 `packager-status:running`。
+
+---
+
 ## 关键命令
 
 ```bash

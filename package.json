@@ -9,7 +9,7 @@
     "web": "expo start --web",
     "build:ios": "expo prebuild --platform ios && xcodebuild -workspace ios/*.xcworkspace -scheme app -configuration Release -quiet",
     "prebuild": "expo prebuild --platform ios",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package && bash scripts/tunnel/check-prebuild.sh"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "1.23.1",
