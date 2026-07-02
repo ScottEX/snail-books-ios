@@ -92,7 +92,7 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,18,16,0.65)' }}
           onPress={onClose}
         />
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }} pointerEvents="box-none">
           <Animated.View style={[{ alignItems: 'center', justifyContent: 'center' }, contentStyle, { transform: getTrans() }]}>
             {children}
           </Animated.View>
