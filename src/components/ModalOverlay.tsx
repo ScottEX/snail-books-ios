@@ -68,7 +68,7 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
     <Animated.View style={[{ position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }, { opacity: fade }, overlayStyle]}>
       <TouchableOpacity activeOpacity={1} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', opacity: MODAL_BACKDROP_OPACITY }} onPress={onClose} />
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'position' : undefined}
         style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }}
         keyboardVerticalOffset={0}
       >
