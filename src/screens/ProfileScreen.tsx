@@ -1058,7 +1058,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               <CloseButton onPress={() => setShowPwModal(false)} />
             </View>
             <View style={mo.body}>
-              <TextInput style={mo.input} placeholder={t('oldPassword')} placeholderTextColor={colors.textSub} secureTextEntry value={oldPw} onChangeText={setOldPw} autoFocus />
+              <TextInput style={mo.input} placeholder={t('oldPassword')} placeholderTextColor={colors.textSub} secureTextEntry value={oldPw} onChangeText={setOldPw} />
               <TextInput style={mo.input} placeholder={t('newPassword')} placeholderTextColor={colors.textSub} secureTextEntry value={newPw} onChangeText={setNewPw} />
               <Text style={mo.pwHint}>{t('pwHint')}</Text>
               <TextInput style={mo.input} placeholder={t('confirmNewPassword')} placeholderTextColor={colors.textSub} secureTextEntry value={confirmPw} onChangeText={setConfirmPw} />
@@ -1091,7 +1091,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                     placeholderTextColor={colors.textSub}
                     value={newEmail}
                     onChangeText={setNewEmail}
-                    autoFocus
                     keyboardType="email-address"
                     autoCapitalize="none"
                   />
@@ -1116,7 +1115,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                     placeholderTextColor={colors.textSub}
                     value={emailCode}
                     onChangeText={setEmailCode}
-                    autoFocus
                     maxLength={6}
                     keyboardType="number-pad"
                   />
