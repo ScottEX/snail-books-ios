@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, Animated, Easing, Keyboard, Platform } from 'react-native';
+import { View, TouchableOpacity, Animated, Easing, KeyboardAvoidingView, Platform } from 'react-native';
 import { MODAL_BACKDROP_OPACITY } from '../theme';
 import { useEffect, useRef, useState } from 'react';
 
@@ -20,7 +20,6 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
   const slide = useRef(new Animated.Value(initialSlide)).current;
   const fade = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(initialScale)).current;
-  const keyboardShift = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
@@ -58,50 +57,24 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
     }
   }, [visible]);
 
-  // ─── Keyboard avoidance ──────────────────────
-  useEffect(() => {
-    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-
-    const showSub = Keyboard.addListener(showEvent, (e) => {
-      const h = e.endCoordinates.height;
-      Animated.timing(keyboardShift, {
-        toValue: -(h / 2),
-        duration: e.duration || 250,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: false,
-      }).start();
-    });
-
-    const hideSub = Keyboard.addListener(hideEvent, (e) => {
-      Animated.timing(keyboardShift, {
-        toValue: 0,
-        duration: e.duration || 200,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: false,
-      }).start();
-    });
-
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
-
   if (!show) return null;
 
   const getTrans = () => {
-    const y = Animated.add(slide, keyboardShift);
-    if (animation === 'springScale') return [{ scale }, { translateY: y }];
-    return [{ translateY: y }];
+    if (animation === 'springScale') return [{ scale }, { translateY: slide }];
+    return [{ translateY: slide }];
   };
 
   return (
-    <Animated.View style={[{ position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 999, justifyContent: 'center', alignItems: 'center', padding: 16 }, { opacity: fade }, overlayStyle]}>
+    <Animated.View style={[{ position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }, { opacity: fade }, overlayStyle]}>
       <TouchableOpacity activeOpacity={1} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', opacity: MODAL_BACKDROP_OPACITY }} onPress={onClose} />
-      <Animated.View style={[{ alignItems: 'center', justifyContent: 'center' }, contentStyle, { transform: getTrans() }]}>
-        {children}
-      </Animated.View>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }}
+      >
+        <Animated.View style={[{ alignItems: 'center', justifyContent: 'center' }, contentStyle, { transform: getTrans() }]}>
+          {children}
+        </Animated.View>
+      </KeyboardAvoidingView>
     </Animated.View>
   );
 }
