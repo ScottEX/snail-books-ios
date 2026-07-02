@@ -462,7 +462,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   };
 
   return (
-    <View style={styles.bg}>
+    <View style={styles.container}>
+    <View style={styles.inner}>
       {/* Two-layer background (mirrors web). Base layer = bundled
           bg.jpg, always at bgOpacity. Top layer = the user's custom
           bg (or base if none set), fading in once available. bgVersion
@@ -773,6 +774,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         title={t('billDate') || '选择日期'}
       />
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
+    </View>
     </View>
   );
 }
@@ -1266,7 +1268,11 @@ function IconPartner({ c }: { c: string }) {
 /* ── Styles ────────────────────────────────────────────────────────── */
 
 const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.create({
-  bg: { flex: 1, position: 'relative' },
+  // Mirrors web HomeScreen.tsx — container > inner wrapper.
+  // container = flex: 1 (full screen); inner = flex: 1, alignSelf: 'center',
+  // width: '100%', position: 'relative' (anchors absolute SlideScreens).
+  container: { flex: 1, backgroundColor: 'transparent' },
+  inner: { flex: 1, alignSelf: 'center', width: '100%', position: 'relative' },
   bgLayer: { ...StyleSheet.absoluteFillObject },
   bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)' },
   root: { flex: 1 },
