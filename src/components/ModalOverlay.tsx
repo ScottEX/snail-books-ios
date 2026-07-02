@@ -1,5 +1,19 @@
-import { View, TouchableOpacity, Animated, Easing } from 'react-native';
-import { MODAL_BACKDROP_OPACITY } from '../theme';
+// ═══════════════════════════════════════════════════════════════
+// ModalOverlay — 全屏遮罩 + 居中弹窗(对齐 web createPortal 行为)
+// ═══════════════════════════════════════════════════════════════
+//
+// web 用 createPortal(..., document.body) 把弹窗渲染到 body 直接子元素,
+// absolute 定位 top/left/right/bottom: 0 覆盖整个 window。
+//
+// iOS 改用 RN 原生 <Modal transparent> 包装,等价于 web portal 行为:
+//   - 原生 UIView 渲染在 app 最顶层,覆盖 status bar + bottom 安全区
+//   - transparent=true 自己画遮罩,不破坏内层样式
+//   - animationType="none" 由我们 Animated 接管进出动画
+//   - statusBarTranslucent 让 status bar 也被遮罩覆盖
+//
+// 背景色对齐 web:rgba(20,18,16,0.65)(原 iOS 是 #000 + opacity 0.8)。
+
+import { Modal, View, TouchableOpacity, Animated } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
 
 interface ModalOverlayProps {
@@ -8,7 +22,7 @@ interface ModalOverlayProps {
   children: React.ReactNode;
   overlayStyle?: any;
   contentStyle?: any;
-  /** 动画类型：'slide' 默认顶部滑入、'springScale' 弹性缩放 */
+  /** 动画类型:'slide' 默认顶部滑入、'springScale' 弹性缩放 */
   animation?: 'slide' | 'springScale';
 }
 
@@ -65,13 +79,25 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
   };
 
   return (
-    <Animated.View style={[{ position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 999 }, { opacity: fade }, overlayStyle]}>
-      <TouchableOpacity activeOpacity={1} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', opacity: MODAL_BACKDROP_OPACITY }} onPress={onClose} />
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }}>
-        <Animated.View style={[{ alignItems: 'center', justifyContent: 'center' }, contentStyle, { transform: getTrans() }]}>
-          {children}
-        </Animated.View>
-      </View>
-    </Animated.View>
+    <Modal
+      visible={show}
+      transparent
+      animationType="none"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <Animated.View style={[{ flex: 1 }, { opacity: fade }, overlayStyle]}>
+        <TouchableOpacity
+          activeOpacity={1}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,18,16,0.65)' }}
+          onPress={onClose}
+        />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+          <Animated.View style={[{ alignItems: 'center', justifyContent: 'center' }, contentStyle, { transform: getTrans() }]}>
+            {children}
+          </Animated.View>
+        </View>
+      </Animated.View>
+    </Modal>
   );
 }
