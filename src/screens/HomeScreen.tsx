@@ -305,14 +305,14 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
       Animated.timing(keyboardShift, {
         toValue: -e.endCoordinates.height,
         duration: e.duration || 250,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
     });
     const hideSub = Keyboard.addListener(hideEvent, (e: any) => {
       Animated.timing(keyboardShift, {
         toValue: 0,
         duration: e.duration || 200,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
     });
     return () => { showSub.remove(); hideSub.remove(); };
