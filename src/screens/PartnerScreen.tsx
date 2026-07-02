@@ -1,22 +1,47 @@
-import React, { useState, useEffect, useMemo } from 'react';
+// ═══════════════════════════════════════════════════════════════
+// PartnerScreen — 合伙人页面(对齐 web src/screens/PartnerScreen.tsx)
+// ═══════════════════════════════════════════════════════════════
+//
+// 本次对齐要点:
+//   1. 业务逻辑抽到 src/screens/partner/usePartnerData.ts (partnerShare /
+//      translateName / translateDividendNote / getRoleKey / usePartnerData)
+//   2. Toast 用 useToast hook + ToastHost
+//   3. 加 onProfile prop(头像点击跳 profile)
+//   4. 加 showInvoice + SlideScreen 包 InvoiceScreen 入口
+//   5. 内联 CropModal(头像裁剪,跟 web 一样;实际触发由 ProfileScreen 接管)
+//   6. 删除 langRow JSX(跟 web 一致,switchLang 函数仍保留)
+//   7. 中投额算法改 (investment - init_capital),不再用 add_amount
+//   8. 样式对齐 web:container/header padding、grid 竖排、success 色硬编码、
+//      mid 算法、moBody.input color、detail cell 字号、mo.close = modalClose
+
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Image } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { t, getLang, langs, useLang } from '../i18n';
-import { api } from '../api/client';
+import { t, useLang } from '../i18n';
 import { useServerDate } from '../hooks/useServerDate';
-import Toast from '../components/Toast';
-import ConfirmModal from '../components/ConfirmModal';
+import { api } from '../api/client';
+import { useToast } from '../hooks/useToast';
 import ModalOverlay from '../components/ModalOverlay';
+import ConfirmModal from '../components/ConfirmModal';
+import InvoiceScreen from './InvoiceScreen';
+import SlideScreen from '../components/SlideScreen';
+import CropModal from '../components/CropModal';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
-import { FONTS } from '../theme';
-import { formatDate } from '../utils/format';
-import { fmtDecInput } from '../utils/numbers';
-import { getCurrentUserId } from '../utils/storage';
-import { pickImages } from '../utils/imagePicker';
 import { useSwipeBack } from '../hooks/useSwipeBack';
+import { FONTS } from '../theme';
+import { modalClose } from '../sharedStyles';
 
-/* ========== SHARED DATA ========== */
-const partnerShare: Record<string, number> = { '张安武': 0.34, '江宽': 0.33, '蓝柳富': 0.33 };
+import {
+  partnerShare, translateName, translateDividendNote, getRoleKey,
+  usePartnerData,
+} from './partner/usePartnerData';
+
+import { formatDate } from '../utils/format';
+import PlusIcon from '../components/icons/PlusIcon';
+import MinusIcon from '../components/icons/MinusIcon';
+import { getCurrentUserId } from '../utils/storage';
+import ButtonPair from '../components/ButtonPair';
+import { fmtDecInput } from '../utils/numbers';
 
 const ROLE_COLORS: Record<string, string> = {
   '董事长': '#C84047',
@@ -25,38 +50,6 @@ const ROLE_COLORS: Record<string, string> = {
   '员工': '#5B8C5A',
   '打杂': '#8C8583',
 };
-
-function translateName(name: string, pinyin?: string, tw?: string): string {
-  const nameMap: Record<string, string> = { '张安武': 'nameZhang', '江宽': 'nameJiang', '蓝柳富': 'nameLan' };
-  const key = nameMap[name];
-  if (key) return t(key);
-  const lang = getLang();
-  if (lang === 'en' && pinyin) return pinyin;
-  if (lang === 'zh-TW' && tw) return tw;
-  return name;
-}
-
-function translateDividendNote(note: string, date?: string): string {
-  if (!note) return '';
-  const m = note.match(/^(?:第(\d+)次分红|第(\d+)次)$/);
-  if (m) {
-    const n = m[1] || m[2];
-    if (date) return t('dividendRoundFmt').replace('{n}', n).replace('{date}', formatDate(date));
-    return t('dividendRoundOnly').replace('{n}', n);
-  }
-  const m2 = note.match(/^第(\d+)次分红 \((.+)\)$/);
-  if (m2) return t('dividendRoundFmt').replace('{n}', m2[1]).replace('{date}', formatDate(m2[2]));
-  return note;
-}
-
-function getRoleKey(name: string, linkedRole?: string): string {
-  if (linkedRole) {
-    const map: Record<string, string> = { '董事长': 'chairman', 'CEO': 'ceo', '店长': 'manager', '员工': 'staff', '普通用户': 'janitor', '打杂': 'janitor' };
-    return map[linkedRole] || 'janitor';
-  }
-  const nameMap: Record<string, string> = { '张安武': 'chairman', '江宽': 'ceo', '蓝柳富': 'janitor' };
-  return nameMap[name] || 'janitor';
-}
 
 /* ========== SVG ICONS (exact 8600 paths) ========== */
 
@@ -87,32 +80,21 @@ function IconPeople({ color = '#8C8583' }: { color?: string }) {
   );
 }
 
-/* ========== INLINE SVG ICONS ========== */
-
-function PlusIcon({ color, size = 16 }: { color: string; size?: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M12 5v14M5 12h14" />
-    </Svg>
-  );
-}
-
-function MinusIcon({ color, size = 16 }: { color: string; size?: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M5 12h14" />
-    </Svg>
-  );
-}
-
 /* ========== MAIN SCREEN ========== */
 
-export default function PartnerScreen({ onBack, refreshKey = 0 }: { onBack: () => void; refreshKey?: number }) {
+export default function PartnerScreen({ onBack, onProfile, refreshKey = 0 }: { onBack: () => void; onProfile?: () => void; refreshKey?: number }) {
   const sd = useServerDate();
-  const swipeBack = useSwipeBack(onBack);
-  const [partners, setPartners] = useState<any[]>([]);
-  const [dividends, setDividends] = useState<any[]>([]);
-  const [totalDiv, setTotalDiv] = useState(0);
+  const { showToast, ToastHost } = useToast();
+  const {
+    partners,
+    dividends,
+    totalDiv,
+    loadingData,
+    loadData,
+    grouped,
+    groupKeys,
+    getPartnerHistory,
+  } = usePartnerData(showToast, refreshKey);
   const [showDividend, setShowDividend] = useState(false);
   const [showDelete, setShowDelete] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
@@ -120,18 +102,23 @@ export default function PartnerScreen({ onBack, refreshKey = 0 }: { onBack: () =
   const [showDetail, setShowDetail] = useState<any>(null);
   const [detailPartner, setDetailPartner] = useState<any>(null);
   const [showOrg, setShowOrg] = useState(false);
+  const [showInvoice, setShowInvoice] = useState(false);
   const [divAmount, setDivAmount] = useState('');
   const [divRoundNum, setDivRoundNum] = useState(0);
   const [divPreview, setDivPreview] = useState<any[]>([]);
   const [filter, setFilter] = useState('all');
-  const { lang, setLang } = useLang();
+  const { setLang: setLangState } = useLang();
 
-  const [toast, setToast] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [avatarKey, setAvatarKey] = useState(0);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  // Crop modal state(对齐 web,触发由 ProfileScreen 接管,PartnerScreen 暂不主动触发)
+  const [cropSrc, setCropSrc] = useState('');
+  const [cropResult, setCropResult] = useState('');
+  const [showResult, setShowResult] = useState(false);
+  const [cropMsg, setCropMsg] = useState('');
 
   const { colors } = useTheme();
+  const swipeBack = useSwipeBack(onBack);
 
   const s = useMemo(() => getS(colors), [colors]);
   const mo = useMemo(() => getMo(colors), [colors]);
@@ -139,73 +126,6 @@ export default function PartnerScreen({ onBack, refreshKey = 0 }: { onBack: () =
   const ds = useMemo(() => getDs(colors), [colors]);
   const org = useMemo(() => getOrg(colors), [colors]);
   const tg = useMemo(() => getTg(colors), [colors]);
-
-  const [loadingData, setLoadingData] = useState(true);
-  const loadData = async () => {
-    try {
-      setLoadingData(true);
-      const p = await api.getPartners();
-      setPartners(p || []);
-      const d = await api.getDividends();
-      setDividends(d || []);
-      setTotalDiv((d || []).reduce((s: number, x: any) => s + x.amount, 0));
-    } catch { setToast(t('toastLoadFailed')); }
-    setLoadingData(false);
-  };
-
-  useEffect(() => { loadData(); }, [refreshKey]);
-
-  // ── Avatar loader ──
-  const loadAvatar = async () => {
-    try {
-      const uid = getCurrentUserId();
-      if (!uid) return;
-      const CACHE_KEY = 'partner_avatar_b64';
-      try {
-        const cached = (globalThis as any).sessionStorage?.getItem(CACHE_KEY);
-        if (cached) setAvatarUrl(cached);
-      } catch {}
-      const b64 = await api.getUserAvatar(uid);
-      if (b64) {
-        setAvatarUrl(b64);
-        try { (globalThis as any).sessionStorage?.setItem(CACHE_KEY, b64); } catch {}
-      }
-    } catch {}
-  };
-
-  useEffect(() => { loadAvatar(); }, []);
-
-  // ── Avatar pick + upload (skip canvas crop) ──
-  const handleAvatarPress = async () => {
-    if (uploadingAvatar) return;
-    try {
-      const imgs = await pickImages({ multiple: false }).catch(() => []);
-      if (imgs.length === 0) return;
-      const file = imgs[0];
-      setUploadingAvatar(true);
-      const form = new FormData();
-      // @ts-ignore
-      form.append('file', { uri: file.uri, type: file.type || 'image/jpeg', name: file.name || 'avatar.jpg' });
-      const r: any = await api.uploadAvatar(form);
-      if (r?.ok !== false) {
-        setAvatarKey(k => k + 1);
-        await loadAvatar();
-        setToast('头像已更新');
-      }
-    } catch (err: any) {
-      setToast(err?.message || '上传失败');
-    } finally {
-      setUploadingAvatar(false);
-    }
-  };
-
-  const grouped: Record<string, any[]> = {};
-  dividends.forEach((d: any) => {
-    const n = d.note || '---';
-    if (!grouped[n]) grouped[n] = [];
-    grouped[n].push(d);
-  });
-  const groupKeys = Object.keys(grouped);
 
   const calcPreview = (total: number) => {
     setDivPreview(partners.map((p: any) => ({
@@ -229,7 +149,7 @@ export default function PartnerScreen({ onBack, refreshKey = 0 }: { onBack: () =
       setDivAmount(''); setDivRoundNum(0); setDivPreview([]);
       loadData();
     } catch {
-      setToast(t('toastSubmitFailed'));
+      showToast(t('toastSubmitFailed'));
     }
   };
 
@@ -244,7 +164,7 @@ export default function PartnerScreen({ onBack, refreshKey = 0 }: { onBack: () =
       catch { failed++; }
     }
     if (failed > 0) {
-      setDeleteError(`删除失败：${failed}/${toDelete.length} 条记录`);
+      setDeleteError(`删除失败:${failed}/${toDelete.length} 条记录`);
       setDeleting(false);
     } else {
       setDeleting(false);
@@ -254,24 +174,45 @@ export default function PartnerScreen({ onBack, refreshKey = 0 }: { onBack: () =
   };
 
   const switchLang = (l: string) => {
-    setLang(l);
+    setLangState(l);
     loadData();
   };
 
-  // Build dividend history for detail modal
-  const getPartnerHistory = (name: string) => {
-    const history: { note: string; amount: number }[] = [];
-    Object.entries(grouped).forEach(([note, items]) => {
-      items.forEach((d: any) => {
-        if (d.partner === name && d.amount > 0)
-          history.push({ note: translateDividendNote(note, d.date), amount: d.amount });
-      });
-    });
-    return history;
+  const loadAvatar = async () => {
+    const uid = getCurrentUserId();
+    if (!uid) return;
+    const CACHE_KEY = 'partner_avatar_b64';
+    try {
+      const cached = (globalThis as any).sessionStorage?.getItem(CACHE_KEY);
+      if (cached) setAvatarUrl(cached);
+    } catch {}
+    try {
+      const b64 = await api.getUserAvatar(uid);
+      if (b64) {
+        setAvatarUrl(b64);
+        try { (globalThis as any).sessionStorage?.setItem(CACHE_KEY, b64); } catch {}
+      }
+    } catch {}
   };
 
+  // Crop confirm → upload(对齐 web PartnerScreen 的 confirmCrop + doUpload)
+  const handleCropConfirm = async (dataUri: string) => {
+    try {
+      const resp = await api.uploadAvatar({ uri: dataUri, type: 'image/jpeg', name: 'avatar.jpg' } as any);
+      if ((resp as any)?.ok !== false) {
+        setShowResult(false);
+        setCropSrc('');
+        setCropResult('');
+        setAvatarKey(k => k + 1);
+        loadAvatar();
+      } else { setCropMsg('上传失败'); }
+    } catch { setCropMsg('上传失败,请重试'); }
+  };
+
+  useEffect(() => { loadAvatar(); }, []);
+
   return (
-    <View style={s.root} {...swipeBack}>
+    <View style={s.root}>
       <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
         <View style={s.container}>
 
@@ -285,18 +226,9 @@ export default function PartnerScreen({ onBack, refreshKey = 0 }: { onBack: () =
                   <Text style={s.engSub}>Lan's Luosifen · Partner Capital</Text>
                 </View>
               </View>
-              <View style={s.langRow}>
-                {langs.map(([code, label]) => (
-                  <TouchableOpacity key={code} onPress={() => switchLang(code)}>
-                    <Text style={[s.langBtn, lang === code && s.langActive]}>
-                      {label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
             </View>
             <View style={{ position: 'relative', marginTop: -4, marginRight: -18 }}>
-              <TouchableOpacity onPress={handleAvatarPress}>
+              <TouchableOpacity onPress={onProfile}>
                 {avatarUrl ? (
                   <Image source={{ uri: avatarUrl }} style={s.avatar} key={avatarKey} />
                 ) : (
@@ -308,7 +240,7 @@ export default function PartnerScreen({ onBack, refreshKey = 0 }: { onBack: () =
 
           {/* ====== 3 STAT CARDS (8600 exact) ====== */}
           <View style={s.statGrid}>
-            <TouchableOpacity style={s.statCard} activeOpacity={0.7}>
+            <TouchableOpacity style={s.statCard} activeOpacity={0.7} onPress={() => setShowInvoice(true)}>
               <View style={[s.statIconBg, { backgroundColor: withAlpha(colors.primary, 0.08) }]}>
                 <IconBuilding color={colors.primary} />
               </View>
@@ -465,14 +397,14 @@ export default function PartnerScreen({ onBack, refreshKey = 0 }: { onBack: () =
                 items={partners.map((p: any) => ({
                   name: translateName(p.name, p.name_pinyin, p.name_tw),
                   sub: `${(p.share * 100).toFixed(0)}%`,
-                  amount: p.add_amount || 0,
+                  amount: (p.investment || 0) - (p.init_capital || 0),
                 }))} />
             )}
             {(filter === 'all' || filter === 'dividend') && groupKeys.map(note => {
               const items = grouped[note];
               const total = items.reduce((s: number, d: any) => s + d.amount, 0);
               return (
-                <TableGroup key={note} title={translateDividendNote(note, items[0]?.date)} type="dividend" total={total}
+                <TableGroup key={note} title={translateDividendNote(note, items[0].date)} type="dividend" total={total}
                   themeColors={colors} styles={tg}
                   items={items.map((d: any) => ({ name: translateName(d.partner, d.name_pinyin, d.name_tw), sub: '', amount: d.amount }))}
                   onDelete={() => setShowDelete(note)} />
@@ -483,7 +415,7 @@ export default function PartnerScreen({ onBack, refreshKey = 0 }: { onBack: () =
       </ScrollView>
 
       {/* ====== DIVIDEND MODAL ====== */}
-      <ModalOverlay visible={showDividend} overlayStyle={mo.overlay} contentStyle={mo.content} onClose={() => setShowDividend(false)}>
+      <ModalOverlay visible={showDividend} onClose={() => setShowDividend(false)}>
         <View style={mo.modalCard} onStartShouldSetResponder={() => true}>
           <View style={mo.header}>
             <View>
@@ -505,7 +437,7 @@ export default function PartnerScreen({ onBack, refreshKey = 0 }: { onBack: () =
               <Text style={moBody.label}>{t('roundNote')}</Text>
               <View style={[moBody.input, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
                 {(() => {
-                  const fmt = t('dividendRoundFmt').replace('{date}', formatDate(sd.today));
+                  const fmt = (t('dividendRoundFmt') as string).replace('{date}', formatDate(sd.today));
                   const idx = fmt.indexOf('{n}');
                   const prefix = fmt.slice(0, idx);
                   const suffix = fmt.slice(idx + 3);
@@ -541,14 +473,13 @@ export default function PartnerScreen({ onBack, refreshKey = 0 }: { onBack: () =
                 </View>
               ))}
             </View>
-            <View style={moBody.btnRow}>
-              <TouchableOpacity style={moBody.cancelBtn} onPress={() => setShowDividend(false)}>
-                <Text style={moBody.cancelBtnText}>{t('cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={moBody.confirmBtn} onPress={handleDividend}>
-                <Text style={moBody.confirmBtnText}>{t('confirmIssue')}</Text>
-              </TouchableOpacity>
-            </View>
+            <ButtonPair
+              leftLabel={t('cancel')}
+              leftOnPress={() => setShowDividend(false)}
+              rightLabel={t('confirmIssue')}
+              rightOnPress={handleDividend}
+              rightDisabled={!divAmount || parseFloat(divAmount) <= 0}
+            />
           </View>
         </View>
       </ModalOverlay>
@@ -569,7 +500,7 @@ export default function PartnerScreen({ onBack, refreshKey = 0 }: { onBack: () =
       />
 
       {/* ====== PARTNER DETAIL MODAL (8600 exact) ====== */}
-      <ModalOverlay visible={!!showDetail} overlayStyle={mo.overlay} contentStyle={mo.content} onClose={() => setShowDetail(null)}>
+      <ModalOverlay visible={!!showDetail} onClose={() => setShowDetail(null)}>
         {detailPartner && (
         <View style={[mo.modalCard, { maxWidth: 360 }]} onStartShouldSetResponder={() => true}>
           <View style={mo.header}>
@@ -589,7 +520,7 @@ export default function PartnerScreen({ onBack, refreshKey = 0 }: { onBack: () =
               </View>
               <View style={[ds.cell, { backgroundColor: withAlpha(colors.primary, 0.1) }]}>
                 <Text style={[ds.cellLabel, { color: colors.primary }]}>{t('totalDividends')}</Text>
-                <Text style={[ds.cellNum, { color: colors.primary }]}>¥{(detailPartner.total_dividends || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
+                <Text style={[ds.cellNum, { color: colors.primary, fontSize: FONTS.micro.size }]}>¥{(detailPartner.total_dividends || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
               </View>
               <View style={[ds.cell, { backgroundColor: colors.bg }]}>
                 <Text style={ds.cellLabel}>{t('initialInvest')}</Text>
@@ -648,7 +579,7 @@ export default function PartnerScreen({ onBack, refreshKey = 0 }: { onBack: () =
       </ModalOverlay>
 
       {/* ====== ORG CHART MODAL (8600 exact) ====== */}
-      <ModalOverlay visible={showOrg} overlayStyle={mo.overlay} contentStyle={mo.content} onClose={() => setShowOrg(false)}>
+      <ModalOverlay visible={showOrg} onClose={() => setShowOrg(false)}>
         <View style={[mo.modalCard, { maxWidth: 360 }]} onStartShouldSetResponder={() => true}>
           <View style={mo.header}>
             <View>
@@ -683,7 +614,21 @@ export default function PartnerScreen({ onBack, refreshKey = 0 }: { onBack: () =
           </View>
         </View>
       </ModalOverlay>
-      <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
+
+      {/* ====== INVOICE SCREEN (SlideScreen 包 InvoiceScreen) ====== */}
+      <SlideScreen visible={showInvoice} onClose={() => setShowInvoice(false)}>
+        {(close) => <InvoiceScreen onBack={close} />}
+      </SlideScreen>
+
+      {/* ====== CROP MODAL(对齐 web,触发由 ProfileScreen 接管) ====== */}
+      <CropModal
+        visible={cropSrc !== '' && !showResult}
+        src={cropSrc}
+        onConfirm={handleCropConfirm}
+        onCancel={() => setCropSrc('')}
+      />
+
+      {ToastHost}
     </View>
   );
 }
@@ -730,13 +675,13 @@ function TableGroup({ title, type, total, items, themeColors, styles, onDelete }
   );
 }
 
-/* ========== STYLES (theme-aware get functions) ========== */
+/* ========== STYLES (theme-aware get functions, 对齐 web) ========== */
 
 const getS = (colors: ThemeColors) => StyleSheet.create({
   root: { flex: 1 },
   scroll: { flex: 1 },
-  container: { maxWidth: 1024, alignSelf: 'center', width: '100%', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 100 },
-  header: { borderBottomWidth: 1, borderBottomColor: colors.bg, paddingBottom: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  container: { maxWidth: 1024, alignSelf: 'center', width: '100%', paddingHorizontal: 0, paddingTop: 16, paddingBottom: 100 },
+  header: { borderBottomWidth: 1, borderBottomColor: colors.bg, paddingBottom: 14, paddingHorizontal: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   backLink: { flexDirection: 'row', alignItems: 'center', gap: 2, marginBottom: 8 },
   backArrow: { fontSize: FONTS.h1.size, color: colors.textSub, lineHeight: 22, fontWeight: '300' },
   backText: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight },
@@ -747,32 +692,38 @@ const getS = (colors: ThemeColors) => StyleSheet.create({
   langRow: { flexDirection: 'row', gap: 4, paddingTop: 4 },
   langBtn: { fontSize: FONTS.micro.size, color: colors.textSub, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5, fontWeight: FONTS.micro.weight as any },
   avatar: { width: 48, height: 48, borderRadius: 24 },
+  avatarPlaceholder: { backgroundColor: withAlpha(colors.primary, 0.12), justifyContent: 'center', alignItems: 'center' },
+  avatarRing: { borderWidth: 1.5, borderColor: colors.bg, borderStyle: 'dashed' as any },
+  avatarInitial: { fontSize: 16, fontWeight: '600', color: colors.primary },
+  camBadge: {
+    position: 'absolute', bottom: -2, right: -2, width: 22, height: 22,
+    backgroundColor: colors.primary, borderRadius: 11,
+    borderWidth: 2, borderColor: colors.surface,
+    justifyContent: 'center', alignItems: 'center',
+  },
   langActive: { color: colors.primary, backgroundColor: withAlpha(colors.danger, 0.1), fontWeight: FONTS.microBold.weight as any },
-  statGrid: { flexDirection: 'row', gap: 12, marginTop: 16, flexWrap: 'wrap' },
+  statGrid: { flexDirection: 'column', gap: 12, marginTop: 16, paddingHorizontal: 18 },
   statCard: {
     flex: 1, minWidth: 200, backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1, borderColor: colors.bg,
     padding: 14, flexDirection: 'row', alignItems: 'center', gap: 14,
-    // @ts-ignore
-    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
   },
   statIconBg: { width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   statLabel: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight, letterSpacing: 0.3 },
   statValue: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain, marginTop: 2 },
-  statGreen: { fontSize: FONTS.micro.size, color: colors.success, fontWeight: FONTS.micro.weight, marginTop: 2 },
+  statGreen: { fontSize: 10, color: '#1EE69F', fontWeight: FONTS.micro.weight, marginTop: 2 },
   statSub: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight, marginTop: 2 },
   dividendBtn: { backgroundColor: colors.primary, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12 },
   dividendBtnText: { color: colors.surface, fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight },
-  partnerGrid: { flexDirection: 'row', gap: 12, marginTop: 12, flexWrap: 'wrap' },
+  partnerGrid: { flexDirection: 'column', gap: 12, marginTop: 12, paddingHorizontal: 18 },
   partnerCard: {
     flex: 1, minWidth: 200, backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1, borderColor: colors.bg,
-    padding: 16, gap: 10, // @ts-ignore
-    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+    padding: 16, gap: 10,
   },
   partnerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   partnerName: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub },
   partnerPct: { fontSize: FONTS.micro.size, color: colors.textSub },
-  paidBadge: { backgroundColor: withAlpha(colors.success, 0.1), borderRadius: 100, paddingHorizontal: 8, paddingVertical: 2 },
-  paidBadgeText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.success },
+  paidBadge: { backgroundColor: withAlpha(colors.success, 0.18), borderRadius: 100, paddingHorizontal: 8, paddingVertical: 2 },
+  paidBadgeText: { fontSize: 10, fontWeight: FONTS.microBold.weight, color: '#1EE69F' },
   partnerDataRow: { flexDirection: 'row', gap: 4 },
   partnerDataCell: { flex: 1, alignItems: 'center' },
   dataLabel: { fontSize: FONTS.micro.size, color: colors.textSub },
@@ -783,8 +734,7 @@ const getS = (colors: ThemeColors) => StyleSheet.create({
   footerSub: { fontSize: FONTS.micro.size, color: colors.textSub },
   ledgerCard: {
     backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.bg, marginTop: 16,
-    // @ts-ignore
-    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+    marginHorizontal: 18,
   },
   ledgerHeader: { padding: 20, borderBottomWidth: 1, borderBottomColor: colors.bg, gap: 12 },
   ledgerTitle: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.textSub, letterSpacing: 0.5 },
@@ -801,29 +751,22 @@ const getMo = (colors: ThemeColors) => StyleSheet.create({
   content: { alignItems: 'center', justifyContent: 'center' },
   modalCard: {
     backgroundColor: colors.surface, borderRadius: 16, width: 360, maxWidth: '100%', overflow: 'hidden',
-    // @ts-ignore
-    boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
   },
   header: { backgroundColor: colors.primary, paddingVertical: 14, paddingHorizontal: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.surface },
   sub: { fontSize: FONTS.micro.size, color: withAlpha(colors.danger, 0.1), marginTop: 2 },
-  close: { fontSize: 20, color: colors.surface, lineHeight: 20, fontWeight: '300' },
+  close: { ...modalClose },
 });
 
 const getMoBody = (colors: ThemeColors) => StyleSheet.create({
   body: { padding: 20, gap: 12 },
   label: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.textSub, marginBottom: 4 },
-  input: { width: '100%', backgroundColor: colors.bg, borderWidth: 1, borderColor: 'transparent', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 12, fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight as any, color: colors.textSub, fontFamily: undefined },
+  input: { width: '100%', backgroundColor: colors.bg, borderWidth: 1, borderColor: 'transparent', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 12, fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight as any, color: colors.textMain, fontFamily: undefined },
   preview: { backgroundColor: colors.bg, borderRadius: 12, padding: 12, gap: 8 },
   previewTitle: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.textSub, letterSpacing: 0.5 },
   previewRow: { flexDirection: 'row', justifyContent: 'space-between' },
   previewName: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight },
   previewAmt: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.textMain },
-  btnRow: { flexDirection: 'row', gap: 12, paddingTop: 4 },
-  cancelBtn: { flex: 1, backgroundColor: colors.bg, borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
-  cancelBtnText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.textSub },
-  confirmBtn: { flex: 1, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
-  confirmBtnText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.surface },
   deleteBox: { backgroundColor: withAlpha(colors.primary, 0.1), borderRadius: 12, padding: 12, alignItems: 'center' },
   deleteText: { fontSize: FONTS.micro.size, color: colors.textSub, textAlign: 'center' },
 });

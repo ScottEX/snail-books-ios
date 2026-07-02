@@ -627,7 +627,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false} bounces={false}>
 
           {tab === 'partner' ? (
-            <PartnerScreen onBack={() => setTab('list')} refreshKey={partnerRefreshKey} />
+            <PartnerScreen onBack={() => setTab('list')} onProfile={() => openModal(() => setShowProfile(true))} refreshKey={partnerRefreshKey} />
           ) : tab === 'supply' ? (
             <ProcurementScreen />
           ) : tab === 'list' ? (
