@@ -554,7 +554,7 @@ export default function ExpenseScreen({
   /* ── Render ── */
   return (
     <>
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }} keyboardVerticalOffset={80}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.bg }} keyboardVerticalOffset={80}>
       <View style={st.root}>
       {/* ══════ 卡片式Tab ══════ */}
       <View style={st.tabBar}>
