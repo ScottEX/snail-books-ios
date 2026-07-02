@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, Animated, Easing } from 'react-native';
+import { View, TouchableOpacity, Animated, Easing, Keyboard, Platform } from 'react-native';
 import { MODAL_BACKDROP_OPACITY } from '../theme';
 import { useEffect, useRef, useState } from 'react';
 
@@ -20,6 +20,7 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
   const slide = useRef(new Animated.Value(initialSlide)).current;
   const fade = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(initialScale)).current;
+  const keyboardShift = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (visible) {
@@ -57,11 +58,42 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
     }
   }, [visible]);
 
+  // ─── Keyboard avoidance ──────────────────────
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      const h = e.endCoordinates.height;
+      Animated.timing(keyboardShift, {
+        toValue: -(h / 2),
+        duration: e.duration || 250,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: false,
+      }).start();
+    });
+
+    const hideSub = Keyboard.addListener(hideEvent, (e) => {
+      Animated.timing(keyboardShift, {
+        toValue: 0,
+        duration: e.duration || 200,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: false,
+      }).start();
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
   if (!show) return null;
 
   const getTrans = () => {
-    if (animation === 'springScale') return [{ scale }, { translateY: slide }];
-    return [{ translateY: slide }];
+    const y = Animated.add(slide, keyboardShift);
+    if (animation === 'springScale') return [{ scale }, { translateY: y }];
+    return [{ translateY: y }];
   };
 
   return (
