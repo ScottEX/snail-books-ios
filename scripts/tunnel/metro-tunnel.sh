@@ -3,11 +3,9 @@
 # Auto-recovers from SSH drops, frpc failures, and network flaps.
 set -e
 
-SSH_KEY="$HOME/.ssh/snail_staging"
+SSH_KEY="/Users/lanx/.ssh/snail_staging"
 SERVER="root@8.135.58.90"
 SSH_PORT_FWD="14443:127.0.0.1:4443"
-FRPC_BIN="$HOME/bin/frpc"
-FRPC_CFG="$(dirname "$0")/frpc.toml"
 
 cleanup() {
     echo "$(date): cleaning up child processes"
@@ -25,6 +23,8 @@ trap cleanup EXIT INT TERM
     ssh -i "$SSH_KEY" \
         -L "$SSH_PORT_FWD" \
         -N \
+        -C \
+        -c aes128-gcm@openssh.com \
         -o ServerAliveInterval=15 \
         -o ServerAliveCountMax=2 \
         -o ExitOnForwardFailure=yes \
@@ -56,7 +56,7 @@ done
 (
   while true; do
     echo "$(date): starting frpc"
-    "$FRPC_BIN" -c "$FRPC_CFG" 2>&1
+    /Users/lanx/bin/frpc -c /Users/lanx/.config/frp/frpc.toml 2>&1
     echo "$(date): frpc died, restarting in 3s..."
     sleep 3
   done
