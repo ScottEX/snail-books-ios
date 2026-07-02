@@ -1266,7 +1266,7 @@ function IconPartner({ c }: { c: string }) {
 /* ── Styles ────────────────────────────────────────────────────────── */
 
 const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.create({
-  bg: { flex: 1 },
+  bg: { flex: 1, position: 'relative' },
   bgLayer: { ...StyleSheet.absoluteFillObject },
   bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)' },
   root: { flex: 1 },
