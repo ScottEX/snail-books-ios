@@ -34,7 +34,7 @@ export default function SlideScreen({
   const [phase, setPhase] = useState<Phase>('hidden');
   const translateX = useRef(new Animated.Value(screenWidth)).current;
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const zIndex = 100 + stackIndex * 10;
+  const zIndex = 300 + stackIndex * 10;
 
   // ── visible → enter / !visible → exit ──
   useEffect(() => {
