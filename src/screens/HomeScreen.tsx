@@ -776,6 +776,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
     </View>
     </View>
+    </View>
   );
 }
 
