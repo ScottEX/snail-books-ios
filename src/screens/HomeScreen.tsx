@@ -615,7 +615,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           </View>
         </View>}
 
-        {/* Page content — ExpenseScreen has its own scroll, render outside wrapper */}
+        {/* Page content — tabs with their own scroll render outside the wrapper ScrollView
+            (aligns with web HomeScreen.tsx which also hoists partner/supply out). */}
         {isHome && tab === 'expense' ? (
           <ExpenseScreen
             businessSummary={businessSummary}
@@ -623,14 +624,14 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             onExpenseHistory={() => setShowExpenseHistory(true)}
             onExpenseAdded={loadBusinessSummary}
           />
+        ) : isHome && tab === 'partner' ? (
+          <PartnerScreen onBack={() => setTab('list')} onProfile={() => openModal(() => setShowProfile(true))} refreshKey={partnerRefreshKey} />
+        ) : isHome && tab === 'supply' ? (
+          <ProcurementScreen />
         ) : isHome && (
         <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false} bounces={false}>
 
-          {tab === 'partner' ? (
-            <PartnerScreen onBack={() => setTab('list')} onProfile={() => openModal(() => setShowProfile(true))} refreshKey={partnerRefreshKey} />
-          ) : tab === 'supply' ? (
-            <ProcurementScreen />
-          ) : tab === 'list' ? (
+          {tab === 'list' ? (
             <DailyRevenueView
               colors={colors}
               styles={styles}
