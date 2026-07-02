@@ -303,7 +303,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
     const showSub = Keyboard.addListener(showEvent, (e: any) => {
       Animated.timing(keyboardShift, {
-        toValue: -e.endCoordinates.height,
+        toValue: -(e.endCoordinates.height * 0.6),
         duration: e.duration || 250,
         useNativeDriver: false,
       }).start();
