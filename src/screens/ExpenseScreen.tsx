@@ -922,31 +922,28 @@ export default function ExpenseScreen({
       </ScrollView>
 
       {/* 支出确认弹窗 */}
-      {showExpConfirm && (
-        <ModalOverlay onClose={() => setShowExpConfirm(false)}>
-          <View style={st.modalCard} onStartShouldSetResponder={() => true}>
-            <View style={st.modalHeader}>
-              <Text style={st.modalTitle}>{t('expConfirmTitle')}</Text>
-              <CloseButton onPress={() => setShowExpConfirm(false)} />
-            </View>
-            <View style={{ padding: 20, gap: 16 }}>
-              <Text style={{ fontSize: FONTS.sub.size, color: colors.textSub, textAlign: 'center' }}>
-                {t('expConfirmMsg')}
-              </Text>
-              <ButtonPair
-                leftLabel={t('cancel')}
-                leftOnPress={() => setShowExpConfirm(false)}
-                rightLabel={t('confirm')}
-                rightOnPress={() => { setShowExpConfirm(false); handleAddExpense(); }}
-              />
-            </View>
+      <ModalOverlay visible={showExpConfirm} onClose={() => setShowExpConfirm(false)}>
+        <View style={st.modalCard} onStartShouldSetResponder={() => true}>
+          <View style={st.modalHeader}>
+            <Text style={st.modalTitle}>{t('expConfirmTitle')}</Text>
+            <CloseButton onPress={() => setShowExpConfirm(false)} />
           </View>
-        </ModalOverlay>
-      )}
+          <View style={{ padding: 20, gap: 16 }}>
+            <Text style={{ fontSize: FONTS.sub.size, color: colors.textSub, textAlign: 'center' }}>
+              {t('expConfirmMsg')}
+            </Text>
+            <ButtonPair
+              leftLabel={t('cancel')}
+              leftOnPress={() => setShowExpConfirm(false)}
+              rightLabel={t('confirm')}
+              rightOnPress={() => { setShowExpConfirm(false); handleAddExpense(); }}
+            />
+          </View>
+        </View>
+      </ModalOverlay>
 
       {/* 添加提示弹窗 */}
-      {showReconConfirm && (
-        <ModalOverlay onClose={hideReconConfirm} animation="springScale">
+      <ModalOverlay visible={showReconConfirm} onClose={hideReconConfirm} animation="springScale">
           <View style={st.modalCard} onStartShouldSetResponder={() => true}>
             <View style={st.modalHeader}>
               <Text style={st.modalTitle}>{t('friendlyReminder')}</Text>
@@ -965,7 +962,6 @@ export default function ExpenseScreen({
             </View>
           </View>
         </ModalOverlay>
-      )}
 
       {ToastHost}
 
