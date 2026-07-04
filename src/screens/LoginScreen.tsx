@@ -771,7 +771,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                     </TouchableOpacity>
                   </View>
                 </View>
-                <SubmitButton onPress={handleRegister} loading={loading} label={t('registerBtn')} style={styles.btnDark} textStyle={styles.btnDarkText} />
+                <SubmitButton onPress={handleRegister} loading={loading} disabled={!regUsername || !email || !regPassword || !password2} label={t('registerBtn')} style={[styles.btnDark, (!regUsername || !email || !regPassword || !password2) && styles.btnDisabled]} textStyle={[styles.btnDarkText, (!regUsername || !email || !regPassword || !password2) && styles.disabledText]} />
                 <TouchableOpacity onPress={() => { setStep('login'); setMsg(''); }}>
                   <Text style={styles.forgotText}>{t('backToLogin')}</Text>
                 </TouchableOpacity>
