@@ -34,8 +34,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [step, setStep] = useState<Step>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [regUsername, setRegUsername] = useState('');
-  const [regPassword, setRegPassword] = useState('');
   const [password2, setPassword2] = useState('');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -257,7 +255,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const goRegister = () => {
     setMsg(''); setMsgKey('');
     setStep('register');
-    setUsername(''); setRegUsername(''); setRegPassword(''); setPassword2(''); setEmail('');
+    setUsername(''); setPassword(''); setPassword2(''); setEmail('');
   };
 
   const validatePassword = (pw: string): string => {
@@ -459,15 +457,15 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   const handleRegister = async () => {
     if (loading) return;
-    if (!regUsername || !regPassword || !email) { setMsgKey('errEmptyFields'); setMsg(''); triggerShake(); return; }
-    if (regPassword !== password2) { setMsgKey('errPwMismatch'); setMsg(''); triggerShake(); return; }
-    const pwErr = validatePassword(regPassword);
+    if (!username || !password || !email) { setMsgKey('errEmptyFields'); setMsg(''); triggerShake(); return; }
+    if (password !== password2) { setMsgKey('errPwMismatch'); setMsg(''); triggerShake(); return; }
+    const pwErr = validatePassword(password);
     if (pwErr) { setMsgKey(pwErr); setMsg(''); triggerShake(); return; }
     const emailErr = validateEmail(email);
     if (emailErr) { setMsgKey(emailErr); setMsg(''); triggerShake(); return; }
     setLoading(true);
     try {
-      const r = await api.register(regUsername, regPassword, email);
+      const r = await api.register(username, password, email);
       setLoading(false);
       if (r.status === 'ok') { setMsgOk(true); setMsg(r.message); setMsgKey(''); setDevCode(r.dev_code || ''); setStep('verify'); setTimeout(() => codeRef.current?.focus(), 100); }
       else { setMsgOk(false); if (r.message) { setMsg(r.message); setMsgKey(''); } else { setMsgKey('errWrongCredentials'); setMsg(''); } triggerShake(); }
@@ -486,7 +484,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     try {
       const r = await api.verify(email, code);
       setLoading(false);
-      if (r.status === 'ok') { setEmail(''); setRegUsername(''); setRegPassword(''); setPassword2(''); setCode(''); setMsg(''); setMsgKey(''); setStep('login'); }
+      if (r.status === 'ok') { setEmail(''); setPassword2(''); setCode(''); setMsg(''); setMsgKey(''); setStep('login'); }
       else { setMsgOk(false); if (r.message) { setMsg(r.message); setMsgKey(''); } else { setMsgKey('errWrongCredentials'); setMsg(''); } triggerShake(); }
     } catch (e: any) {
       setLoading(false);
@@ -721,10 +719,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('username')}</Text>
                   <View style={styles.pwWrap}>
-                    <TextInput style={[styles.textInput, { paddingRight: regUsername ? 44 : 16 }]} value={regUsername} onChangeText={setRegUsername}
+                    <TextInput style={[styles.textInput, { paddingRight: username ? 44 : 16 }]} value={username} onChangeText={setUsername}
                       placeholder={t('username')} placeholderTextColor="rgba(255,255,255,0.55)" autoCapitalize="none" />
-                    {regUsername ? (
-                      <TouchableOpacity style={styles.clearBtn} onPress={() => setRegUsername('')}>
+                    {username ? (
+                      <TouchableOpacity style={styles.clearBtn} onPress={() => setUsername('')}>
                         <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                           <Line x1="18" y1="6" x2="6" y2="18" />
                           <Line x1="6" y1="6" x2="18" y2="18" />
@@ -744,7 +742,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                     <Text style={styles.hintText}>{t('pwHint') || '8+ chars, letter + number + special'}</Text>
                   </Text>
                   <View style={styles.pwWrap}>
-                    <TextInput style={styles.pwInput} value={regPassword} onChangeText={setRegPassword}
+                    <TextInput style={styles.pwInput} value={password} onChangeText={setPassword}
                       placeholder={t('password')} placeholderTextColor="rgba(255,255,255,0.55)" secureTextEntry={!showPw} />
                     <TouchableOpacity style={styles.pwEye} onPress={() => setShowPw(!showPw)}>
                       <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -790,8 +788,8 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                     </TouchableOpacity>
                   </View>
                 </View>
-                <SubmitButton onPress={handleRegister} loading={loading} disabled={!regUsername || !email || !regPassword || !password2} label={t('registerBtn')} style={[styles.btnDark, (!regUsername || !email || !regPassword || !password2) && styles.btnDisabled]} textStyle={[styles.btnDarkText, (!regUsername || !email || !regPassword || !password2) && styles.disabledText]} />
-                <TouchableOpacity onPress={() => { setStep('login'); setMsg(''); }}>
+                <SubmitButton onPress={handleRegister} loading={loading} disabled={!username || !email || !password || !password2} label={t('registerBtn')} style={[styles.btnDark, (!username || !email || !password || !password2) && styles.btnDisabled]} textStyle={[styles.btnDarkText, (!username || !email || !password || !password2) && styles.disabledText]} />
+                <TouchableOpacity onPress={goLogin}>
                   <Text style={styles.forgotText}>{t('backToLogin')}</Text>
                 </TouchableOpacity>
               </View>
