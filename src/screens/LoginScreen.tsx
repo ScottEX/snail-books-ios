@@ -953,9 +953,9 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   hintText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.3)' },
   pwWrap: { position: 'relative' },
   pwInput: {
-    backgroundColor: GLASS_BG, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
+    backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12,
     paddingRight: 44, fontSize: FONTS.body.size, color: colors.surface,
-    borderWidth: 1, borderColor: GLASS_BORDER,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
   },
   pwEye: {
     position: 'absolute', right: 0, top: 0, bottom: 0,
@@ -974,9 +974,9 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   faceHint: { fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 8 },
   textInput: {
-    backgroundColor: GLASS_BG, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
+    backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12,
     fontSize: FONTS.body.size, color: colors.surface,
-    borderWidth: 1, borderColor: GLASS_BORDER,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
   },
   codeInput: { textAlign: 'center', letterSpacing: 6 },
   btnDark: {
