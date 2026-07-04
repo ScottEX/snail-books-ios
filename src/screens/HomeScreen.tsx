@@ -1272,7 +1272,7 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   // container = flex: 1 (full screen); inner = flex: 1, alignSelf: 'center',
   // width: '100%', position: 'relative' (anchors absolute SlideScreens).
   container: { flex: 1, backgroundColor: 'transparent' },
-  inner: { flex: 1, alignSelf: 'center', width: '100%', position: 'relative' },
+  inner: { flex: 1, alignSelf: 'stretch', position: 'relative' },
   bgLayer: { ...StyleSheet.absoluteFillObject },
   bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)' },
   root: { flex: 1 },

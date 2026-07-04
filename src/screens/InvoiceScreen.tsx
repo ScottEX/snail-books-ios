@@ -1155,7 +1155,7 @@ const getEirStyles = () => StyleSheet.create({
 
 const getStyles = (c: ThemeColors) =>
   StyleSheet.create({
-    root: { flex: 1, backgroundColor: c.bg, position: 'relative' as any, overflow: 'hidden' as any },
+    root: { flex: 1, backgroundColor: c.bg },
     scroll: { flex: 1 },
 
     /* ENTRY CARD */
@@ -1178,23 +1178,23 @@ const getStyles = (c: ThemeColors) =>
     ecStatLbl: { color: 'rgba(255,255,255,0.6)', fontSize: 10, marginTop: 2 },
 
     /* TABS */
-    tabs: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 14, backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 10, padding: 3 },
+    tabs: { flexDirection: 'row', marginBottom: 14, backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 10, padding: 3 },
     tab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },
     tabOn: { backgroundColor: c.primary, shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } },
     tabText: { fontSize: 13, fontWeight: '500' },
 
     /* TIPS */
-    tips: { marginHorizontal: 16, marginBottom: 14, borderRadius: 12, padding: 12, flexDirection: 'row', gap: 10, alignItems: 'flex-start', backgroundColor: withAlpha(c.warning, 0.08) },
+    tips: { marginBottom: 14, borderRadius: 12, padding: 12, flexDirection: 'row', gap: 10, alignItems: 'flex-start', backgroundColor: withAlpha(c.warning, 0.08) },
     tipsIcon: { fontSize: 15, marginTop: 1 },
     tipsText: { fontSize: 12, lineHeight: 19, flex: 1, color: c.warning },
 
     /* SECTIONS */
     section: { paddingHorizontal: 0, marginTop: 12 },
-    sectionTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 8, paddingHorizontal: 16 },
+    sectionTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 8 },
     sectionTitleText: { fontSize: 10, fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase', color: c.textSub },
     sectionTitleLine: { flex: 1, height: 1 },
 
-    infoCard: { backgroundColor: c.surface, borderRadius: 12, marginHorizontal: 16, overflow: 'hidden' },
+    infoCard: { backgroundColor: c.surface, borderRadius: 12, overflow: 'hidden' },
     divider: { height: 0.5, backgroundColor: withAlpha(c.textMain, 0.08), marginLeft: 16 },
 
     typeToggle: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.secondary },
@@ -1202,17 +1202,17 @@ const getStyles = (c: ThemeColors) =>
     typeChipActive: { backgroundColor: withAlpha(c.primary, 0.08), borderColor: c.primary },
     typeChipText: { fontSize: 12, fontWeight: '500' },
 
-    saveBtn: { margin: 16, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
+    saveBtn: { marginTop: 16, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
     saveBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
 
     /* FILTERS */
     filterRow: { maxHeight: 40, marginBottom: 12 },
-    filterRowContent: { paddingHorizontal: 16, gap: 6, alignItems: 'center' },
+    filterRowContent: { gap: 6, alignItems: 'center' },
     filterChip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: c.secondary, backgroundColor: c.surface },
     filterChipText: { fontSize: 12 },
 
     /* INVOICE CARD */
-    invCard: { marginHorizontal: 16, marginBottom: 12, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.secondary, overflow: 'hidden', position: 'relative' as any },
+    invCard: { marginBottom: 12, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.secondary, overflow: 'hidden', position: 'relative' as any },
     invTorn: { position: 'absolute' as any, top: 0, left: 0, right: 0, height: 4, opacity: 0.4 },
     invTop: { flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14, marginTop: 4, borderBottomWidth: 1, borderStyle: 'dashed' as any, borderBottomColor: c.secondary },
     invBadge: { paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6, borderWidth: 1, flexShrink: 0, marginTop: 2 },
@@ -1263,6 +1263,6 @@ const getStyles = (c: ThemeColors) =>
     dBatchChip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: c.secondary, backgroundColor: c.surface, marginRight: 6 },
     dBatchChipText: { fontSize: 12 },
 
-    dSubmit: { paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginHorizontal: 20, marginTop: 8 },
+    dSubmit: { paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginTop: 8 },
     dSubmitText: { fontSize: 15, fontWeight: '600', color: '#fff' },
   });
