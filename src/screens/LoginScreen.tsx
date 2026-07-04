@@ -179,34 +179,35 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     return () => loop.stop();
   }, [faceMode]);
 
-  // Fetch avatar + background on username blur (not while typing).
-  // Keeps the current avatar/bg visible until the user finishes typing,
-  // then fetches and swaps or clears in one go.
-  const userReqId = useRef(0);
-  const handleUsernameBlur = () => {
-    const id = username.trim();
-    if (!id) return;
-    const reqId = ++userReqId.current;
-    (async () => {
-      const [avatar, bg] = await Promise.all([
-        api.getUserAvatarByLoginUri(id).catch(() => null),
-        api.getUserBackgroundUri(id).catch(() => null),
-      ]);
-      if (reqId !== userReqId.current) return;
-      if (avatar) {
-        setAvatarUrl(avatar); setAvatarReady(true);
-        try { localStorage.setItem('avatar-uri', avatar); } catch {}
-      } else {
-        setAvatarUrl(''); setAvatarReady(true);
-      }
-      if (bg) {
-        setBgUrl(bg); setBgReady(true);
-        try { localStorage.setItem('bg-image', bg); } catch {}
-      } else {
-        setBgUrl(''); setBgReady(true);
-      }
-    })();
-  };
+  // Fetch avatar + background on username change (debounced 400ms).
+  // Mirrors web's useEffect pattern so the logo updates while typing,
+  // not just on blur.
+  useEffect(() => {
+    if (!username) { setAvatarUrl(''); setAvatarReady(false); return; }
+    setAvatarReady(false);
+    const timer = setTimeout(async () => {
+      try {
+        const avatar = await api.getUserAvatarByLoginUri(username).catch(() => null);
+        if (avatar) {
+          setAvatarUrl(avatar); setAvatarReady(true);
+          try { localStorage.setItem('avatar-uri', avatar); } catch {}
+        } else {
+          setAvatarUrl(''); setAvatarReady(true);
+        }
+      } catch { setAvatarUrl(''); setAvatarReady(true); }
+
+      try {
+        const bg = await api.getUserBackgroundUri(username).catch(() => null);
+        if (bg) {
+          setBgUrl(bg); setBgReady(true);
+          try { localStorage.setItem('bg-image', bg); } catch {}
+        } else {
+          setBgUrl(''); setBgReady(true);
+        }
+      } catch { setBgUrl(''); setBgReady(true); }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [username]);
 
   // Debounced check whether the typed username has any WebAuthn
   // credential bound server-side. Mirrors web LoginScreen L237-255 —
@@ -657,7 +658,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                       <View style={styles.pwWrap}>
                         <TextInput style={[styles.textInput, { paddingRight: username ? 44 : 16 }]} value={username} onChangeText={setUsername}
                           placeholder={t('loginPlaceholder') || '用户名 / 邮箱'} placeholderTextColor="rgba(255,255,255,0.55)"
-                          onSubmitEditing={handleLogin} autoCapitalize="none" onBlur={handleUsernameBlur} />
+                          onSubmitEditing={handleLogin} autoCapitalize="none" />
                         {username ? (
                           <TouchableOpacity style={styles.clearBtn} onPress={() => setUsername('')}>
                             <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
