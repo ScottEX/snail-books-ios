@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface UsePaginatedListOptions<T> {
-  /** Fetcher: (page, perPage) → { records: T[], total?: number, pages?: number, has_more?: boolean } */
-  fetcher: (page: number, perPage: number) => Promise<{ records: T[]; total?: number; pages?: number; has_more?: boolean }>;
+  /** Fetcher: (page, perPage) → { records: T[], total?: number, total_all?: number, pages?: number, has_more?: boolean } */
+  fetcher: (page: number, perPage: number) => Promise<{ records: T[]; total?: number; total_all?: number; pages?: number; has_more?: boolean }>;
   perPage?: number;
   /** Auto-load on mount. */
   autoLoad?: boolean;
@@ -16,6 +16,7 @@ interface UsePaginatedListResult<T> {
   hasMore: boolean;
   page: number;
   total: number;
+  totalAll: number;
   error: string | null;
   refresh: () => Promise<void>;
   loadMore: () => Promise<void>;
@@ -30,6 +31,7 @@ export function usePaginatedList<T>({ fetcher, perPage = 10, autoLoad = true }: 
   const [records, setRecords] = useState<T[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [totalAll, setTotalAll] = useState(0);
   const [pages, setPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -50,6 +52,7 @@ export function usePaginatedList<T>({ fetcher, perPage = 10, autoLoad = true }: 
       setRecords(r.records || []);
       setPage(1);
       setTotal(r.total ?? (r.records || []).length);
+      setTotalAll(r.total_all ?? r.total ?? 0);
       setPages(r.pages ?? 1);
     } catch (e: any) {
       if (mountedRef.current) setError(e?.message || 'Load failed');
@@ -89,7 +92,7 @@ export function usePaginatedList<T>({ fetcher, perPage = 10, autoLoad = true }: 
   const hasMore = pages === 0 ? records.length < total : page < pages;
 
   return {
-    records, loading, loadingMore, refreshing, hasMore, page, total, error,
+    records, loading, loadingMore, refreshing, hasMore, page, total, totalAll, error,
     refresh, loadMore, setRecords,
   };
 }

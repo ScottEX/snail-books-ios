@@ -1,12 +1,13 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Animated, PanResponder, StatusBar, Dimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Line } from 'react-native-svg';
 import { t, getLang } from '../i18n';
 import { api } from '../api/client';
 import { usePaginatedList } from '../hooks/usePaginatedList';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { useToast } from '../hooks/useToast';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import { modalClose } from '../sharedStyles';
@@ -55,6 +56,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
 
   const [selected, setSelected] = useState<any>(null);
   const selectedRef = useRef<any>(null);
+  const { showToast, ToastHost } = useToast();
 
   const { colors } = useTheme();
   const st = useMemo(() => getSt(colors), [colors]);
@@ -105,10 +107,10 @@ export default function ReconHistoryScreen({ onBack }: Props) {
     return f;
   }, [appliedFrom, appliedTo, appliedBy]);
 
-  const { records, total, hasMore, loading, loadingMore, refresh, loadMore } = usePaginatedList({
+  const { records, total, totalAll, hasMore, loading, loadingMore, refresh, loadMore } = usePaginatedList({
     fetcher: useCallback(async (pg: number, perPage: number) => {
       const data: any = await api.getReconciliationsPage(pg, perPage, getFilterParams());
-      return { records: data?.records || [], total: data?.total || 0, pages: data?.pages || 1 };
+      return { records: data?.records || [], total: data?.total || 0, total_all: data?.total_all, pages: data?.pages || 1 };
     }, [getFilterParams]),
   });
 
@@ -187,7 +189,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
       <StatusBar barStyle="dark-content" />
       <HistoryHeader
         onBack={onBack}
-        title={`${t('reconHistory')} (${records.length}/${total})`}
+        title={`${t('reconHistory')} (${total}/${totalAll})`}
         filterActive={showFilter}
         onToggleFilter={() => showFilter ? closeFilter() : openFilter()}
       />
@@ -258,10 +260,13 @@ export default function ReconHistoryScreen({ onBack }: Props) {
         </View>
       )}
 
+      {/* Toast */}
+      {ToastHost}
+
       {/* List */}
       <ScrollView style={st.list} showsVerticalScrollIndicator={false}
         onScroll={handleScroll} scrollEventThrottle={50}
-        contentContainerStyle={{ paddingTop: 112 }}>
+        contentContainerStyle={{ paddingTop: showFilter ? 266 : 112 }}>
         {loading ? (<LoadingSpinner />)
           : records.length === 0 ? (
             <EmptyState icon={<ReconEmptyIcon color={colors.textSub} />} title={t('noRecords')} hint={t('emptyReconHint')} />
@@ -289,8 +294,11 @@ export default function ReconHistoryScreen({ onBack }: Props) {
                 <Text style={st.modalDateSub}>{t('billDate')}: {fmtDate(r.bill_date || r.date)}</Text>
                 {r.reconciled_by ? (<Text style={st.modalDateSub}>{t('reconciledBy')}: {r.reconciled_by}</Text>) : null}
               </View>
-              <TouchableOpacity onPress={() => setSelected(null)} activeOpacity={0.6}>
-                <Text style={st.modalClose}>{'✕'}</Text>
+              <TouchableOpacity onPress={() => setSelected(null)} style={{ padding: 4 }}>
+                <Svg width="18" height="18" viewBox="0 0 24 24" stroke={colors.surface} strokeWidth="2" fill="none">
+                  <Line x1="18" y1="6" x2="6" y2="18" />
+                  <Line x1="6" y1="6" x2="18" y2="18" />
+                </Svg>
               </TouchableOpacity>
             </View>
             <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
@@ -360,7 +368,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   dateRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2, gap: 8 },
   dateItem: { flex: 1, alignItems: 'center' },
   dateLabel: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight, marginBottom: 2 },
-  dateVal: { fontSize: 12, fontWeight: FONTS.subBold.weight, color: colors.textSub },
+  dateVal: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub },
   dateSep: { width: 1, height: 24, backgroundColor: colors.secondary },
   cardPairRow: { flexDirection: 'row', gap: 4 },
   cardPairCol: { flex: 1, alignItems: 'center' },
@@ -400,6 +408,6 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   filterResetBtnText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.textSub },
   filterApplyBtn: { flex: 1, height: 34, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.primary },
   filterApplyBtnText: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.surface },
-  filterApplyBtnDisabled: { opacity: 0.4 },
+  filterApplyBtnDisabled: { backgroundColor: colors.secondary },
   filterApplyBtnTextDisabled: { color: colors.surface },
 } as any);
