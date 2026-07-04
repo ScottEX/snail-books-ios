@@ -230,6 +230,22 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const goLogin = () => {
     setMsg('');
     setStep('login');
+    // Restore Face ID mode if user has credential
+    if (hasFaceID) {
+      try {
+        const savedUser = localStorage.getItem('webauthn_user') || localStorage.getItem('saved_login') || '';
+        if (savedUser) {
+          setUsername(savedUser);
+          setFaceMode(true);
+          return;
+        }
+      } catch {}
+    }
+    setFaceMode(false);
+    try {
+      const saved = localStorage.getItem('saved_login');
+      if (saved) setUsername(saved);
+    } catch {}
   };
 
   const goRegister = () => {
@@ -383,7 +399,11 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         if (typeof localStorage !== 'undefined') {
           localStorage.setItem('user', r.username || username);
           localStorage.setItem('user_id', String(r.user_id || ''));
-          localStorage.setItem('saved_login', username);
+          if (remember) {
+            localStorage.setItem('saved_login', username);
+          } else {
+            localStorage.removeItem('saved_login');
+          }
           localStorage.removeItem('active_tab');
           localStorage.removeItem('expense_active_tab');
         }
