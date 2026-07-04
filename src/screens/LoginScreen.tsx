@@ -973,12 +973,12 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   codeInput: { textAlign: 'center', letterSpacing: 6 },
   btnDark: {
     backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 12,
-    borderWidth: 1, borderColor: GLASS_BORDER,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
   },
   btnDarkText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.surface, letterSpacing: 1 },
   btnRed: {
-    backgroundColor: withAlpha(colors.primary, 0.85), borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 8,
-    borderWidth: 1, borderColor: GLASS_BORDER,
+    backgroundColor: withAlpha(colors.primary, 0.7), borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginTop: 12,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
   },
   btnRedText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.surface, letterSpacing: 1 },
   btnDisabled: { opacity: 0.4 },
