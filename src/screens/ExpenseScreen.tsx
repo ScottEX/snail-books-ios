@@ -639,7 +639,9 @@ export default function ExpenseScreen({
 
       {/* ══════ 内容区（FadeIn 切换） ══════ */}
       <ScrollView style={st.contentScroll} showsVerticalScrollIndicator={false}
-        contentContainerStyle={st.contentInner}>
+        contentContainerStyle={st.contentInner}
+        decelerationRate="fast"
+        bounces={false}>
 
         {/* ── 模块一：每日对账 ── */}
         {activeTab === 0 && (
