@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StatusBar, Image } from 'react-native';
+import { StatusBar } from 'react-native';
 import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import SessionKickedModal from './src/components/SessionKickedModal';
@@ -38,17 +38,6 @@ export default function App() {
       } catch {}
       setReady(true);
     });
-  }, []);
-
-  // Preload cached background image into RN's image cache so
-  // LoginScreen renders it instantly — mirrors web's new Image().src = cached.
-  useEffect(() => {
-    try {
-      const cached = localStorage.getItem('bg-image');
-      if (cached) Image.prefetch(cached);
-      const avatar = localStorage.getItem('avatar-uri');
-      if (avatar) Image.prefetch(avatar);
-    } catch {}
   }, []);
 
   useEffect(() => {
@@ -101,10 +90,6 @@ export default function App() {
       if (themeId) localStorage.setItem('snail-books-theme', themeId);
     } catch {}
     clearWebAuthn();
-    // Pre-decode the custom background so the Image in LoginScreen loads faster.
-    if (bgImage) {
-      Image.prefetch(bgImage).catch(() => {});
-    }
     if (pageRef.current !== 'login') {
       setAppKey((k) => k + 1);
       setPage('login');
