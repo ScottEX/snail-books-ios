@@ -203,15 +203,55 @@ export const api = {
   },
 
   register: (username: string, password: string, email: string) =>
-    authFetch('/register', { method: 'POST', body: JSON.stringify({ username, password, email }) }),
+    fetch(API_BASE + '/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Lang': getLang() },
+      body: JSON.stringify({ username, password, email }),
+    }).then(async (r) => {
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.message || `Register failed (${r.status})`);
+      return data;
+    }),
   verify: (email: string, code: string) =>
-    authFetch('/verify', { method: 'POST', body: JSON.stringify({ email, code }) }),
+    fetch(API_BASE + '/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Lang': getLang() },
+      body: JSON.stringify({ email, code }),
+    }).then(async (r) => {
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.message || `Verify failed (${r.status})`);
+      return data;
+    }),
   resendCode: (email: string) =>
-    authFetch('/resend-code', { method: 'POST', body: JSON.stringify({ email }) }),
+    fetch(API_BASE + '/resend-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Lang': getLang() },
+      body: JSON.stringify({ email }),
+    }).then(async (r) => {
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.message || `Resend failed (${r.status})`);
+      return data;
+    }),
   forgotPassword: (email: string) =>
-    authFetch('/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+    fetch(API_BASE + '/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Lang': getLang() },
+      body: JSON.stringify({ email }),
+    }).then(async (r) => {
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.message || `Request failed (${r.status})`);
+      return data;
+    }),
   resetPassword: (email: string, code: string, password: string) =>
-    authFetch('/reset-password', { method: 'POST', body: JSON.stringify({ email, code, password }) }),
+    fetch(API_BASE + '/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Lang': getLang() },
+      body: JSON.stringify({ email, code, password }),
+    }).then(async (r) => {
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.message || `Reset failed (${r.status})`);
+      return data;
+    }),
 
   getSummary: () => authFetch('/api/summary'),
   getTransactions: (page = 1, perPage = 10, filters?: Record<string, string>) => {

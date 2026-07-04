@@ -114,7 +114,19 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   // Opacity is per-user (`bg-opacity-{userId}`) so two users sharing
   // the same device don't trample each other's preference.
   const DEFAULT_BG = BG_IMAGE; // web uses '/img/bg.jpg?v=2'; iOS uses the bundled asset
-  const [bgImageUri, setBgImageUri] = useState<string>(DEFAULT_BG);
+  const [bgImageUri, setBgImageUri] = useState<string>(() => {
+    // Read cached bg URL synchronously so the custom background
+    // shows on the first frame — avoids the flash of default bg
+    // that happens when useEffect runs after mount. Mirrors web.
+    try {
+      const cached = localStorage.getItem('bg-image');
+      if (cached) {
+        const resolved = resolveAssetUrl(cached);
+        if (resolved) return resolved;
+      }
+    } catch {}
+    return DEFAULT_BG;
+  });
   const [bgVersion, setBgVersion] = useState(0);
   const [bgUploading, setBgUploading] = useState(false);
   const opacityKey = useMemo(() => {
