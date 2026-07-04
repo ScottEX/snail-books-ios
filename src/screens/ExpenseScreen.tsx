@@ -1219,13 +1219,9 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   tabTitle: {
     fontSize: FONTS.amount.size, fontWeight: FONTS.amount.weight, color: 'rgba(255,255,255,0.95)',
     alignSelf: 'flex-start',
-    // @ts-ignore
-    textShadow: '0 1px 3px rgba(0,0,0,0.1)',
   },
   tabTitleActive: {
     color: colors.surface, fontWeight: FONTS.amount.weight,
-    // @ts-ignore
-    textShadow: '0 1px 4px rgba(0,0,0,0.15)',
   },
   /* ── 对账卡片内字段 ── */
   cardFields: {
