@@ -675,7 +675,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                         </TouchableOpacity>
                       </View>
                     </View>
-                    <SubmitButton onPress={handleLogin} loading={loading} disabled={!username || !password || !!validatePassword(password)} label={t('loginBtn')} style={[styles.btnDark, (!username || !password || !!validatePassword(password)) && styles.btnDisabled]} textStyle={styles.btnDarkText} />
+                    <SubmitButton onPress={handleLogin} loading={loading} disabled={!username || !password || !!validatePassword(password)} label={t('loginBtn')} style={[styles.btnDark, (!username || !password || !!validatePassword(password)) && styles.btnDisabled]} textStyle={[styles.btnDarkText, (!username || !password || !!validatePassword(password)) && styles.disabledText]} />
                     <View style={styles.rowBetween}>
                       <TouchableOpacity onPress={() => setRemember(!remember)} style={styles.row}>
                         <View style={[styles.checkbox, remember && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
@@ -801,10 +801,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 <SubmitButton
                   onPress={handleVerify}
                   loading={loading}
-                  disabled={!code}
+                  disabled={!code || code.length < 6}
                   label={t('verifyBtn')}
-                  style={[styles.btnDark, !code && styles.btnDisabled]}
-                  textStyle={styles.btnDarkText}
+                  style={[styles.btnDark, (!code || code.length < 6) && styles.btnDisabled]}
+                  textStyle={[styles.btnDarkText, (!code || code.length < 6) && styles.disabledText]}
                 />
                 <Text style={styles.verifyHint}>
                   {t('verifyNewNoEmail') || '一直没收到？别着急，您可以 '}
@@ -831,7 +831,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                     placeholder="Email" placeholderTextColor="rgba(255,255,255,0.55)"
                     keyboardType="email-address" onSubmitEditing={handleForgot} autoCapitalize="none" />
                 </View>
-                <SubmitButton onPress={handleForgot} loading={loading} label={t('forgotSendBtn') || 'Send Code'} style={styles.btnDark} textStyle={styles.btnDarkText} />
+                <SubmitButton onPress={handleForgot} loading={loading} disabled={!email} label={t('forgotSendBtn') || 'Send Code'} style={[styles.btnDark, !email && styles.btnDisabled]} textStyle={[styles.btnDarkText, !email && styles.disabledText]} />
                 <TouchableOpacity onPress={() => { reset(); goLogin(); }}>
                   <Text style={styles.forgotText}>{t('backToLogin')}</Text>
                 </TouchableOpacity>
@@ -878,7 +878,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                     </TouchableOpacity>
                   </View>
                 </View>
-                <SubmitButton onPress={handleReset} loading={loading} disabled={!code || code.length < 6 || !password || !!validatePassword(password)} label={t('resetBtn')} style={[styles.btnDark, (!code || code.length < 6 || !password || !!validatePassword(password)) && styles.btnDisabled]} textStyle={styles.btnDarkText} />
+                <SubmitButton onPress={handleReset} loading={loading} disabled={!code || !password} label={t('resetBtn')} style={[styles.btnDark, (!code || !password) && styles.btnDisabled]} textStyle={[styles.btnDarkText, (!code || !password) && styles.disabledText]} />
                 <TouchableOpacity onPress={() => { reset(); goLogin(); }}>
                   <Text style={styles.forgotText}>{t('backToLogin')}</Text>
                 </TouchableOpacity>
