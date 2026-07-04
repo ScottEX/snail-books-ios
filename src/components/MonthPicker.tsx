@@ -102,7 +102,6 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
                 {label}
               </Text>
             </TouchableOpacity>
-            <View style={{ height: 1, backgroundColor: colors.secondary, marginHorizontal: 12, marginVertical: 4 }} />
             {sortedMonths.map((f: any) => {
               const isSel = selected !== 'all' && selected.year === f.year && selected.month === f.month;
               return (
