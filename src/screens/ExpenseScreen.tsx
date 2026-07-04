@@ -26,7 +26,7 @@ import NumberTickerExt from '../components/NumberTicker';
 import { useServerDate } from '../hooks/useServerDate';
 import { useExpenseForm } from '../hooks/useExpenseForm';
 import ModalOverlay from '../components/ModalOverlay';
-import SheetHeader from '../components/SheetHeader';
+import { useDateField } from '../hooks/useDateField';
 
 /* ── helpers ── */
 // Date helpers replaced by useServerDate() hook (server time, not client)
@@ -174,11 +174,9 @@ function DateErrorHint({ trigger, message, colors, textAlign = 'right' }: { trig
 export default function ExpenseScreen({
   onReconHistory,
   onExpenseHistory,
-  onExpenseAdded,
 }: {
   onReconHistory?: () => void;
   onExpenseHistory?: () => void;
-  onExpenseAdded?: () => void;
 }) {
   const { colors } = useTheme();
   const sd = useServerDate();
@@ -232,12 +230,7 @@ export default function ExpenseScreen({
   // Snap-scroll effects are web-only (CSS scroll-snap + DOM scroll listener).
 
   /* ── 模块一：对账 ── */
-  // recDate is derived from sd.yesterday (reactive, like web's useDateField).
-  // recDateOverride lets the user pick a different date via DatePicker.
-  const [recDateOverride, setRecDateOverride] = useState<string | null>(null);
-  const recDate = recDateOverride ?? (sd.ready && sd.yesterday ? sd.yesterday : '');
-  const [recDateKey, setRecDateKey] = useState(0);
-  const [recDateErr, setRecDateErr] = useState(0);
+  const recDate = useDateField({ sd });
   const [reconForm, setReconForm] = useState({
     cardBalance: '', cashBalance: '', dineIn: '', meituan: '',
     flashSale: '', tuan: '', jd: '',
@@ -246,77 +239,56 @@ export default function ExpenseScreen({
     setReconForm(f => ({ ...f, [k]: v }));
   const { cardBalance, cashBalance, dineIn, meituan, flashSale, tuan, jd } = reconForm;
 
-  const mountedRef = useRef(false);
   const initReconValues = useRef({ card: '', cash: '', dine: '', mt: '', fs: '', jd: '', tuan: '' });
   const reconJustLoaded = useRef(false);
   const reconLoadId = useRef(0);  // guard against stale async responses
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
 
   // Load reconciliation data from backend
+  // Rule:
+  //   1. Exact match on bill_date → show that record's values
+  //   2. No match + recDate >= last bill_date → fill with last record's values
+  //   3. No match + recDate < last bill_date → leave empty
   useEffect(() => {
-    if (!mountedRef.current) {
-      // First mount: pre-fill form with last record's values (don't override recDate)
-      mountedRef.current = true;
-      (async () => {
-        const id = ++reconLoadId.current;
-        try {
-          const data = await api.getReconciliations(1);
-          if (id !== reconLoadId.current) return; // stale
-          if (data && data.length > 0) {
-            const last = data[0];
-            // Don't setRecDate — date is handled by sd.yesterday sync above.
-            // Web never overrides recDate with last.bill_date; same here.
-            updateRecon('cardBalance',toDec2(last.card_balance));
-            updateRecon('cashBalance',toDec2(last.cash_balance));
-            updateRecon('dineIn',toDec2(last.dine_in));
-            updateRecon('meituan',toDec2(last.meituan));
-            updateRecon('flashSale',toDec2(last.flash_sale));
-            updateRecon('tuan',toDec2(last.tuan));
-            updateRecon('jd',toDec2(last.jd));
-          }
-          reconJustLoaded.current = true;
-        } catch { showToast(t('toastLoadFailed')); }
-      })();
-      return;
-    }
-    // When recDate changes: fetch reconciliation for that date from backend
     (async () => {
       const id = ++reconLoadId.current;
       try {
         const data = await api.getReconciliations(365);
         if (id !== reconLoadId.current) return; // stale
-        const last = (data && data.length > 0) ? data[0] : null;
-        const match = (data || []).find((r: any) => r.bill_date === recDate);
+        if (!data || data.length === 0) {
+          updateRecon('cardBalance', ''); updateRecon('cashBalance', '');
+          updateRecon('dineIn', ''); updateRecon('meituan', '');
+          updateRecon('flashSale', ''); updateRecon('tuan', ''); updateRecon('jd', '');
+          reconJustLoaded.current = true;
+          return;
+        }
+        const last = data[0]; // most recent record
+        const match = data.find((r: any) => r.bill_date === recDate.value);
         if (match) {
-          updateRecon('cardBalance',toDec2(match.card_balance));
-          updateRecon('cashBalance',toDec2(match.cash_balance));
-          updateRecon('dineIn',toDec2(match.dine_in));
-          updateRecon('meituan',toDec2(match.meituan));
-          updateRecon('flashSale',toDec2(match.flash_sale));
-          updateRecon('tuan',toDec2(match.tuan));
-          updateRecon('jd',toDec2(match.jd));
-        } else if (last && recDate >= (last.bill_date || '')) {
-          // No exact match, but date >= last record → pre-fill with last values (matches web)
-          updateRecon('cardBalance',toDec2(last.card_balance));
-          updateRecon('cashBalance',toDec2(last.cash_balance));
-          updateRecon('dineIn',toDec2(last.dine_in));
-          updateRecon('meituan',toDec2(last.meituan));
-          updateRecon('flashSale',toDec2(last.flash_sale));
-          updateRecon('tuan',toDec2(last.tuan));
-          updateRecon('jd',toDec2(last.jd));
+          updateRecon('cardBalance', toDec2(match.card_balance));
+          updateRecon('cashBalance', toDec2(match.cash_balance));
+          updateRecon('dineIn', toDec2(match.dine_in));
+          updateRecon('meituan', toDec2(match.meituan));
+          updateRecon('flashSale', toDec2(match.flash_sale));
+          updateRecon('tuan', toDec2(match.tuan));
+          updateRecon('jd', toDec2(match.jd));
+        } else if (recDate.value >= (last.bill_date || '')) {
+          updateRecon('cardBalance', toDec2(last.card_balance));
+          updateRecon('cashBalance', toDec2(last.cash_balance));
+          updateRecon('dineIn', toDec2(last.dine_in));
+          updateRecon('meituan', toDec2(last.meituan));
+          updateRecon('flashSale', toDec2(last.flash_sale));
+          updateRecon('tuan', toDec2(last.tuan));
+          updateRecon('jd', toDec2(last.jd));
         } else {
-          updateRecon('cardBalance','');
-          updateRecon('cashBalance','');
-          updateRecon('dineIn','');
-          updateRecon('meituan','');
-          updateRecon('flashSale','');
-          updateRecon('tuan','');
-          updateRecon('jd','');
+          updateRecon('cardBalance', ''); updateRecon('cashBalance', '');
+          updateRecon('dineIn', ''); updateRecon('meituan', '');
+          updateRecon('flashSale', ''); updateRecon('tuan', ''); updateRecon('jd', '');
         }
         reconJustLoaded.current = true;
       } catch { showToast(t('toastLoadFailed')); }
     })();
-  }, [recDate]);
+  }, [recDate.value]);
 
   // Capture initial values after data load settles
   useEffect(() => {
@@ -328,7 +300,7 @@ export default function ExpenseScreen({
   }, [cardBalance, cashBalance, dineIn, meituan, flashSale, jd, tuan]);
 
   const submitRecon = useCallback(async () => {
-    if (sd.ready && sd.isFuture(recDate)) { showToast(t('errDateFuture')); return; }
+    if (sd.ready && sd.isFuture(recDate.value)) { showToast(t('errDateFuture')); return; }
     try {
       const username = getCurrentUser();
       // 提交那一刻拉最新 businessSummary，确保 cash_on_hand 含本会话刚录的支出
@@ -338,7 +310,7 @@ export default function ExpenseScreen({
       const latestDiff = (realTotalCents - latestCashOnHandCents) / 100;
       setBusinessSummary(latestSummary || {});
       await api.createReconciliation({
-        bill_date: recDate,
+        bill_date: recDate.value,
         card_balance: toNum(cardBalance),
         cash_balance: toNum(cashBalance),
         dine_in: toNum(dineIn),
@@ -353,7 +325,7 @@ export default function ExpenseScreen({
       showToast(t('reconComplete'));
       onReconHistory?.();
     } catch { showToast(t('toastSubmitFailed')); }
-  }, [recDate, cardBalance, cashBalance, dineIn, meituan, flashSale, tuan, jd, onReconHistory]);
+  }, [recDate.value, cardBalance, cashBalance, dineIn, meituan, flashSale, tuan, jd, onReconHistory]);
 
   const toCents = (v: any) => Math.round((parseFloat(String(v ?? '0')) || 0) * 100);
   // Precise arithmetic: convert to cents (integer), compute, convert back
@@ -472,7 +444,7 @@ export default function ExpenseScreen({
     isAmountInvalid,
   } = useExpenseForm({
     onExpenseHistory,
-    onExpenseAdded,
+    onExpenseAdded: loadBusinessSummary,
     getPreviewUrl,
     revokePreviewUrl,
     clearUrlCache,
@@ -721,7 +693,7 @@ export default function ExpenseScreen({
                 <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary }}>
                   {(() => {
                     const l = getLang();
-                    const [y, m, d] = recDate.split('-');
+                    const [y, m, d] = recDate.value.split('-');
                     if (l.startsWith('en')) {
                       const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
                       return `${months[+m-1]} ${+d}, ${y}`;
@@ -735,7 +707,7 @@ export default function ExpenseScreen({
                 <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><Path d="M8 5l8 7-8 7"/></Svg>
               </TouchableOpacity>
             </View>
-            <DateErrorHint trigger={recDateErr} message={t('errDateFuture')} colors={colors} />
+            <DateErrorHint trigger={recDate.error} message={t('errDateFuture')} colors={colors} />
 
             <View style={st.row2}>
               <View style={st.inputGroup}>
@@ -970,9 +942,9 @@ export default function ExpenseScreen({
       {/* Rec date picker */}
       <DatePickerModal
         visible={showRecDatePicker}
-        value={recDate}
+        value={recDate.value}
         onClose={() => setShowRecDatePicker(false)}
-        onSelect={(d) => { setRecDateOverride(d); setRecDateKey(k => k + 1); setRecDateErr(0); }}
+        onSelect={(d) => { recDate.setValue(d); }}
         minDate={sd.today}
         title={t('billDate')}
       />
@@ -1000,7 +972,18 @@ export default function ExpenseScreen({
           overlayStyle={{ ...bottomSheetOverlay, paddingBottom: keyboardH } as any}
           contentStyle={{ alignItems: 'stretch' } as any}>
           <View style={[st.feeSheet, { width: '100%', maxWidth: 768, alignSelf: 'center' }]}>
-            <SheetHeader title={t('addFeeEntry')} onClose={() => setShowFeeSheet(false)} backgroundColor={colors.primary} />
+            <View style={st.modalHeader}>
+              <View style={{ width: 36, height: 4, backgroundColor: SHEET_HANDLE_COLOR, borderRadius: 2, alignSelf: 'center', marginBottom: 12 }} />
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                <Text style={st.modalTitle}>{t('addFeeEntry')}</Text>
+                <TouchableOpacity style={{ padding: 4 }} onPress={() => setShowFeeSheet(false)}>
+                  <Svg width="18" height="18" viewBox="0 0 24 24" stroke={colors.surface} strokeWidth="2" fill="none">
+                    <Line x1="18" y1="6" x2="6" y2="18" />
+                    <Line x1="6" y1="6" x2="18" y2="18" />
+                  </Svg>
+                </TouchableOpacity>
+              </View>
+            </View>
             <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
             <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12 }}>
               {/* Date + Negative toggle */}
@@ -1088,7 +1071,18 @@ export default function ExpenseScreen({
           overlayStyle={bottomSheetOverlay as any}
           contentStyle={{ alignItems: 'stretch', justifyContent: 'flex-end' } as any}>
           <View style={[st.feeSheet, { height: Dimensions.get('window').height * 0.7, width: '100%', maxWidth: 768, alignSelf: 'center' }]}>
-            <SheetHeader title={t('feeHistory')} onClose={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }} backgroundColor={colors.primary} />
+            <View style={st.modalHeader}>
+              <View style={{ width: 36, height: 4, backgroundColor: SHEET_HANDLE_COLOR, borderRadius: 2, alignSelf: 'center', marginBottom: 12 }} />
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                <Text style={st.modalTitle}>{t('feeHistory')}</Text>
+                <TouchableOpacity style={{ padding: 4 }} onPress={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }}>
+                  <Svg width="18" height="18" viewBox="0 0 24 24" stroke={colors.surface} strokeWidth="2" fill="none">
+                    <Line x1="18" y1="6" x2="6" y2="18" />
+                    <Line x1="6" y1="6" x2="18" y2="18" />
+                  </Svg>
+                </TouchableOpacity>
+              </View>
+            </View>
             {/* Month filter */}
             <View style={{ paddingHorizontal: 20, paddingBottom: 8, flexDirection: 'row', alignItems: 'center' }}>
               <MonthPicker selected={feeHistoryFilter} onSelect={(v) => setFeeHistoryFilter(v)} months={feeMonthList} colors={colors} compact={false} />

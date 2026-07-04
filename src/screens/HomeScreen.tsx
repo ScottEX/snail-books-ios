@@ -637,7 +637,6 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           <ExpenseScreen
             onReconHistory={() => setShowReconHistory(true)}
             onExpenseHistory={() => { setShowExpenseHistory(true); setExpenseRefreshKey(k => k + 1); }}
-            onExpenseAdded={loadBusinessSummary}
           />
         ) : isHome && tab === 'partner' ? (
           <View style={styles.page}>
