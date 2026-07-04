@@ -497,7 +497,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
 
       {/* History slide-overs */}
       <SlideScreen visible={showExpenseHistory} onClose={() => setShowExpenseHistory(false)}>
-        {(onBack) => <ExpenseHistoryScreen onBack={onBack} onExpDetail={(e: any) => setShowExpenseDetail(e)} onInvoice={(batchId) => setShowInvoice({ filterBatchId: batchId })} />}
+        {(onBack) => <ExpenseHistoryScreen onBack={onBack} refreshKey={expenseRefreshKey} onExpDetail={(e: any) => setShowExpenseDetail(e)} onInvoice={(batchId) => setShowInvoice({ filterBatchId: batchId })} />}
       </SlideScreen>
       <SlideScreen visible={showDailyHistory} onClose={() => setShowDailyHistory(false)}>
         {(onBack) => <DailyRevenueHistory onBack={onBack} />}
@@ -636,7 +636,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           <ExpenseScreen
             businessSummary={businessSummary}
             onReconHistory={() => setShowReconHistory(true)}
-            onExpenseHistory={() => setShowExpenseHistory(true)}
+            onExpenseHistory={() => { setShowExpenseHistory(true); setExpenseRefreshKey(k => k + 1); }}
             onExpenseAdded={loadBusinessSummary}
           />
         ) : isHome && tab === 'partner' ? (

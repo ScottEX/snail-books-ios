@@ -238,6 +238,7 @@ export default function ExpenseScreen({
   const mountedRef = useRef(false);
   const initReconValues = useRef({ card: '', cash: '', dine: '', mt: '', fs: '', jd: '', tuan: '' });
   const reconJustLoaded = useRef(false);
+  const reconLoadId = useRef(0);  // guard against stale async responses
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
 
   // Load reconciliation data from backend
@@ -246,8 +247,10 @@ export default function ExpenseScreen({
       // First mount: pre-fill form with last record's values (don't override recDate)
       mountedRef.current = true;
       (async () => {
+        const id = ++reconLoadId.current;
         try {
           const data = await api.getReconciliations(1);
+          if (id !== reconLoadId.current) return; // stale
           if (data && data.length > 0) {
             const last = data[0];
             // Don't setRecDate — date is handled by sd.yesterday sync above.
@@ -267,8 +270,10 @@ export default function ExpenseScreen({
     }
     // When recDate changes: fetch reconciliation for that date from backend
     (async () => {
+      const id = ++reconLoadId.current;
       try {
         const data = await api.getReconciliations(365);
+        if (id !== reconLoadId.current) return; // stale
         const last = (data && data.length > 0) ? data[0] : null;
         const match = (data || []).find((r: any) => r.bill_date === recDate);
         if (match) {

@@ -60,9 +60,10 @@ interface Props {
   onBack: () => void;
   onExpDetail?: (e: any) => void;
   onInvoice?: (batchId: number) => void;
+  refreshKey?: number;
 }
 
-export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice }: Props) {
+export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, refreshKey }: Props) {
   const { colors } = useTheme();
   const swipeBack = useSwipeBack(onBack);
   const st = useMemo(() => getSt(colors), [colors]);
@@ -110,13 +111,13 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice }:
     setFilCats(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
   };
 
-  const fetcher = useCallback(async (_page: number, _perPage: number) => {
+  const fetcher = useCallback(async (page: number, perPage: number) => {
     try {
       const params: Record<string, string> = { type: 'expense' };
       if (appliedFrom) params.date_from = appliedFrom;
       if (appliedTo) params.date_to = appliedTo;
       if (appliedCats) params.category = appliedCats;
-      const tx: any = await api.getTransactions(1, 500, params);
+      const tx: any = await api.getTransactions(page, perPage, params);
       return { records: tx.transactions || [], total: tx.total || 0, pages: tx.pages || 1 };
     } catch {
       return { records: [], total: 0, pages: 1 };
@@ -130,6 +131,9 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice }:
 
   const filterKey = `${appliedFrom}|${appliedTo}|${appliedCats}`;
   useEffect(() => { refresh(); }, [filterKey]);
+
+  // External refresh trigger (e.g. after adding a new expense)
+  useEffect(() => { if (refreshKey !== undefined) refresh(); }, [refreshKey]);
 
   const rangeInvalid = useMemo(() => !!(filDateFrom && filDateTo && filDateFrom > filDateTo), [filDateFrom, filDateTo]);
   const rangeTooLong = useMemo(() => !!(filDateFrom && filDateTo && !rangeInvalid && monthsBetween(filDateFrom, filDateTo) > 24), [filDateFrom, filDateTo, rangeInvalid]);
