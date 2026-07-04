@@ -939,7 +939,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   tabActive: { backgroundColor: GLASS_BG_STRONG },
   tabText: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.65)' },
   tabActiveText: { color: colors.surface },
-  formSection: { gap: 12, marginTop: 4 },
+  formSection: { gap: 12 },
   fieldWrap: { gap: 6 },
   fieldLabel: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.6)' },
   hintText: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.4)' },
