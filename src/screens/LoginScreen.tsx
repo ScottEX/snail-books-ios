@@ -53,12 +53,12 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [avatarUrl, setAvatarUrl] = useState<string>(() => {
     try { return localStorage.getItem('avatar-uri') || ''; } catch { return ''; }
   });
-  // Loaded states driven by Image onLoad — only set true AFTER RN
-  // decodes the image, so we never show an empty/decoding frame.
+  // Loaded states — only used for onError recovery (clear stale URL if file missing).
   const [bgLoaded, setBgLoaded] = useState(false);
   const [avatarLoaded, setAvatarLoaded] = useState(false);
-  const bgOpacity = useRef(new Animated.Value(0)).current;
-  const avatarOpacity = useRef(new Animated.Value(0)).current;
+  // Start at 1 if cached, so mount immediately shows custom bg (no crossfade).
+  const bgOpacity = useRef(new Animated.Value(bgUrl ? 1 : 0)).current;
+  const avatarOpacity = useRef(new Animated.Value(avatarUrl ? 1 : 0)).current;
   // Use the LangProvider hook so the lang state and t() output stay
   // in sync within a single React render — using the legacy setLang
   // here updates globalThis.curLang synchronously but doesn't trigger
@@ -107,15 +107,31 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     else localStorage.removeItem('remember_me');
   }, [remember]);
 
-  // Animate custom background / avatar opacity when Image onLoad fires.
-  // bgLoaded/avatarLoaded are only set true after RN finishes decoding,
-  // so the fade-in always happens on a fully rendered image.
+  // Fade in ONLY when a new bg/avatar loads (empty → non-empty).
+  // On mount with cache, opacity is already 1 — no animation, instant.
+  const prevBgUrl = useRef(bgUrl);
+  const prevAvatarUrl = useRef(avatarUrl);
   useEffect(() => {
-    Animated.timing(bgOpacity, { toValue: bgLoaded && bgUrl ? 1 : 0, duration: 500, useNativeDriver: true }).start();
-  }, [bgLoaded, bgUrl]);
+    if (!prevBgUrl.current && bgUrl) {
+      Animated.timing(bgOpacity, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+    } else if (prevBgUrl.current && !bgUrl) {
+      Animated.timing(bgOpacity, { toValue: 0, duration: 300, useNativeDriver: true }).start();
+    } else if (prevBgUrl.current && bgUrl && prevBgUrl.current !== bgUrl) {
+      // Same user updated bg — swap instantly (content hash changed URI, Image reloads itself)
+      bgOpacity.setValue(1);
+    }
+    prevBgUrl.current = bgUrl;
+  }, [bgUrl]);
   useEffect(() => {
-    Animated.timing(avatarOpacity, { toValue: avatarLoaded && avatarUrl ? 1 : 0, duration: 500, useNativeDriver: true }).start();
-  }, [avatarLoaded, avatarUrl]);
+    if (!prevAvatarUrl.current && avatarUrl) {
+      Animated.timing(avatarOpacity, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+    } else if (prevAvatarUrl.current && !avatarUrl) {
+      Animated.timing(avatarOpacity, { toValue: 0, duration: 300, useNativeDriver: true }).start();
+    } else if (prevAvatarUrl.current && avatarUrl && prevAvatarUrl.current !== avatarUrl) {
+      avatarOpacity.setValue(1);
+    }
+    prevAvatarUrl.current = avatarUrl;
+  }, [avatarUrl]);
 
   // Reset loaded flags when URL changes, so onLoad fires again for the new image.
   useEffect(() => { setBgLoaded(false); }, [bgUrl]);
@@ -580,6 +596,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         style={[styles.bgLayer, { opacity: bgOpacity }]}
         resizeMode="cover"
         onLoad={() => setBgLoaded(true)}
+        onError={() => { try { localStorage.removeItem('bg-image'); } catch {} setBgUrl(''); }}
       />
       <View style={styles.bgOverlay} />
       <KeyboardAvoidingView
@@ -601,6 +618,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 style={[styles.logoOver, { opacity: avatarOpacity }]}
                 resizeMode="cover"
                 onLoad={() => setAvatarLoaded(true)}
+                onError={() => { try { localStorage.removeItem('avatar-uri'); } catch {} setAvatarUrl(''); }}
               />
             </View>
             <Text style={styles.subtitle}>{t('subtitle')}</Text>
