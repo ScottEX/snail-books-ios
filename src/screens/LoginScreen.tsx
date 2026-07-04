@@ -53,15 +53,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [avatarUrl, setAvatarUrl] = useState<string>(() => {
     try { return localStorage.getItem('avatar-uri') || ''; } catch { return ''; }
   });
-  // Ready states control when custom bg/avatar fade in — mirrors web's
-  // bgReady/avatarReady pattern so the transition is smooth (opacity
-  // animation) rather than a jarring source swap.
-  const [bgReady, setBgReady] = useState(() => {
-    try { return !!localStorage.getItem('bg-image'); } catch { return false; }
-  });
-  const [avatarReady, setAvatarReady] = useState(() => {
-    try { return !!localStorage.getItem('avatar-uri'); } catch { return false; }
-  });
+  // Loaded states driven by Image onLoad — only set true AFTER RN
+  // decodes the image, so we never show an empty/decoding frame.
+  const [bgLoaded, setBgLoaded] = useState(false);
+  const [avatarLoaded, setAvatarLoaded] = useState(false);
   const bgOpacity = useRef(new Animated.Value(0)).current;
   const avatarOpacity = useRef(new Animated.Value(0)).current;
   // Use the LangProvider hook so the lang state and t() output stay
@@ -112,14 +107,19 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     else localStorage.removeItem('remember_me');
   }, [remember]);
 
-  // Animate custom background / avatar opacity when ready states change.
-  // Mirrors web's CSS transition: opacity 0.5s ease, filter blur.
+  // Animate custom background / avatar opacity when Image onLoad fires.
+  // bgLoaded/avatarLoaded are only set true after RN finishes decoding,
+  // so the fade-in always happens on a fully rendered image.
   useEffect(() => {
-    Animated.timing(bgOpacity, { toValue: bgReady && bgUrl ? 1 : 0, duration: 500, useNativeDriver: true }).start();
-  }, [bgReady, bgUrl]);
+    Animated.timing(bgOpacity, { toValue: bgLoaded && bgUrl ? 1 : 0, duration: 500, useNativeDriver: true }).start();
+  }, [bgLoaded, bgUrl]);
   useEffect(() => {
-    Animated.timing(avatarOpacity, { toValue: avatarReady && avatarUrl ? 1 : 0, duration: 500, useNativeDriver: true }).start();
-  }, [avatarReady, avatarUrl]);
+    Animated.timing(avatarOpacity, { toValue: avatarLoaded && avatarUrl ? 1 : 0, duration: 500, useNativeDriver: true }).start();
+  }, [avatarLoaded, avatarUrl]);
+
+  // Reset loaded flags when URL changes, so onLoad fires again for the new image.
+  useEffect(() => { setBgLoaded(false); }, [bgUrl]);
+  useEffect(() => { setAvatarLoaded(false); }, [avatarUrl]);
 
   // WebAuthn bootstrap on mount. Mirrors web LoginScreen L117-165:
   // read the cached bound state synchronously, then refresh from
@@ -180,8 +180,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   // Saves as local files so Image loads instantly on next mount
   // (data URIs are too slow for RN's Image decoder).
   useEffect(() => {
-    if (!username) { setAvatarUrl(''); setAvatarReady(false); return; }
-    setAvatarReady(false);
+    if (!username) { setAvatarUrl(''); return; }
     const timer = setTimeout(async () => {
       const saveDataUri = async (dataUri: string, prefix: string): Promise<string> => {
         try {
@@ -200,24 +199,24 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         if (avatarDataUri) {
           const fileUri = await saveDataUri(avatarDataUri, 'avatar');
           const url = fileUri || avatarDataUri;
-          setAvatarUrl(url); setAvatarReady(true);
+          setAvatarUrl(url);
           try { localStorage.setItem('avatar-uri', url); } catch {}
         } else {
-          setAvatarUrl(''); setAvatarReady(true);
+          setAvatarUrl('');
         }
-      } catch { setAvatarUrl(''); setAvatarReady(true); }
+      } catch { setAvatarUrl(''); }
 
       try {
         const bgDataUri = await api.getUserBackgroundUri(username).catch(() => null);
         if (bgDataUri) {
           const fileUri = await saveDataUri(bgDataUri, 'bg');
           const url = fileUri || bgDataUri;
-          setBgUrl(url); setBgReady(true);
+          setBgUrl(url);
           try { localStorage.setItem('bg-image', url); } catch {}
         } else {
-          setBgUrl(''); setBgReady(true);
+          setBgUrl('');
         }
-      } catch { setBgUrl(''); setBgReady(true); }
+      } catch { setBgUrl(''); }
     }, 400);
     return () => clearTimeout(timer);
   }, [username]);
@@ -580,6 +579,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         source={bgUrl ? { uri: bgUrl } : BG_IMAGE}
         style={[styles.bgLayer, { opacity: bgOpacity }]}
         resizeMode="cover"
+        onLoad={() => setBgLoaded(true)}
       />
       <View style={styles.bgOverlay} />
       <KeyboardAvoidingView
@@ -600,6 +600,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 source={avatarUrl ? { uri: avatarUrl } : LOGO_IMAGE}
                 style={[styles.logoOver, { opacity: avatarOpacity }]}
                 resizeMode="cover"
+                onLoad={() => setAvatarLoaded(true)}
               />
             </View>
             <Text style={styles.subtitle}>{t('subtitle')}</Text>
