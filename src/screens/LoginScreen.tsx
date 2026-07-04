@@ -335,12 +335,15 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         localStorage.removeItem('expense_active_tab');
       }
       try { await api.saveLang(getLang()); } catch {}
-      // Refresh WebAuthn state to match server
+      // Refresh WebAuthn state to match server — use webauthnCheck like web
       try {
-        const s = await api.webauthnStatus();
-        if (s && typeof s.has_credential === 'boolean') {
-          if (!s.has_credential) clearWebAuthn();
-          setHasFaceID(!!s.has_credential);
+        const resp = await api.webauthnCheck(cred.username);
+        if (resp.has_credential) {
+          setWebAuthnBound(resp.username || cred.username, 'server');
+          setHasFaceID(true);
+        } else {
+          clearWebAuthn();
+          setHasFaceID(false);
         }
       } catch {}
       setLoading(false);
@@ -417,16 +420,18 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
           localStorage.removeItem('expense_active_tab');
         }
         try { await api.saveLang(getLang()); } catch {}
-        // Post-login WebAuthn re-sync (mirrors web L312-325). Confirms
+        // Post-login WebAuthn re-sync. Use webauthnCheck like web — confirms
         // the freshly-logged-in user has any Face ID credential bound
-        // server-side so the App.tsx post-login screen can offer to
-        // enable biometric unlock on this device. Commit 4 wires the
-        // actual Keychain write; for now we just refresh local state.
+        // server-side and updates localStorage flags.
         try {
-          const s = await api.webauthnStatus();
-          if (s && typeof s.has_credential === 'boolean') {
-            if (!s.has_credential) clearWebAuthn();
-            setHasFaceID(!!s.has_credential);
+          const loggedUser = r.username || username;
+          const resp = await api.webauthnCheck(loggedUser);
+          if (resp.has_credential) {
+            setWebAuthnBound(resp.username || loggedUser, 'server');
+            setHasFaceID(true);
+          } else {
+            clearWebAuthn();
+            setHasFaceID(false);
           }
         } catch {}
         // Offer biometric enrollment on first successful password
