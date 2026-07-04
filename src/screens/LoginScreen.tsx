@@ -558,20 +558,15 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   return (
     <View style={styles.container}>
-      {/* Default background — only shown when no custom bg is cached */}
-      {!bgUrl ? (
-        <ImageBackground source={BG_IMAGE} style={styles.bgLayer} resizeMode="cover">
-          <View style={styles.bgOverlay} />
-        </ImageBackground>
-      ) : (
-        <View style={[styles.bgLayer, { backgroundColor: '#2C2626' }]}>
-          <View style={styles.bgOverlay} />
-        </View>
-      )}
-      {/* Custom background — always rendered, opacity hides it when not ready.
-          Source falls back to default BG_IMAGE so the layer doesn't unmount. */}
+      {/* Default background — always rendered as base layer */}
+      <ImageBackground source={BG_IMAGE} style={styles.bgLayer} resizeMode="cover">
+        <View style={styles.bgOverlay} />
+      </ImageBackground>
+      {/* Custom background — defaultSource shows the same BG_IMAGE while
+          the data URI decodes, so there's no flash of a different color. */}
       <Animated.Image
         source={bgUrl ? { uri: bgUrl } : BG_IMAGE}
+        defaultSource={BG_IMAGE}
         style={[styles.bgLayer, { opacity: bgOpacity }]}
         resizeMode="cover"
       />
