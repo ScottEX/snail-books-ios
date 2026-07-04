@@ -10,6 +10,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import { modalClose } from '../sharedStyles';
+import ModalOverlay from '../components/ModalOverlay';
 import { fmtAmtFull } from '../utils/format';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DatePickerModal from '../components/DatePickerModal';
@@ -53,11 +54,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
   const swipeBack = useSwipeBack(onBack);
 
   const [selected, setSelected] = useState<any>(null);
-  const detailAnim = useRef(new Animated.Value(0)).current;
-  const [detailOpen, setDetailOpen] = useState(false);
-
-  const openDetail = (r: any) => { setSelected(r); setDetailOpen(true); Animated.spring(detailAnim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 }).start(); };
-  const closeDetail = () => { Animated.timing(detailAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => { setDetailOpen(false); setSelected(null); }); };
+  const selectedRef = useRef<any>(null);
 
   const { colors } = useTheme();
   const st = useMemo(() => getSt(colors), [colors]);
@@ -146,7 +143,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
   };
 
   const renderCard = (r: any) => (
-    <TouchableOpacity key={r.id} style={st.card} onPress={() => openDetail(r)} activeOpacity={0.7}>
+    <TouchableOpacity key={r.id} style={st.card} onPress={() => { selectedRef.current = r; setSelected(r); }} activeOpacity={0.7}>
       <View style={st.dateRow}>
         <View style={st.dateItem}><Text style={st.dateLabel}>{t('reconDate')}</Text><Text style={st.dateVal}>{fmtDateTime(r.created_at || r.date)}</Text></View>
         <View style={st.dateSep} />
@@ -283,47 +280,44 @@ export default function ReconHistoryScreen({ onBack }: Props) {
       </ScrollView>
 
       {/* Detail Modal */}
-      {detailOpen && selected && (
-        <View style={st.mask} pointerEvents="box-none">
-          <Animated.View style={[st.maskBg, { opacity: detailAnim }]}>
-            <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={closeDetail} />
-          </Animated.View>
-          <Animated.View style={[st.modal, { transform: [{ translateY: detailAnim.interpolate({ inputRange: [0, 1], outputRange: [300, 0], extrapolate: 'clamp' }) }] }]}>
+      <ModalOverlay visible={!!selected} onClose={() => setSelected(null)} animation="springScale">
+        {selectedRef.current && (() => { const r = selectedRef.current; return (
+          <View style={st.modal}>
             <View style={st.modalHeader}>
               <View>
-                <Text style={st.modalDate}>{t('reconDate')}: {fmtDateTime(selected.created_at || selected.date)}</Text>
-                <Text style={st.modalDateSub}>{t('billDate')}: {fmtDate(selected.bill_date || selected.date)}</Text>
-                {selected.reconciled_by ? (<Text style={st.modalDateSub}>{t('reconciledBy')}: {selected.reconciled_by}</Text>) : null}
+                <Text style={st.modalDate}>{t('reconDate')}: {fmtDateTime(r.created_at || r.date)}</Text>
+                <Text style={st.modalDateSub}>{t('billDate')}: {fmtDate(r.bill_date || r.date)}</Text>
+                {r.reconciled_by ? (<Text style={st.modalDateSub}>{t('reconciledBy')}: {r.reconciled_by}</Text>) : null}
               </View>
-              <TouchableOpacity onPress={closeDetail} activeOpacity={0.6}>
+              <TouchableOpacity onPress={() => setSelected(null)} activeOpacity={0.6}>
                 <Text style={st.modalClose}>{'✕'}</Text>
               </TouchableOpacity>
             </View>
             <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
               <View style={st.pairRow}>
                 <View style={st.pairCol}>
-                  <View style={st.pairItem}><Text style={st.pairLabel}>{t('bookBalance')}</Text><Text style={st.pairVal}>{fmtAmtFull(selected.cash_on_hand)}</Text></View>
+                  <View style={st.pairItem}><Text style={st.pairLabel}>{t('bookBalance')}</Text><Text style={st.pairVal}>{fmtAmtFull(r.cash_on_hand)}</Text></View>
                   <View style={st.pairDivider} />
-                  <View style={st.pairItem}><Text style={st.pairLabel}>{t('cardBalance')}</Text><Text style={st.pairVal}>{fmtAmtFull(selected.card_balance)}</Text></View>
+                  <View style={st.pairItem}><Text style={st.pairLabel}>{t('cardBalance')}</Text><Text style={st.pairVal}>{fmtAmtFull(r.card_balance)}</Text></View>
                 </View>
                 <View style={st.pairCol}>
-                  <View style={st.pairItem}><Text style={st.pairLabel}>{t('currentBalance')}</Text><Text style={st.pairVal}>{fmtAmtFull(selected.real_total)}</Text></View>
+                  <View style={st.pairItem}><Text style={st.pairLabel}>{t('currentBalance')}</Text><Text style={st.pairVal}>{fmtAmtFull(r.real_total)}</Text></View>
                   <View style={st.pairDivider} />
-                  <View style={st.pairItem}><Text style={st.pairLabel}>{t('cashBalance')}</Text><Text style={st.pairVal}>{fmtAmtFull(selected.cash_balance)}</Text></View>
+                  <View style={st.pairItem}><Text style={st.pairLabel}>{t('cashBalance')}</Text><Text style={st.pairVal}>{fmtAmtFull(r.cash_balance)}</Text></View>
                 </View>
                 <View style={st.pairCol}>
-                  <View style={st.pairItem}><Text style={st.pairLabel}>{t('bookDiff')}</Text><Text style={[st.pairVal, { color: selected.diff > 0.005 ? colors.success : selected.diff < -0.005 ? colors.danger : colors.textMain }]}>{selected.diff >= 0 ? '+' : '-'}{fmtAmtFull(Math.abs(selected.diff))}</Text></View>
+                  <View style={st.pairItem}><Text style={st.pairLabel}>{t('bookDiff')}</Text><Text style={[st.pairVal, { color: r.diff > 0.005 ? colors.success : r.diff < -0.005 ? colors.danger : colors.textMain }]}>{r.diff >= 0 ? '+' : '-'}{fmtAmtFull(Math.abs(r.diff))}</Text></View>
                   <View style={st.pairDivider} />
-                  <View style={st.pairItem}><Text style={st.pairLabel}>{t('fundsInTransit')}</Text><Text style={[st.pairVal, { color: (Math.abs(selected.channel_total) < 0.005) ? colors.textMain : colors.primary }]}>{fmtAmtFull(selected.channel_total)}</Text></View>
+                  <View style={st.pairItem}><Text style={st.pairLabel}>{t('fundsInTransit')}</Text><Text style={[st.pairVal, { color: (Math.abs(r.channel_total) < 0.005) ? colors.textMain : colors.primary }]}>{fmtAmtFull(r.channel_total)}</Text></View>
                 </View>
               </View>
               <View style={st.chanSection}>
                 {[
-                  { label: t('dineIn'), value: selected.dine_in },
-                  { label: t('meituan'), value: selected.meituan },
-                  { label: t('flashSale'), value: selected.flash_sale },
-                  { label: t('jd'), value: selected.jd },
-                  { label: t('tuan'), value: selected.tuan },
+                  { label: t('dineIn'), value: r.dine_in },
+                  { label: t('meituan'), value: r.meituan },
+                  { label: t('flashSale'), value: r.flash_sale },
+                  { label: t('jd'), value: r.jd },
+                  { label: t('tuan'), value: r.tuan },
                 ].map((ch, i) => (
                   <View key={i} style={st.chanRow}>
                     <Text style={st.chanLabel}>{ch.label}</Text>
@@ -332,9 +326,9 @@ export default function ReconHistoryScreen({ onBack }: Props) {
                 ))}
               </View>
             </ScrollView>
-          </Animated.View>
-        </View>
-      )}
+          </View>
+        ); })()}
+      </ModalOverlay>
 
       {/* Date Picker */}
       <DatePickerModal
@@ -378,9 +372,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   reconByRow: { alignItems: 'center', paddingBottom: 2 },
   reconByText: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight },
   /* Modal */
-  mask: { position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 200, justifyContent: 'center', alignItems: 'center' },
-  maskBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: withAlpha(colors.textMain, 0.4) },
-  modal: { width: '88%', maxWidth: 380, backgroundColor: colors.surface, borderRadius: 20, overflow: 'hidden' },
+  modal: { width: '88%', maxWidth: 380, backgroundColor: colors.surface, borderRadius: 24, overflow: 'hidden' },
   modalHeader: { backgroundColor: colors.primary, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 18 },
   modalDate: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.surface },
   modalDateSub: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: withAlpha(colors.surface, 0.75), marginTop: 2 },
