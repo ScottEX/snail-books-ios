@@ -1479,7 +1479,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   },
   modalHeader: {
     backgroundColor: colors.primary, paddingVertical: 14, paddingHorizontal: 20,
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    flexDirection: 'column', alignItems: 'flex-start',
   },
   modalTitle: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.surface },
   modalClose: { ...modalClose, },
