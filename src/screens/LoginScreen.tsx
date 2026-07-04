@@ -489,7 +489,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     try {
       const r = await api.register(username, password, email);
       setLoading(false);
-      if (r.status === 'ok') { setMsgOk(true); setMsg(r.message); setMsgKey(''); setDevCode(r.dev_code || ''); setStep('verify'); setTimeout(() => codeRef.current?.focus(), 100); }
+      if (r.status === 'ok') { setMsg(''); setMsgKey(''); setMsgOk(false); setDevCode(r.dev_code || ''); setCode(''); setStep('verify'); setTimeout(() => codeRef.current?.focus(), 100); }
       else { setMsgOk(false); if (r.message) { setMsg(r.message); setMsgKey(''); } else { setMsgKey('errWrongCredentials'); setMsg(''); } triggerShake(); }
     } catch (e: any) {
       setLoading(false);
