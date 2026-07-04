@@ -53,14 +53,11 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [avatarUrl, setAvatarUrl] = useState<string>(() => {
     try { return localStorage.getItem('avatar-uri') || ''; } catch { return ''; }
   });
-  // Loaded states — only used for onError recovery (clear stale URL if file missing).
-  const [bgLoaded, setBgLoaded] = useState(false);
-  const [avatarLoaded, setAvatarLoaded] = useState(false);
-  // Mirrors web: bgReady drives opacity. But unlike web (synchronous blob URLs),
-  // RN Image requires async decode even for local files. Prefetch on mount ensures
-  // the Image renders only after decoding — instant, no transparent frame.
-  const [bgReady, setBgReady] = useState(false);
-  const [avatarReady, setAvatarReady] = useState(false);
+  // bgVisible/avatarVisible: set true on Image onLoad so the layer snaps from
+  // transparent → opaque only AFTER RN finishes decoding. ImageBackground
+  // covers the decode gap (local files: milliseconds; data URIs: migrated away).
+  const [bgVisible, setBgVisible] = useState(false);
+  const [avatarVisible, setAvatarVisible] = useState(false);
   const bgOpacity = useRef(new Animated.Value(0)).current;
   const avatarOpacity = useRef(new Animated.Value(0)).current;
   // Use the LangProvider hook so the lang state and t() output stay
@@ -111,37 +108,39 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     else localStorage.removeItem('remember_me');
   }, [remember]);
 
-  // Prefetch cached bg/avatar on mount so Image renders instantly when
-  // bgReady flips to true — mirrors web's synchronous blob-URL behavior.
+  // Migrate old data-URI cache to local files (data URIs are MBs of base64,
+  // taking seconds to decode; local files decode in milliseconds like require()).
+  // Runs once on mount, before the Image renders.
   useEffect(() => {
-    if (bgUrl && !bgReady) {
-      Image.prefetch(bgUrl).then(() => setBgReady(true)).catch(() => {
-        try { localStorage.removeItem('bg-image'); } catch {} setBgUrl('');
-      });
-    }
-  }, []); // mount only
-  useEffect(() => {
-    if (avatarUrl && !avatarReady) {
-      Image.prefetch(avatarUrl).then(() => setAvatarReady(true)).catch(() => {
-        try { localStorage.removeItem('avatar-uri'); } catch {} setAvatarUrl('');
-      });
-    }
-  }, []); // mount only
+    const migrate = async (key: string, setUrl: (v: string) => void) => {
+      try {
+        const val = localStorage.getItem(key);
+        if (val && val.startsWith('data:')) {
+          const base64 = val.split(',')[1];
+          if (base64) {
+            const fileUri = FileSystem.cacheDirectory + key + '-migrated.jpg';
+            await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+            localStorage.setItem(key, fileUri);
+            setUrl(fileUri);
+          }
+        }
+      } catch {}
+    };
+    migrate('bg-image', setBgUrl);
+    migrate('avatar-uri', setAvatarUrl);
+  }, []);
 
-  // Animate opacity on bgReady changes — exactly mirrors web's
-  //   opacity: bgReady && bgUrl ? 1 : 0
-  // Use setValue (instant) instead of timing — Image is pre-decoded,
-  // no decode gap to cover with animation.
+  // Snaps opacity to 1 when Image onLoad fires, 0 when URL cleared.
   useEffect(() => {
-    bgOpacity.setValue(bgReady && bgUrl ? 1 : 0);
-  }, [bgReady, bgUrl]);
+    bgOpacity.setValue(bgVisible && bgUrl ? 1 : 0);
+  }, [bgVisible, bgUrl]);
   useEffect(() => {
-    avatarOpacity.setValue(avatarReady && avatarUrl ? 1 : 0);
-  }, [avatarReady, avatarUrl]);
+    avatarOpacity.setValue(avatarVisible && avatarUrl ? 1 : 0);
+  }, [avatarVisible, avatarUrl]);
 
-  // Reset loaded flags when URL changes, so onLoad fires again for the new image.
-  useEffect(() => { setBgLoaded(false); }, [bgUrl]);
-  useEffect(() => { setAvatarLoaded(false); }, [avatarUrl]);
+  // Reset visible flags when URL changes, so onLoad fires again.
+  useEffect(() => { setBgVisible(false); }, [bgUrl]);
+  useEffect(() => { setAvatarVisible(false); }, [avatarUrl]);
 
   // WebAuthn bootstrap on mount. Mirrors web LoginScreen L117-165:
   // read the cached bound state synchronously, then refresh from
@@ -223,12 +222,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
           const url = fileUri || avatarDataUri;
           setAvatarUrl(url);
           try { localStorage.setItem('avatar-uri', url); } catch {}
-          // Prefetch so Image renders instantly (mirrors web blob-URL sync behavior)
-          Image.prefetch(url).then(() => setAvatarReady(true));
         } else {
-          setAvatarUrl(''); setAvatarReady(true);
+          setAvatarUrl('');
         }
-      } catch { setAvatarUrl(''); setAvatarReady(true); }
+      } catch { setAvatarUrl(''); }
 
       try {
         const bgDataUri = await api.getUserBackgroundUri(username).catch(() => null);
@@ -237,11 +234,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
           const url = fileUri || bgDataUri;
           setBgUrl(url);
           try { localStorage.setItem('bg-image', url); } catch {}
-          Image.prefetch(url).then(() => setBgReady(true));
         } else {
-          setBgUrl(''); setBgReady(true);
+          setBgUrl('');
         }
-      } catch { setBgUrl(''); setBgReady(true); }
+      } catch { setBgUrl(''); }
     }, 400);
     return () => clearTimeout(timer);
   }, [username]);
@@ -597,12 +593,13 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   return (
     <View style={styles.container}>
-      {/* Background layers — mirrors web: default during prefetch, custom instantly after decode */}
-      {!bgReady && <ImageBackground source={BG_IMAGE} style={styles.bgLayer} resizeMode="cover" />}
+      {/* Background layers — ImageBackground covers decode gap, onLoad triggers switch */}
+      {!bgVisible && <ImageBackground source={BG_IMAGE} style={styles.bgLayer} resizeMode="cover" />}
       <Animated.Image
         source={bgUrl ? { uri: bgUrl } : BG_IMAGE}
         style={[styles.bgLayer, { opacity: bgOpacity }]}
         resizeMode="cover"
+        onLoad={() => setBgVisible(true)}
         onError={() => { try { localStorage.removeItem('bg-image'); } catch {} setBgUrl(''); }}
       />
       <View style={styles.bgOverlay} />
@@ -624,7 +621,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 source={avatarUrl ? { uri: avatarUrl } : LOGO_IMAGE}
                 style={[styles.logoOver, { opacity: avatarOpacity }]}
                 resizeMode="cover"
-                onLoad={() => setAvatarLoaded(true)}
+                onLoad={() => setAvatarVisible(true)}
                 onError={() => { try { localStorage.removeItem('avatar-uri'); } catch {} setAvatarUrl(''); }}
               />
             </View>
