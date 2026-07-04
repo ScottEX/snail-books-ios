@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, ImageBackground, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
-import { t, getLang, langs, useLang } from '../i18n';
+import { t, getLang, langs, useLang, I18nKey } from '../i18n';
 import { api } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
@@ -40,7 +40,11 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [msg, setMsg] = useState('');
+  const [msgKey, setMsgKey] = useState('');
   const [msgOk, setMsgOk] = useState(false);
+  // displayMsg mirrors web: i18n keys resolve at render time so
+  // the text updates when the user switches language.
+  const displayMsg = msgKey ? t(msgKey as I18nKey) : msg;
   // Per-user avatar/background. Mirrors the web LoginScreen so typing
   // a known username instantly swaps the logo and the full-screen bg.
   // bgUrl/avatarUrl are data URIs (RN has no Blob/Object URL).
@@ -226,10 +230,11 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     return () => { clearTimeout(timer); };
   }, [username]);
 
-  const reset = () => { setMsg(''); setMsgOk(false); setDevCode(''); setCode(''); };
+  const reset = () => { setMsg(''); setMsgKey(''); setMsgOk(false); setDevCode(''); setCode(''); };
   const goLogin = () => {
-    setMsg('');
+    setMsg(''); setMsgKey('');
     setStep('login');
+    setPassword(''); setPassword2(''); setEmail('');
     // Restore Face ID mode if user has credential
     if (hasFaceID) {
       try {
@@ -249,20 +254,23 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   };
 
   const goRegister = () => {
-    setMsg('');
+    setMsg(''); setMsgKey('');
     setStep('register');
+    setRegUsername(''); setRegPassword(''); setPassword2(''); setEmail('');
   };
 
   const validatePassword = (pw: string): string => {
-    if (pw.length < 8) return t('errPwRequirements') || 'Password: 8+ chars, letters, digits, and a special character';
-    if (!/[A-Za-z]/.test(pw)) return t('errPwRequirements') || 'Password: 8+ chars, letters, digits, and a special character';
-    if (!/[0-9]/.test(pw)) return t('errPwRequirements') || 'Password: 8+ chars, letters, digits, and a special character';
-    if (!SPECIAL_RE.test(pw)) return t('errPwRequirements') || 'Password: 8+ chars, letters, digits, and a special character';
+    let ok = true;
+    if (pw.length < 8) ok = false;
+    if (!/[A-Za-z]/.test(pw)) ok = false;
+    if (!/[0-9]/.test(pw)) ok = false;
+    if (!SPECIAL_RE.test(pw)) ok = false;
+    if (!ok) return 'errPwRequirements';
     return '';
   };
 
   const validateEmail = (em: string): string => {
-    if (!EMAIL_RE.test(em)) return t('errEmailInvalid') || 'Invalid email';
+    if (!EMAIL_RE.test(em)) return 'errEmailInvalid';
     return '';
   };
 
@@ -285,7 +293,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       // 1. Biometric availability + prompt
       const avail = await isBiometricAvailable();
       if (!avail.available) {
-        setMsg(t('errFaceIDUnavailable') || 'Face ID 不可用，请使用密码登录');
+        setMsgKey('errFaceIDUnavailable'); setMsg('');
         triggerShake();
         setLoading(false);
         return;
@@ -300,7 +308,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       // 2. Retrieve stored credential
       const cred = await getCredential();
       if (!cred) {
-        setMsg(t('errFaceIDNoCredential') || '未找到 Face ID 凭证，请使用密码登录');
+        setMsgKey('errFaceIDNoCredential'); setMsg('');
         setFaceMode(false);
         setLoading(false);
         return;
@@ -310,7 +318,9 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       // can safely hand it back to the auth endpoint.
       const r = await api.login(cred.username, cred.password, true);
       if (r.status !== 'ok') {
-        setMsg(r.message || t('errWrongCredentials'));
+        setMsgOk(false);
+        if (r.message) { setMsg(r.message); setMsgKey(''); }
+        else { setMsgKey('errWrongCredentials'); setMsg(''); }
         triggerShake();
         setFaceMode(false);
         setLoading(false);
@@ -338,8 +348,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       onLogin();
     } catch (e: any) {
       setLoading(false);
-      setMsg(e?.message || t('errNetworkError') || 'Face ID 登录失败');
       setFaceMode(false);
+      setMsgOk(false);
+      if (e?.message) { setMsg(e.message); setMsgKey(''); }
+      else { setMsgKey('errNetworkError'); setMsg(''); }
     }
   };
 
@@ -356,7 +368,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     // accept, we run enableFaceID() which gates the keychain write
     // behind a biometric prompt. If they ignore / type more, the
     // offer expires silently on next state change.
-    setMsg(t('offerEnableFaceID') || '是否启用 Face ID 以便下次快速登录？点击下方"启用"按钮确认');
+    setMsgKey('offerEnableFaceID'); setMsg('');
     setMsgOk(true);
   };
 
@@ -368,19 +380,17 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       if (!bio.success) { setFaceEnrolling(false); return; }
       const r = await saveCredential(username, password);
       if (r.ok) {
-        // Also mark the local WebAuthn bound flag so the Face ID
-        // link shows up immediately on next launch.
         setWebAuthnBound(username, 'keychain');
         setHasFaceID(true);
-        setMsg(t('faceIDEnabled') || 'Face ID 已启用');
+        setMsgKey('faceIDEnabled'); setMsg('');
         setMsgOk(true);
       } else {
-        setMsg(t('errFaceIDEnableFailed') || 'Face ID 启用失败');
+        setMsgKey('errFaceIDEnableFailed'); setMsg('');
         setMsgOk(false);
         triggerShake();
       }
     } catch {
-      setMsg(t('errFaceIDEnableFailed') || 'Face ID 启用失败');
+      setMsgKey('errFaceIDEnableFailed'); setMsg('');
       setMsgOk(false);
     } finally {
       setFaceEnrolling(false);
@@ -389,7 +399,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   const handleLogin = async () => {
     if (loading) return;
-    if (!username || !password) { setMsg(t('errEmptyFields')); triggerShake(); return; }
+    if (!username || !password) { setMsgKey('errEmptyFields'); setMsg(''); triggerShake(); return; }
     setLoading(true);
     try {
       const r = await api.login(username, password, remember);
@@ -430,36 +440,41 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         }
         onLogin();
       } else if (r.need_verify) {
-        setEmail(r.email); setStep('verify'); setMsg('');
+        setEmail(r.email); setStep('verify'); setMsg(''); setMsgKey('');
         setTimeout(() => codeRef.current?.focus(), 100);
       } else {
-        setMsg(r.message || t('errWrongCredentials'));
+        setMsgOk(false);
+        if (r.message) { setMsg(r.message); setMsgKey(''); }
+        else { setMsgKey('errWrongCredentials'); setMsg(''); }
         triggerShake();
       }
     } catch (e: any) {
       setLoading(false);
-      setMsg(e?.message || t('errNetworkError') || '网络错误，请检查网络后重试');
+      setMsgOk(false);
+      if (e?.message) { setMsg(e.message); setMsgKey(''); }
+      else { setMsgKey('errNetworkError'); setMsg(''); }
     }
   };
 
   const handleRegister = async () => {
     if (loading) return;
-    if (!regUsername || !regPassword || !email) { setMsgOk(false); setMsg(t('errEmptyFields')); triggerShake(); return; }
-    if (regPassword !== password2) { setMsgOk(false); setMsg(t('errPwMismatch') || 'Passwords mismatch'); triggerShake(); return; }
+    if (!regUsername || !regPassword || !email) { setMsgKey('errEmptyFields'); setMsg(''); triggerShake(); return; }
+    if (regPassword !== password2) { setMsgKey('errPwMismatch'); setMsg(''); triggerShake(); return; }
     const pwErr = validatePassword(regPassword);
-    if (pwErr) { setMsgOk(false); setMsg(pwErr); triggerShake(); return; }
+    if (pwErr) { setMsgKey(pwErr); setMsg(''); triggerShake(); return; }
     const emailErr = validateEmail(email);
-    if (emailErr) { setMsgOk(false); setMsg(emailErr); triggerShake(); return; }
+    if (emailErr) { setMsgKey(emailErr); setMsg(''); triggerShake(); return; }
     setLoading(true);
     try {
       const r = await api.register(regUsername, regPassword, email);
       setLoading(false);
-      if (r.status === 'ok') { setMsgOk(true); setMsg(r.message); setDevCode(r.dev_code || ''); setStep('verify'); setTimeout(() => codeRef.current?.focus(), 100); }
-      else { setMsgOk(false); setMsg(r.message); triggerShake(); }
+      if (r.status === 'ok') { setMsgOk(true); setMsg(r.message); setMsgKey(''); setDevCode(r.dev_code || ''); setStep('verify'); setTimeout(() => codeRef.current?.focus(), 100); }
+      else { setMsgOk(false); if (r.message) { setMsg(r.message); setMsgKey(''); } else { setMsgKey('errWrongCredentials'); setMsg(''); } triggerShake(); }
     } catch (e: any) {
       setLoading(false);
       setMsgOk(false);
-      setMsg(e?.message || t('errNetworkError') || '网络错误，请检查网络后重试');
+      if (e?.message) { setMsg(e.message); setMsgKey(''); }
+      else { setMsgKey('errNetworkError'); setMsg(''); }
     }
   };
 
@@ -470,48 +485,51 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     try {
       const r = await api.verify(email, code);
       setLoading(false);
-      if (r.status === 'ok') { setEmail(''); setRegUsername(''); setRegPassword(''); setPassword2(''); setCode(''); setMsg(''); setStep('login'); }
-      else { setMsgOk(false); setMsg(r.message); triggerShake(); }
+      if (r.status === 'ok') { setEmail(''); setRegUsername(''); setRegPassword(''); setPassword2(''); setCode(''); setMsg(''); setMsgKey(''); setStep('login'); }
+      else { setMsgOk(false); if (r.message) { setMsg(r.message); setMsgKey(''); } else { setMsgKey('errWrongCredentials'); setMsg(''); } triggerShake(); }
     } catch (e: any) {
       setLoading(false);
       setMsgOk(false);
-      setMsg(e?.message || t('errNetworkError') || '网络错误，请检查网络后重试');
+      if (e?.message) { setMsg(e.message); setMsgKey(''); }
+      else { setMsgKey('errNetworkError'); setMsg(''); }
     }
   };
 
   const handleForgot = async () => {
     if (loading) return;
-    if (!email) { setMsgOk(false); setMsg(t('errEmptyFields')); return; }
+    if (!email) { setMsgKey('errEmptyFields'); setMsg(''); return; }
     const emailErr = validateEmail(email);
-    if (emailErr) { setMsgOk(false); setMsg(emailErr); return; }
+    if (emailErr) { setMsgKey(emailErr); setMsg(''); return; }
     setLoading(true);
     try {
       const r = await api.forgotPassword(email);
       setLoading(false);
       if (r.status === 'ok') { setDevCode(r.dev_code || ''); setPassword(''); setStep('reset'); setTimeout(() => codeRef.current?.focus(), 100); }
-      else { setMsgOk(false); setMsg(r.message); }
+      else { setMsgOk(false); if (r.message) { setMsg(r.message); setMsgKey(''); } else { setMsgKey('errWrongCredentials'); setMsg(''); } }
     } catch (e: any) {
       setLoading(false);
       setMsgOk(false);
-      setMsg(e?.message || t('errNetworkError') || '网络错误，请检查网络后重试');
+      if (e?.message) { setMsg(e.message); setMsgKey(''); }
+      else { setMsgKey('errNetworkError'); setMsg(''); }
     }
   };
 
   const handleReset = async () => {
     if (loading) return;
-    if (!code || !password) { setMsgOk(false); setMsg(t('errEmptyFields')); triggerShake(); return; }
+    if (!code || !password) { setMsgOk(false); setMsgKey('errEmptyFields'); setMsg(''); triggerShake(); return; }
     const pwErr = validatePassword(password);
-    if (pwErr) { setMsgOk(false); setMsg(pwErr); triggerShake(); return; }
+    if (pwErr) { setMsgOk(false); setMsgKey(pwErr); setMsg(''); triggerShake(); return; }
     setLoading(true);
     try {
       const r = await api.resetPassword(email, code, password);
       setLoading(false);
-      if (r.status === 'ok') { setMsg(''); setEmail(''); setStep('login'); }
-      else { setMsgOk(false); setMsg(r.message); triggerShake(); }
+      if (r.status === 'ok') { setMsg(''); setMsgKey(''); setEmail(''); setStep('login'); }
+      else { setMsgOk(false); if (r.message) { setMsg(r.message); setMsgKey(''); } else { setMsgKey('errWrongCredentials'); setMsg(''); } triggerShake(); }
     } catch (e: any) {
       setLoading(false);
       setMsgOk(false);
-      setMsg(e?.message || t('errNetworkError') || '网络错误，请检查网络后重试');
+      if (e?.message) { setMsg(e.message); setMsgKey(''); }
+      else { setMsgKey('errNetworkError'); setMsg(''); }
     }
   };
 
@@ -529,7 +547,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     }, 1000);
   };
 
-  const switchLang = (l: string) => { setLang(l); setMsg(''); setMsgOk(false); };
+  const switchLang = (l: string) => { setLang(l); setMsg(''); setMsgKey(''); setMsgOk(false); };
 
   const styles = useMemo(() => getStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
@@ -593,9 +611,9 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
               style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
               pointerEvents="none"
             />
-            {msg ? (
-              <View style={[styles.msgBox, msgOk ? styles.msgOk : styles.msgErr]}>
-                <Text style={[styles.msgText, msgOk ? styles.msgOkText : styles.msgErrText]}>{msg}</Text>
+            {(msg || msgKey) ? (
+              <View key={lang} style={[styles.msgBox, msgOk ? styles.msgOk : styles.msgErr]}>
+                <Text style={[styles.msgText, msgOk ? styles.msgOkText : styles.msgErrText]}>{displayMsg}</Text>
               </View>
             ) : null}
 
@@ -628,7 +646,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                       </TouchableOpacity>
                     </Animated.View>
                     <Text style={{ fontSize: 18, fontWeight: '500', color: 'rgba(255,255,255,0.8)', marginBottom: 16 }}>{username}</Text>
-                    <TouchableOpacity onPress={() => { setFaceMode(false); setMsg(''); }}>
+                    <TouchableOpacity onPress={() => { setFaceMode(false); setMsg(''); setMsgKey(''); }}>
                       <Text style={{ fontSize: FONTS.micro.size, color: colors.primary }}>{t('usePasswordLogin') || '使用密码登录'}</Text>
                     </TouchableOpacity>
                   </View>
@@ -684,7 +702,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                         <Text style={styles.rememberText}>{t('rememberMe') || '记住我'}</Text>
                       </TouchableOpacity>
                       {faceAvailable && pwdHasFaceID ? (
-                        <TouchableOpacity onPress={() => { setFaceMode(true); setMsg(''); }}>
+                        <TouchableOpacity onPress={() => { setFaceMode(true); setMsg(''); setMsgKey(''); }}>
                           <Text style={{ fontSize: 14, color: colors.primary }}>{t('faceIDLogin') || '面容登录'}</Text>
                         </TouchableOpacity>
                       ) : null}
