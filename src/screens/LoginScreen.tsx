@@ -932,7 +932,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   msgOkText: { color: colors.success },
   msgErrText: { color: colors.danger },
   tabRow: {
-    flexDirection: 'row', backgroundColor: GLASS_BG, borderRadius: 12, padding: 4, marginBottom: 16,
+    flexDirection: 'row', backgroundColor: GLASS_BG, borderRadius: 12, padding: 4, marginBottom: 12,
     borderWidth: 1, borderColor: GLASS_BORDER,
   },
   tabBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
