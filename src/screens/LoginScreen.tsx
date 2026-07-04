@@ -544,7 +544,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     try {
       const r = await api.resetPassword(email, code, password);
       setLoading(false);
-      if (r.status === 'ok') { setMsg(''); setMsgKey(''); setEmail(''); setStep('login'); }
+      if (r.status === 'ok') { setMsg(''); setMsgKey(''); setStep('login'); }
       else { setMsgOk(false); if (r.message) { setMsg(r.message); setMsgKey(''); } else { setMsgKey('errWrongCredentials'); setMsg(''); } triggerShake(); }
     } catch (e: any) {
       setLoading(false);
