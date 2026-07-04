@@ -561,7 +561,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
           {/* Brand */}
           <View style={styles.brand}>
             <View style={styles.logoWrap}>
-              <Image source={LOGO_IMAGE} style={{ width: 76, height: 76, borderRadius: 38 }} resizeMode="cover" />
+              <Image source={LOGO_IMAGE} style={{ width: 80, height: 80, borderRadius: 40 }} resizeMode="cover" />
               <Animated.Image
                 source={avatarUrl ? { uri: avatarUrl } : LOGO_IMAGE}
                 style={[styles.logoOver, { opacity: avatarOpacity }]}
@@ -917,7 +917,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     width: 80, height: 80, borderRadius: 40, overflow: 'hidden', marginBottom: 20,
     backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 2, borderColor: AVATAR_RING,
   },
-  logoOver: { position: 'absolute' as any, top: 2, left: 2, width: 76, height: 76, borderRadius: 38 },
+  logoOver: { position: 'absolute' as any, top: 0, left: 0, width: 80, height: 80, borderRadius: 40 },
   subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.7)', marginTop: 6, letterSpacing: 1 },
   langRow: { flexDirection: 'row', gap: 4, marginTop: 12 },
   langBtn: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.4)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
