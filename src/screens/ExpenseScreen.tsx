@@ -629,8 +629,6 @@ export default function ExpenseScreen({
               </TouchableOpacity>
             );
           })}
-          {/* Spacer: ensure content is wide enough to scroll card1 to screen edge */}
-          <View style={{ width: 100 }} />
         </ScrollView>
       </View>
 
