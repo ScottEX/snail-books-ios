@@ -528,13 +528,13 @@ export default function ExpenseScreen({
           ref={scrollRef}
           decelerationRate="fast"
           bounces={false}
-          snapToOffsets={[18, Dimensions.get('window').width - 29]}
+          snapToOffsets={[0, Dimensions.get('window').width - 47]}
           onMomentumScrollEnd={(e) => {
             const offset = e.nativeEvent.contentOffset.x;
             const w = Dimensions.get('window').width;
             // snapToOffsets already landed us at a snap point;
-            // just read which card we're on. midpoint ≈ (offset0 + offset1)/2
-            const idx = offset < (18 + w - 29) / 2 ? 0 : 1;
+            // just read which card we're on. midpoint ≈ offset1 / 2
+            const idx = offset < (w - 47) / 2 ? 0 : 1;
             if (idx >= 0 && idx < tabCards.length) setActiveTab(idx);
           }}
           contentContainerStyle={st.tabScroll}>
@@ -1276,7 +1276,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   /* ── Content ── */
   contentScroll: { flex: 1, backgroundColor: 'transparent' as const },
   contentInner: {
-    paddingHorizontal: 0, paddingBottom: 100, gap: 0, backgroundColor: 'transparent' as const,
+    paddingHorizontal: 18, paddingBottom: 100, gap: 0, backgroundColor: 'transparent' as const,
   },
   moduleWrap: {
     width: '100%',
