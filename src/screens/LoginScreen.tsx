@@ -31,7 +31,7 @@ function FaceIDIcon({ color = 'rgba(255,255,255,0.85)' }: { color?: string }) {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SPECIAL_RE = /[!@#$%^&*(),.?":{}|<>]/;
 
-export default function LoginScreen({ onLogin, onReady }: { onLogin: () => void; onReady?: () => void }) {
+export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [step, setStep] = useState<Step>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -81,7 +81,6 @@ export default function LoginScreen({ onLogin, onReady }: { onLogin: () => void;
   const [faceEnrolling, setFaceEnrolling] = useState(false);
   const breatheAnim = useRef(new Animated.Value(1)).current;
   const codeRef = useRef<any>(null);
-  const readyCalled = useRef(false);
   const { colors } = useTheme();
 
   useEffect(() => {
@@ -123,16 +122,6 @@ export default function LoginScreen({ onLogin, onReady }: { onLogin: () => void;
     migrate('bg-image', setBgUrl);
     migrate('avatar-uri', setAvatarUrl);
   }, []);
-
-  // Signal App that the background is ready. When no custom bg (bgUrl is empty),
-  // the default mountain bg (require()) is synchronous — fire immediately.
-  // When custom bg exists, the <Image onLoad> below handles it.
-  useEffect(() => {
-    if (!readyCalled.current && !bgUrl) {
-      readyCalled.current = true;
-      onReady?.();
-    }
-  }, [bgUrl, onReady]);
 
   // WebAuthn bootstrap on mount. Mirrors web LoginScreen L117-165:
   // read the cached bound state synchronously, then refresh from
@@ -592,12 +581,6 @@ export default function LoginScreen({ onLogin, onReady }: { onLogin: () => void;
           defaultSource={BG_IMAGE}
           style={styles.bgLayer}
           resizeMode="cover"
-          onLoad={() => {
-            if (!readyCalled.current) {
-              readyCalled.current = true;
-              onReady?.();
-            }
-          }}
         />
       ) : (
         <ImageBackground source={BG_IMAGE} style={styles.bgLayer} resizeMode="cover" />

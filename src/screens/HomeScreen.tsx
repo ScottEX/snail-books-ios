@@ -57,7 +57,7 @@ function DateErrorHint({ trigger, message, colors }: { trigger: number; message:
   return <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'left', marginTop: 2 }}>{message}</Text>;
 }
 
-export default function HomeScreen({ onLogout, onLogoutStart }: { onLogout: () => void; onLogoutStart?: () => void }) {
+export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const { colors, setTheme, allThemes } = useTheme();
   const mo = getMo(colors);
   // Web's headerColor: when the bg image is fully opaque, the text
@@ -249,6 +249,7 @@ export default function HomeScreen({ onLogout, onLogoutStart }: { onLogout: () =
   // ── Modal state ──
   const [showBgModal, setShowBgModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const modalAnim = useRef(new Animated.Value(0)).current;
   const modalFade = useRef(new Animated.Value(0)).current;
   const openModal = (show: () => void) => { show(); modalAnim.setValue(-300); modalFade.setValue(0); Animated.parallel([Animated.spring(modalAnim,{toValue:0,useNativeDriver:true,bounciness:4,speed:14}),Animated.timing(modalFade,{toValue:1,duration:200,useNativeDriver:true})]).start(); };
@@ -499,7 +500,6 @@ export default function HomeScreen({ onLogout, onLogoutStart }: { onLogout: () =
           <ProfileScreen
             onBack={onBack}
             onLogout={onLogout}
-            onLogoutStart={onLogoutStart}
             onAvatarChange={loadAvatar}
             onManageUsers={() => { setTimeout(() => setShowUserMgmt(true), 250); }}
             refreshKey={profileRefreshKey}
@@ -771,8 +771,19 @@ export default function HomeScreen({ onLogout, onLogoutStart }: { onLogout: () =
                 <TouchableOpacity style={mo.cancelBtn} onPress={() => setShowLogoutModal(false)}>
                   <Text style={mo.cancelText}>{t('cancel')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={mo.confirmBtn} onPress={() => { setShowLogoutModal(false); onLogoutStart?.(); api.logout().finally(() => onLogout()); }}>
-                  <Text style={mo.confirmText}>{t('confirmLogout')}</Text>
+                <TouchableOpacity
+                  style={mo.confirmBtn}
+                  disabled={loggingOut}
+                  onPress={() => {
+                    setLoggingOut(true);
+                    api.logout().finally(() => onLogout());
+                  }}
+                >
+                  {loggingOut ? (
+                    <ActivityIndicator size="small" color="rgba(255,255,255,0.8)" />
+                  ) : (
+                    <Text style={mo.confirmText}>{t('confirmLogout')}</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </View>

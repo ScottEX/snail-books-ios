@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
-  Image, TextInput, Switch, Modal,
+  Image, TextInput, Switch, Modal, ActivityIndicator,
 } from 'react-native';
 import Svg, { Path, Defs, LinearGradient as SVGGradient, Stop, Rect } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
@@ -27,7 +27,6 @@ import { isBiometricAvailable, hasStoredCredential, clearCredential, saveCredent
 interface Props {
   onBack: () => void;
   onLogout: () => void;
-  onLogoutStart?: () => void;
   onLangChange?: () => void;
   onManageUsers?: () => void;
   onAvatarChange?: () => void;
@@ -153,7 +152,7 @@ function FaceIDIcon({ color }: { color: string }) {
 
 /* ════════════ MAIN ════════════ */
 
-export default function ProfileScreen({ onBack, onLogout, onLogoutStart, onLangChange, onManageUsers, onAvatarChange, refreshKey }: Props) {
+export default function ProfileScreen({ onBack, onLogout, onLangChange, onManageUsers, onAvatarChange, refreshKey }: Props) {
   const { colors, theme, setTheme, allThemes } = useTheme();
   const { setLang } = useLang();
   const [toast, setToast] = useState('');
@@ -201,6 +200,7 @@ export default function ProfileScreen({ onBack, onLogout, onLogoutStart, onLangC
   const [coverCropFile, setCoverCropFile] = useState<any>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [showAdminBlockModal, setShowAdminBlockModal] = useState(false);
   const [showPartnerBlockModal, setShowPartnerBlockModal] = useState(false);
 
@@ -973,8 +973,20 @@ export default function ProfileScreen({ onBack, onLogout, onLogoutStart, onLangC
                 <TouchableOpacity style={mo.cancelBtn} onPress={() => setShowLogoutModal(false)}>
                   <Text style={mo.cancelText}>{t('cancel')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={mo.confirmBtn} onPress={async () => { setShowLogoutModal(false); onLogoutStart?.(); await api.logout(); onLogout(); }}>
-                  <Text style={mo.confirmText}>{t('confirmLogout')}</Text>
+                <TouchableOpacity
+                  style={mo.confirmBtn}
+                  disabled={loggingOut}
+                  onPress={async () => {
+                    setLoggingOut(true);
+                    await api.logout();
+                    onLogout();
+                  }}
+                >
+                  {loggingOut ? (
+                    <ActivityIndicator size="small" color="rgba(255,255,255,0.8)" />
+                  ) : (
+                    <Text style={mo.confirmText}>{t('confirmLogout')}</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </View>

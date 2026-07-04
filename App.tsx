@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StatusBar, Image, ActivityIndicator, View, StyleSheet } from 'react-native';
+import { StatusBar, Image } from 'react-native';
 import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import SessionKickedModal from './src/components/SessionKickedModal';
@@ -29,24 +29,7 @@ export default function App() {
   const page = _page;
   const [appKey, setAppKey] = useState(0);
   const [ready, setReady] = useState(false);
-  const [loggingOut, setLoggingOut] = useState(false);
   const lastExpireAt = useRef(0);
-  const logoutTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Called by LoginScreen when background image is fully loaded.
-  const handleReady = useCallback(() => {
-    if (logoutTimer.current) { clearTimeout(logoutTimer.current); logoutTimer.current = null; }
-    // Small delay so the user sees the full image for a frame before the overlay lifts.
-    setTimeout(() => setLoggingOut(false), 100);
-  }, []);
-
-  // Safety timeout: force-close the loading overlay after 3s if onReady never fires.
-  useEffect(() => {
-    if (loggingOut) {
-      logoutTimer.current = setTimeout(() => setLoggingOut(false), 3000);
-    }
-    return () => { if (logoutTimer.current) { clearTimeout(logoutTimer.current); logoutTimer.current = null; } };
-  }, [loggingOut]);
 
   useEffect(() => {
     initStorageCache().then(() => {
@@ -137,26 +120,11 @@ export default function App() {
         <ErrorBoundary>
           <ThemeProvider key={appKey}>
             <StatusBar barStyle="light-content" />
-            {page === 'login' && <LoginScreen onLogin={goHome} onReady={handleReady} />}
-            {page === 'home' && <HomeScreen onLogout={goLogin} onLogoutStart={() => setLoggingOut(true)} />}
-            {loggingOut && (
-              <View style={styles.overlay} pointerEvents="auto">
-                <ActivityIndicator size="large" color="rgba(255,255,255,0.8)" />
-              </View>
-            )}
+            {page === 'login' && <LoginScreen onLogin={goHome} />}
+            {page === 'home' && <HomeScreen onLogout={goLogin} />}
           </ThemeProvider>
         </ErrorBoundary>
       </LangProvider>
     </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.75)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 9999,
-  },
-});
