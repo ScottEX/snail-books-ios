@@ -1003,7 +1003,7 @@ export default function ExpenseScreen({
       <ModalOverlay visible={showFeeSheet} onClose={() => setShowFeeSheet(false)} animation="slideUpScale"
           overlayStyle={bottomSheetOverlay as any}
           contentStyle={{ alignItems: 'stretch' } as any}>
-          <View style={[st.feeSheet, { width: '100%', maxWidth: 768, alignSelf: 'center' }]} onStartShouldSetResponder={() => true}>
+          <View style={[st.feeSheet, { width: '100%', maxWidth: 768, alignSelf: 'center' }]}>
             <SheetHeader title={t('addFeeEntry')} onClose={() => setShowFeeSheet(false)} backgroundColor={colors.primary} />
             <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12 }}>
               {/* Date + Negative toggle */}
@@ -1089,7 +1089,7 @@ export default function ExpenseScreen({
       <ModalOverlay visible={showFeeHistory} onClose={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }} animation="slideUpScale"
           overlayStyle={bottomSheetOverlay as any}
           contentStyle={{ alignItems: 'stretch', justifyContent: 'flex-end' } as any}>
-          <View style={[st.feeSheet, { height: Dimensions.get('window').height * 0.7, width: '100%', maxWidth: 768, alignSelf: 'center' }]} onStartShouldSetResponder={() => true}>
+          <View style={[st.feeSheet, { height: Dimensions.get('window').height * 0.7, width: '100%', maxWidth: 768, alignSelf: 'center' }]}>
             <SheetHeader title={t('feeHistory')} onClose={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }} backgroundColor={colors.primary} />
             {/* Month filter */}
             <View style={{ paddingHorizontal: 20, paddingBottom: 8, flexDirection: 'row', alignItems: 'center' }}>
