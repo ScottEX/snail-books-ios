@@ -189,7 +189,9 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         try {
           const base64 = dataUri.split(',')[1];
           if (!base64) return '';
-          const fileUri = FileSystem.cacheDirectory + prefix + '-' + encodeURIComponent(username) + '.jpg';
+          // Content hash in filename busts RN Image URI cache
+          const hash = base64.slice(0, 48).split('').reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0).toString(36);
+          const fileUri = FileSystem.cacheDirectory + prefix + '-' + encodeURIComponent(username) + '-' + hash + '.jpg';
           await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
           return fileUri;
         } catch { return ''; }
