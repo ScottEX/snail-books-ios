@@ -1,17 +1,21 @@
 import { useState, useCallback } from 'react';
 
-interface UseImagePreviewResult {
-  visible: boolean;
-  uri: string | null;
-  show: (uri: string) => void;
-  close: () => void;
+export interface PreviewState {
+  images: string[];
+  idx: number;
 }
 
-/** Tap-to-zoom image preview state. Reused by ReceiptUpload and any other image list. */
-export function useImagePreview(): UseImagePreviewResult {
-  const [visible, setVisible] = useState(false);
-  const [uri, setUri] = useState<string | null>(null);
-  const show = useCallback((u: string) => { setUri(u); setVisible(true); }, []);
-  const close = useCallback(() => { setVisible(false); setTimeout(() => setUri(null), 200); }, []);
-  return { visible, uri, show, close };
+export function useImagePreview() {
+  const [preview, setPreview] = useState<PreviewState | null>(null);
+
+  const openPreview = useCallback((images: string[], idx: number = 0) => {
+    if (!images || images.length === 0) return;
+    setPreview({ images, idx });
+  }, []);
+
+  const closePreview = useCallback(() => {
+    setPreview(null);
+  }, []);
+
+  return { preview, openPreview, closePreview };
 }

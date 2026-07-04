@@ -20,7 +20,8 @@ import HistoryHeader from '../components/HistoryHeader';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { PickedImage } from '../utils/imagePicker';
 import { parseImages } from '../utils/parseImages';
-import ImagePreviewModal from '../components/ImagePreviewModal';
+import ImagePreview from '../components/ImagePreview';
+import { useImagePreview } from '../hooks/useImagePreview';
 import ReceiptUpload from '../components/ReceiptUpload';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 
@@ -96,11 +97,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
   const [showSavedConfirm, setShowSavedConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState('');
   const [toast, setToast] = useState('');
-  const [modalImages, setModalImages] = useState<string[]>([]);
-  const [previewIdx, setPreviewIdx] = useState(0);
-  const [previewVisible, setPreviewVisible] = useState(false);
-  const showPreview = (imgs: string[], idx: number) => { setModalImages(imgs); setPreviewIdx(idx); setPreviewVisible(true); };
-  const closePreview = () => setPreviewVisible(false);
+  const { preview, openPreview, closePreview } = useImagePreview();
 
   const [category, setCategory] = useState(expense?.category || 'daily');
   const [account, setAccount] = useState(expense?.account || 'payWechat');
@@ -328,7 +325,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
                     return (
                     <TouchableOpacity
                       key={`v-${i}`}
-                      onPress={() => showPreview(resolvedPreviews, i)}
+                      onPress={() => openPreview(resolvedPreviews, i)}
                       activeOpacity={0.8}
                     >
                       <Image source={{ uri: resolvedUrl }} style={[styles.thumb, { width: thumbSize, height: thumbSize }]} />
@@ -421,7 +418,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
               onRemoveNew={removeNewFile}
               getPreviewUrl={(f: PickedImage) => f.uri}
               maxThumbSize={thumbSize}
-              onPreviewExisting={(i: number) => showPreview(resolvedPreviews, i)}
+              onPreviewExisting={(i: number) => openPreview(resolvedPreviews, i)}
             />
             <View style={{ height: 100 }} />
           </View>
@@ -486,14 +483,12 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
         onCancel={() => setShowSavedConfirm(false)} />
 
       {/* Image preview */}
-      {previewVisible && (
-        <ImagePreviewModal
-          images={modalImages}
-          initialIdx={previewIdx}
-          visible={previewVisible}
-          onClose={closePreview}
-        />
-      )}
+      <ImagePreview
+        images={preview?.images ?? []}
+        initialIdx={preview?.idx ?? 0}
+        visible={preview !== null}
+        onClose={closePreview}
+      />
 
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
     </View>

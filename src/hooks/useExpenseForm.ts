@@ -53,7 +53,7 @@ export function useExpenseForm(options: UseExpenseFormOptions) {
     const raw = parseFloat(expAmount.replace(/,/g, ''));
     if (!expAmount || raw === 0) return;
     if (!isRefund && raw <= 0) return;
-    if (sd.ready && sd.isFuture(expDate)) { onToast(t('errDateFuture')); return; }
+    if (sd.ready && sd.isFuture(expDate)) { return; }
     setLoadingExp(true);
     try {
       let imageUrls: string[] = [];

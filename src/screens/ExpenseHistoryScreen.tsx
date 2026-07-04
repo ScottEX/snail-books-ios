@@ -15,7 +15,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DatePickerModal from '../components/DatePickerModal';
 import HistoryHeader from '../components/HistoryHeader';
 import { parseImages } from '../utils/parseImages';
-import ImagePreviewModal from '../components/ImagePreviewModal';
+import ImagePreview from '../components/ImagePreview';
+import { useImagePreview } from '../hooks/useImagePreview';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 
 /* ── Helpers ── */
@@ -97,15 +98,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
     }
   }, [sd.ready, appliedFrom, appliedTo, sd.today, sd.offset]);
   const [datePickTarget, setDatePickTarget] = useState<'from' | 'to' | null>(null);
-  const [previewImgs, setPreviewImgs] = useState<string[]>([]);
-  const [previewIdx, setPreviewIdx] = useState(0);
-  const [previewVisible, setPreviewVisible] = useState(false);
-
-  const openPreview = (imgs: string[], idx: number) => {
-    setPreviewImgs(imgs);
-    setPreviewIdx(idx);
-    setPreviewVisible(true);
-  };
+  const { preview, openPreview, closePreview } = useImagePreview();
 
   const toggleCat = (cat: string) => {
     setFilCats(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
@@ -337,11 +330,11 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         </View>
       )}
 
-      <ImagePreviewModal
-        images={previewImgs}
-        initialIdx={previewIdx}
-        visible={previewVisible}
-        onClose={() => setPreviewVisible(false)}
+      <ImagePreview
+        images={preview?.images ?? []}
+        initialIdx={preview?.idx ?? 0}
+        visible={preview !== null}
+        onClose={closePreview}
       />
     </View>
   );

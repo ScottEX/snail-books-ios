@@ -634,7 +634,6 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             (aligns with web HomeScreen.tsx which also hoists partner/supply out). */}
         {isHome && tab === 'expense' ? (
           <ExpenseScreen
-            businessSummary={businessSummary}
             onReconHistory={() => setShowReconHistory(true)}
             onExpenseHistory={() => { setShowExpenseHistory(true); setExpenseRefreshKey(k => k + 1); }}
             onExpenseAdded={loadBusinessSummary}

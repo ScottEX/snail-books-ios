@@ -169,18 +169,25 @@ function DateErrorHint({ trigger, message, colors, textAlign = 'right' }: { trig
    EXPENSE SCREEN
    ═══════════════════════════════════════════════════════════ */
 export default function ExpenseScreen({
-  businessSummary,
   onReconHistory,
   onExpenseHistory,
   onExpenseAdded,
 }: {
-  businessSummary?: { cash_on_hand?: number; cumulative_revenue?: number; cumulative_expense?: number };
   onReconHistory?: () => void;
   onExpenseHistory?: () => void;
   onExpenseAdded?: () => void;
 }) {
   const { colors } = useTheme();
   const sd = useServerDate();
+
+  // Load business summary internally (matching web)
+  const [businessSummary, setBusinessSummary] = useState<any>({});
+  const loadBusinessSummary = useCallback(() => {
+    api.getBusinessSummary().then((data: any) => {
+      setBusinessSummary(data || {});
+    }).catch(() => {});
+  }, []);
+  useEffect(() => { loadBusinessSummary(); }, [loadBusinessSummary]);
   const urlCache = useRef<Map<any, string>>(new Map());
   const getPreviewUrl = (file: any) => {
     // RN: expo-image-picker returns { uri, type, name, size }
@@ -229,13 +236,13 @@ export default function ExpenseScreen({
   const recDate = recDateOverride ?? (sd.ready && sd.yesterday ? sd.yesterday : '');
   const [recDateKey, setRecDateKey] = useState(0);
   const [recDateErr, setRecDateErr] = useState(0);
-  const [cardBalance, setCardBalance] = useState('');
-  const [cashBalance, setCashBalance] = useState('');
-  const [dineIn, setDineIn] = useState('');
-  const [meituan, setMeituan] = useState('');
-  const [flashSale, setFlashSale] = useState('');
-  const [tuan, setTuan] = useState('');
-  const [jd, setJd] = useState('');
+  const [reconForm, setReconForm] = useState({
+    cardBalance: '', cashBalance: '', dineIn: '', meituan: '',
+    flashSale: '', tuan: '', jd: '',
+  });
+  const updateRecon = (k: keyof typeof reconForm, v: string) =>
+    setReconForm(f => ({ ...f, [k]: v }));
+  const { cardBalance, cashBalance, dineIn, meituan, flashSale, tuan, jd } = reconForm;
 
   const mountedRef = useRef(false);
   const initReconValues = useRef({ card: '', cash: '', dine: '', mt: '', fs: '', jd: '', tuan: '' });
@@ -257,13 +264,13 @@ export default function ExpenseScreen({
             const last = data[0];
             // Don't setRecDate — date is handled by sd.yesterday sync above.
             // Web never overrides recDate with last.bill_date; same here.
-            setCardBalance(toDec2(last.card_balance));
-            setCashBalance(toDec2(last.cash_balance));
-            setDineIn(toDec2(last.dine_in));
-            setMeituan(toDec2(last.meituan));
-            setFlashSale(toDec2(last.flash_sale));
-            setTuan(toDec2(last.tuan));
-            setJd(toDec2(last.jd));
+            updateRecon('cardBalance',toDec2(last.card_balance));
+            updateRecon('cashBalance',toDec2(last.cash_balance));
+            updateRecon('dineIn',toDec2(last.dine_in));
+            updateRecon('meituan',toDec2(last.meituan));
+            updateRecon('flashSale',toDec2(last.flash_sale));
+            updateRecon('tuan',toDec2(last.tuan));
+            updateRecon('jd',toDec2(last.jd));
           }
           reconJustLoaded.current = true;
         } catch { showToast(t('toastLoadFailed')); }
@@ -279,30 +286,30 @@ export default function ExpenseScreen({
         const last = (data && data.length > 0) ? data[0] : null;
         const match = (data || []).find((r: any) => r.bill_date === recDate);
         if (match) {
-          setCardBalance(toDec2(match.card_balance));
-          setCashBalance(toDec2(match.cash_balance));
-          setDineIn(toDec2(match.dine_in));
-          setMeituan(toDec2(match.meituan));
-          setFlashSale(toDec2(match.flash_sale));
-          setTuan(toDec2(match.tuan));
-          setJd(toDec2(match.jd));
+          updateRecon('cardBalance',toDec2(match.card_balance));
+          updateRecon('cashBalance',toDec2(match.cash_balance));
+          updateRecon('dineIn',toDec2(match.dine_in));
+          updateRecon('meituan',toDec2(match.meituan));
+          updateRecon('flashSale',toDec2(match.flash_sale));
+          updateRecon('tuan',toDec2(match.tuan));
+          updateRecon('jd',toDec2(match.jd));
         } else if (last && recDate >= (last.bill_date || '')) {
           // No exact match, but date >= last record → pre-fill with last values (matches web)
-          setCardBalance(toDec2(last.card_balance));
-          setCashBalance(toDec2(last.cash_balance));
-          setDineIn(toDec2(last.dine_in));
-          setMeituan(toDec2(last.meituan));
-          setFlashSale(toDec2(last.flash_sale));
-          setTuan(toDec2(last.tuan));
-          setJd(toDec2(last.jd));
+          updateRecon('cardBalance',toDec2(last.card_balance));
+          updateRecon('cashBalance',toDec2(last.cash_balance));
+          updateRecon('dineIn',toDec2(last.dine_in));
+          updateRecon('meituan',toDec2(last.meituan));
+          updateRecon('flashSale',toDec2(last.flash_sale));
+          updateRecon('tuan',toDec2(last.tuan));
+          updateRecon('jd',toDec2(last.jd));
         } else {
-          setCardBalance('');
-          setCashBalance('');
-          setDineIn('');
-          setMeituan('');
-          setFlashSale('');
-          setTuan('');
-          setJd('');
+          updateRecon('cardBalance','');
+          updateRecon('cashBalance','');
+          updateRecon('dineIn','');
+          updateRecon('meituan','');
+          updateRecon('flashSale','');
+          updateRecon('tuan','');
+          updateRecon('jd','');
         }
         reconJustLoaded.current = true;
       } catch { showToast(t('toastLoadFailed')); }
@@ -731,16 +738,16 @@ export default function ExpenseScreen({
               <View style={st.inputGroup}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ transform: [{ translateY: -1 }] }}><Rect x="2" y="4" width="20" height="16" rx="2"/><Path d="M2 10h20"/><Rect x="5" y="14" width="3" height="2" rx="0.5"/></Svg><Text style={st.inputLabel}>{t('cardBalance')}</Text></View>
                 <InputWithFocus inputStyle={st.input}
-                  value={cardBalance} onChangeText={(v: string) => setCardBalance(blockNeg(v))}
-                  onBlur={() => { if (cardBalance !== '') setCardBalance(toDec2(cardBalance)); }}
+                  value={cardBalance} onChangeText={(v: string) => updateRecon('cardBalance',blockNeg(v))}
+                  onBlur={() => { if (cardBalance !== '') updateRecon('cardBalance',toDec2(cardBalance)); }}
                   keyboardType="decimal-pad"
                   placeholder="0.00" placeholderTextColor={colors.textSub} />
               </View>
               <View style={st.inputGroup}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ transform: [{ translateY: -1 }] }}><Rect x="2" y="5" width="20" height="14" rx="2"/><Circle cx="12" cy="12" r="2.5"/><Path d="M18.5 9l-1 0M18.5 15l-1 0M5.5 9l1 0M5.5 15l1 0"/></Svg><Text style={st.inputLabel}>{t('cashBalance')}</Text></View>
                 <InputWithFocus inputStyle={st.input}
-                  value={cashBalance} onChangeText={(v: string) => setCashBalance(blockNeg(v))}
-                  onBlur={() => { if (cashBalance !== '') setCashBalance(toDec2(cashBalance)); }}
+                  value={cashBalance} onChangeText={(v: string) => updateRecon('cashBalance',blockNeg(v))}
+                  onBlur={() => { if (cashBalance !== '') updateRecon('cashBalance',toDec2(cashBalance)); }}
                   keyboardType="decimal-pad"
                   placeholder="0.00" placeholderTextColor={colors.textSub} />
               </View>
@@ -757,24 +764,24 @@ export default function ExpenseScreen({
                 <TouchableOpacity style={[st.channelChip, { flex: 1 }]} activeOpacity={1}>
                   <Text style={st.chipLabel}>{t('dineIn')}</Text>
                   <InputWithFocus inputStyle={st.chipInput}
-                    value={dineIn} onChangeText={(v: string) => setDineIn(blockNeg(v))}
-                    onBlur={() => { if (dineIn !== '') setDineIn(toDec2(dineIn)); }}
+                    value={dineIn} onChangeText={(v: string) => updateRecon('dineIn',blockNeg(v))}
+                    onBlur={() => { if (dineIn !== '') updateRecon('dineIn',toDec2(dineIn)); }}
                     keyboardType="decimal-pad"
                     placeholder="0.00" placeholderTextColor={colors.textSub} />
                 </TouchableOpacity>
                 <TouchableOpacity style={[st.channelChip, { flex: 1 }]} activeOpacity={1}>
                   <Text style={st.chipLabel}>{t('meituan')}</Text>
                   <InputWithFocus inputStyle={st.chipInput}
-                    value={meituan} onChangeText={(v: string) => setMeituan(blockNeg(v))}
-                    onBlur={() => { if (meituan !== '') setMeituan(toDec2(meituan)); }}
+                    value={meituan} onChangeText={(v: string) => updateRecon('meituan',blockNeg(v))}
+                    onBlur={() => { if (meituan !== '') updateRecon('meituan',toDec2(meituan)); }}
                     keyboardType="decimal-pad"
                     placeholder="0.00" placeholderTextColor={colors.textSub} />
                 </TouchableOpacity>
                 <TouchableOpacity style={[st.channelChip, { flex: 1 }]} activeOpacity={1}>
                   <Text style={st.chipLabel}>{t('flashSale')}</Text>
                   <InputWithFocus inputStyle={st.chipInput}
-                    value={flashSale} onChangeText={(v: string) => setFlashSale(blockNeg(v))}
-                    onBlur={() => { if (flashSale !== '') setFlashSale(toDec2(flashSale)); }}
+                    value={flashSale} onChangeText={(v: string) => updateRecon('flashSale',blockNeg(v))}
+                    onBlur={() => { if (flashSale !== '') updateRecon('flashSale',toDec2(flashSale)); }}
                     keyboardType="decimal-pad"
                     placeholder="0.00" placeholderTextColor={colors.textSub} />
                 </TouchableOpacity>
@@ -784,16 +791,16 @@ export default function ExpenseScreen({
                 <TouchableOpacity style={[st.channelChip, { flex: 1 }]} activeOpacity={1}>
                   <Text style={st.chipLabel}>{t('jd')}</Text>
                   <InputWithFocus inputStyle={st.chipInput}
-                    value={jd} onChangeText={(v: string) => setJd(blockNeg(v))}
-                    onBlur={() => { if (jd !== '') setJd(toDec2(jd)); }}
+                    value={jd} onChangeText={(v: string) => updateRecon('jd',blockNeg(v))}
+                    onBlur={() => { if (jd !== '') updateRecon('jd',toDec2(jd)); }}
                     keyboardType="decimal-pad"
                     placeholder="0.00" placeholderTextColor={colors.textSub} />
                 </TouchableOpacity>
                 <TouchableOpacity style={[st.channelChip, { flex: 1 }]} activeOpacity={1}>
                   <Text style={st.chipLabel}>{t('tuan')}</Text>
                   <InputWithFocus inputStyle={st.chipInput}
-                    value={tuan} onChangeText={(v: string) => setTuan(blockNeg(v))}
-                    onBlur={() => { if (tuan !== '') setTuan(toDec2(tuan)); }}
+                    value={tuan} onChangeText={(v: string) => updateRecon('tuan',blockNeg(v))}
+                    onBlur={() => { if (tuan !== '') updateRecon('tuan',toDec2(tuan)); }}
                     keyboardType="decimal-pad"
                     placeholder="0.00" placeholderTextColor={colors.textSub} />
                 </TouchableOpacity>
