@@ -257,7 +257,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const goRegister = () => {
     setMsg(''); setMsgKey('');
     setStep('register');
-    setRegUsername(''); setRegPassword(''); setPassword2(''); setEmail('');
+    setUsername(''); setRegUsername(''); setRegPassword(''); setPassword2(''); setEmail('');
   };
 
   const validatePassword = (pw: string): string => {
