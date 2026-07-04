@@ -573,19 +573,16 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   return (
     <View style={styles.container}>
-      {/* Default background — only when no custom bg */}
-      {!bgUrl ? (
-        <ImageBackground source={BG_IMAGE} style={styles.bgLayer} resizeMode="cover">
-          <View style={styles.bgOverlay} />
-        </ImageBackground>
+      {/* Default background — always rendered as base layer */}
+      <ImageBackground source={BG_IMAGE} style={styles.bgLayer} resizeMode="cover" />
+      {/* Custom background — fades in on top when cached */}
+      {bgUrl ? (
+        <Animated.Image
+          source={{ uri: bgUrl }}
+          style={[styles.bgLayer, { opacity: bgOpacity }]}
+          resizeMode="cover"
+        />
       ) : null}
-      {/* Custom background — always rendered, opacity controls visibility.
-          Falls back to BG_IMAGE source so the layer doesn't unmount. */}
-      <Animated.Image
-        source={bgUrl ? { uri: bgUrl } : BG_IMAGE}
-        style={[styles.bgLayer, { opacity: bgOpacity }]}
-        resizeMode="cover"
-      />
       <View style={styles.bgOverlay} />
       <KeyboardAvoidingView
         style={styles.flex}
