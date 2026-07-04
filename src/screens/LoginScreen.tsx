@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, ImageBackground, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ImageBackground, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
 import { t, getLang, langs, useLang, I18nKey } from '../i18n';
@@ -53,13 +53,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [avatarUrl, setAvatarUrl] = useState<string>(() => {
     try { return localStorage.getItem('avatar-uri') || ''; } catch { return ''; }
   });
-  // bgVisible/avatarVisible: set true on Image onLoad so the layer snaps from
-  // transparent → opaque only AFTER RN finishes decoding. ImageBackground
-  // covers the decode gap (local files: milliseconds; data URIs: migrated away).
-  const [bgVisible, setBgVisible] = useState(false);
-  const [avatarVisible, setAvatarVisible] = useState(false);
-  const bgOpacity = useRef(new Animated.Value(0)).current;
-  const avatarOpacity = useRef(new Animated.Value(0)).current;
+  // bgReady: true when custom bg Image has decoded (onLoad fired).
+  // While false and bgUrl exists → show loading overlay, no mountain bg flash.
+  const [bgReady, setBgReady] = useState(false);
+  const [avatarReady, setAvatarReady] = useState(false);
   // Use the LangProvider hook so the lang state and t() output stay
   // in sync within a single React render — using the legacy setLang
   // here updates globalThis.curLang synchronously but doesn't trigger
@@ -130,17 +127,9 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     migrate('avatar-uri', setAvatarUrl);
   }, []);
 
-  // Snaps opacity to 1 when Image onLoad fires, 0 when URL cleared.
-  useEffect(() => {
-    bgOpacity.setValue(bgVisible && bgUrl ? 1 : 0);
-  }, [bgVisible, bgUrl]);
-  useEffect(() => {
-    avatarOpacity.setValue(avatarVisible && avatarUrl ? 1 : 0);
-  }, [avatarVisible, avatarUrl]);
-
-  // Reset visible flags when URL changes, so onLoad fires again.
-  useEffect(() => { setBgVisible(false); }, [bgUrl]);
-  useEffect(() => { setAvatarVisible(false); }, [avatarUrl]);
+  // Reset ready flags when URL changes, so onLoad fires again.
+  useEffect(() => { setBgReady(false); }, [bgUrl]);
+  useEffect(() => { setAvatarReady(false); }, [avatarUrl]);
 
   // WebAuthn bootstrap on mount. Mirrors web LoginScreen L117-165:
   // read the cached bound state synchronously, then refresh from
@@ -593,13 +582,21 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   return (
     <View style={styles.container}>
-      {/* Background layers — ImageBackground covers decode gap, onLoad triggers switch */}
-      {!bgVisible && <ImageBackground source={BG_IMAGE} style={styles.bgLayer} resizeMode="cover" />}
-      <Animated.Image
+      {/* Background layers */}
+      {/* No cached bg at all → default mountain bg */}
+      {!bgUrl && <ImageBackground source={BG_IMAGE} style={styles.bgLayer} resizeMode="cover" />}
+      {/* Cached bg still decoding → dark loading overlay, no mountain flash */}
+      {bgUrl && !bgReady && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="rgba(255,255,255,0.5)" />
+        </View>
+      )}
+      {/* Custom bg — opacity: 0 until onLoad fires, then 1 */}
+      <Image
         source={bgUrl ? { uri: bgUrl } : BG_IMAGE}
-        style={[styles.bgLayer, { opacity: bgOpacity }]}
+        style={[styles.bgLayer, { opacity: bgReady ? 1 : 0 }]}
         resizeMode="cover"
-        onLoad={() => setBgVisible(true)}
+        onLoad={() => setBgReady(true)}
         onError={() => { try { localStorage.removeItem('bg-image'); } catch {} setBgUrl(''); }}
       />
       <View style={styles.bgOverlay} />
@@ -617,11 +614,11 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
           <View style={styles.brand}>
             <View style={styles.logoWrap}>
               <Image source={LOGO_IMAGE} style={styles.logoImg} resizeMode="cover" />
-              <Animated.Image
+              <Image
                 source={avatarUrl ? { uri: avatarUrl } : LOGO_IMAGE}
-                style={[styles.logoOver, { opacity: avatarOpacity }]}
+                style={[styles.logoOver, { opacity: avatarReady ? 1 : 0 }]}
                 resizeMode="cover"
-                onLoad={() => setAvatarVisible(true)}
+                onLoad={() => setAvatarReady(true)}
                 onError={() => { try { localStorage.removeItem('avatar-uri'); } catch {} setAvatarUrl(''); }}
               />
             </View>
@@ -965,6 +962,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: '#1a1a2e' },
   bgLayer: { position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 },
   bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.15)', zIndex: 1 },
+  loadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', zIndex: 0 },
   flex: { flex: 1, position: 'relative' as any, zIndex: 10 },
   content: { flex: 1, width: '100%', maxWidth: 420, alignSelf: 'center', paddingHorizontal: 20 } as any,
   contentScroll: { paddingTop: 48, paddingBottom: 60 },
