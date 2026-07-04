@@ -1276,7 +1276,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   /* ── Content ── */
   contentScroll: { flex: 1, backgroundColor: 'transparent' as const },
   contentInner: {
-    paddingHorizontal: 18, paddingBottom: 100, gap: 0, backgroundColor: 'transparent' as const,
+    paddingHorizontal: 0, paddingBottom: 100, gap: 0, backgroundColor: 'transparent' as const,
   },
   moduleWrap: {
     width: '100%',
