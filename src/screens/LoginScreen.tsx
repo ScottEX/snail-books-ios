@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, ImageBackground, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, ImageBackground, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
 import { t, getLang, langs, useLang, I18nKey } from '../i18n';
@@ -53,11 +53,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [avatarUrl, setAvatarUrl] = useState<string>(() => {
     try { return localStorage.getItem('avatar-uri') || ''; } catch { return ''; }
   });
-  // bgReady: true when custom bg Image has decoded (onLoad fired).
-  // While false and bgUrl exists → show loading overlay, no mountain bg flash.
-  const [bgReady, setBgReady] = useState(false);
-  const [avatarReady, setAvatarReady] = useState(false);
-  // Use the LangProvider hook so the lang state and t() output stay
+  // bgUrl/avatarUrl: cached file paths from localStorage.
   // in sync within a single React render — using the legacy setLang
   // here updates globalThis.curLang synchronously but doesn't trigger
   // a React re-render, causing a brief "EN text but old active tab"
@@ -126,10 +122,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     migrate('bg-image', setBgUrl);
     migrate('avatar-uri', setAvatarUrl);
   }, []);
-
-  // Reset ready flags when URL changes, so onLoad fires again.
-  useEffect(() => { setBgReady(false); }, [bgUrl]);
-  useEffect(() => { setAvatarReady(false); }, [avatarUrl]);
 
   // WebAuthn bootstrap on mount. Mirrors web LoginScreen L117-165:
   // read the cached bound state synchronously, then refresh from
@@ -582,23 +574,15 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   return (
     <View style={styles.container}>
-      {/* Background layers */}
-      {/* No cached bg at all → default mountain bg */}
-      {!bgUrl && <ImageBackground source={BG_IMAGE} style={styles.bgLayer} resizeMode="cover" />}
-      {/* Cached bg still decoding → dark loading overlay, no mountain flash */}
-      {bgUrl && !bgReady && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="rgba(255,255,255,0.5)" />
-        </View>
-      )}
-      {/* Custom bg — opacity: 0 until onLoad fires, then 1 */}
-      <Image
-        source={bgUrl ? { uri: bgUrl } : BG_IMAGE}
-        style={[styles.bgLayer, { opacity: bgReady ? 1 : 0 }]}
-        resizeMode="cover"
-        onLoad={() => setBgReady(true)}
-        onError={() => { try { localStorage.removeItem('bg-image'); } catch {} setBgUrl(''); }}
-      />
+      {/* Background layers — simple stack: mountain base, custom on top */}
+      <ImageBackground source={BG_IMAGE} style={styles.bgLayer} resizeMode="cover" />
+      {bgUrl ? (
+        <Image
+          source={{ uri: bgUrl }}
+          style={styles.bgLayer}
+          resizeMode="cover"
+        />
+      ) : null}
       <View style={styles.bgOverlay} />
       <KeyboardAvoidingView
         style={styles.flex}
@@ -614,11 +598,13 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
           <View style={styles.brand}>
             <View style={styles.logoWrap}>
               <Image source={LOGO_IMAGE} style={styles.logoImg} resizeMode="cover" />
-              <Image
-                source={avatarUrl ? { uri: avatarUrl } : LOGO_IMAGE}
-                style={[styles.logoOver, { opacity: avatarReady ? 1 : 0 }]}
-                resizeMode="cover"
-                onLoad={() => setAvatarReady(true)}
+              {avatarUrl ? (
+                <Image
+                  source={{ uri: avatarUrl }}
+                  style={styles.logoOver}
+                  resizeMode="cover"
+                />
+              ) : null}
                 onError={() => { try { localStorage.removeItem('avatar-uri'); } catch {} setAvatarUrl(''); }}
               />
             </View>
@@ -962,7 +948,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { flex: 1, backgroundColor: '#1a1a2e' },
   bgLayer: { position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 },
   bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.15)', zIndex: 1 },
-  loadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', zIndex: 0 },
   flex: { flex: 1, position: 'relative' as any, zIndex: 10 },
   content: { flex: 1, width: '100%', maxWidth: 420, alignSelf: 'center', paddingHorizontal: 20 } as any,
   contentScroll: { paddingTop: 48, paddingBottom: 60 },
