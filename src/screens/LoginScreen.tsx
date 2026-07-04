@@ -629,7 +629,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                     </Animated.View>
                     <Text style={{ fontSize: 18, fontWeight: '500', color: 'rgba(255,255,255,0.8)', marginBottom: 16 }}>{username}</Text>
                     <TouchableOpacity onPress={() => { setFaceMode(false); setMsg(''); }}>
-                      <Text style={{ fontSize: 14, color: colors.primary }}>{t('usePasswordLogin') || '使用密码登录'}</Text>
+                      <Text style={{ fontSize: FONTS.micro.size, color: colors.primary }}>{t('usePasswordLogin') || '使用密码登录'}</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
@@ -937,7 +937,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   tabBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center' },
   tabActive: { backgroundColor: GLASS_BG_STRONG },
-  tabText: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.65)' },
+  tabText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.65)' },
   tabActiveText: { color: colors.surface },
   formSection: { gap: 12 },
   fieldWrap: { gap: 6 },
