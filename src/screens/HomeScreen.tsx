@@ -57,7 +57,7 @@ function DateErrorHint({ trigger, message, colors }: { trigger: number; message:
   return <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'left', marginTop: 2 }}>{message}</Text>;
 }
 
-export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
+export default function HomeScreen({ onLogout, onLogoutStart }: { onLogout: () => void; onLogoutStart?: () => void }) {
   const { colors, setTheme, allThemes } = useTheme();
   const mo = getMo(colors);
   // Web's headerColor: when the bg image is fully opaque, the text
@@ -499,6 +499,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           <ProfileScreen
             onBack={onBack}
             onLogout={onLogout}
+            onLogoutStart={onLogoutStart}
             onAvatarChange={loadAvatar}
             onManageUsers={() => { setTimeout(() => setShowUserMgmt(true), 250); }}
             refreshKey={profileRefreshKey}
@@ -770,7 +771,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                 <TouchableOpacity style={mo.cancelBtn} onPress={() => setShowLogoutModal(false)}>
                   <Text style={mo.cancelText}>{t('cancel')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={mo.confirmBtn} onPress={() => { setShowLogoutModal(false); api.logout().finally(() => onLogout()); }}>
+                <TouchableOpacity style={mo.confirmBtn} onPress={() => { setShowLogoutModal(false); onLogoutStart?.(); api.logout().finally(() => onLogout()); }}>
                   <Text style={mo.confirmText}>{t('confirmLogout')}</Text>
                 </TouchableOpacity>
               </View>

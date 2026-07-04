@@ -27,6 +27,7 @@ import { isBiometricAvailable, hasStoredCredential, clearCredential, saveCredent
 interface Props {
   onBack: () => void;
   onLogout: () => void;
+  onLogoutStart?: () => void;
   onLangChange?: () => void;
   onManageUsers?: () => void;
   onAvatarChange?: () => void;
@@ -152,7 +153,7 @@ function FaceIDIcon({ color }: { color: string }) {
 
 /* ════════════ MAIN ════════════ */
 
-export default function ProfileScreen({ onBack, onLogout, onLangChange, onManageUsers, onAvatarChange, refreshKey }: Props) {
+export default function ProfileScreen({ onBack, onLogout, onLogoutStart, onLangChange, onManageUsers, onAvatarChange, refreshKey }: Props) {
   const { colors, theme, setTheme, allThemes } = useTheme();
   const { setLang } = useLang();
   const [toast, setToast] = useState('');
@@ -972,7 +973,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                 <TouchableOpacity style={mo.cancelBtn} onPress={() => setShowLogoutModal(false)}>
                   <Text style={mo.cancelText}>{t('cancel')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={mo.confirmBtn} onPress={async () => { setShowLogoutModal(false); await api.logout(); onLogout(); }}>
+                <TouchableOpacity style={mo.confirmBtn} onPress={async () => { setShowLogoutModal(false); onLogoutStart?.(); await api.logout(); onLogout(); }}>
                   <Text style={mo.confirmText}>{t('confirmLogout')}</Text>
                 </TouchableOpacity>
               </View>
