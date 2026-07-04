@@ -154,7 +154,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
           try {
             const savedUser = localStorage.getItem('saved_login') || '';
             if (savedUser) setUsername(savedUser);
-            setFaceMode(true);
+            switchToFaceMode();
           } catch {}
         }
       }
@@ -246,6 +246,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   }, [username]);
 
   const reset = () => { setMsg(''); setMsgKey(''); setMsgOk(false); setDevCode(''); setCode(''); };
+  const switchToFaceMode = () => { setFaceMode(true); setMsg(''); setMsgKey(''); };
   const goLogin = () => {
     setMsg(''); setMsgKey('');
     setStep('login');
@@ -256,7 +257,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         const savedUser = localStorage.getItem('webauthn_user') || localStorage.getItem('saved_login') || '';
         if (savedUser) {
           setUsername(savedUser);
-          setFaceMode(true);
+          switchToFaceMode();
           return;
         }
       } catch {}
@@ -724,7 +725,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                         <Text style={styles.rememberText}>{t('rememberMe') || '记住我'}</Text>
                       </TouchableOpacity>
                       {faceAvailable && pwdHasFaceID ? (
-                        <TouchableOpacity onPress={() => { setFaceMode(true); setMsg(''); setMsgKey(''); }}>
+                        <TouchableOpacity onPress={switchToFaceMode}>
                           <Text style={{ fontSize: 14, color: colors.primary }}>{t('faceIDLogin') || '面容登录'}</Text>
                         </TouchableOpacity>
                       ) : null}
