@@ -526,18 +526,15 @@ export default function ExpenseScreen({
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
           testID="snap-scroll"
           ref={scrollRef}
-          pagingEnabled={false}
           decelerationRate="fast"
-          onScrollEndDrag={(e) => {
-            const offset = e.nativeEvent.contentOffset.x;
-            const w = Dimensions.get('window').width;
-            const snap = offset < (w - 32) / 2 ? 0 : w - 32;
-            scrollRef.current?.scrollTo({ x: snap, animated: true });
-          }}
+          bounces={false}
+          snapToOffsets={[18, Dimensions.get('window').width - 29]}
           onMomentumScrollEnd={(e) => {
             const offset = e.nativeEvent.contentOffset.x;
             const w = Dimensions.get('window').width;
-            const idx = offset < (w - 32) / 2 ? 0 : 1;
+            // snapToOffsets already landed us at a snap point;
+            // just read which card we're on. midpoint ≈ (offset0 + offset1)/2
+            const idx = offset < (18 + w - 29) / 2 ? 0 : 1;
             if (idx >= 0 && idx < tabCards.length) setActiveTab(idx);
           }}
           contentContainerStyle={st.tabScroll}>
@@ -549,7 +546,7 @@ export default function ExpenseScreen({
                 key={i}
                 testID="snap-card"
                 style={[st.tabCard, active && st.tabCardActive,
-                  i === 0 && { marginRight: 18 },
+                  i === 0 && { marginRight: 14 },
                   i === 1 && { width: Dimensions.get('window').width - 36 },
                 ]}
                 onPress={() => setActiveTab(i)}
@@ -1211,7 +1208,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
     // The CSS backgroundImage (linear-gradient) is re-created with
     // a <LinearGradient> child in the JSX (RN can't render CSS
     // gradient strings). Web has NO backdrop-filter on tabCard.
-    width: Dimensions.get('window').width - 50, height: 210,
+    width: Dimensions.get('window').width - 61, height: 210,
     borderRadius: 14, overflow: 'hidden',
     paddingHorizontal: 16, paddingVertical: 14,
     justifyContent: 'flex-start',
