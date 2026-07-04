@@ -188,7 +188,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         const avatar = await api.getUserAvatarByLoginUri(username).catch(() => null);
         if (avatar) {
           setAvatarUrl(avatar); setAvatarReady(true);
-          try { localStorage.setItem('avatar-uri', avatar); } catch {}
+          try { localStorage.setItem('avatar-uri', avatar); Image.prefetch(avatar); } catch {}
         } else {
           setAvatarUrl(''); setAvatarReady(true);
         }
@@ -198,7 +198,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         const bg = await api.getUserBackgroundUri(username).catch(() => null);
         if (bg) {
           setBgUrl(bg); setBgReady(true);
-          try { localStorage.setItem('bg-image', bg); } catch {}
+          try { localStorage.setItem('bg-image', bg); Image.prefetch(bg); } catch {}
         } else {
           setBgUrl(''); setBgReady(true);
         }
@@ -562,11 +562,9 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       <ImageBackground source={BG_IMAGE} style={styles.bgLayer} resizeMode="cover">
         <View style={styles.bgOverlay} />
       </ImageBackground>
-      {/* Custom background — defaultSource shows the same BG_IMAGE while
-          the data URI decodes, so there's no flash of a different color. */}
+      {/* Custom background — always rendered, opacity hides it when not ready. */}
       <Animated.Image
         source={bgUrl ? { uri: bgUrl } : BG_IMAGE}
-        defaultSource={BG_IMAGE}
         style={[styles.bgLayer, { opacity: bgOpacity }]}
         resizeMode="cover"
       />
