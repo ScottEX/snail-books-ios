@@ -509,7 +509,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     }, 1000);
   };
 
-  const switchLang = (l: string) => { setLang(l); };
+  const switchLang = (l: string) => { setLang(l); setMsg(''); setMsgOk(false); };
 
   const styles = useMemo(() => getStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
@@ -752,6 +752,9 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   </View>
                 </View>
                 <SubmitButton onPress={handleRegister} loading={loading} label={t('registerBtn')} style={styles.btnDark} textStyle={styles.btnDarkText} />
+                <TouchableOpacity onPress={() => { setStep('login'); setMsg(''); }}>
+                  <Text style={styles.forgotText}>{t('backToLogin')}</Text>
+                </TouchableOpacity>
               </View>
             )}
 
@@ -885,7 +888,7 @@ const AVATAR_RING = 'rgba(255,255,255,0.25)';
 const getStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { flex: 1 },
   bgLayer: { position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 },
-  bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.30)', zIndex: 1 },
+  bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.15)', zIndex: 1 },
   flex: { flex: 1, position: 'relative' as any, zIndex: 10 },
   content: { flex: 1, width: '100%', maxWidth: 420, alignSelf: 'center', paddingHorizontal: 20 } as any,
   contentScroll: { paddingTop: 48, paddingBottom: 60 },
@@ -900,8 +903,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   langBtn: { fontSize: 14, color: 'rgba(255,255,255,0.4)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   langActive: { color: colors.surface, backgroundColor: 'rgba(255,255,255,0.15)' },
   glassCard: {
-    backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 16, padding: 28, gap: 8, overflow: 'hidden',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 24, padding: 28, gap: 8, overflow: 'hidden',
   },
   msgBox: { paddingVertical: 4, marginBottom: 8 },
   msgOk: {},
@@ -919,7 +921,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   tabActiveText: { color: colors.surface },
   formSection: { gap: 12, marginTop: 4 },
   fieldWrap: { gap: 6 },
-  fieldLabel: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.6)' },
+  fieldLabel: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.6)' },
   hintText: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.4)' },
   pwWrap: { position: 'relative' },
   pwInput: {
@@ -938,8 +940,8 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   faceModeWrap: { alignItems: 'center', gap: 16 },
   faceBtn: {
     width: 88, height: 88, borderRadius: 44,
-    backgroundColor: 'rgba(0,0,0,0.35)', borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center', alignItems: 'center', marginBottom: 8,
   },
   faceHint: { fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 8 },
