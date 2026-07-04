@@ -5,8 +5,9 @@ import {
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import { t, getLang } from '../i18n';
-import { api } from '../api/client';
-import Toast from '../components/Toast';
+import { api, resolveAssetUrl } from '../api/client';
+import { useToast } from '../hooks/useToast';
+import { getCurrentUserId } from '../utils/storage';
 import DatePickerModal from '../components/DatePickerModal';
 import CategoryChips from '../components/CategoryChips';
 import MonthPicker, { MonthValue } from '../components/MonthPicker';
@@ -22,6 +23,7 @@ import { modalCardAnimation, modalClose, uploadReceiptStyles } from '../sharedSt
 import { fmtAmt as fmt, fmtAmtFull, toDec2Comma } from '../utils/format';
 import NumberTickerExt from '../components/NumberTicker';
 import { useServerDate } from '../hooks/useServerDate';
+import { useExpenseForm } from '../hooks/useExpenseForm';
 
 /* ── helpers ── */
 // Date helpers replaced by useServerDate() hook (server time, not client)
@@ -214,8 +216,9 @@ export default function ExpenseScreen({
     }
   }, [activeTab]);
 
-  const [showToast, setShowToast] = useState(false);
-  const hideToast = () => setShowToast(false);
+  const [showReconConfirm, setShowReconConfirm] = useState(false);
+  const hideReconConfirm = () => setShowReconConfirm(false);
+  const { showToast, ToastHost } = useToast();
 
   // Snap-scroll effects are web-only (CSS scroll-snap + DOM scroll listener).
 
@@ -226,7 +229,6 @@ export default function ExpenseScreen({
   const recDate = recDateOverride ?? (sd.ready && sd.yesterday ? sd.yesterday : '');
   const [recDateKey, setRecDateKey] = useState(0);
   const [recDateErr, setRecDateErr] = useState(0);
-  const [toast, setToast] = useState('');
   const [cardBalance, setCardBalance] = useState('');
   const [cashBalance, setCashBalance] = useState('');
   const [dineIn, setDineIn] = useState('');
@@ -264,7 +266,7 @@ export default function ExpenseScreen({
             setJd(toDec2(last.jd));
           }
           reconJustLoaded.current = true;
-        } catch { setToast(t('toastLoadFailed')); }
+        } catch { showToast(t('toastLoadFailed')); }
       })();
       return;
     }
@@ -303,7 +305,7 @@ export default function ExpenseScreen({
           setJd('');
         }
         reconJustLoaded.current = true;
-      } catch { setToast(t('toastLoadFailed')); }
+      } catch { showToast(t('toastLoadFailed')); }
     })();
   }, [recDate]);
 
@@ -317,7 +319,7 @@ export default function ExpenseScreen({
   }, [cardBalance, cashBalance, dineIn, meituan, flashSale, jd, tuan]);
 
   const submitRecon = useCallback(async () => {
-    if (sd.ready && sd.isFuture(recDate)) { setToast(t('errDateFuture')); return; }
+    if (sd.ready && sd.isFuture(recDate)) { showToast(t('errDateFuture')); return; }
     try {
       // 提交那一刻拉最新 businessSummary，确保 cash_on_hand 含本会话刚录的支出
       let latestSummary: any = businessSummary;
@@ -339,9 +341,9 @@ export default function ExpenseScreen({
         diff: latestDiff,
         reconciled_by: username,
       });
-      setToast(t('reconComplete'));
+      showToast(t('reconComplete'));
       onReconHistory?.();
-    } catch { setToast(t('toastSubmitFailed')); }
+    } catch { showToast(t('toastSubmitFailed')); }
   }, [recDate, cardBalance, cashBalance, dineIn, meituan, flashSale, tuan, jd, onReconHistory]);
 
   const toCents = (v: any) => Math.round((parseFloat(String(v ?? '0')) || 0) * 100);
@@ -406,16 +408,16 @@ export default function ExpenseScreen({
       } else {
         setFeeData(null);
       }
-    } catch { setToast(t('toastLoadFailed')); }
+    } catch { showToast(t('toastLoadFailed')); }
   };
   useEffect(() => { loadFeeData(); }, [feeMonth]);
 
   const handleAddFee = async () => {
     if (feeMonth === 'all') return;
-    if (sd.isFuture(feeEntryDate)) { setToast(t('errDateFuture')); return; }
+    if (sd.isFuture(feeEntryDate)) { showToast(t('errDateFuture')); return; }
     const factor = negativeMode ? -1 : 1;
     const mc = toNum(feeMc) * factor, mw = toNum(feeMw) * factor, ew = toNum(feeEw) * factor, mt = toNum(feeMt) * factor;
-    if (mc + mw + ew + mt === 0) { setToast(t('atLeastOneFee')); return; }
+    if (mc + mw + ew + mt === 0) { showToast(t('atLeastOneFee')); return; }
     setSavingFee(true);
     try {
       const r = await api.addPlatformFeeEntry({
@@ -432,24 +434,35 @@ export default function ExpenseScreen({
         // Reload all months to keep totals accurate
         api.getPlatformFees().then((all: any) => setAllFees(Array.isArray(all) ? all : []));
       } else {
-        setToast(r?.message || t('toastSubmitFailed'));
+        showToast(r?.message || t('toastSubmitFailed'));
       }
-    } catch { setToast(t('toastSubmitFailed')); }
+    } catch { showToast(t('toastSubmitFailed')); }
     setSavingFee(false);
   };
 
   /* ── 模块三：支出 ── */
-  const [expDate, setExpDate] = useState('');
-  useEffect(() => { if (sd.ready && expDate === '') setExpDate(sd.today); }, [sd.ready, sd.today, expDate]);
-  const [expDateErr, setExpDateErr] = useState(0);
-  const [expAmount, setExpAmount] = useState('');
-  const [expCategory, setExpCategory] = useState('daily');
-  const [payMethod, setPayMethod] = useState('payWechat');
-  const [expNote, setExpNote] = useState('');
-  const [expImages, setExpImages] = useState<any[]>([]);
-  const [uploadingImg, setUploadingImg] = useState(false);
-  const [isRefund, setIsRefund] = useState(false);
-  const [loadingExp, setLoadingExp] = useState(false);
+  const {
+    expDate, setExpDate,
+    expDateErr, setExpDateErr,
+    expAmount, setExpAmount,
+    expCategory, setExpCategory,
+    payMethod, setPayMethod,
+    expNote, setExpNote,
+    expImages, setExpImages,
+    uploadingImg,
+    loadingExp,
+    isRefund, setIsRefund,
+    handleAddExpense,
+    removeImage,
+    isAmountInvalid,
+  } = useExpenseForm({
+    onExpenseHistory,
+    onExpenseAdded,
+    getPreviewUrl,
+    revokePreviewUrl,
+    clearUrlCache,
+    onToast: showToast,
+  });
   const [showExpConfirm, setShowExpConfirm] = useState(false);
 
   // Fast glass-card totals from business-summary API (matching web)
@@ -459,8 +472,6 @@ export default function ExpenseScreen({
     salary: (businessSummary as any)?.expense_by_category?.salary ?? 0,
     goods: (businessSummary as any)?.expense_by_category?.goods ?? 0,
   }), [(businessSummary as any)?.expense_by_category]);
-
-  const isAmountInvalid = !expAmount || parseFloat(expAmount.replace(/,/g, '')) === 0 || loadingExp;
 
   const loadExpenses = async () => {
     // Category totals now come from businessSummary.expense_by_category (web-aligned).
@@ -472,74 +483,6 @@ export default function ExpenseScreen({
   const [showExpDatePicker, setShowExpDatePicker] = useState(false);
   const [showFeeDatePicker, setShowFeeDatePicker] = useState(false);
 
-  const removeImage = (idx: number) => {
-    setExpImages(prev => {
-      if (prev[idx]) revokePreviewUrl(prev[idx]);
-      return prev.filter((_, i) => i !== idx);
-    });
-  };
-
-  const validateImages = (files: any[]) => {
-    const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
-    return files.filter(f => {
-      if (!ALLOWED.includes(f.type || '')) return false;
-      if ((f.size || 0) > 10 * 1024 * 1024) return false;
-      return true;
-    });
-  };
-
-  const handleAddExpense = async () => {
-    const raw = parseFloat(expAmount.replace(/,/g, ''));
-    if (!expAmount || raw === 0) return;
-    if (!isRefund && raw <= 0) return;
-    if (sd.ready && sd.isFuture(expDate)) { setToast(t('errDateFuture')); return; }
-    setLoadingExp(true);
-    try {
-      // Upload images first if any
-      let imageUrls: string[] = [];
-      let thumbUrls: string[] = [];
-      const validImages = validateImages(expImages);
-      if (validImages.length > 0) {
-        setUploadingImg(true);
-        const result = await api.uploadExpenseImages(validImages);
-        setUploadingImg(false);
-        if (result.status !== 'ok') {
-          setToast(t('uploadFailed'));
-          setLoadingExp(false);
-          return;
-        }
-        imageUrls = result.images || [];
-        // Use the server-generated thumb URLs for the history list; fall back to
-        // full-size images if the backend didn't return thumbs (PIL disabled).
-        thumbUrls = (result.thumb_images && result.thumb_images.length > 0)
-          ? result.thumb_images
-          : imageUrls;
-      }
-      await api.createTransaction({
-        type: 'expense',
-        amount: parseFloat(expAmount.replace(/,/g, '')) * (isRefund ? -1 : 1),
-        category: expCategory,
-        account: payMethod,
-        note: expNote,
-        date: expDate,
-        images: imageUrls,
-        thumb_images: thumbUrls,
-      });
-      clearUrlCache();
-      setExpAmount('');
-      setExpCategory('daily');
-      setPayMethod('payWechat');
-      setExpNote('');
-      setExpDate(sd.today || '');
-      setExpImages([]);
-      setIsRefund(false);
-      await loadExpenses();
-      onExpenseAdded?.();
-      onExpenseHistory?.();
-    } catch { setToast(t('toastSubmitFailed')); }
-    setLoadingExp(false);
-  };
-
   /* ── 卡片摘要数据 ── */
   const feeTotal = feeMonth === 'all'
     ? allFees.reduce((sum: number, f: any) => sum + (f.meituan_cashier || 0) + (f.meituan_waimai || 0) + (f.shangou_waimai || 0) + (f.meituan_tuan || 0), 0)
@@ -547,12 +490,22 @@ export default function ExpenseScreen({
     ? ((feeData.meituan_cashier || 0) + (feeData.meituan_waimai || 0) + (feeData.shangou_waimai || 0) + (feeData.meituan_tuan || 0))
     : 0;
   const lang = getLang();
+  const uid = getCurrentUserId();
+  const storedOpacity = (() => {
+    try {
+      const key = uid ? `bg-opacity-${uid}` : 'bg-opacity';
+      const v = localStorage.getItem(key);
+      if (v !== null) return parseFloat(v);
+    } catch {}
+    return 0.5;
+  })();
+  const activeAlpha = storedOpacity === 1 ? 0.30 : 0.48;
   const tabCards = useMemo(() => [
     // 对账 — diff between book balance and current balance
-    { gradient: [withAlpha(colors.expenseGradientStart, 0.22), withAlpha(colors.expenseGradientEnd, 0.22)], gradientActive: [withAlpha(colors.expenseGradientStart, 0.48), withAlpha(colors.expenseGradientEnd, 0.48)], title: t('tabRecon'), stat: diff, statFmt: fmt(diff), statColor: diff >= 0 ? colors.success : colors.danger, prefix: diff >= 0 ? '+' : '' },
+    { gradient: [withAlpha(colors.expenseGradientStart, 0.22), withAlpha(colors.expenseGradientEnd, 0.22)], gradientActive: [withAlpha(colors.expenseGradientStart, activeAlpha), withAlpha(colors.expenseGradientEnd, activeAlpha)], title: t('tabRecon'), stat: diff, statFmt: fmt(diff), statColor: diff >= 0 ? colors.success : colors.danger, prefix: diff >= 0 ? '+' : '' },
     // 支出 — cumulative expense from backend (matching web)
-    { gradient: [withAlpha(colors.expenseGradientStart, 0.22), withAlpha(colors.expenseGradientEnd, 0.22)], gradientActive: [withAlpha(colors.expenseGradientStart, 0.48), withAlpha(colors.expenseGradientEnd, 0.48)], title: t('tabExpense'), stat: (businessSummary && businessSummary.cumulative_expense) || 0, statFmt: fmt((businessSummary && businessSummary.cumulative_expense) || 0), statColor: colors.textMain, prefix: '' },
-  ], [diff, businessSummary, colors, lang]);
+    { gradient: [withAlpha(colors.expenseGradientStart, 0.22), withAlpha(colors.expenseGradientEnd, 0.22)], gradientActive: [withAlpha(colors.expenseGradientStart, activeAlpha), withAlpha(colors.expenseGradientEnd, activeAlpha)], title: t('tabExpense'), stat: (businessSummary && businessSummary.cumulative_expense) || 0, statFmt: fmt((businessSummary && businessSummary.cumulative_expense) || 0), statColor: colors.textMain, prefix: '' },
+  ], [diff, businessSummary, colors, lang, activeAlpha]);
 
   const st = useMemo(() => getSt(colors), [colors]);
 
@@ -852,7 +805,7 @@ export default function ExpenseScreen({
               leftLabel={t('reconHistory')}
               leftOnPress={onReconHistory}
               rightLabel={t('reconComplete')}
-              rightOnPress={() => hasReconChanges && setShowToast(true)}
+              rightOnPress={() => hasReconChanges && setShowReconConfirm(true)}
               rightDisabled={!hasReconChanges}
             />
           </View>
@@ -982,12 +935,12 @@ export default function ExpenseScreen({
       )}
 
       {/* 添加提示弹窗 */}
-      {showToast && (
-        <ModalOverlay onClose={hideToast}>
+      {showReconConfirm && (
+        <ModalOverlay onClose={hideReconConfirm}>
           <View style={st.modalCard} onStartShouldSetResponder={() => true}>
             <View style={st.modalHeader}>
               <Text style={st.modalTitle}>{t('friendlyReminder')}</Text>
-              <CloseButton onPress={hideToast} />
+              <CloseButton onPress={hideReconConfirm} />
             </View>
             <View style={{ padding: 20, gap: 16 }}>
               <Text style={{ fontSize: FONTS.sub.size, color: colors.textSub, textAlign: 'center' }}>
@@ -995,16 +948,16 @@ export default function ExpenseScreen({
               </Text>
               <ButtonPair
                 leftLabel={t('cancel')}
-                leftOnPress={hideToast}
+                leftOnPress={hideReconConfirm}
                 rightLabel={t('confirm')}
-                rightOnPress={() => { hideToast(); submitRecon(); }}
+                rightOnPress={() => { hideReconConfirm(); submitRecon(); }}
               />
             </View>
           </View>
         </ModalOverlay>
       )}
 
-      <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
+      {ToastHost}
 
 
 

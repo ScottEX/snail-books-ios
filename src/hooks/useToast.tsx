@@ -1,12 +1,3 @@
-// ═══════════════════════════════════════════════════════════════
-// useToast — 轻量 Toast hook(与 web 端 src/hooks/useToast.tsx 对齐)
-// ═══════════════════════════════════════════════════════════════
-//
-// 用法:
-//   const { showToast, ToastHost } = useToast();
-//   showToast('保存成功');
-//   return <View>...{ToastHost}</View>;
-
 import { useState, useCallback } from 'react';
 import Toast from '../components/Toast';
 

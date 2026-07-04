@@ -413,7 +413,10 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
             <ReceiptUpload
               existingImages={images.map(u => resolveAssetUrl(u) || u)}
               newFiles={newFiles}
-              onAdd={(files: PickedImage[]) => setNewFiles(prev => [...prev, ...files])}
+              onAdd={(files: PickedImage[]) => setNewFiles(prev => {
+                const deduped = files.filter(f => !prev.some(p => p.name === f.name && p.size === f.size));
+                return [...prev, ...deduped];
+              })}
               onRemoveExisting={removeImage}
               onRemoveNew={removeNewFile}
               getPreviewUrl={(f: PickedImage) => f.uri}
