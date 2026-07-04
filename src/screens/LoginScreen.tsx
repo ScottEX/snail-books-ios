@@ -561,7 +561,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
           {/* Brand */}
           <View style={styles.brand}>
             <View style={styles.logoWrap}>
-              <Image source={LOGO_IMAGE} style={{ width: 80, height: 80, borderRadius: 40 }} resizeMode="cover" />
+              <Image source={LOGO_IMAGE} style={styles.logoImg} resizeMode="cover" />
               <Animated.Image
                 source={avatarUrl ? { uri: avatarUrl } : LOGO_IMAGE}
                 style={[styles.logoOver, { opacity: avatarOpacity }]}
@@ -913,12 +913,19 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   contentScroll: { paddingTop: 48, paddingBottom: 60 },
   brand: { alignItems: 'center', marginBottom: 32 },
   logoWrap: {
-    width: 80, height: 80, borderRadius: 40, overflow: 'hidden', marginBottom: 20,
-    // Match web: soft shadow ring instead of hard border
+    width: 80, height: 80, borderRadius: 40, marginBottom: 20,
+  },
+  logoImg: {
+    width: 80, height: 80, borderRadius: 40,
+    // Approximate web's boxShadow: 0 1px 3px rgba(0,0,0,.2), 0 8px 40px rgba(0,0,0,.15)
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.18, shadowRadius: 20,
   },
-  logoOver: { position: 'absolute' as any, top: 0, left: 0, width: 80, height: 80, borderRadius: 40 },
+  logoOver: {
+    position: 'absolute' as any, top: 0, left: 0, width: 80, height: 80, borderRadius: 40,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18, shadowRadius: 20,
+  },
   subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.7)', marginTop: 6, letterSpacing: 1 },
   langRow: { flexDirection: 'row', gap: 4, marginTop: 12 },
   langBtn: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.4)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
