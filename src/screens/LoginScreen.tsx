@@ -605,8 +605,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                   resizeMode="cover"
                 />
               ) : null}
-                onError={() => { try { localStorage.removeItem('avatar-uri'); } catch {} setAvatarUrl(''); }}
-              />
             </View>
             <Text style={styles.subtitle}>{t('subtitle')}</Text>
             <View style={styles.langRow}>
