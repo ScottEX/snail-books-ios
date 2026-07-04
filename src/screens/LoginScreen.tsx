@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
 import { t, getLang, langs, useLang, I18nKey } from '../i18n';
 import { api } from '../api/client';
+import * as FileSystem from 'expo-file-system';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import { BlurView } from 'expo-blur';
@@ -178,27 +179,41 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   }, [faceMode]);
 
   // Fetch avatar + background on username change (debounced 400ms).
-  // Mirrors web's useEffect pattern so the logo updates while typing,
-  // not just on blur.
+  // Saves as local files so Image loads instantly on next mount
+  // (data URIs are too slow for RN's Image decoder).
   useEffect(() => {
     if (!username) { setAvatarUrl(''); setAvatarReady(false); return; }
     setAvatarReady(false);
     const timer = setTimeout(async () => {
+      const saveDataUri = async (dataUri: string, prefix: string): Promise<string> => {
+        try {
+          const base64 = dataUri.split(',')[1];
+          if (!base64) return '';
+          const fileUri = FileSystem.cacheDirectory + prefix + '-' + encodeURIComponent(username) + '.jpg';
+          await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+          return fileUri;
+        } catch { return ''; }
+      };
+
       try {
-        const avatar = await api.getUserAvatarByLoginUri(username).catch(() => null);
-        if (avatar) {
-          setAvatarUrl(avatar); setAvatarReady(true);
-          try { localStorage.setItem('avatar-uri', avatar); Image.prefetch(avatar); } catch {}
+        const avatarDataUri = await api.getUserAvatarByLoginUri(username).catch(() => null);
+        if (avatarDataUri) {
+          const fileUri = await saveDataUri(avatarDataUri, 'avatar');
+          const url = fileUri || avatarDataUri;
+          setAvatarUrl(url); setAvatarReady(true);
+          try { localStorage.setItem('avatar-uri', url); } catch {}
         } else {
           setAvatarUrl(''); setAvatarReady(true);
         }
       } catch { setAvatarUrl(''); setAvatarReady(true); }
 
       try {
-        const bg = await api.getUserBackgroundUri(username).catch(() => null);
-        if (bg) {
-          setBgUrl(bg); setBgReady(true);
-          try { localStorage.setItem('bg-image', bg); Image.prefetch(bg); } catch {}
+        const bgDataUri = await api.getUserBackgroundUri(username).catch(() => null);
+        if (bgDataUri) {
+          const fileUri = await saveDataUri(bgDataUri, 'bg');
+          const url = fileUri || bgDataUri;
+          setBgUrl(url); setBgReady(true);
+          try { localStorage.setItem('bg-image', url); } catch {}
         } else {
           setBgUrl(''); setBgReady(true);
         }
