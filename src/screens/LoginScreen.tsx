@@ -931,7 +931,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   langBtn: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.4)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   langActive: { color: colors.surface, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 6, overflow: 'hidden' as const },
   glassCard: {
-    backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 24, padding: 28, gap: 8, overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 24, padding: 28, overflow: 'hidden',
   },
   msgBox: { paddingVertical: 4, marginBottom: 8 },
   msgOk: {},
