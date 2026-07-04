@@ -1391,7 +1391,7 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
 
   // Last 7 days
   revHistoryHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, marginHorizontal: 16 },
-  revHistoryTitle: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub },
+  revHistoryTitle: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary },
   revHistoryBtn: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary },
   rev7Empty: { paddingVertical: 30, alignItems: 'center' },
   rev7Card: { backgroundColor: withAlpha(colors.surface, 0.85), borderRadius: 12, padding: 14, marginBottom: 10, marginHorizontal: 16, borderWidth: 1, borderColor: withAlpha(colors.textSub, 0.08) },

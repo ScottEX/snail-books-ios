@@ -187,11 +187,9 @@ snail-books-web/                  snail-books-ios/                  snail-books-
 
 **最高优先(用户可见 / 常用功能)**
 
-- [ ] **3466ed2** — LoginScreen 加 avatar(web 头像)
-  - web commit: `snail-books-web @ 3466ed2 feat: avatar on login page + partner page`
-  - 改动: 头像在 `LoginScreen.tsx` line 198(web `<Image source={{uri: '/img/avatar.jpg'}}>`)
-  - iOS 移植: 已有 RN 改写版,加个 `<Image source={require('../../assets/img/avatar.jpg')} />`
-  - 预计: 20 分钟
+- [x] **3466ed2** — LoginScreen 加 avatar(web 头像) ✅ 已在 2026-06-24 迁移时完成
+  - iOS 端实现比 web 更完整: LoginScreen 有 avatar + bg 渐入动画, PartnerScreen 有 ImagePicker 裁剪上传
+  - api.client 已含 uploadAvatar / getUserAvatar / getUserAvatarByLoginUri / getUserBackgroundUri
 
 - [x] **placeholder → 真实 HomeScreen / 业务屏** ✅ 2026-06-24 完成
   - 现状: 全部 16 个屏已 RN 化,与 web UI 一致

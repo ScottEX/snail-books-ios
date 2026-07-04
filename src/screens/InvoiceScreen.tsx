@@ -248,7 +248,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
 
   // Records
   const [records, setRecords] = useState<InvoiceRecord[]>([]);
-  const [recordsLoading, setRecordsLoading] = useState(false);
+  const [recordsLoading, setRecordsLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
 
   // Drawer (create/edit)
@@ -314,6 +314,19 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   }, [filterBatchId]);
 
   useEffect(() => { loadRecords(); }, [loadRecords]);
+
+  // Auto-open drawer when coming from "去开票" — edit if record exists, new otherwise
+  const autoOpenedRef = useRef(false);
+  useEffect(() => {
+    if (!filterBatchId || recordsLoading || autoOpenedRef.current) return;
+    autoOpenedRef.current = true;
+    const existing = records.find((r: any) => r.procurement_batch_id === filterBatchId);
+    if (existing) {
+      openDrawer(existing);
+    } else {
+      openDrawer(undefined, filterBatchId);
+    }
+  }, [filterBatchId, recordsLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── Load invoice info (info tab) ── */
   useEffect(() => {
@@ -443,7 +456,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   };
 
   /* ── Drawer open/close ── */
-  const openDrawer = (forEdit?: InvoiceRecord) => {
+  const openDrawer = (forEdit?: InvoiceRecord, preSelectBatchId?: number | null) => {
     closeGuardRef.current++;
     setDrawerKey(k => k + 1);
     setEditingId(forEdit ? forEdit.id : null);
@@ -453,7 +466,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
     setDNote(forEdit ? (forEdit.note || '') : '');
     setDInvoiceNo(forEdit ? (forEdit.invoice_number || '') : '');
     setDStatus(forEdit ? (forEdit.status as InvStatus) : 'pending');
-    setDBatchId(forEdit ? (forEdit.procurement_batch_id ?? null) : null);
+    setDBatchId(forEdit ? (forEdit.procurement_batch_id ?? null) : (preSelectBatchId ?? null));
     setDFiles([]);
     setDExistingFilePath(forEdit ? parseFilePaths(forEdit.file_path) : []);
     setDrawerOpen(true);

@@ -240,16 +240,21 @@ export default function PartnerScreen({ onBack, onProfile, refreshKey = 0 }: { o
 
           {/* ====== 3 STAT CARDS (8600 exact) ====== */}
           <View style={s.statGrid}>
-            <TouchableOpacity style={s.statCard} activeOpacity={0.7} onPress={() => setShowInvoice(true)}>
-              <View style={[s.statIconBg, { backgroundColor: withAlpha(colors.primary, 0.08) }]}>
-                <IconBuilding color={colors.primary} />
+            <View style={s.statCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 }}>
+                <View style={[s.statIconBg, { backgroundColor: withAlpha(colors.primary, 0.08) }]}>
+                  <IconBuilding color={colors.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.statLabel}>{t('totalCapital')}</Text>
+                  <Text style={s.statValue}>¥130,000</Text>
+                  <Text style={s.statGreen}>{t('paidInRate')} 100%</Text>
+                </View>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.statLabel}>{t('totalCapital')}</Text>
-                <Text style={s.statValue}>¥130,000</Text>
-                <Text style={s.statGreen}>{t('paidInRate')} 100%</Text>
-              </View>
-            </TouchableOpacity>
+              <TouchableOpacity style={s.dividendBtn} onPress={() => setShowInvoice(true)}>
+                <Text style={s.dividendBtnText}>{t('invCenter')}</Text>
+              </TouchableOpacity>
+            </View>
 
             <View style={s.statCard}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1 }}>
