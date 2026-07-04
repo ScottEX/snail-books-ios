@@ -574,15 +574,17 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   return (
     <View style={styles.container}>
-      {/* Background layers — simple stack: mountain base, custom on top */}
-      <ImageBackground source={BG_IMAGE} style={styles.bgLayer} resizeMode="cover" />
+      {/* Background — single layer, defaultSource handles decode gap */}
       {bgUrl ? (
         <Image
           source={{ uri: bgUrl }}
+          defaultSource={BG_IMAGE}
           style={styles.bgLayer}
           resizeMode="cover"
         />
-      ) : null}
+      ) : (
+        <ImageBackground source={BG_IMAGE} style={styles.bgLayer} resizeMode="cover" />
+      )}
       <View style={styles.bgOverlay} />
       <KeyboardAvoidingView
         style={styles.flex}
