@@ -2,8 +2,8 @@
 // ModalOverlay — 全屏遮罩 + 动画弹窗 (对齐 web)
 // ═══════════════════════════════════════════════════════════════
 
-import { Modal, View, TouchableOpacity, Animated, Easing } from 'react-native';
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { Modal, TouchableOpacity, Animated, Easing } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
 import { BACKDROP_COLOR } from '../theme';
 
 interface ModalOverlayProps {
@@ -119,7 +119,7 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <Animated.View style={[{ flex: 1 }, overlayStyle]}>
+      <Animated.View style={[{ flex: 1, justifyContent: 'center', alignItems: 'center' }, overlayStyle]}>
         <TouchableOpacity
           activeOpacity={1}
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
@@ -127,11 +127,9 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
         >
           <Animated.View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: BACKDROP_COLOR, opacity: back }} />
         </TouchableOpacity>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }} pointerEvents="box-none">
-          <Animated.View style={[{ alignItems: 'center', justifyContent: 'center' }, contentStyle, { opacity: fade, transform: getTrans() }]}>
-            {children}
-          </Animated.View>
-        </View>
+        <Animated.View style={[{ alignItems: 'center', justifyContent: 'center' }, contentStyle, { opacity: fade, transform: getTrans() }]}>
+          {children}
+        </Animated.View>
       </Animated.View>
     </Modal>
   );
