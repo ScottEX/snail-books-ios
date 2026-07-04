@@ -903,7 +903,6 @@ const GLASS_BG = 'rgba(255,255,255,0.15)';
 const GLASS_BG_STRONG = 'rgba(255,255,255,0.25)';
 const GLASS_BORDER = 'rgba(255,255,255,0.18)';
 const GLASS_BORDER_STRONG = 'rgba(255,255,255,0.35)';
-const AVATAR_RING = 'rgba(255,255,255,0.25)';
 
 const getStyles = (colors: ThemeColors) => StyleSheet.create({
   container: { flex: 1 },
@@ -915,7 +914,9 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   brand: { alignItems: 'center', marginBottom: 32 },
   logoWrap: {
     width: 80, height: 80, borderRadius: 40, overflow: 'hidden', marginBottom: 20,
-    backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 2, borderColor: AVATAR_RING,
+    // Match web: soft shadow ring instead of hard border
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18, shadowRadius: 20,
   },
   logoOver: { position: 'absolute' as any, top: 0, left: 0, width: 80, height: 80, borderRadius: 40 },
   subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.7)', marginTop: 6, letterSpacing: 1 },
