@@ -18,12 +18,14 @@ import ButtonPair from '../components/ButtonPair';
 import CloseButton from '../components/CloseButton';
 import EmptyState from '../components/EmptyState';
 import SubmitButton from '../components/SubmitButton';
-import { useTheme, withAlpha, ThemeColors, FONTS, MODAL_BACKDROP_OPACITY } from '../theme';
-import { modalCardAnimation, modalClose, uploadReceiptStyles } from '../sharedStyles';
+import { useTheme, withAlpha, ThemeColors, FONTS, BACKDROP_COLOR, SHEET_HANDLE_COLOR } from '../theme';
+import { modalCardAnimation, modalClose, bottomSheetOverlay, uploadReceiptStyles } from '../sharedStyles';
 import { fmtAmt as fmt, fmtAmtFull, toDec2Comma } from '../utils/format';
 import NumberTickerExt from '../components/NumberTicker';
 import { useServerDate } from '../hooks/useServerDate';
 import { useExpenseForm } from '../hooks/useExpenseForm';
+import ModalOverlay from '../components/ModalOverlay';
+import SheetHeader from '../components/SheetHeader';
 
 /* ── helpers ── */
 // Date helpers replaced by useServerDate() hook (server time, not client)
@@ -997,43 +999,45 @@ export default function ExpenseScreen({
         />
       </Modal>
       </View>
-      {/* Fee entry modal — full-screen via RN <Modal> */}
-      <Modal transparent animationType="none" visible={showFeeSheet} onRequestClose={() => setShowFeeSheet(false)}>
-        <ModalOverlay visible={showFeeSheet} onClose={() => setShowFeeSheet(false)}>
-          <View style={st.feeSheet}>
-            <View style={st.modalHeader}>
-              <Text style={st.modalTitle}>{t('addFeeEntry')}</Text>
-              <CloseButton onPress={() => setShowFeeSheet(false)} />
-            </View>
-            <View style={{ paddingHorizontal: 14, paddingTop: 12, paddingBottom: 16 }}>
+      {/* Fee entry bottom sheet */}
+      <ModalOverlay visible={showFeeSheet} onClose={() => setShowFeeSheet(false)} animation="slideUpScale"
+          overlayStyle={bottomSheetOverlay as any}
+          contentStyle={{ alignItems: 'stretch' } as any}>
+          <View style={[st.feeSheet, { width: '100%', maxWidth: 768, alignSelf: 'center' }]} onStartShouldSetResponder={() => true}>
+            <SheetHeader title={t('addFeeEntry')} onClose={() => setShowFeeSheet(false)} backgroundColor={colors.primary} />
+            <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12 }}>
               {/* Date + Negative toggle */}
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 16 }}>
-                <Text style={{ fontSize: FONTS.sub.size, color: colors.textSub, fontWeight: FONTS.sub.weight, marginTop: 2 }}>{t('entryDate')}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 }}>
+                <Text style={{ fontSize: FONTS.sub.size, color: colors.textSub, fontWeight: FONTS.sub.weight }}>{t('entryDate')}</Text>
                 <View style={{ flex: 1 }}>
-                  <TouchableOpacity onPress={() => setShowFeeDatePicker(true)} style={{ flexDirection: 'row', alignItems: 'center', position: 'relative' }} activeOpacity={0.7}>
-                    <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub }}>
-                      {(() => { return fmtLocalDate(feeEntryDate); })()}
+                  <TouchableOpacity onPress={() => setShowFeeDatePicker(true)} style={{ flexDirection: 'row', alignItems: 'center' }} activeOpacity={0.7}>
+                    <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary }}>
+                      {fmtLocalDate(feeEntryDate)}
                     </Text>
-                    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 4, transform: [{ translateY: -1 }] }}><Path d="M10 6l6 6-6 6"/></Svg>
+                    <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 4 }}>
+                      <Rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><Line x1="16" y1="2" x2="16" y2="6" /><Line x1="8" y1="2" x2="8" y2="6" /><Line x1="3" y1="10" x2="21" y2="10" />
+                    </Svg>
+                    <Svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 2 }}>
+                      <Path d="M9 18l6-6-6-6" />
+                    </Svg>
                   </TouchableOpacity>
                   <DateErrorHint trigger={feeDateErr} message={t('errDateFuture')} colors={colors} />
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 2 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                   <Text style={{ fontSize: 10, color: colors.danger }}>负数</Text>
                   <Switch value={negativeMode} onValueChange={setNegativeMode}
-                    trackColor={{ false: colors.secondary, true: colors.danger }}
+                    trackColor={{ false: colors.secondary, true: withAlpha(colors.danger, 0.4) }}
                     thumbColor={negativeMode ? colors.danger : colors.surface}
-                    style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
                   />
                 </View>
               </View>
 
               {/* Column headers */}
-              <View style={{ flexDirection: 'row', marginBottom: 10, gap: 4, paddingHorizontal: 2 }}>
-                <Text style={{ flex: 1.5, fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight }}></Text>
-                <Text style={{ flex: 1.5, fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight, textAlign: 'left' }}>{t('feePreview')}</Text>
-                <Text style={{ flex: 1.2, fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight, textAlign: 'left' }}>{t('feeCurrent')}</Text>
-                <Text style={{ flex: 1.2, fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight, textAlign: 'right' }}>{t('feeEntry')}</Text>
+              <View style={{ flexDirection: 'row', marginBottom: 10, gap: 6 }}>
+                <Text style={{ flex: 1, minWidth: 80, maxWidth: 180, flexShrink: 1, fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight }}></Text>
+                <Text style={{ width: '22%', fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight, textAlign: 'left' }}>{t('feePreview')}</Text>
+                <Text style={{ width: '22%', fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight, textAlign: 'left' }}>{t('feeCurrent')}</Text>
+                <Text style={{ width: '22%', fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight, textAlign: 'right' }}>{t('feeEntry')}</Text>
               </View>
 
               {/* Fee rows */}
@@ -1046,20 +1050,20 @@ export default function ExpenseScreen({
                 const inputNum = toNum(row.val);
                 const sign = negativeMode ? -1 : 1;
                 return (
-                  <View key={row.k} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10, gap: 4 }}>
-                    <Text style={{ flex: 1.5, fontSize: FONTS.sub.size, color: colors.textSub, fontWeight: FONTS.sub.weight, marginTop: 8 }}>{t(row.k)}</Text>
-                    <Text style={{ flex: 1.5, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain, textAlign: 'left', marginTop: 8 }}>
+                  <View key={row.k} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10, gap: 6 }}>
+                    <Text style={{ flex: 1, minWidth: 80, maxWidth: 180, flexShrink: 1, fontSize: FONTS.sub.size, color: colors.textSub, fontWeight: FONTS.sub.weight, marginTop: 8 }}>{t(row.k)}</Text>
+                    <Text style={{ width: '22%', fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain, textAlign: 'left', marginTop: 8 }}>
                       ¥{(row.cur + inputNum * sign).toFixed(2)}
                     </Text>
-                    <Text style={{ flex: 1.2, fontSize: FONTS.micro.size, color: colors.textSub, textAlign: 'left', marginTop: 10 }}>
+                    <Text style={{ width: '22%', fontSize: FONTS.micro.size, color: colors.textSub, textAlign: 'left', marginTop: 10 }}>
                       ¥{row.cur.toFixed(2)}
                     </Text>
-                    <View style={{ flex: 1.2, position: 'relative' }}>
+                    <View style={{ width: '22%', flexDirection: 'row', alignItems: 'center', position: 'relative' }}>
                       {negativeMode && (
-                        <Text style={{ position: 'absolute', left: 6, top: 0, height: 38, lineHeight: 38, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.danger, zIndex: 1 }}>−</Text>
+                        <Text style={{ position: 'absolute', left: 10, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.danger, zIndex: 1 }}>−</Text>
                       )}
                       <TextInput
-                        style={{ flex: 1, height: 38, borderWidth: 1, borderColor: negativeMode ? colors.danger : colors.secondary, borderRadius: 8, paddingHorizontal: negativeMode ? 20 : 6, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub, textAlign: 'right', backgroundColor: colors.surface } as any}
+                        style={{ width: '100%', height: 38, borderWidth: 1, borderColor: negativeMode ? colors.danger : colors.secondary, borderRadius: 8, paddingLeft: negativeMode ? 24 : 10, paddingRight: 10, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub, textAlign: 'right', backgroundColor: colors.surface } as any}
                         value={row.val} onChangeText={(v: string) => row.set(fmtDecInput(v))}
                         keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={colors.textSub}
                       />
@@ -1079,22 +1083,18 @@ export default function ExpenseScreen({
               />
             </View>
           </View>
-        </ModalOverlay>
-      </Modal>
-      {/* Fee history modal — full-screen via RN <Modal> */}
-      <Modal transparent animationType="none" visible={showFeeHistory} onRequestClose={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }}>
-        <ModalOverlay visible={showFeeHistory} onClose={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }}>
-          <View style={[st.feeSheet, { height: Dimensions.get('window').height * 0.70, width: '96%', overflow: 'visible' as any }]}>
-            <View style={st.modalHeader}>
-              <Text style={st.modalTitle}>{t('feeHistory')}</Text>
-              <CloseButton onPress={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }} />
-            </View>
+      </ModalOverlay>
+      {/* Fee history bottom sheet */}
+      <ModalOverlay visible={showFeeHistory} onClose={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }} animation="slideUpScale"
+          overlayStyle={bottomSheetOverlay as any}
+          contentStyle={{ alignItems: 'stretch', justifyContent: 'flex-end' } as any}>
+          <View style={[st.feeSheet, { height: Dimensions.get('window').height * 0.7, width: '100%', maxWidth: 768, alignSelf: 'center' }]} onStartShouldSetResponder={() => true}>
+            <SheetHeader title={t('feeHistory')} onClose={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }} backgroundColor={colors.primary} />
             {/* Month filter */}
-            <View style={{ paddingHorizontal: 20, paddingBottom: 6, paddingTop: 8, flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ paddingHorizontal: 20, paddingBottom: 8, flexDirection: 'row', alignItems: 'center' }}>
               <MonthPicker selected={feeHistoryFilter} onSelect={(v) => setFeeHistoryFilter(v)} months={feeMonthList} colors={colors} />
             </View>
-            {/* Scrollable list area */}
-            <ScrollView style={{ flex: 1, paddingHorizontal: 12 }} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
+            <ScrollView style={{ flex: 1, paddingHorizontal: 12 }} showsVerticalScrollIndicator={false}>
               {(() => {
                 const filtered = feeHistoryFilter === 'all' ? allFees : allFees.filter((f: any) => f.year === feeHistoryFilter.year && f.month === feeHistoryFilter.month);
                 if (filtered.length === 0) {
@@ -1114,7 +1114,7 @@ export default function ExpenseScreen({
                   { label: t('meituanTuan'), value: f.meituan_tuan || 0, color: colors.success },
                 ];
                 return (
-                  <View key={f.id} style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: colors.secondary }}>
+                  <View key={f.id} style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, marginBottom: 8 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
                       <Text style={{ fontSize: FONTS.subBold.size, color: colors.textSub, fontWeight: FONTS.subBold.weight }}>{fmtMonth(f.year, f.month)}</Text>
                       <Text style={{ fontSize: FONTS.body.size, color: colors.primary, fontWeight: FONTS.h2.weight }}>¥{monthTotal.toFixed(2)}</Text>
@@ -1133,50 +1133,9 @@ export default function ExpenseScreen({
               }); })()}
             </ScrollView>
           </View>
-        </ModalOverlay>
-      </Modal>
+      </ModalOverlay>
     </KeyboardAvoidingView>
     </>
-  );
-}
-
-/* ══════════════════════════════ MODAL OVERLAY ══════════════════════════════ */
-
-function ModalOverlay({ children, onClose, visible }: {
-  children: React.ReactNode;
-  onClose: () => void;
-  visible?: boolean;
-}) {
-  const [show, setShow] = useState(visible !== false);
-  const slide = useRef(new Animated.Value(-300)).current;
-  const fade = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (visible !== false) {
-      setShow(true);
-      slide.setValue(-300);
-      fade.setValue(0);
-      Animated.parallel([
-        Animated.spring(slide, { toValue: 0, useNativeDriver: false, bounciness: 4, speed: 14 }),
-        Animated.timing(fade, { toValue: 1, duration: 200, useNativeDriver: false }),
-      ]).start();
-    } else if (show) {
-      Animated.parallel([
-        Animated.timing(slide, { toValue: -300, duration: 180, useNativeDriver: false }),
-        Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: false }),
-      ]).start(() => setShow(false));
-    }
-  }, [visible]);
-
-  if (!show) return null;
-
-  return (
-    <Animated.View style={{ position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, justifyContent: 'center', alignItems: 'center', padding: 16, opacity: fade }}>
-      <TouchableOpacity activeOpacity={1} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', opacity: MODAL_BACKDROP_OPACITY }} onPress={onClose} />
-      <Animated.View style={{ alignSelf: 'stretch' as any, alignItems: 'center', justifyContent: 'center', transform: [{ translateY: slide }] }}>
-        {children}
-      </Animated.View>
-    </Animated.View>
   );
 }
 
@@ -1539,14 +1498,11 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   /* Platform fee sheet — bottom half-screen */
   feeSheet: {
     backgroundColor: colors.surface,
-    borderRadius: 20,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
     overflow: 'hidden',
-    paddingBottom: 0,
     // @ts-ignore
     display: 'flex', flexDirection: 'column',
-    width: '96%', maxWidth: 500,
     // @ts-ignore
-    ...modalCardAnimation,
-    // @ts-ignore
+    boxShadow: '0 -8px 40px rgba(0,0,0,.18)',
   },
 });

@@ -62,10 +62,15 @@ export const EXIT_EASING = 'cubic-bezier(0.55, 0.055, 0.675, 0.19)';
 // ═══════════════════════════════════════════
 // 弹窗遮罩常量（统一控制，PDF 预览页除外）
 // ═══════════════════════════════════════════
-export const MODAL_BACKDROP_OPACITY = 0.8;
+export const BACKDROP_RGB = '20,18,16';
+export const MODAL_BACKDROP_OPACITY = 0.65;
+export const BACKDROP_COLOR = `rgba(${BACKDROP_RGB},${MODAL_BACKDROP_OPACITY})`;
 
 /** Required indicator (*) color — same across all themes */
 export const REQUIRED_COLOR = '#E84040';
+
+/** Sheet 抽屉顶部灰色把手颜色 */
+export const SHEET_HANDLE_COLOR = '#D4D0C8';
 
 // ─── 方案一：勃艮第红与暖沙白 ───
 const theme1: Theme = {

@@ -22,6 +22,13 @@ export const modalClose = {
   fontWeight: '300' as const,
 };
 
+/** 底部 sheet 抽屉的 ModalOverlay overlayStyle 共用配置 */
+export const bottomSheetOverlay = {
+  justifyContent: 'flex-end' as const,
+  padding: 0,
+  alignItems: 'stretch' as const,
+};
+
 // ─── History Page Header (‹ back + title + 🔍 filter) ──
 
 /** Shared header / back-button / title styles for all history sub-pages.
