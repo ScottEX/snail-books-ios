@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { t, getLang } from '../i18n';
 import { api, resolveAssetUrl } from '../api/client';
 import { useToast } from '../hooks/useToast';
-import { getCurrentUserId } from '../utils/storage';
+import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import DatePickerModal from '../components/DatePickerModal';
 import CategoryChips from '../components/CategoryChips';
 import MonthPicker, { MonthValue } from '../components/MonthPicker';
@@ -330,13 +330,13 @@ export default function ExpenseScreen({
   const submitRecon = useCallback(async () => {
     if (sd.ready && sd.isFuture(recDate)) { showToast(t('errDateFuture')); return; }
     try {
+      const username = getCurrentUser();
       // 提交那一刻拉最新 businessSummary，确保 cash_on_hand 含本会话刚录的支出
-      let latestSummary: any = businessSummary;
-      try { const fresh = await api.getBusinessSummary(); if (fresh) latestSummary = fresh; } catch {}
+      const latestSummary = await api.getBusinessSummary();
       const latestCashOnHand = latestSummary?.cash_on_hand || 0;
       const latestCashOnHandCents = toCents(latestCashOnHand);
       const latestDiff = (realTotalCents - latestCashOnHandCents) / 100;
-      const username = localStorage.getItem('user') || '';
+      setBusinessSummary(latestSummary || {});
       await api.createReconciliation({
         bill_date: recDate,
         card_balance: toNum(cardBalance),
