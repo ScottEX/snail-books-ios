@@ -533,7 +533,7 @@ export default function ExpenseScreen({
             const w = Dimensions.get('window').width;
             const mid = (w - 47) / 2;
             const snap = offset < mid ? 0 : w - 47;
-            scrollRef.current?.scrollTo({ x: snap, animated: false });
+            scrollRef.current?.scrollTo({ x: snap, animated: true });
           }}
           onMomentumScrollEnd={(e) => {
             const offset = e.nativeEvent.contentOffset.x;
