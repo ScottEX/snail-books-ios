@@ -372,7 +372,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   reconByRow: { alignItems: 'center', paddingBottom: 2 },
   reconByText: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight },
   /* Modal */
-  modal: { width: '88%', maxWidth: 380, backgroundColor: colors.surface, borderRadius: 24, overflow: 'hidden' },
+  modal: { width: '90%', backgroundColor: colors.surface, borderRadius: 24, overflow: 'hidden' },
   modalHeader: { backgroundColor: colors.primary, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 18 },
   modalDate: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.surface },
   modalDateSub: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: withAlpha(colors.surface, 0.75), marginTop: 2 },
