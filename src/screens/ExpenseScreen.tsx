@@ -531,15 +531,15 @@ export default function ExpenseScreen({
           onScrollEndDrag={(e) => {
             const offset = e.nativeEvent.contentOffset.x;
             const w = Dimensions.get('window').width;
-            // Snap targets: card 0 at content x=18, card 1 at content x=w-29
-            const mid = (18 + w - 29) / 2;
-            const snap = offset < mid ? 18 : w - 29;
-            scrollRef.current?.scrollTo({ x: snap, animated: true });
+            // fast decel → residual momentum is tiny; animated:false lands precisely
+            const mid = (w - 47) / 2;
+            const snap = offset < mid ? 0 : w - 47;
+            scrollRef.current?.scrollTo({ x: snap, animated: false });
           }}
           onMomentumScrollEnd={(e) => {
             const offset = e.nativeEvent.contentOffset.x;
             const w = Dimensions.get('window').width;
-            const idx = offset < (18 + w - 29) / 2 ? 0 : 1;
+            const idx = offset < (w - 47) / 2 ? 0 : 1;
             if (idx >= 0 && idx < tabCards.length) setActiveTab(idx);
           }}
           contentContainerStyle={st.tabScroll}>
@@ -1281,7 +1281,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   /* ── Content ── */
   contentScroll: { flex: 1, backgroundColor: 'transparent' as const },
   contentInner: {
-    paddingHorizontal: 0, paddingBottom: 100, gap: 0, backgroundColor: 'transparent' as const,
+    paddingHorizontal: 18, paddingBottom: 100, gap: 0, backgroundColor: 'transparent' as const,
   },
   moduleWrap: {
     width: '100%',
