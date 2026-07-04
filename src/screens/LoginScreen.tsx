@@ -554,7 +554,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       >
         <ScrollView
           style={styles.content}
-          contentContainerStyle={[styles.contentScroll, { paddingTop: 32 + insets.top, paddingBottom: 40 + insets.bottom }]}
+          contentContainerStyle={[styles.contentScroll, { paddingTop: 12 + insets.top, paddingBottom: 40 + insets.bottom }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
