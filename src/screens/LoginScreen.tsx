@@ -559,9 +559,14 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   const handleResend = async () => {
     if (resendCooldown > 0) return;
-    const r = await api.resendCode(email);
-    if (r.dev_code) setDevCode(r.dev_code);
-    setResendCooldown(30);
+    try {
+      const r = await api.resendCode(email);
+      if (r.dev_code) setDevCode(r.dev_code);
+      setResendCooldown(30);
+    } catch (e: any) {
+      if (e?.message) { setMsg(e.message); setMsgKey(''); } else { setMsgKey('errNetworkError'); setMsg(''); }
+      return;
+    }
     if (cooldownRef.current) clearInterval(cooldownRef.current);
     cooldownRef.current = setInterval(() => {
       setResendCooldown(c => { if (c <= 1) { clearInterval(cooldownRef.current!); cooldownRef.current = null; return 0; } return c - 1; });
