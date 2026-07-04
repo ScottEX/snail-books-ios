@@ -528,12 +528,16 @@ export default function ExpenseScreen({
           ref={scrollRef}
           decelerationRate="fast"
           bounces={false}
-          snapToOffsets={[0, Dimensions.get('window').width - 47]}
+          onScrollEndDrag={(e) => {
+            const offset = e.nativeEvent.contentOffset.x;
+            const w = Dimensions.get('window').width;
+            const mid = (w - 47) / 2;
+            const snap = offset < mid ? 0 : w - 47;
+            scrollRef.current?.scrollTo({ x: snap, animated: false });
+          }}
           onMomentumScrollEnd={(e) => {
             const offset = e.nativeEvent.contentOffset.x;
             const w = Dimensions.get('window').width;
-            // snapToOffsets already landed us at a snap point;
-            // just read which card we're on. midpoint ≈ offset1 / 2
             const idx = offset < (w - 47) / 2 ? 0 : 1;
             if (idx >= 0 && idx < tabCards.length) setActiveTab(idx);
           }}
