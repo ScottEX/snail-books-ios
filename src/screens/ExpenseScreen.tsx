@@ -526,16 +526,11 @@ export default function ExpenseScreen({
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
           testID="snap-scroll"
           ref={scrollRef}
+          pagingEnabled={false}
+          snapToOffsets={[0, Dimensions.get('window').width - 47]}
+          snapToStart={false}
+          snapToEnd={false}
           decelerationRate="fast"
-          bounces={false}
-          onScrollEndDrag={(e) => {
-            const offset = e.nativeEvent.contentOffset.x;
-            const w = Dimensions.get('window').width;
-            // fast decel → residual momentum is tiny; animated:false lands precisely
-            const mid = (w - 47) / 2;
-            const snap = offset < mid ? 0 : w - 47;
-            scrollRef.current?.scrollTo({ x: snap, animated: false });
-          }}
           onMomentumScrollEnd={(e) => {
             const offset = e.nativeEvent.contentOffset.x;
             const w = Dimensions.get('window').width;
@@ -641,9 +636,7 @@ export default function ExpenseScreen({
 
       {/* ══════ 内容区（FadeIn 切换） ══════ */}
       <ScrollView style={st.contentScroll} showsVerticalScrollIndicator={false}
-        contentContainerStyle={st.contentInner}
-        decelerationRate="fast"
-        bounces={false}>
+        contentContainerStyle={st.contentInner}>
 
         {/* ── 模块一：每日对账 ── */}
         {activeTab === 0 && (
