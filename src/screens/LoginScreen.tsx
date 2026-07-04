@@ -67,7 +67,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [showPwNew, setShowPwNew] = useState(false);
   const [loading, setLoading] = useState(false);
   const [remember, setRemember] = useState(() => {
-    try { return localStorage.getItem('remember_me') === '1'; } catch { return false; }
+    try { return localStorage.getItem('remember_me') === 'true'; } catch { return false; }
   });
   const [devCode, setDevCode] = useState('');
   // WebAuthn/Face ID state. hasFaceID: this device has a stored
@@ -97,8 +97,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   // device.
   useEffect(() => {
     if (typeof localStorage === 'undefined') return;
-    if (remember) localStorage.setItem('remember_me', '1');
-    else localStorage.removeItem('remember_me');
+    localStorage.setItem('remember_me', String(remember));
   }, [remember]);
 
   // Migrate old data-URI cache to local files (data URIs are MBs of base64,
