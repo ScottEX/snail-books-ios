@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Animated, PanResponder } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Animated, PanResponder, StatusBar } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Svg, { Path } from 'react-native-svg';
 import { t, getLang } from '../i18n';
@@ -187,6 +187,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
 
   return (
     <View style={st.root} {...swipeBack}>
+      <StatusBar barStyle="dark-content" />
       <HistoryHeader
         onBack={onBack}
         title={`${t('reconHistory')} (${records.length}/${total})`}
