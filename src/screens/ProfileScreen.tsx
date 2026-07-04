@@ -7,6 +7,7 @@ import Svg, { Path, Defs, LinearGradient as SVGGradient, Stop, Rect } from 'reac
 import { BlurView } from 'expo-blur';
 import { t, getLang, langs, useLang } from '../i18n';
 import { api, resolveAssetUrl } from '../api/client';
+import * as FileSystem from 'expo-file-system';
 import { useTheme, withAlpha, ThemeColors, DEFAULT_THEME_ID } from '../theme';
 import { FONTS } from '../theme';
 import Toast from '../components/Toast';
@@ -494,7 +495,18 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       const r: any = await api.uploadBackground(file);
       if (r?.url) {
         const resolved = resolveAssetUrl(r.url) || r.url;
-        try { localStorage.setItem('bg-image', resolved); } catch {}
+        // Cache as local file so LoginScreen loads instantly (no network fetch)
+        try {
+          const cachePath = FileSystem.cacheDirectory + 'bg-profile-' + Date.now() + '.jpg';
+          const dl = await FileSystem.downloadAsync(resolved, cachePath);
+          if (dl.status === 200) {
+            localStorage.setItem('bg-image', dl.uri);
+          } else {
+            localStorage.setItem('bg-image', resolved);
+          }
+        } catch {
+          try { localStorage.setItem('bg-image', resolved); } catch {}
+        }
         try { localStorage.setItem('__bg_changed_ts', String(Date.now())); } catch {}
         if (typeof window !== 'undefined' && typeof (window as any).dispatchEvent === 'function') {
           (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: resolved } }));
