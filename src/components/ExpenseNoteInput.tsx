@@ -1,4 +1,5 @@
-import { View, Text, TextInput } from 'react-native';
+import { View, Text } from 'react-native';
+import AppTextInput from './AppTextInput';
 import { useTheme, withAlpha } from '../theme';
 import { FONTS } from '../theme';
 import { t } from '../i18n';
@@ -18,7 +19,7 @@ export default function ExpenseNoteInput({ value, onChangeText, placeholder, lab
       <Text style={{ fontSize: 14, color: c.textSub, fontWeight: '500' as any, marginBottom: 0, marginTop: 9 }}>
         {label || t('expenseNote')}
       </Text>
-      <TextInput
+      <AppTextInput
         style={{
           flex: 1,
           fontSize: FONTS.sub.size,

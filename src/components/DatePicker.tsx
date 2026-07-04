@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import Svg, { Path, Rect, Line } from 'react-native-svg';
 import { useTheme } from '../theme';
 import { FONTS } from '../theme';
@@ -74,15 +74,13 @@ export default function DatePicker({
         )}
       </TouchableOpacity>
 
-      <Modal visible={open} transparent animationType="none" onRequestClose={() => setOpen(false)}>
-        <DatePickerModal
-          visible={open}
-          value={date}
-          minDate={max}
-          onClose={() => setOpen(false)}
-          onSelect={handleSelect}
-        />
-      </Modal>
+      <DatePickerModal
+        visible={open}
+        value={date}
+        minDate={max}
+        onClose={() => setOpen(false)}
+        onSelect={handleSelect}
+      />
     </View>
   );
 }

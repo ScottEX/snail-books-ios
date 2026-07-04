@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, useReducer } from 'react';
 import {
-  View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Animated, Dimensions, Modal, Switch, KeyboardAvoidingView, Platform,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, Dimensions, Switch, Keyboard, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import { t, getLang } from '../i18n';
@@ -132,7 +133,7 @@ function InputWithFocus({ style, inputStyle, ...props }: any) {
   const { colors } = useTheme();
 
   return (
-    <TextInput
+    <AppTextInput
       {...props}
       onFocus={(e: any) => { setFocused(true); props.onFocus?.(e); }}
       onBlur={(e: any) => { setFocused(false); props.onBlur?.(e); }}
@@ -181,7 +182,6 @@ export default function ExpenseScreen({
 }) {
   const { colors } = useTheme();
   const sd = useServerDate();
-
   // Load business summary internally (matching web)
   const [businessSummary, setBusinessSummary] = useState<any>({});
   const loadBusinessSummary = useCallback(() => {
@@ -394,6 +394,12 @@ export default function ExpenseScreen({
   const [allFees, setAllFees] = useState<any[]>([]);         // all months for detail
   const [feeMonth, setFeeMonth] = useState<'all' | { year: number; month: number }>({ year: thisYear, month: thisMonth });
   const [showFeeSheet, setShowFeeSheet] = useState(false);
+  const [keyboardH, setKeyboardH] = useState(0);
+  useEffect(() => {
+    const s1 = Keyboard.addListener('keyboardWillShow', (e) => setKeyboardH(e.endCoordinates.height));
+    const s2 = Keyboard.addListener('keyboardWillHide', () => setKeyboardH(0));
+    return () => { s1.remove(); s2.remove(); };
+  }, []);
   const [showFeeHistory, setShowFeeHistory] = useState(false);
   const [feeHistoryFilter, setFeeHistoryFilter] = useState<'all' | { year: number; month: number }>('all');
   const [feeEntryDate, setFeeEntryDate] = useState(sd.today || '');
@@ -847,7 +853,7 @@ export default function ExpenseScreen({
                     <Text style={st.bigAmtSymbol}>-</Text>
                   )}
                   <Text style={st.bigAmtSymbol}>¥</Text>
-                  <TextInput style={st.bigAmtInput}
+                  <AppTextInput style={st.bigAmtInput}
                     value={expAmount} onChangeText={(v: string) => setExpAmount(fmtRefundInput(v, isRefund))}
                     onBlur={() => { if (expAmount !== '') setExpAmount(toDec2Comma(expAmount)); }}
                     keyboardType="decimal-pad" placeholder="0.00"
@@ -940,7 +946,7 @@ export default function ExpenseScreen({
 
       {/* 添加提示弹窗 */}
       {showReconConfirm && (
-        <ModalOverlay onClose={hideReconConfirm}>
+        <ModalOverlay onClose={hideReconConfirm} animation="springScale">
           <View style={st.modalCard} onStartShouldSetResponder={() => true}>
             <View style={st.modalHeader}>
               <Text style={st.modalTitle}>{t('friendlyReminder')}</Text>
@@ -965,60 +971,55 @@ export default function ExpenseScreen({
 
 
 
-      {/* Rec date picker — Modal wraps for full-screen overlay */}
-      <Modal transparent animationType="none" visible={showRecDatePicker} onRequestClose={() => setShowRecDatePicker(false)}>
-        <DatePickerModal
-          visible={showRecDatePicker}
-          value={recDate}
-          onClose={() => setShowRecDatePicker(false)}
-          onSelect={(d) => { setRecDateOverride(d); setRecDateKey(k => k + 1); setRecDateErr(0); }}
-          minDate={sd.today}
-          title={t('billDate')}
-        />
-      </Modal>
-      {/* Exp date picker — Modal wraps for full-screen overlay */}
-      <Modal transparent animationType="none" visible={showExpDatePicker} onRequestClose={() => setShowExpDatePicker(false)}>
-        <DatePickerModal
-          visible={showExpDatePicker}
-          value={expDate}
-          onClose={() => setShowExpDatePicker(false)}
-          onSelect={(d) => { if (d <= sd.today) { setExpDate(d); setExpDateErr(0); } }}
-          minDate={undefined}
-          title={t('billDate')}
-        />
-      </Modal>
-      {/* Fee date picker — wrapped in Modal to render above fee sheet Modal */}
-      <Modal transparent animationType="none" visible={showFeeDatePicker} onRequestClose={() => setShowFeeDatePicker(false)}>
-        <DatePickerModal
-          visible={showFeeDatePicker}
-          value={feeEntryDate}
-          onClose={() => setShowFeeDatePicker(false)}
-          onSelect={(d) => { setFeeEntryDate(d); setFeeDateErr(0); }}
-          minDate={undefined}
-          title={t('entryDate')}
-        />
-      </Modal>
+      {/* Rec date picker */}
+      <DatePickerModal
+        visible={showRecDatePicker}
+        value={recDate}
+        onClose={() => setShowRecDatePicker(false)}
+        onSelect={(d) => { setRecDateOverride(d); setRecDateKey(k => k + 1); setRecDateErr(0); }}
+        minDate={sd.today}
+        title={t('billDate')}
+      />
+      {/* Exp date picker */}
+      <DatePickerModal
+        visible={showExpDatePicker}
+        value={expDate}
+        onClose={() => setShowExpDatePicker(false)}
+        onSelect={(d) => { if (d <= sd.today) { setExpDate(d); setExpDateErr(0); } }}
+        minDate={undefined}
+        title={t('billDate')}
+      />
+      {/* Fee date picker */}
+      <DatePickerModal
+        visible={showFeeDatePicker}
+        value={feeEntryDate}
+        onClose={() => setShowFeeDatePicker(false)}
+        onSelect={(d) => { setFeeEntryDate(d); setFeeDateErr(0); }}
+        minDate={undefined}
+        title={t('entryDate')}
+      />
       </View>
       {/* Fee entry bottom sheet */}
       <ModalOverlay visible={showFeeSheet} onClose={() => setShowFeeSheet(false)} animation="slideUpScale"
-          overlayStyle={bottomSheetOverlay as any}
+          overlayStyle={{ ...bottomSheetOverlay, paddingBottom: keyboardH } as any}
           contentStyle={{ alignItems: 'stretch' } as any}>
           <View style={[st.feeSheet, { width: '100%', maxWidth: 768, alignSelf: 'center' }]}>
             <SheetHeader title={t('addFeeEntry')} onClose={() => setShowFeeSheet(false)} backgroundColor={colors.primary} />
+            <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
             <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12 }}>
               {/* Date + Negative toggle */}
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 }}>
                 <Text style={{ fontSize: FONTS.sub.size, color: colors.textSub, fontWeight: FONTS.sub.weight }}>{t('entryDate')}</Text>
                 <View style={{ flex: 1 }}>
-                  <TouchableOpacity onPress={() => setShowFeeDatePicker(true)} style={{ flexDirection: 'row', alignItems: 'center' }} activeOpacity={0.7}>
+                  <TouchableOpacity onPress={() => setShowFeeDatePicker(true)} style={{ flexDirection: 'row', alignItems: 'center', gap: 1 }} activeOpacity={0.7}>
+                    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                      <Rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><Line x1="16" y1="2" x2="16" y2="6" /><Line x1="8" y1="2" x2="8" y2="6" /><Line x1="3" y1="10" x2="21" y2="10" />
+                    </Svg>
                     <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary }}>
                       {fmtLocalDate(feeEntryDate)}
                     </Text>
-                    <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 4 }}>
-                      <Rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><Line x1="16" y1="2" x2="16" y2="6" /><Line x1="8" y1="2" x2="8" y2="6" /><Line x1="3" y1="10" x2="21" y2="10" />
-                    </Svg>
-                    <Svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 2 }}>
-                      <Path d="M9 18l6-6-6-6" />
+                    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                      <Path d="M8 5l8 7-8 7" />
                     </Svg>
                   </TouchableOpacity>
                   <DateErrorHint trigger={feeDateErr} message={t('errDateFuture')} colors={colors} />
@@ -1026,8 +1027,8 @@ export default function ExpenseScreen({
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                   <Text style={{ fontSize: 10, color: colors.danger }}>负数</Text>
                   <Switch value={negativeMode} onValueChange={setNegativeMode}
-                    trackColor={{ false: colors.secondary, true: withAlpha(colors.danger, 0.4) }}
-                    thumbColor={negativeMode ? colors.danger : colors.surface}
+                    trackColor={{ false: colors.secondary, true: withAlpha(colors.success, 0.4) }}
+                    thumbColor={negativeMode ? colors.surface : colors.surface}
                     style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
                   />
                 </View>
@@ -1063,7 +1064,7 @@ export default function ExpenseScreen({
                       {negativeMode && (
                         <Text style={{ position: 'absolute', left: 10, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.danger, zIndex: 1 }}>−</Text>
                       )}
-                      <TextInput
+                      <AppTextInput
                         style={{ width: '100%', height: 38, borderWidth: 1, borderColor: negativeMode ? colors.danger : colors.secondary, borderRadius: 8, paddingLeft: negativeMode ? 24 : 10, paddingRight: 10, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub, textAlign: 'right', backgroundColor: colors.surface } as any}
                         value={row.val} onChangeText={(v: string) => row.set(fmtDecInput(v))}
                         keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={colors.textSub}
@@ -1083,6 +1084,7 @@ export default function ExpenseScreen({
                 textStyle={{ color: colors.surface, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight }}
               />
             </View>
+            </ScrollView>
           </View>
       </ModalOverlay>
       {/* Fee history bottom sheet */}
@@ -1093,7 +1095,7 @@ export default function ExpenseScreen({
             <SheetHeader title={t('feeHistory')} onClose={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }} backgroundColor={colors.primary} />
             {/* Month filter */}
             <View style={{ paddingHorizontal: 20, paddingBottom: 8, flexDirection: 'row', alignItems: 'center' }}>
-              <MonthPicker selected={feeHistoryFilter} onSelect={(v) => setFeeHistoryFilter(v)} months={feeMonthList} colors={colors} />
+              <MonthPicker selected={feeHistoryFilter} onSelect={(v) => setFeeHistoryFilter(v)} months={feeMonthList} colors={colors} compact={false} />
             </View>
             <ScrollView style={{ flex: 1, paddingHorizontal: 12 }} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
               {(() => {
@@ -1115,7 +1117,7 @@ export default function ExpenseScreen({
                   { label: t('meituanTuan'), value: f.meituan_tuan || 0, color: colors.success },
                 ];
                 return (
-                  <View key={f.id} style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, marginBottom: 8 }}>
+                  <View key={f.id} style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: colors.secondary }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
                       <Text style={{ fontSize: FONTS.subBold.size, color: colors.textSub, fontWeight: FONTS.subBold.weight }}>{fmtMonth(f.year, f.month)}</Text>
                       <Text style={{ fontSize: FONTS.body.size, color: colors.primary, fontWeight: FONTS.h2.weight }}>¥{monthTotal.toFixed(2)}</Text>
@@ -1267,7 +1269,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   /* ── Inputs ── */
   row2: { flexDirection: 'row', gap: 12 },
   inputGroup: { flex: 1 },
-  inputLabel: { fontSize: FONTS.micro.size, lineHeight: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight, marginBottom: 4 },
+  inputLabel: { fontSize: FONTS.micro.size, lineHeight: Math.round(FONTS.micro.size * 1.4), color: colors.textSub, fontWeight: FONTS.micro.weight, marginBottom: 4 },
   input: {
     backgroundColor: colors.bg,
     borderRadius: 10, paddingVertical: 12, paddingHorizontal: 12,

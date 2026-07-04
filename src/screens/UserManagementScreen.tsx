@@ -9,6 +9,7 @@ import {
   Image,
   Dimensions,
 } from 'react-native';
+import AppTextInput from '../components/AppTextInput';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { t, getLang } from '../i18n';
@@ -240,7 +241,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
         {/* Search bar */}
         <View style={s.searchBox}>
           <SearchIcon color={c.textSub} />
-          <TextInput
+          <AppTextInput
             style={s.searchInput}
             placeholder={t('searchUser')}
             placeholderTextColor={c.textSub}

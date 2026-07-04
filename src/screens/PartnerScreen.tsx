@@ -15,7 +15,8 @@
 //      mid 算法、moBody.input color、detail cell 字号、mo.close = modalClose
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Image } from 'react-native';
+import AppTextInput from '../components/AppTextInput';
 import Svg, { Path } from 'react-native-svg';
 import { t, useLang } from '../i18n';
 import { useServerDate } from '../hooks/useServerDate';
@@ -436,7 +437,7 @@ export default function PartnerScreen({ onBack, onProfile, refreshKey = 0 }: { o
           <View style={moBody.body}>
             <View>
               <Text style={moBody.label}>{t('totalToPool')}</Text>
-              <TextInput style={moBody.input} placeholder={t('enterAmount')} value={divAmount}
+              <AppTextInput style={moBody.input} placeholder={t('enterAmount')} value={divAmount}
                 onChangeText={(v) => { const clean = fmtDecInput(v); setDivAmount(clean); calcPreview(parseFloat(clean) || 0); }}
                 keyboardType="decimal-pad" placeholderTextColor={colors.textSub} />
             </View>

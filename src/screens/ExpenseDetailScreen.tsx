@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
-  TextInput, Image, useWindowDimensions,
+  Image, useWindowDimensions,
 } from 'react-native';
+import AppTextInput from '../components/AppTextInput';
 import Svg, { Path } from 'react-native-svg';
 import { t, getLang } from '../i18n';
 import { fmtDecInput, toDec2 } from '../utils/numbers';
@@ -350,7 +351,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
                 {expense?.procurement_batch_id ? (
                   <Text style={{ fontSize: 36, fontWeight: '700', color: isRefundRecord ? c.success : c.textSub }}>{amount || '0.00'}</Text>
                 ) : (
-                  <TextInput
+                  <AppTextInput
                     style={{ fontSize: 36, fontWeight: '700', color: isRefundRecord ? c.success : amtColor, borderWidth: 0, backgroundColor: 'transparent', textAlign: 'left', padding: 0, flex: 0, width: 180 } as any}
                     value={amount}
                     onChangeText={(v: string) => setAmount(fmtDecInput(v))}

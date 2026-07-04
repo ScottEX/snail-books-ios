@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Animated, Modal, TouchableOpacity, ViewStyle } from 'react-native';
+import { BACKDROP_COLOR } from '../theme';
 
 interface AnimatedDropdownProps {
   /** Whether the dropdown is visible */
@@ -39,7 +40,7 @@ export default function AnimatedDropdown({
   children,
   style,
   inline = false,
-  backdropColor = 'rgba(0,0,0,0.08)',
+  backdropColor = BACKDROP_COLOR,
 }: AnimatedDropdownProps) {
   const [mounted, setMounted] = useState(false);
   const anim = useRef(new Animated.Value(0)).current;

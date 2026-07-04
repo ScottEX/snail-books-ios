@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, ImageBackground, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ImageBackground, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated } from 'react-native';
+import AppTextInput from '../components/AppTextInput';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
 import { t, getLang, langs, useLang, I18nKey } from '../i18n';
@@ -122,34 +123,31 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     migrate('avatar-uri', setAvatarUrl);
   }, []);
 
-  // WebAuthn bootstrap on mount. Mirrors web LoginScreen L117-165:
-  // read the cached bound state synchronously, then refresh from
-  // server in case the user has unbound since last visit. We don't
-  // re-prompt biometric on mount — only the explicit Face ID button
-  // or the post-login sync in handleLogin touches stored credentials.
+  // WebAuthn bootstrap on mount. Mirrors web LoginScreen L117-165.
+  // Read server state first (may clear stale localStorage), THEN check
+  // biometric. The two checks must be sequenced — parallel execution
+  // can race and use a stale cached.bound value.
   useEffect(() => {
-    const cached = getWebAuthnBound();
-    setHasFaceID(cached.bound);
     (async () => {
+      const cached = getWebAuthnBound();
+      let hasBound = cached.bound;
+
+      // 1. Refresh server state first — this may clear stale localStorage
       try {
         const r = await api.webauthnStatus();
         if (r && typeof r.has_credential === 'boolean') {
           if (!r.has_credential && cached.bound) clearWebAuthn();
-          setHasFaceID(!!r.has_credential);
+          hasBound = !!r.has_credential;
+          setHasFaceID(hasBound);
         }
       } catch {}
-    })();
-    // Detect biometric hardware once on mount. Drives whether the
-    // "Face ID 登录" link / button shows up at all on this device.
-    (async () => {
+
+      // 2. Now check biometric with fresh hasBound
       const a = await isBiometricAvailable();
       setFaceAvailable(a.available);
-      // If we already have a stored credential AND the typed username
-      // (from saved_login) matches, drop into face mode automatically
-      // — mirrors web's "if (webauthn_bound && pwdHasFaceID)" behaviour.
-      if (a.available) {
+      if (a.available && hasBound) {
         const stored = await hasStoredCredential();
-        if (stored || cached.bound) {
+        if (stored || hasBound) {
           try {
             const savedUser = localStorage.getItem('saved_login') || '';
             if (savedUser) setUsername(savedUser);
@@ -682,7 +680,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                     <View style={styles.fieldWrap}>
                       <Text style={styles.fieldLabel}>{t('username')}</Text>
                       <View style={styles.pwWrap}>
-                        <TextInput style={[styles.textInput, { paddingRight: username ? 44 : 16 }]} value={username} onChangeText={setUsername}
+                        <AppTextInput style={[styles.textInput, { paddingRight: username ? 44 : 16 }]} value={username} onChangeText={setUsername}
                           placeholder={t('loginPlaceholder') || '用户名 / 邮箱'} placeholderTextColor="rgba(255,255,255,0.55)"
                           onSubmitEditing={handleLogin} autoCapitalize="none" />
                         {username ? (
@@ -698,7 +696,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                     <View style={styles.fieldWrap}>
                       <Text style={styles.fieldLabel}>{t('password')}</Text>
                       <View style={styles.pwWrap}>
-                        <TextInput style={styles.pwInput} value={password} onChangeText={setPassword}
+                        <AppTextInput style={styles.pwInput} value={password} onChangeText={setPassword}
                           placeholder={t('password')} placeholderTextColor="rgba(255,255,255,0.55)"
                           secureTextEntry={!showPw} onSubmitEditing={handleLogin} />
                         <TouchableOpacity style={styles.pwEye} onPress={() => setShowPw(!showPw)}>
@@ -728,7 +726,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                         </View>
                         <Text style={styles.rememberText}>{t('rememberMe') || '记住我'}</Text>
                       </TouchableOpacity>
-                      {faceAvailable && pwdHasFaceID ? (
+                      {hasFaceID && pwdHasFaceID ? (
                         <TouchableOpacity onPress={switchToFaceMode}>
                           <Text style={{ fontSize: 14, color: colors.primary }}>{t('faceIDLogin') || '面容登录'}</Text>
                         </TouchableOpacity>
@@ -747,7 +745,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('username')}</Text>
                   <View style={styles.pwWrap}>
-                    <TextInput style={[styles.textInput, { paddingRight: username ? 44 : 16 }]} value={username} onChangeText={setUsername}
+                    <AppTextInput style={[styles.textInput, { paddingRight: username ? 44 : 16 }]} value={username} onChangeText={setUsername}
                       placeholder={t('username')} placeholderTextColor="rgba(255,255,255,0.55)" autoCapitalize="none" />
                     {username ? (
                       <TouchableOpacity style={styles.clearBtn} onPress={() => setUsername('')}>
@@ -761,7 +759,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 </View>
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('email') || 'Email'}</Text>
-                  <TextInput style={styles.textInput} value={email} onChangeText={setEmail}
+                  <AppTextInput style={styles.textInput} value={email} onChangeText={setEmail}
                     placeholder={t('email') || 'Email'} placeholderTextColor="rgba(255,255,255,0.55)" keyboardType="email-address" autoCapitalize="none" />
                 </View>
                 <View style={styles.fieldWrap}>
@@ -770,7 +768,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                     <Text style={styles.hintText}>{t('pwHint') || '8+ chars, letter + number + special'}</Text>
                   </Text>
                   <View style={styles.pwWrap}>
-                    <TextInput style={styles.pwInput} value={password} onChangeText={setPassword}
+                    <AppTextInput style={styles.pwInput} value={password} onChangeText={setPassword}
                       placeholder={t('password')} placeholderTextColor="rgba(255,255,255,0.55)" secureTextEntry={!showPw} />
                     <TouchableOpacity style={styles.pwEye} onPress={() => setShowPw(!showPw)}>
                       <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -794,7 +792,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('confirmPassword')}</Text>
                   <View style={styles.pwWrap}>
-                    <TextInput style={styles.pwInput} value={password2} onChangeText={setPassword2}
+                    <AppTextInput style={styles.pwInput} value={password2} onChangeText={setPassword2}
                       placeholder={t('confirmPassword')} placeholderTextColor="rgba(255,255,255,0.55)"
                       secureTextEntry={!showPw2} onSubmitEditing={handleRegister} />
                     <TouchableOpacity style={styles.pwEye} onPress={() => setShowPw2(!showPw2)}>
@@ -839,7 +837,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 )}
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('verifyCode')}</Text>
-                  <TextInput ref={codeRef} style={[styles.textInput, styles.codeInput]} maxLength={6} value={code} onChangeText={setCode}
+                  <AppTextInput ref={codeRef} style={[styles.textInput, styles.codeInput]} maxLength={6} value={code} onChangeText={setCode}
                     placeholder={t('verifyCode')} placeholderTextColor="rgba(255,255,255,0.55)"
                     keyboardType="number-pad" onSubmitEditing={handleVerify} autoFocus />
                 </View>
@@ -872,7 +870,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 <Text style={styles.infoText}>{t('forgotStep1') || 'Enter email'}</Text>
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('email') || 'Email'}</Text>
-                  <TextInput style={styles.textInput} value={email} onChangeText={setEmail}
+                  <AppTextInput style={styles.textInput} value={email} onChangeText={setEmail}
                     placeholder="Email" placeholderTextColor="rgba(255,255,255,0.55)"
                     keyboardType="email-address" onSubmitEditing={handleForgot} autoCapitalize="none" />
                 </View>
@@ -896,13 +894,13 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 )}
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('verifyCode')}</Text>
-                  <TextInput ref={codeRef} style={[styles.textInput, styles.codeInput]} maxLength={6} value={code} onChangeText={setCode}
+                  <AppTextInput ref={codeRef} style={[styles.textInput, styles.codeInput]} maxLength={6} value={code} onChangeText={setCode}
                     placeholder={t('verifyCode')} placeholderTextColor="rgba(255,255,255,0.55)" keyboardType="number-pad" autoFocus />
                 </View>
                 <View style={styles.fieldWrap}>
                   <Text style={styles.fieldLabel}>{t('newPassword')}</Text>
                   <View style={styles.pwWrap}>
-                    <TextInput style={styles.pwInput} value={password} onChangeText={setPassword}
+                    <AppTextInput style={styles.pwInput} value={password} onChangeText={setPassword}
                       placeholder={t('newPassword')} placeholderTextColor="rgba(255,255,255,0.55)" secureTextEntry={!showPwNew} />
                     <TouchableOpacity style={styles.pwEye} onPress={() => setShowPwNew(!showPwNew)}>
                       <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">

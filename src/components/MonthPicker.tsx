@@ -15,11 +15,13 @@ interface MonthPickerProps {
   allLabel?: string;
   /** Set false when already inside a <Modal> — renders dropdown inline instead of nesting another Modal. */
   useModal?: boolean;
+  /** Compact trigger style (gap:2, paddingTop:2) for inline use like platform fee card. Default true. */
+  compact?: boolean;
 }
 
 /** Shared month selector: trigger button + AnimatedDropdown with scale animation.
  *  Used by platform fee card and fee history modal. */
-export default function MonthPicker({ selected, onSelect, months, colors, allLabel, useModal = true }: MonthPickerProps) {
+export default function MonthPicker({ selected, onSelect, months, colors, allLabel, useModal = true, compact = true }: MonthPickerProps) {
   const [visible, setVisible] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<any>(null);
@@ -57,7 +59,7 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
       {/* Trigger */}
       <TouchableOpacity
         ref={triggerRef}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: 2, position: 'relative', paddingTop: 2 }}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: compact ? 2 : 4, position: 'relative', ...(compact ? { paddingTop: 2 } : { paddingVertical: 8 }) }}
         onPress={toggle}
         activeOpacity={0.7}
       >
@@ -102,6 +104,7 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
                 {label}
               </Text>
             </TouchableOpacity>
+            <View style={{ height: 1, backgroundColor: colors.secondary, marginHorizontal: 12, marginVertical: 4 }} />
             {sortedMonths.map((f: any) => {
               const isSel = selected !== 'all' && selected.year === f.year && selected.month === f.month;
               return (

@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, TextInput,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet,
   Animated, useWindowDimensions,
 } from 'react-native';
+import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Line, Circle, Rect, Polyline, Text as SvgText } from 'react-native-svg';
 import { t } from '../i18n';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
@@ -922,7 +923,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 <Text style={styles.dLabel}>{t('invDrawerAmount')}<Text style={{ color: c.danger }}> *</Text></Text>
                 <View style={styles.dAmountWrap}>
                   <Text style={[styles.dAmountPrefix, { color: c.textSub }]}>¥</Text>
-                  <TextInput
+                  <AppTextInput
                     style={[styles.dInput, styles.dAmountInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
                     value={dAmountFocus ? dAmount : formatAmountForDisplay(dAmount)}
                     onFocus={() => setDAmountFocus(true)}
@@ -941,7 +942,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                   <Text style={styles.dLabel}>{t('invDrawerBuyer')}<Text style={{ color: c.danger }}> *</Text></Text>
                   <Text style={styles.dAutoFillLabel}>{t('invAutoFilled')}</Text>
                 </View>
-                <TextInput
+                <AppTextInput
                   style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
                   value={data.company_name}
                   editable={false}
@@ -956,7 +957,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                   <Text style={styles.dLabel}>{t('invDrawerTaxId')}<Text style={{ color: c.danger }}> *</Text></Text>
                   <Text style={styles.dAutoFillLabel}>{t('invAutoFilled')}</Text>
                 </View>
-                <TextInput
+                <AppTextInput
                   style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
                   value={data.tax_id}
                   editable={false}
@@ -981,7 +982,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 </View>
                 <View style={styles.dFieldHalf}>
                   <Text style={styles.dLabel}>{t('invEmail')}</Text>
-                  <TextInput
+                  <AppTextInput
                     style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
                     value={dEmail}
                     onChangeText={setDEmail}
@@ -1015,7 +1016,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
               {dStatus === 'done' && (
                 <View style={styles.dField}>
                   <Text style={styles.dLabel}>{t('invRecInvoiceNo')}<Text style={{ color: c.danger }}> *</Text></Text>
-                  <TextInput
+                  <AppTextInput
                     style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
                     value={dInvoiceNo}
                     onChangeText={(v) => setDInvoiceNo(v.replace(/[^a-zA-Z0-9]/g, ''))}
@@ -1116,7 +1117,7 @@ function EditableInfoRow({ icon, iconBg, label, value, colors, mono, onChange, e
         <View style={[styles.icon, { backgroundColor: iconBg }]}>{icon}</View>
         <View style={styles.body}>
           <Text style={[styles.label, { color: colors.textSub }]}>{label}</Text>
-          <TextInput
+          <AppTextInput
             style={[styles.valueInput, { color: colors.textMain }]}
             value={draft}
             onChangeText={setDraft}

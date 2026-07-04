@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
-  View, Text, TextInput, ScrollView, TouchableOpacity,
+  View, Text, ScrollView, TouchableOpacity,
   FlatList, Image, ActivityIndicator, StyleSheet, Animated, PanResponder
 } from 'react-native';
+import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Rect, Circle, Text as SvgText } from 'react-native-svg';
 import { t, getLang } from '../i18n';
 import { api } from '../api/client';
@@ -926,7 +927,7 @@ export default function ProcurementScreen() {
         {/* Search + filters */}
         <View style={styles.searchSection}>
           <View style={styles.searchRow}>
-            <TextInput
+            <AppTextInput
               style={styles.searchInput}
               placeholder={subTab === 'history' ? t('procSearchHistory') : subTab === 'products' ? t('procSearchProducts') : t('procSearchPlaceholder')}
               placeholderTextColor={c.textSub}
@@ -987,7 +988,7 @@ export default function ProcurementScreen() {
                         </View>
                         <View style={styles.prodPriceWrap}>
                           {isEditing ? (
-                            <TextInput
+                            <AppTextInput
                               style={{ width: 70, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.primary, borderWidth: 1, borderColor: c.primary, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, outline: 'none', backgroundColor: c.surface } as any}
                               value={editPriceVal} onChangeText={setEditPriceVal}
                               onBlur={() => commitPrice(p.id)} autoFocus keyboardType="numeric"
@@ -1197,11 +1198,11 @@ export default function ProcurementScreen() {
               </TouchableOpacity>
             </View>
             <View style={styles.modalBody}>
-              <TextInput style={styles.modalInput} placeholder={t('procProductName')} placeholderTextColor={c.textSub} value={prodForm.name} onChangeText={v => setProdForm(p => ({ ...p, name: v }))} />
-              <TextInput style={styles.modalInput} placeholder={t('procProductSpec')} placeholderTextColor={c.textSub} value={prodForm.spec} onChangeText={v => setProdForm(p => ({ ...p, spec: v }))} />
-              <TextInput style={styles.modalInput} placeholder={t('procProductSupplier')} placeholderTextColor={c.textSub} value={prodForm.supplier} onChangeText={v => setProdForm(p => ({ ...p, supplier: v }))} />
-              <TextInput style={styles.modalInput} placeholder={t('procProductPrice')} placeholderTextColor={c.textSub} value={prodForm.price} onChangeText={v => setProdForm(p => ({ ...p, price: v }))} keyboardType="numeric" />
-              <TextInput style={styles.modalInput} placeholder={t('procProductNote')} placeholderTextColor={c.textSub} value={prodForm.note} onChangeText={v => setProdForm(p => ({ ...p, note: v }))} />
+              <AppTextInput style={styles.modalInput} placeholder={t('procProductName')} placeholderTextColor={c.textSub} value={prodForm.name} onChangeText={v => setProdForm(p => ({ ...p, name: v }))} />
+              <AppTextInput style={styles.modalInput} placeholder={t('procProductSpec')} placeholderTextColor={c.textSub} value={prodForm.spec} onChangeText={v => setProdForm(p => ({ ...p, spec: v }))} />
+              <AppTextInput style={styles.modalInput} placeholder={t('procProductSupplier')} placeholderTextColor={c.textSub} value={prodForm.supplier} onChangeText={v => setProdForm(p => ({ ...p, supplier: v }))} />
+              <AppTextInput style={styles.modalInput} placeholder={t('procProductPrice')} placeholderTextColor={c.textSub} value={prodForm.price} onChangeText={v => setProdForm(p => ({ ...p, price: v }))} keyboardType="numeric" />
+              <AppTextInput style={styles.modalInput} placeholder={t('procProductNote')} placeholderTextColor={c.textSub} value={prodForm.note} onChangeText={v => setProdForm(p => ({ ...p, note: v }))} />
               <View style={styles.modalBtnRow}>
                 <TouchableOpacity style={styles.modalBtnCancel} onPress={() => closeSlideModal(() => setShowProductModal(false))}>
                   <Text style={styles.modalBtnCancelText}>{t('cancel')}</Text>
@@ -1324,7 +1325,7 @@ export default function ProcurementScreen() {
 
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>{t('procNoteOptional')}</Text>
-                <TextInput style={{ flex: 1, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 8, fontSize: FONTS.sub.size, color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), outline: 'none' } as any}
+                <AppTextInput style={{ flex: 1, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 8, fontSize: FONTS.sub.size, color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), outline: 'none' } as any}
                   value={orderNote} onChangeText={setOrderNote} placeholder={t('procNowBatch').replace('{n}', String(stats.batch_count + 1))} placeholderTextColor={c.textSub} />
               </View>
 
@@ -1377,7 +1378,7 @@ export default function ProcurementScreen() {
               // ── Product picker view ──
               <>
                 <View style={{ paddingHorizontal: 18, paddingTop: 12, paddingBottom: 8 }}>
-                  <TextInput
+                  <AppTextInput
                     value={productPickerSearch}
                     onChangeText={setProductPickerSearch}
                     placeholder={t('procSearchProducts')}

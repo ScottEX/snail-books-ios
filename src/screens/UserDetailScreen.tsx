@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Modal,
 } from 'react-native';
+import AppTextInput from '../components/AppTextInput';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { t, getLang } from '../i18n';
@@ -384,7 +385,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
                 <Text style={s.infoLabel}>{t('realName')}</Text>
                 {lang === 'zh-CN' ? (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end' }}>
-                    <TextInput
+                    <AppTextInput
                       style={s.editInput}
                       value={realName}
                       onChangeText={setRealName}
@@ -408,7 +409,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
               <View style={s.infoRow}>
                 <Text style={s.infoLabel}>{t('phone')}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end' }}>
-                  <TextInput
+                  <AppTextInput
                     style={s.editInput}
                     value={phone}
                     onChangeText={setPhone}
@@ -424,7 +425,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
               <View style={s.infoRow}>
                 <Text style={s.infoLabel}>{t('profileEmail')}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end' }}>
-                  <TextInput
+                  <AppTextInput
                     style={s.editInput}
                     value={email}
                     onChangeText={setEmail}
@@ -543,7 +544,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
               {/* Remarks */}
               <View style={s.infoRow}>
                 <Text style={s.infoLabel}>{t('remarks')}</Text>
-                <TextInput
+                <AppTextInput
                   style={s.editInput}
                   value={remark}
                   onChangeText={setRemark}

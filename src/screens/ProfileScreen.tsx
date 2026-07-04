@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
-  Image, TextInput, Switch, Modal, ActivityIndicator,
+  Image, Switch, Modal, ActivityIndicator,
 } from 'react-native';
+import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Defs, LinearGradient as SVGGradient, Stop, Rect } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
 import { t, getLang, langs, useLang } from '../i18n';
@@ -745,7 +746,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
           {/* Signature */}
           {signatureEditing ? (
             <View style={st.signatureEditRow}>
-              <TextInput
+              <AppTextInput
                 style={st.signatureInput}
                 value={signatureDraft}
                 onChangeText={setSignatureDraft}
@@ -1052,7 +1053,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               <Text style={{ color: colors.textMain, fontSize: 14, lineHeight: 22, marginBottom: 8 }}>
                 {t('deleteAccountGraceNote')}
               </Text>
-              <TextInput
+              <AppTextInput
                 style={mo.input}
                 placeholder={t('enterUsernameToConfirm')}
                 placeholderTextColor={colors.textSub}
@@ -1083,10 +1084,10 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               <CloseButton onPress={() => setShowPwModal(false)} />
             </View>
             <View style={mo.body}>
-              <TextInput style={mo.input} placeholder={t('oldPassword')} placeholderTextColor={colors.textSub} secureTextEntry value={oldPw} onChangeText={setOldPw} />
-              <TextInput style={mo.input} placeholder={t('newPassword')} placeholderTextColor={colors.textSub} secureTextEntry value={newPw} onChangeText={setNewPw} />
+              <AppTextInput style={mo.input} placeholder={t('oldPassword')} placeholderTextColor={colors.textSub} secureTextEntry value={oldPw} onChangeText={setOldPw} />
+              <AppTextInput style={mo.input} placeholder={t('newPassword')} placeholderTextColor={colors.textSub} secureTextEntry value={newPw} onChangeText={setNewPw} />
               <Text style={mo.pwHint}>{t('pwHint')}</Text>
-              <TextInput style={mo.input} placeholder={t('confirmNewPassword')} placeholderTextColor={colors.textSub} secureTextEntry value={confirmPw} onChangeText={setConfirmPw} />
+              <AppTextInput style={mo.input} placeholder={t('confirmNewPassword')} placeholderTextColor={colors.textSub} secureTextEntry value={confirmPw} onChangeText={setConfirmPw} />
               {pwMsg ? <Text style={mo.err}>{pwMsg}</Text> : null}
               <ButtonPair
                 leftLabel={t('cancel')}
@@ -1110,7 +1111,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
             <View style={mo.body}>
               {emailStep === 'input' ? (
                 <>
-                  <TextInput
+                  <AppTextInput
                     style={mo.input}
                     placeholder={t('newEmail')}
                     placeholderTextColor={colors.textSub}
@@ -1134,7 +1135,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                   <Text style={{ fontSize: FONTS.sub.size, color: colors.textSub, textAlign: 'center' }}>
                     {t('codeSent')}：{newEmail}
                   </Text>
-                  <TextInput
+                  <AppTextInput
                     style={[mo.input, { textAlign: 'center', letterSpacing: 8, fontSize: 24, fontWeight: '700' }]}
                     placeholder={t('enterCode')}
                     placeholderTextColor={colors.textSub}
@@ -1196,7 +1197,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               <Text style={{ color: colors.textMain, fontSize: 14, lineHeight: 22, textAlign: 'center', marginBottom: 8 }}>
                 请输入密码以启用面容登录
               </Text>
-              <TextInput
+              <AppTextInput
                 style={mo.input}
                 placeholder={t('password')}
                 placeholderTextColor={colors.textSub}

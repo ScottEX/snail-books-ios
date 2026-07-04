@@ -5,7 +5,8 @@
 // 支持 label + error + rightIcon + 多行。
 // ═══════════════════════════════════════════
 
-import { View, Text, TextInput, type TextInputProps } from 'react-native';
+import { View, Text, type TextInputProps } from 'react-native';
+import AppTextInput from './AppTextInput';
 import { useTheme, withAlpha } from '../theme';
 import { FONTS } from '../theme';
 
@@ -54,7 +55,7 @@ export default function TextField({
         paddingHorizontal: 14,
         paddingVertical: multiline ? 10 : 0,
       }}>
-        <TextInput
+        <AppTextInput
           style={[{
             flex: 1, fontSize: FONTS.sub.size, color: colors.textMain,
             paddingVertical: multiline ? 0 : 13,

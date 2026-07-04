@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, TextInput,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet,
   Animated, ImageBackground, Image, ActivityIndicator,
 } from 'react-native';
+import AppTextInput from '../components/AppTextInput';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
@@ -1076,7 +1077,7 @@ function DailyRevenueView(p: DailyRevProps) {
           </View>
 
           {/* Note */}
-          <TextInput
+          <AppTextInput
             style={styles.revNoteInput}
             value={p.revNote} onChangeText={p.setRevNote}
             placeholder={t('revNoteHint')} placeholderTextColor={colors.textSub}
@@ -1221,7 +1222,7 @@ function RevInputCard({ title, sub, symbol, value, onChangeText, yesterdayValue,
       <Text style={styles.revInputCardSub}>{sub}</Text>
       <View style={styles.revInputCardInputWrap}>
         <Text style={styles.revInputCardSymbol}>{symbol}</Text>
-        <TextInput
+        <AppTextInput
           style={styles.revInputCardInput}
           value={value} onChangeText={onChangeText}
           keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={colors.textSub}

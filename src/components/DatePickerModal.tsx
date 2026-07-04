@@ -1,8 +1,8 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Animated, ScrollView, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import React, { useState, useRef, useCallback } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import AppTextInput from './AppTextInput';
+import ModalOverlay from './ModalOverlay';
 import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useTheme, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import { t, getLang } from '../i18n';
 
@@ -52,22 +52,17 @@ function WheelColumn({
       decelerationRate="fast"
       onMomentumScrollEnd={onEnd}
     >
-      {/* top spacer so first item can scroll to center */}
       <View style={{ height: PAD }} />
       {items.map((label, i) => {
         const absDist = Math.abs(i - selectedIdx);
-        const scale = Math.max(0.75, 1 - absDist * 0.08);
-        const opacity = Math.max(0.2, 1 - absDist * 0.55);
+        const s = Math.max(0.75, 1 - absDist * 0.08);
+        const o = Math.max(0.2, 1 - absDist * 0.55);
         const isCenter = absDist < 0.5;
         return (
           <View key={label} style={{ height: ITEM_H, alignItems: 'center', justifyContent: 'center' }}>
-            <Animated.View style={{
-              transform: [
-                { perspective: 400 },
-                { rotateX: `${(i - selectedIdx) * 22}deg` },
-                { scale },
-              ],
-              opacity,
+            <View style={{
+              transform: [{ perspective: 400 }, { rotateX: `${(i - selectedIdx) * 22}deg` }, { scale: s }],
+              opacity: o,
             }}>
               <Text style={{
                 fontSize: 17,
@@ -76,53 +71,31 @@ function WheelColumn({
               }}>
                 {label}
               </Text>
-            </Animated.View>
+            </View>
           </View>
         );
       })}
-      {/* bottom spacer */}
       <View style={{ height: PAD }} />
     </ScrollView>
   );
 }
 
-export default function DatePickerModal({ visible, value, onClose, onSelect, minDate, title }: Props) {
-  const { colors } = useTheme();
+export default function DatePickerModal({ visible, value, onClose, onSelect, minDate }: Props) {
   const [draft, setDraft] = useState(value);
   const [year, month] = (draft || todayStr()).split('-').map(Number);
   const [yearMode, setYearMode] = useState(false);
-  const [gridFade] = useState(new Animated.Value(1));
-  const [, forceRender] = useState(0);
 
   const [wheelYearIdx, setWheelYearIdx] = useState(0);
   const [wheelMonthIdx, setWheelMonthIdx] = useState(0);
   const yearRef = useRef<ScrollView>(null!);
   const monthRef = useRef<ScrollView>(null!);
 
-  const [mounted, setMounted] = useState(false);
-  const anim = useRef(new Animated.Value(0)).current;
-
-  const close = useCallback((afterClose?: () => void) => {
-    Animated.timing(anim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
-      setMounted(false);
-      afterClose?.();
-    });
-  }, [anim]);
-
-  useEffect(() => {
-    if (visible) {
-      setDraft(value); // sync from parent each time modal opens — Modal doesn't remount children
-      setMounted(true);
-      const spring = Animated.spring(anim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 });
-      spring.start();
-      return () => spring.stop();
-    } else {
-      anim.setValue(0);
-      setMounted(false);
-    }
-  }, [visible]); // eslint-disable-line react-hooks/exhaustive-deps — value sync is open-only
-
-  if (!mounted) return null;
+  // Sync draft from parent each time modal opens
+  const prevVisible = useRef(visible);
+  if (visible && !prevVisible.current) {
+    setDraft(value);
+  }
+  prevVisible.current = visible;
 
   const w = 'rgba(255,255,255,0.92)';
   const wSub = 'rgba(255,255,255,0.55)';
@@ -172,10 +145,6 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
     setYearMode(false);
   };
 
-  const handleSelectDay = (d: number) => {
-    setDraft(`${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
-  };
-
   const handlePrevMonth = () => {
     let m = month - 1, y2 = year;
     if (m < 1) { m = 12; y2 -= 1; }
@@ -196,9 +165,13 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
   const styles = getStyles(w, wSub, wBg, wBg2);
 
   return (
-    <Animated.View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 300, opacity: anim, transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0], extrapolate: 'clamp' }) }] }}>
-      <View style={[styles.overlay, { justifyContent: 'flex-end', paddingBottom: 0 }]}>
-        <TouchableOpacity style={styles.backdrop} onPress={() => close(onClose)} activeOpacity={1} />
+    <ModalOverlay
+      visible={visible}
+      onClose={onClose}
+      animation="iosSheet"
+      overlayStyle={{ justifyContent: 'flex-end' }}
+      contentStyle={{ width: '100%', alignItems: 'center' }}
+    >
       <BlurView intensity={55} tint="dark" style={styles.sheet}>
         {yearMode ? (
           <>
@@ -211,9 +184,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
               </TouchableOpacity>
             </View>
             <View style={styles.wheelWrap}>
-              {/* Center highlight */}
               <View style={styles.wheelHighlight} pointerEvents="none" />
-              {/* Year */}
               <View style={styles.wheelCol}>
                 <WheelColumn
                   items={yearsArr}
@@ -222,7 +193,6 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
                   scrollRef={yearRef}
                 />
               </View>
-              {/* Month */}
               <View style={styles.wheelCol}>
                 <WheelColumn
                   items={months}
@@ -250,7 +220,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
               <TouchableOpacity style={styles.stepBtn} onPress={() => setDraft(shiftDays(draft, -1))}>
                 <Text style={styles.stepBtnText}>-1 {getLang().startsWith('en') ? 'day' : '天'}</Text>
               </TouchableOpacity>
-              <TextInput style={styles.dateInput} value={draft} onChangeText={setDraft} keyboardType="numbers-and-punctuation" maxLength={10} placeholder="YYYY-MM-DD" placeholderTextColor={wSub} />
+              <AppTextInput style={styles.dateInput} value={draft} onChangeText={setDraft} keyboardType="numbers-and-punctuation" maxLength={10} placeholder="YYYY-MM-DD" placeholderTextColor={wSub} />
               <TouchableOpacity style={styles.stepBtn} onPress={() => setDraft(shiftDays(draft, 1))}>
                 <Text style={styles.stepBtnText}>+1 {getLang().startsWith('en') ? 'day' : '天'}</Text>
               </TouchableOpacity>
@@ -280,7 +250,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
                   const isSelected = iso === draft;
                   const disabled = isFuture(iso);
                   return (
-                    <TouchableOpacity key={i} style={styles.dayCell} disabled={disabled} onPress={() => handleSelectDay(d)} activeOpacity={0.7}>
+                    <TouchableOpacity key={i} style={styles.dayCell} disabled={disabled} onPress={() => setDraft(iso)} activeOpacity={0.7}>
                       {isSelected ? (
                         <View style={styles.dayCapsule}><Text style={styles.dayTextSelected}>{d}</Text></View>
                       ) : isToday ? (
@@ -300,7 +270,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
               <TouchableOpacity
                 style={[styles.footerBtn, (!isValid(draft) || isFuture(draft)) && { opacity: 0.3 }]}
                 disabled={!isValid(draft) || !!isFuture(draft)}
-                onPress={() => close(() => { onSelect(draft); onClose(); })}
+                onPress={() => { onSelect(draft); onClose(); }}
               >
                 <Text style={{ color: '#0A84FF', fontSize: 14, fontWeight: '700' }}>{t('confirm') || '确定'}</Text>
               </TouchableOpacity>
@@ -308,14 +278,11 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
           </>
         )}
       </BlurView>
-      </View>
-    </Animated.View>
+    </ModalOverlay>
   );
 }
 
 const getStyles = (w: string, wSub: string, wBg: string, wBg2: string) => ({
-  overlay: { position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0, zIndex: 300, alignItems: 'center' as const },
-  backdrop: { position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: { width: '94%' as const, maxWidth: 420, borderRadius: 22, overflow: 'hidden' as const, padding: 16, gap: 0 },
   quickRow: { flexDirection: 'row' as const, gap: 6, marginBottom: 12, marginTop: 8 },
   quickChip: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: wBg2, alignItems: 'center' as const },
@@ -343,7 +310,6 @@ const getStyles = (w: string, wSub: string, wBg: string, wBg2: string) => ({
   dayTextDisabled: { color: wSub + '30' },
   footer: { flexDirection: 'row' as const, gap: 10, marginTop: 12 },
   footerBtn: { flex: 1, paddingVertical: 10, alignItems: 'center' as const },
-  /* ── Wheel ── */
   wheelHeader: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, paddingBottom: 8 },
   wheelWrap: { height: ITEM_H * VISIBLE, flexDirection: 'row' as const, overflow: 'hidden' as const, backgroundColor: 'transparent', paddingHorizontal: 30 },
   wheelCol: { flex: 1, overflow: 'hidden' as const },
@@ -353,6 +319,4 @@ const getStyles = (w: string, wSub: string, wBg: string, wBg2: string) => ({
     borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.06)',
   },
-  wheelMaskTop: { position: 'absolute' as const, left: 0, right: 0, top: 0, height: ITEM_H * 2, zIndex: 2 },
-  wheelMaskBottom: { position: 'absolute' as const, left: 0, right: 0, bottom: 0, height: ITEM_H * 2, zIndex: 2 },
 });

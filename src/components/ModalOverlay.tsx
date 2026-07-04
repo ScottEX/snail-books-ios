@@ -12,15 +12,15 @@ interface ModalOverlayProps {
   children: React.ReactNode | ((staggerAnims: Animated.Value[]) => React.ReactNode);
   overlayStyle?: any;
   contentStyle?: any;
-  /** 动画类型：'slide' 默认顶部滑入、'springScale' 弹性缩放、'blurMorph' 模糊渐显、'slideUpScale' 底部滑入缩放、'stagger' 内容错峰浮现 */
-  animation?: 'slide' | 'springScale' | 'blurMorph' | 'slideUpScale' | 'stagger';
+  /** 动画类型：'slide' 默认顶部滑入、'springScale' 弹性缩放、'blurMorph' 模糊渐显、'slideUpScale' 底部滑入缩放、'stagger' 内容错峰浮现、'iosSheet' iOS 原生底部滑入 */
+  animation?: 'slide' | 'springScale' | 'blurMorph' | 'slideUpScale' | 'stagger' | 'iosSheet';
   /** Only for animation='stagger': number of child items to stagger */
   staggerCount?: number;
 }
 
 export default function ModalOverlay({ visible = true, onClose, children, overlayStyle, contentStyle, animation = 'slide', staggerCount = 4 }: ModalOverlayProps) {
   const [show, setShow] = useState(false);
-  const initialSlide = animation === 'springScale' ? 12 : animation === 'slideUpScale' ? 1 : animation === 'stagger' ? 40 : -300;
+  const initialSlide = animation === 'springScale' ? 12 : animation === 'slideUpScale' ? 500 : animation === 'stagger' ? 40 : animation === 'iosSheet' ? 500 : -300;
   const initialScale = animation === 'springScale' ? 0.85 : animation === 'blurMorph' ? 1.04 : animation === 'slideUpScale' ? 0.96 : animation === 'stagger' ? 0.94 : 1;
   const slide = useRef(new Animated.Value(initialSlide)).current;
   const fade = useRef(new Animated.Value(0)).current;
@@ -56,7 +56,7 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
           Animated.timing(fade, { toValue: 1, duration: 350, useNativeDriver: true }),
         ]).start();
       } else if (animation === 'slideUpScale') {
-        slide.setValue(1);
+        slide.setValue(500);
         scale.setValue(0.96);
         fade.setValue(0);
         Animated.parallel([
@@ -85,6 +85,13 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
             ),
           ]),
         ]).start();
+      } else if (animation === 'iosSheet') {
+        slide.setValue(500);
+        fade.setValue(1); // 纯位移，不淡入
+        Animated.parallel([
+          Animated.timing(back, { toValue: 1, duration: 300, useNativeDriver: false }),
+          Animated.timing(slide, { toValue: 0, duration: 450, easing: Easing.bezier(0.2, 0.9, 0.25, 1), useNativeDriver: true }),
+        ]).start();
       } else {
         slide.setValue(-300);
         fade.setValue(0);
@@ -102,9 +109,9 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
       if (animation === 'springScale') {
         Animated.parallel([
           backOut,
-          Animated.timing(scale, { toValue: 0.92, duration: 220, useNativeDriver: true }),
-          Animated.timing(slide, { toValue: 8, duration: 220, useNativeDriver: true }),
-          Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: true }),
+          Animated.timing(scale, { toValue: 0.92, duration: 220, useNativeDriver: false }),
+          Animated.timing(slide, { toValue: 8, duration: 220, useNativeDriver: false }),
+          Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: false }),
         ]).start(() => setShow(false));
       } else if (animation === 'blurMorph') {
         Animated.parallel([
@@ -115,7 +122,7 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
       } else if (animation === 'slideUpScale') {
         Animated.parallel([
           backOut,
-          Animated.timing(slide, { toValue: 1, duration: 280, easing: Easing.bezier(0.4, 0, 1, 1), useNativeDriver: false }),
+          Animated.timing(slide, { toValue: 500, duration: 280, easing: Easing.bezier(0.4, 0, 1, 1), useNativeDriver: false }),
           Animated.timing(scale, { toValue: 0.96, duration: 280, easing: Easing.bezier(0.4, 0, 1, 1), useNativeDriver: false }),
           Animated.timing(fade, { toValue: 0, duration: 220, useNativeDriver: false }),
         ]).start(() => setShow(false));
@@ -125,6 +132,11 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
           Animated.timing(slide, { toValue: 40, duration: 220, easing: Easing.bezier(0.4, 0, 1, 1), useNativeDriver: false }),
           Animated.timing(scale, { toValue: 0.97, duration: 220, useNativeDriver: false }),
           Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: false }),
+        ]).start(() => setShow(false));
+      } else if (animation === 'iosSheet') {
+        Animated.parallel([
+          backOut,
+          Animated.timing(slide, { toValue: 500, duration: 300, easing: Easing.bezier(0.4, 0, 1, 1), useNativeDriver: true }),
         ]).start(() => setShow(false));
       } else {
         Animated.parallel([
@@ -141,7 +153,7 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
   const getTrans = () => {
     if (animation === 'springScale') return [{ scale }, { translateY: slide }];
     if (animation === 'blurMorph') return [{ scale }];
-    if (animation === 'slideUpScale') return [{ translateY: slide.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) }, { scale }];
+    if (animation === 'slideUpScale') return [{ translateY: slide }, { scale }];
     if (animation === 'stagger') return [{ translateY: slide }, { scale }];
     return [{ translateY: slide }];
   };

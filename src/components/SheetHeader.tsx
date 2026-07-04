@@ -4,7 +4,7 @@
 
 import { View, Text, TouchableOpacity } from 'react-native';
 import Svg, { Line } from 'react-native-svg';
-import { SHEET_HANDLE_COLOR } from '../theme';
+import { SHEET_HANDLE_COLOR, FONTS } from '../theme';
 
 interface SheetHeaderProps {
   title: string;
@@ -22,7 +22,7 @@ export default function SheetHeader({ title, onClose, titleColor = '#FFFFFF', ba
       <View style={{ width: 36, height: 4, backgroundColor: SHEET_HANDLE_COLOR, borderRadius: 2, alignSelf: 'center', marginBottom: 12 }} />
       {/* Title + Close */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-        <Text style={{ fontSize: 15, fontWeight: '600', color: titleColor }}>{title}</Text>
+        <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: titleColor }}>{title}</Text>
         <TouchableOpacity style={{ padding: 4 }} onPress={onClose}>
           <Svg width={18} height={18} viewBox="0 0 24 24" stroke={titleColor} strokeWidth={2} fill="none">
             <Line x1="18" y1="6" x2="6" y2="18" />

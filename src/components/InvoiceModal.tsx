@@ -1,4 +1,5 @@
-import { View, Text, TouchableOpacity, TextInput, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import AppTextInput from './AppTextInput';
 import { useTheme, withAlpha } from '../theme';
 import { t } from '../i18n';
 import { api } from '../api/client';
@@ -98,7 +99,7 @@ export default function InvoiceModal({ visible, onClose }: Props) {
           {FIELDS.map((f) => (
             <View key={f.key} style={s.fieldRow}>
               <Text style={[s.label, { color: c.textSub }]}>{t(f.labelKey as any)}</Text>
-              <TextInput
+              <AppTextInput
                 style={[s.input, {
                   color: c.textMain,
                   borderColor: withAlpha(c.textMain, 0.1),
