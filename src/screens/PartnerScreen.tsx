@@ -138,10 +138,12 @@ export default function PartnerScreen({ onBack, onProfile, refreshKey = 0 }: { o
   const handleDividend = async () => {
     if (!divAmount) return;
     const amt = parseFloat(divAmount);
+    const today = new Date().toISOString().slice(0, 10);
     const items = partners.map((p: any) => ({
       partner: p.name,
       amount: parseFloat((amt * (partnerShare[p.name] ?? 0.33)).toFixed(2)),
       note: `第${divRoundNum}次`,
+      date: today,
     }));
     try {
       await api.createDividend({ items });

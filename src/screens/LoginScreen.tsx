@@ -468,7 +468,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     try {
       const r = await api.forgotPassword(email);
       setLoading(false);
-      if (r.status === 'ok') { setMsgOk(true); setMsg(r.message); setDevCode(r.dev_code || ''); setPassword(''); setStep('reset'); setTimeout(() => codeRef.current?.focus(), 100); }
+      if (r.status === 'ok') { setDevCode(r.dev_code || ''); setPassword(''); setStep('reset'); setTimeout(() => codeRef.current?.focus(), 100); }
       else { setMsgOk(false); setMsg(r.message); }
     } catch (e: any) {
       setLoading(false);
