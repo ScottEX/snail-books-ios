@@ -526,23 +526,20 @@ export default function ExpenseScreen({
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
           testID="snap-scroll"
           ref={scrollRef}
+          decelerationRate="fast"
           bounces={false}
-          snapToOffsets={[0, Dimensions.get('window').width - 47]}
           onScrollEndDrag={(e) => {
-            // Slow-drag fallback: snapToOffsets only engages with momentum.
-            // If the user drags slowly and releases, we manually snap.
             const offset = e.nativeEvent.contentOffset.x;
             const w = Dimensions.get('window').width;
-            const mid = (w - 47) / 2;
-            const snap = offset < mid ? 0 : w - 47;
-            if (Math.abs(offset - snap) > 10) {
-              scrollRef.current?.scrollTo({ x: snap, animated: true });
-            }
+            // Snap targets: card 0 at content x=18, card 1 at content x=w-29
+            const mid = (18 + w - 29) / 2;
+            const snap = offset < mid ? 18 : w - 29;
+            scrollRef.current?.scrollTo({ x: snap, animated: true });
           }}
           onMomentumScrollEnd={(e) => {
             const offset = e.nativeEvent.contentOffset.x;
             const w = Dimensions.get('window').width;
-            const idx = offset < (w - 47) / 2 ? 0 : 1;
+            const idx = offset < (18 + w - 29) / 2 ? 0 : 1;
             if (idx >= 0 && idx < tabCards.length) setActiveTab(idx);
           }}
           contentContainerStyle={st.tabScroll}>
@@ -1284,7 +1281,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   /* ── Content ── */
   contentScroll: { flex: 1, backgroundColor: 'transparent' as const },
   contentInner: {
-    paddingHorizontal: 18, paddingBottom: 100, gap: 0, backgroundColor: 'transparent' as const,
+    paddingHorizontal: 0, paddingBottom: 100, gap: 0, backgroundColor: 'transparent' as const,
   },
   moduleWrap: {
     width: '100%',
