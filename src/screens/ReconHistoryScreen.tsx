@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Animated, PanResponder, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Animated, PanResponder, StatusBar, Dimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Svg, { Path } from 'react-native-svg';
 import { t, getLang } from '../i18n';
@@ -282,7 +282,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
       {/* Detail Modal */}
       <ModalOverlay visible={!!selected} onClose={() => setSelected(null)} animation="springScale">
         {selectedRef.current && (() => { const r = selectedRef.current; return (
-          <View style={st.modal}>
+          <View style={[st.modal, { width: Dimensions.get('window').width * 0.9 }]}>
             <View style={st.modalHeader}>
               <View>
                 <Text style={st.modalDate}>{t('reconDate')}: {fmtDateTime(r.created_at || r.date)}</Text>
@@ -372,7 +372,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   reconByRow: { alignItems: 'center', paddingBottom: 2 },
   reconByText: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight },
   /* Modal */
-  modal: { width: '90%', backgroundColor: colors.surface, borderRadius: 24, overflow: 'hidden' },
+  modal: { backgroundColor: colors.surface, borderRadius: 24, overflow: 'hidden' },
   modalHeader: { backgroundColor: colors.primary, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 18 },
   modalDate: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.surface },
   modalDateSub: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: withAlpha(colors.surface, 0.75), marginTop: 2 },
