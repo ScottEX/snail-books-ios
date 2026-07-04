@@ -920,8 +920,8 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   logoOver: { position: 'absolute' as any, top: 0, left: 0, width: 80, height: 80, borderRadius: 40 },
   subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.7)', marginTop: 6, letterSpacing: 1 },
   langRow: { flexDirection: 'row', gap: 4, marginTop: 12 },
-  langBtn: { fontSize: 14, color: 'rgba(255,255,255,0.4)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
-  langActive: { color: colors.surface, backgroundColor: 'rgba(255,255,255,0.15)' },
+  langBtn: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.4)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
+  langActive: { color: colors.surface, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 6 },
   glassCard: {
     backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 24, padding: 28, gap: 8, overflow: 'hidden',
   },
