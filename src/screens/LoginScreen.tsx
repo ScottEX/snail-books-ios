@@ -558,11 +558,14 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   return (
     <View style={styles.container}>
-      {/* Default background — always rendered as base layer */}
-      <ImageBackground source={BG_IMAGE} style={styles.bgLayer} resizeMode="cover">
-        <View style={styles.bgOverlay} />
-      </ImageBackground>
-      {/* Custom background — always rendered, opacity hides it when not ready. */}
+      {/* Default background — only when no custom bg */}
+      {!bgUrl ? (
+        <ImageBackground source={BG_IMAGE} style={styles.bgLayer} resizeMode="cover">
+          <View style={styles.bgOverlay} />
+        </ImageBackground>
+      ) : null}
+      {/* Custom background — always rendered, opacity controls visibility.
+          Falls back to BG_IMAGE source so the layer doesn't unmount. */}
       <Animated.Image
         source={bgUrl ? { uri: bgUrl } : BG_IMAGE}
         style={[styles.bgLayer, { opacity: bgOpacity }]}
@@ -926,7 +929,7 @@ const GLASS_BORDER = 'rgba(255,255,255,0.18)';
 const GLASS_BORDER_STRONG = 'rgba(255,255,255,0.35)';
 
 const getStyles = (colors: ThemeColors) => StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#1a1a2e' },
   bgLayer: { position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 },
   bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.15)', zIndex: 1 },
   flex: { flex: 1, position: 'relative' as any, zIndex: 10 },
