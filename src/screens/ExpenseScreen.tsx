@@ -526,14 +526,18 @@ export default function ExpenseScreen({
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
           testID="snap-scroll"
           ref={scrollRef}
-          decelerationRate="fast"
           bounces={false}
+          snapToOffsets={[0, Dimensions.get('window').width - 47]}
           onScrollEndDrag={(e) => {
+            // Slow-drag fallback: snapToOffsets only engages with momentum.
+            // If the user drags slowly and releases, we manually snap.
             const offset = e.nativeEvent.contentOffset.x;
             const w = Dimensions.get('window').width;
             const mid = (w - 47) / 2;
             const snap = offset < mid ? 0 : w - 47;
-            scrollRef.current?.scrollTo({ x: snap, animated: true });
+            if (Math.abs(offset - snap) > 10) {
+              scrollRef.current?.scrollTo({ x: snap, animated: true });
+            }
           }}
           onMomentumScrollEnd={(e) => {
             const offset = e.nativeEvent.contentOffset.x;
