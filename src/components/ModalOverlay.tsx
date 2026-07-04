@@ -43,9 +43,9 @@ export default function ModalOverlay({ visible = true, onClose, children, overla
         fade.setValue(0);
         Animated.parallel([
           Animated.timing(back, { toValue: 1, duration: 300, useNativeDriver: false }),
-          Animated.spring(scale, { toValue: 1, useNativeDriver: true, bounciness: 8, speed: 14 }),
-          Animated.spring(slide, { toValue: 0, useNativeDriver: true, bounciness: 8, speed: 14 }),
-          Animated.timing(fade, { toValue: 1, duration: 250, useNativeDriver: true }),
+          Animated.spring(scale, { toValue: 1, useNativeDriver: false, bounciness: 8, speed: 14 }),
+          Animated.spring(slide, { toValue: 0, useNativeDriver: false, bounciness: 8, speed: 14 }),
+          Animated.timing(fade, { toValue: 1, duration: 250, useNativeDriver: false }),
         ]).start();
       } else if (animation === 'blurMorph') {
         scale.setValue(1.04);
