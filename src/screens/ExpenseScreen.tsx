@@ -1028,6 +1028,7 @@ export default function ExpenseScreen({
                   <Switch value={negativeMode} onValueChange={setNegativeMode}
                     trackColor={{ false: colors.secondary, true: withAlpha(colors.danger, 0.4) }}
                     thumbColor={negativeMode ? colors.danger : colors.surface}
+                    style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
                   />
                 </View>
               </View>
@@ -1088,7 +1089,7 @@ export default function ExpenseScreen({
       <ModalOverlay visible={showFeeHistory} onClose={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }} animation="slideUpScale"
           overlayStyle={bottomSheetOverlay as any}
           contentStyle={{ alignItems: 'stretch', justifyContent: 'flex-end' } as any}>
-          <View style={[st.feeSheet, { height: Dimensions.get('window').height * 0.7, width: '100%', maxWidth: 768, alignSelf: 'center' }]} onStartShouldSetResponder={() => true}>
+          <View style={[st.feeSheet, { height: Dimensions.get('window').height * 0.7, width: '100%', maxWidth: 768, alignSelf: 'center', flex: 1 }]} onStartShouldSetResponder={() => true}>
             <SheetHeader title={t('feeHistory')} onClose={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }} backgroundColor={colors.primary} />
             {/* Month filter */}
             <View style={{ paddingHorizontal: 20, paddingBottom: 8, flexDirection: 'row', alignItems: 'center' }}>
