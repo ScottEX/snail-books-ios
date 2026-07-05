@@ -235,7 +235,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
       {/* Filter panel — shared FilterPanel for backdrop, BlurView inside for iOS frosted look */}
       <FilterPanel visible={showFilter} onClose={() => setShowFilter(false)} style={{ backgroundColor: 'transparent', borderWidth: 0 }}>
         <BlurView intensity={45} tint="dark" style={{ borderRadius: 10, overflow: 'hidden' }}>
-          <View style={{ padding: 12, gap: 8 }}>
+          <View style={{ gap: 8 }}>
         {rangeInvalid && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right' }}>{t('errDateRange')}</Text>}
         {rangeTooLong && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right' }}>{t('errDateRangeTooLong')}</Text>}
         <View style={st.filterField}>
