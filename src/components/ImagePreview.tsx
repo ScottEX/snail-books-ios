@@ -428,7 +428,12 @@ function ZoomableImage({
   }, []);
 
   if (Platform.OS !== 'web') {
-    return <NativeImage src={src} windowW={windowW} windowH={windowH} />;
+    return (
+      <Image
+        source={{ uri: src }}
+        style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
+      />
+    );
   }
 
   // Web-only: raw elements for precise touch handling
@@ -463,56 +468,6 @@ function ZoomableImage({
         pointerEvents: 'none',
       } as React.CSSProperties,
     })
-  );
-}
-
-// ═══════════════════════════════════════════════════════════
-//  NativeImage — pinch-to-zoom via touch (2-finger only)
-// ═══════════════════════════════════════════════════════════
-
-function NativeImage({ src, windowW, windowH }: { src: string; windowW: number; windowH: number }) {
-  const [scale, setScale] = useState(1);
-  const scaleRef = useRef(1);
-  const base = useRef({ dist: 0, scale: 1 });
-  const touchesRef = useRef(0);
-
-  const onStart = useCallback((e: any) => {
-    const ts = e.nativeEvent.touches ?? [];
-    touchesRef.current = ts.length;
-    if (ts.length >= 2) {
-      const dx = ts[0].pageX - ts[1].pageX;
-      const dy = ts[0].pageY - ts[1].pageY;
-      base.current = { dist: Math.hypot(dx, dy), scale: scaleRef.current };
-    }
-  }, []);
-
-  const onMove = useCallback((e: any) => {
-    const ts = e.nativeEvent.touches ?? [];
-    if (ts.length >= 2 && base.current.dist > 0) {
-      const dx = ts[0].pageX - ts[1].pageX;
-      const dy = ts[0].pageY - ts[1].pageY;
-      const dist = Math.hypot(dx, dy);
-      scaleRef.current = Math.max(1, Math.min(MAX_ZOOM, base.current.scale * (dist / base.current.dist)));
-      setScale(scaleRef.current);
-    }
-  }, []);
-
-  const onEnd = useCallback(() => {
-    if (scaleRef.current < 1.05) { scaleRef.current = 1; setScale(1); }
-  }, []);
-
-  return (
-    <View
-      style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
-      onTouchStart={onStart}
-      onTouchMove={onMove}
-      onTouchEnd={onEnd}
-    >
-      <Image
-        source={{ uri: src }}
-        style={{ width: '100%', height: '100%', resizeMode: 'contain', transform: [{ scale }] }}
-      />
-    </View>
   );
 }
 
