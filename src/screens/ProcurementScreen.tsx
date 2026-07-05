@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, ScrollView, TouchableOpacity,
   FlatList, Image, ActivityIndicator, StyleSheet, Animated, Dimensions
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import Svg, { Path, Circle, Line, Text as SvgText } from 'react-native-svg';
 import { t } from '../i18n';
 import { trPayment, payKey } from '../i18nHelpers';
@@ -137,11 +138,6 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   frostedBlock: {
     marginHorizontal: 0, marginTop: 4, borderRadius: 16, overflow: 'hidden' as const,
     borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
-    backgroundColor: withAlpha(c.surface, 0.65),
-    // @ts-ignore
-    backdropFilter: 'saturate(180%) blur(20px)',
-    // @ts-ignore
-    WebkitBackdropFilter: 'saturate(180%) blur(20px)',
   },
   headerSection: { padding: 16, paddingBottom: 8 },
   headerTop: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, marginBottom: 12 },
@@ -191,12 +187,8 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
 
   cartBar: {
     position: 'absolute' as const, bottom: 68, left: 0, right: 0, zIndex: 100,
-    marginHorizontal: 12, backgroundColor: withAlpha(c.surface, 0.65), borderRadius: 14,
+    marginHorizontal: 12, borderRadius: 14, overflow: 'hidden' as const,
     borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
-    // @ts-ignore
-    backdropFilter: 'saturate(180%) blur(20px)',
-    // @ts-ignore
-    WebkitBackdropFilter: 'saturate(180%) blur(20px)',
   },
   cartPreview: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, padding: 12 },
   cartIconWrap: { width: 40, height: 40, borderRadius: 10, alignItems: 'center' as const, justifyContent: 'center' as const, overflow: 'visible' as const },
@@ -743,6 +735,12 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
     <View style={styles.container}>
       {/* ── Frosted Glass Block ── */}
       <View style={styles.frostedBlock}>
+        <BlurView
+          intensity={70}
+          tint="regular"
+          style={[StyleSheet.absoluteFill, { borderRadius: 16 }]}
+          pointerEvents="none"
+        />
         <View style={styles.headerSection}>
           <View style={styles.headerTop}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -875,6 +873,12 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
           {cartCount > 0 && (
             <View style={styles.cartBar}>
+              <BlurView
+                intensity={70}
+                tint="regular"
+                style={[StyleSheet.absoluteFill, { borderRadius: 14 }]}
+                pointerEvents="none"
+              />
               <TouchableOpacity style={styles.cartPreview} onPress={() => { setShowDrawer(true); onDrawerOpen?.(); }} activeOpacity={0.8}>
                 <View style={[styles.cartIconWrap, { backgroundColor: c.primary }]}>
                   <CartIcon color={c.surface} />
