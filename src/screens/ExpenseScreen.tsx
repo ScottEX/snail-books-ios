@@ -6,7 +6,7 @@ import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import { t, getLang } from '../i18n';
-import { api, resolveAssetUrl } from '../api/client';
+import { api } from '../api/client';
 import { useToast } from '../hooks/useToast';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import DatePickerModal from '../components/DatePickerModal';
