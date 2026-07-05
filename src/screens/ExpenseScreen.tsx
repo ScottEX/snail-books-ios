@@ -236,7 +236,6 @@ export default function ExpenseScreen({
         diff: latestDiff,
         reconciled_by: username,
       });
-      showToast(t('reconComplete'));
       setShowReconConfirm(false);
       onReconHistory?.();
     } catch { showToast(t('toastSubmitFailed')); }
