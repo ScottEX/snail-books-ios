@@ -251,24 +251,33 @@ function clampResist(val: number, low: number, high: number) {
 // ═══════════════════════════════════════════════════════════════════════
 
 function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, onSwipeToPage }: { src: string; windowW: number; windowH: number; isActive: boolean; onZoomChange: (zooming: boolean) => void; onSwipeToPage: (dir: -1 | 1) => void }) {
-  const [resetKey, setResetKey] = useState(0);
   const zoomedRef = useRef(false);
   const reachedLeftEdge = useRef(false);
   const reachedRightEdge = useRef(false);
 
-  // Reset zoom when page becomes inactive: change key → remount → fresh 1x
+  // When becoming inactive: release zoom lock
   const prevActive = useRef(isActive);
   useEffect(() => {
-    if (!isActive && prevActive.current) {
-      setResetKey(k => k + 1);
-      if (zoomedRef.current) { zoomedRef.current = false; onZoomChange(false); }
+    if (!isActive && prevActive.current && zoomedRef.current) {
+      zoomedRef.current = false;
+      onZoomChange(false);
     }
     prevActive.current = isActive;
   }, [isActive]);
 
+  if (!isActive) {
+    // Inactive page: plain image, no ScrollView overhead, no flash on remount
+    return (
+      <Image
+        source={{ uri: src }}
+        style={{ width: windowW, height: windowH * 0.9 }}
+        resizeMode="contain"
+      />
+    );
+  }
+
   return (
     <ScrollView
-      key={resetKey}
       maximumZoomScale={4}
       minimumZoomScale={1}
       bouncesZoom={false}
