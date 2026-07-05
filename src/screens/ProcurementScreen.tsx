@@ -132,7 +132,7 @@ const sortByOrder = (a: string, b: string) => {
 // Styles
 // ═══════════════════════════════════════════════
 const getStyles = (c: ThemeColors) => StyleSheet.create({
-  container: { flex: 1, position: 'relative' as const },
+  container: { flex: 1, position: 'relative' as const, paddingHorizontal: 16 },
 
   frostedBlock: {
     marginHorizontal: 0, marginTop: 4, borderRadius: 16, overflow: 'hidden' as const,
