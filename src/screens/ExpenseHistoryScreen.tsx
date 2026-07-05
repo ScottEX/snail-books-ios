@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, Animated, Image } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, Animated, Image, StatusBar } from 'react-native';
 import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
 import { t, getLang } from '../i18n';
@@ -225,6 +225,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
 
   return (
     <View style={st.root}>
+      <StatusBar barStyle="dark-content" />
       <HistoryHeader
         onBack={onBack}
         title={`${t('expenseHistory')} (${total})`}
