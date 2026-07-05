@@ -257,13 +257,15 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
   const reachedRightEdge = useRef(false);
   const isInteracting = useRef(false);
 
-  // When becoming inactive while zoomed: bump key to remount ScrollView next time active
+  // When becoming inactive while zoomed: delay key bump until page transition done
   const prevActive = useRef(isActive);
   useEffect(() => {
     if (!isActive && prevActive.current && zoomedRef.current) {
       zoomedRef.current = false;
       onZoomChange(false);
-      setScrollKey(k => k + 1);
+      // Defer key bump: user is looking at the new page by now, won't see shrink
+      const timer = setTimeout(() => setScrollKey(k => k + 1), 350);
+      return () => clearTimeout(timer);
     }
     prevActive.current = isActive;
   }, [isActive]);
@@ -318,10 +320,8 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
         onScrollEndDrag={() => {
           isInteracting.current = false;
           if (zoomedRef.current && (reachedLeftEdge.current || reachedRightEdge.current)) {
-            // Unlock + bump key for native zoom reset, then page change
-            zoomedRef.current = false;
+            // Unlock for scrollTo; don't reset zoomedRef — let useEffect delay key bump
             onZoomChange(false);
-            setScrollKey(k => k + 1);
             const dir = reachedLeftEdge.current ? -1 : 1;
             reachedLeftEdge.current = false;
             reachedRightEdge.current = false;
