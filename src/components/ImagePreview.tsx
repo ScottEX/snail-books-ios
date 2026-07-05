@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { FONTS } from '../theme';
+import NativeImagePager from './NativeImagePager';
 
 const SPRING = { friction: 8, tension: 60 };
 const DISMISS_THRESHOLD = 80;
@@ -141,41 +142,49 @@ export default function ImagePreview({
         </Svg>
       </TouchableOpacity>
 
-      {/* Paged ScrollView — native horizontal swipe */}
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        scrollEventThrottle={16}
-        onScroll={(e) => {
-          const offsetX = e.nativeEvent.contentOffset.x;
-          const raw = offsetX / WINDOW_W;
-          const page = Math.round(raw);
-          if (page >= 0 && page < images.length && page !== idx) {
-            setIdx(page);
-          }
-        }}
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        bounces={false}
-        scrollEnabled={!scrollLocked}
-      >
-        {images.map((src, i) => (
-          <Animated.View
-            key={i}
-            style={[styles.page, { width: WINDOW_W, transform: [{ scale: imageScale }] }]}
-          >
-            <ZoomableImage
-              src={src}
-              windowW={WINDOW_W}
-              windowH={WINDOW_H}
-              onZoomActive={(v) => { zoomActiveRef.current = v; setScrollLocked(v); }}
-              onSwipeToPage={handleSwipeToPage}
-            />
-          </Animated.View>
-        ))}
-      </ScrollView>
+      {/* Paged image viewer */}
+      {Platform.OS === 'web' ? (
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={(e) => {
+            const offsetX = e.nativeEvent.contentOffset.x;
+            const raw = offsetX / WINDOW_W;
+            const page = Math.round(raw);
+            if (page >= 0 && page < images.length && page !== idx) {
+              setIdx(page);
+            }
+          }}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          bounces={false}
+          scrollEnabled={!scrollLocked}
+        >
+          {images.map((src, i) => (
+            <Animated.View
+              key={i}
+              style={[styles.page, { width: WINDOW_W, transform: [{ scale: imageScale }] }]}
+            >
+              <ZoomableImage
+                src={src}
+                windowW={WINDOW_W}
+                windowH={WINDOW_H}
+                onZoomActive={(v) => { zoomActiveRef.current = v; setScrollLocked(v); }}
+                onSwipeToPage={handleSwipeToPage}
+              />
+            </Animated.View>
+          ))}
+        </ScrollView>
+      ) : (
+        <NativeImagePager
+          images={images}
+          initialIdx={idx}
+          onIndexChange={setIdx}
+        />
+      )}
 
       {/* Counter — dots */}
       {images.length > 1 && (
