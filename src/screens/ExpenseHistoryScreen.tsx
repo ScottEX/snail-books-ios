@@ -9,6 +9,7 @@ import { usePaginatedList } from '../hooks/usePaginatedList';
 import { getCurrentUser } from '../utils/storage';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { useToast } from '../hooks/useToast';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -40,6 +41,7 @@ function ExpenseEmptyIcon({ color }: { color: string }) {
     <Svg width={48} height={48} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <Path d="M14 2v6h6" />
+      <Circle cx="10" cy="12" r="3" />
       <Path d="M10 12h4" />
       <Path d="M9 17h6" />
     </Svg>
@@ -70,6 +72,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
   const st = useMemo(() => getSt(colors), [colors]);
   const sd = useServerDate();
   const currentUser = getCurrentUser();
+  const { showToast, ToastHost } = useToast();
 
   const [showFilter, setShowFilter] = useState(false);
   const [filterVisible, setFilterVisible] = useState(false);
@@ -111,13 +114,14 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
       if (appliedTo) params.date_to = appliedTo;
       if (appliedCats) params.category = appliedCats;
       const tx: any = await api.getTransactions(page, perPage, params);
-      return { records: tx.transactions || [], total: tx.total || 0, pages: tx.pages || 1 };
+      return { records: tx.transactions || [], total: tx.total || 0, pages: tx.pages || 1, total_all: tx.total_all };
     } catch {
+      showToast(t('toastLoadFailed'));
       return { records: [], total: 0, pages: 1 };
     }
-  }, [appliedFrom, appliedTo, appliedCats]);
+  }, [appliedFrom, appliedTo, appliedCats, showToast]);
 
-  const { records, total, hasMore, loading, loadingMore, refresh, loadMore } = usePaginatedList({
+  const { records, total, totalAll, hasMore, loading, loadingMore, refresh, loadMore } = usePaginatedList({
     fetcher,
     perPage: 50,
   });
@@ -144,7 +148,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
     const resolvedImgs = displayImgs.map((u: string) => resolveAssetUrl(u) || u);
     return (
     <TouchableOpacity onPress={() => onExpDetail?.(e)} activeOpacity={0.7}>
-      <View style={st.row} {...swipeBack}>
+      <View style={st.row}>
       <View style={{ flex: 1, minWidth: 0 }}>
         <View style={st.rowTop}>
           <View style={st.badges}>
@@ -228,7 +232,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
       <StatusBar barStyle="dark-content" />
       <HistoryHeader
         onBack={onBack}
-        title={`${t('expenseHistory')} (${total})`}
+        title={`${t('expenseHistory')} (${total}/${totalAll})`}
         filterActive={showFilter}
         onToggleFilter={() => showFilter ? closeFilter() : openFilter()}
       />
@@ -253,6 +257,26 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
               </View>
               {rangeInvalid && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right', marginTop: 4 }}>{t('errDateRange')}</Text>}
               {rangeTooLong && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right', marginTop: 4 }}>{t('errDateRangeTooLong')}</Text>}
+              {/* Quick date buttons — matches web */}
+              <View style={st.filterField}>
+                <Text style={st.filterLabel}>　</Text>
+                <View style={st.filterChipRow}>
+                  {[
+                    { label: t('today'), date: sd.today },
+                    { label: t('yesterday'), date: sd.offset ? sd.offset(-1) : '' },
+                    { label: t('dayBeforeYesterday'), date: sd.offset ? sd.offset(-2) : '' },
+                  ].map(q => {
+                    const active = filDateFrom === q.date && filDateTo === q.date;
+                    return (
+                      <TouchableOpacity key={q.label}
+                        style={[st.filterChip, active && st.filterChipActive]}
+                        onPress={() => { if (q.date) { setFilDateFrom(q.date); setFilDateTo(q.date); } }} activeOpacity={0.7}>
+                        <Text style={[st.filterChipText, active && st.filterChipTextActive]}>{q.label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
               <View style={st.filterField}>
                 <Text style={st.filterLabel}>{t('filterCategory')}</Text>
                 <View style={st.filterChipRow}>
@@ -308,7 +332,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         onEndReached={loadMore}
         onEndReachedThreshold={0.4}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 112, paddingHorizontal: 12, paddingBottom: 100 }}
+        contentContainerStyle={{ paddingTop: showFilter ? 292 : 112, paddingHorizontal: 12, paddingBottom: 100 }}
         ListEmptyComponent={!loading ? (
           <EmptyState
             icon={<ExpenseEmptyIcon color={colors.textSub} />}
@@ -337,6 +361,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         visible={preview !== null}
         onClose={closePreview}
       />
+      {ToastHost}
     </View>
   );
 }
