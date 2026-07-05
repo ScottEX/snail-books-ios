@@ -998,13 +998,13 @@ interface DailyRevProps {
 function DailyRevenueView(p: DailyRevProps) {
   const { colors, styles } = p;
   return (
-    <View>
-      <View style={{ paddingTop: 14 }}>
+    <View style={{ paddingBottom: 100 }}>
+      <View style={{ paddingTop: 4 }}>
         {/* ── Daily revenue entry card (liquid glass — web parity) ── */}
         <View style={styles.revCard}>
           <BlurView
-            intensity={85}
-            tint="systemUltraThinMaterialLight"
+            intensity={70}
+            tint="regular"
             style={[StyleSheet.absoluteFillObject, { borderRadius: 14 }]}
             pointerEvents="none"
           />
@@ -1387,7 +1387,7 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   revCard: {
     backgroundColor: withAlpha(colors.surface, 0.65),
     borderRadius: 14, padding: 18, overflow: 'hidden',
-    marginHorizontal: 16, marginTop: 14,
+    marginHorizontal: 16,
     borderWidth: 0.5, borderColor: withAlpha(colors.textMain, 0.08),
   },
   revHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
@@ -1424,7 +1424,7 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   revHistoryTitle: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary },
   revHistoryBtn: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary },
   rev7Empty: { paddingVertical: 30, alignItems: 'center' },
-  rev7Card: { backgroundColor: withAlpha(colors.surface, 0.85), borderRadius: 12, padding: 14, marginBottom: 10, marginHorizontal: 16, borderWidth: 1, borderColor: withAlpha(colors.textSub, 0.08) },
+  rev7Card: { backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 16, paddingHorizontal: 16, marginBottom: 10, marginHorizontal: 16, borderWidth: 1, borderColor: colors.secondary, gap: 12 },
   rev7CardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   rev7CardDate: { fontSize: FONTS.sub.size, color: colors.textMain, fontWeight: FONTS.sub.weight },
   rev7TodayTag: { backgroundColor: withAlpha(colors.primary, 0.12), borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
