@@ -31,6 +31,19 @@ export function useExpenseForm(options: UseExpenseFormOptions) {
   const [loadingExp, setLoadingExp] = useState(false);
 
   /* ── image helpers ── */
+
+  /** Validate and add images — matches web handleImageSelect (MIME + 10 MB + dedup) */
+  const handleImageSelect = useCallback((files: PickedImage[]) => {
+    const valid: PickedImage[] = [];
+    for (const f of files) {
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type ?? '')) continue;
+      if ((f.size ?? 0) > 10 * 1024 * 1024) continue;
+      if (expImages.some(ei => ei.name === f.name && ei.size === f.size)) continue;
+      valid.push(f);
+    }
+    if (valid.length > 0) setExpImages(prev => [...prev, ...valid]);
+  }, [expImages]);
+
   const removeImage = useCallback((idx: number) => {
     setExpImages(prev => {
       if (prev[idx]) revokePreviewUrl(prev[idx]);
@@ -112,6 +125,7 @@ export function useExpenseForm(options: UseExpenseFormOptions) {
     loadingExp,
     isRefund, setIsRefund,
     handleAddExpense,
+    handleImageSelect,
     resetForm,
     removeImage,
     isAmountInvalid,

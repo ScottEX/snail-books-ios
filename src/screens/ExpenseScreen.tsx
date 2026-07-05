@@ -395,11 +395,12 @@ export default function ExpenseScreen({
     expCategory, setExpCategory,
     payMethod, setPayMethod,
     expNote, setExpNote,
-    expImages, setExpImages,
+    expImages,
     uploadingImg,
     loadingExp,
     isRefund, setIsRefund,
     handleAddExpense,
+    handleImageSelect,
     removeImage,
     isAmountInvalid,
   } = useExpenseForm({
@@ -797,7 +798,7 @@ export default function ExpenseScreen({
               {/* 凭证上传 */}
               <ReceiptUpload
                 newFiles={expImages}
-                onAdd={(files) => setExpImages((prev: any[]) => [...prev, ...files])}
+                onAdd={handleImageSelect}
                 onRemoveNew={removeImage}
                 getPreviewUrl={getPreviewUrl}
                 maxThumbSize={120}
