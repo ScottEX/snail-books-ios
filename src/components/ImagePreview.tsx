@@ -270,17 +270,20 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
     prevActive.current = isActive;
   }, [isActive]);
 
-  const imageStyle = { position: 'absolute' as const, width: windowW, height: windowH * 0.9, resizeMode: 'contain' as const };
+  const imageStyle = { width: windowW, height: windowH * 0.9, resizeMode: 'contain' as const };
 
   return (
-    <View style={{ width: windowW, height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ width: windowW, height: '100%' }}>
       {/* Base layer: always 1x, always visible — covers any ScrollView remount gap */}
-      <Image source={{ uri: src }} style={imageStyle} />
+      <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]} pointerEvents="none">
+        <Image source={{ uri: src }} style={imageStyle} />
+      </View>
       {/* Zoom layer: remounts (via key) to reset native zoom when needed */}
       <ScrollView
         key={scrollKey}
         pointerEvents={isActive ? 'auto' : 'none'}
         style={StyleSheet.absoluteFillObject}
+        contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center' }}
         maximumZoomScale={4}
         minimumZoomScale={1}
         bouncesZoom={false}
