@@ -874,6 +874,14 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
           {cartCount > 0 && (
             <View style={styles.cartBar}>
+              <View style={{ ...StyleSheet.absoluteFill, borderRadius: 14, overflow: 'hidden' } as any}>
+                <BlurView
+                  intensity={40}
+                  tint="regular"
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
+              </View>
               <TouchableOpacity style={styles.cartPreview} onPress={() => { setShowDrawer(true); onDrawerOpen?.(); }} activeOpacity={0.8}>
                 <View style={[styles.cartIconWrap, { backgroundColor: c.primary }]}>
                   <CartIcon color={c.surface} />
