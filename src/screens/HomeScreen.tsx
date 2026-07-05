@@ -1137,8 +1137,7 @@ function DailyRevenueView(p: DailyRevProps) {
           <View style={styles.revHistoryHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.textMain} strokeWidth={2} strokeLinecap="round">
-                <Path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
-                <Path d="M9 12h6M9 16h6" />
+                <Path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6M9 16h6" />
               </Svg>
               <Text style={styles.revHistoryTitle}>{t('revHistory')}</Text>
             </View>
@@ -1177,20 +1176,23 @@ function DailyRevenueView(p: DailyRevProps) {
                 ) : null}
                 <View style={styles.rev7CardAmounts}>
                   <View style={styles.rev7CardAmtCol}>
-                    {rec.revenue > 0 ? <Text style={styles.rev7CardAmtVal}>¥{rec.revenue.toFixed(2)}</Text> : <Dash color={colors.secondary} />}
+                    {rec.revenue > 0 ? <Text style={styles.rev7CardAmtVal}>¥{toDec2(rec.revenue)}</Text> : <Dash color={colors.secondary} />}
                     <Text style={styles.rev7CardAmtLabel}>{t('revRevenue')}</Text>
                   </View>
                   <View style={styles.rev7CardAmtCol}>
-                    {rec.turnover > 0 ? <Text style={styles.rev7CardAmtVal}>¥{rec.turnover.toFixed(2)}</Text> : <Dash color={colors.secondary} />}
+                    {rec.turnover > 0 ? <Text style={styles.rev7CardAmtVal}>¥{toDec2(rec.turnover)}</Text> : <Dash color={colors.secondary} />}
                     <Text style={styles.rev7CardAmtLabel}>{t('revTurnover')}</Text>
                   </View>
                   <View style={styles.rev7CardAmtCol}>
-                    {rec.jd_revenue > 0 ? <Text style={styles.rev7CardAmtVal}>¥{rec.jd_revenue.toFixed(2)}</Text> : <Dash color={colors.secondary} />}
+                    {rec.jd_revenue > 0 ? <Text style={styles.rev7CardAmtVal}>¥{toDec2(rec.jd_revenue)}</Text> : <Dash color={colors.secondary} />}
                     <Text style={styles.rev7CardAmtLabel}>{t('revJD')}</Text>
                   </View>
                 </View>
                 <View style={styles.rev7CardFooter}>
-                  <Text style={styles.rev7CardFooterText}>{t('recordedBy')}: {rec.recorded_by || '—'}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={styles.rev7CardFooterText}>{t('recordedBy')}:</Text>
+                    <Text style={styles.rev7CardFooterText}>{rec.recorded_by || '—'}</Text>
+                  </View>
                 </View>
                 {rec.note ? <View style={styles.rev7CardNote}><Text style={styles.rev7CardNoteText}>{rec.note}</Text></View> : null}
               </View>
