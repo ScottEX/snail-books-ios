@@ -1428,7 +1428,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
             <Text style={styles.successSub}>{successIsEdit ? t('procUpdatedMsg') : t('procSubmittedMsg')}</Text>
             <Text style={styles.successAmount}>¥{successTotal.toFixed(2)}</Text>
             <Text style={{ fontSize: FONTS.micro.size, color: c.textSub }}>
-              {t('procNowBatch').replace('{n}', String(successBatch))} · {orderDate} · {payMethod}
+              {t('procNowBatch').replace('{n}', String(successBatch))} · {orderDate} · {trPayment(payMethod)}
             </Text>
             <View style={styles.successBtns}>
               <TouchableOpacity style={[styles.successBtnView, !successIsEdit && { flex: 1 }]} onPress={() => { closeSlideModal(() => { setShowSuccess(false); setSuccessIsEdit(false); }); setSubTab('history'); }}>
