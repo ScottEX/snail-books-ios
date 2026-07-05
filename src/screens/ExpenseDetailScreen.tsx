@@ -187,8 +187,9 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
 
     try {
       await api.deleteExpenseImage(removedUrl, expense.id);
-      // Clear expo-image memory cache so stale image isn't shown
+      // Clear expo-image cache so stale image isn't shown
       ExpoImage.clearMemoryCache?.();
+      ExpoImage.clearDiskCache?.();
     } catch {
       // Rollback on failure
       setImages(parseImages(expense?.images));
