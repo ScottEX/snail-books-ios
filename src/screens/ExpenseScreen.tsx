@@ -46,7 +46,7 @@ const fmtMonth = (year: number, month: number) => {
     const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     return `${months[month-1]} ${year}`;
   }
-  return `${year}年${month}月`;
+  return `${year}年${String(month).padStart(2, '0')}月`;
 };
 const toNum = (s: string) => parseFloat(s) || 0;
 const blockNeg = (s: string) => s.replace(/[^0-9.]/g, '');
@@ -374,18 +374,22 @@ export default function ExpenseScreen({
   }, []);
   const [showFeeHistory, setShowFeeHistory] = useState(false);
   const [feeHistoryFilter, setFeeHistoryFilter] = useState<'all' | { year: number; month: number }>('all');
-  const [feeEntryDate, setFeeEntryDate] = useState(sd.today || '');
-  const [feeDateErr, setFeeDateErr] = useState(0);
+  const feeDate = useDateField({ sd, initial: '' });
+  // Default to today's date once server date is ready
+  useEffect(() => { if (sd.ready && sd.today) feeDate.setValue(sd.today); }, [sd.ready]);
   const [feeMc, setFeeMc] = useState('');
   const [feeMw, setFeeMw] = useState('');
   const [feeEw, setFeeEw] = useState('');
   const [feeMt, setFeeMt] = useState('');
   const [savingFee, setSavingFee] = useState(false);
   const [negativeMode, setNegativeMode] = useState(false);
+  const feeLoadId = useRef(0);  // guard against stale async responses
 
   const loadFeeData = async () => {
+    const id = ++feeLoadId.current;
     try {
       const all = await api.getPlatformFees();
+      if (id !== feeLoadId.current) return; // stale
       const allArr = Array.isArray(all) ? all : [];
       setAllFees(allArr);
       // Derive feeData from feeMonth
@@ -401,7 +405,7 @@ export default function ExpenseScreen({
 
   const handleAddFee = async () => {
     if (feeMonth === 'all') return;
-    if (sd.isFuture(feeEntryDate)) { showToast(t('errDateFuture')); return; }
+    if (sd.isFuture(feeDate.value)) { showToast(t('errDateFuture')); return; }
     const factor = negativeMode ? -1 : 1;
     const mc = toNum(feeMc) * factor, mw = toNum(feeMw) * factor, ew = toNum(feeEw) * factor, mt = toNum(feeMt) * factor;
     if (mc + mw + ew + mt === 0) { showToast(t('atLeastOneFee')); return; }
@@ -409,7 +413,7 @@ export default function ExpenseScreen({
     try {
       const r = await api.addPlatformFeeEntry({
         year: feeMonth.year, month: feeMonth.month,
-        entry_date: feeEntryDate,
+        entry_date: feeDate.value,
         meituan_cashier: mc, meituan_waimai: mw,
         shangou_waimai: ew, meituan_tuan: mt,
       });
@@ -419,7 +423,7 @@ export default function ExpenseScreen({
         setNegativeMode(false);
         setShowFeeSheet(false);
         // Reload all months to keep totals accurate
-        api.getPlatformFees().then((all: any) => setAllFees(Array.isArray(all) ? all : []));
+        api.getPlatformFees().then((all: any) => setAllFees(Array.isArray(all) ? all : [])).catch(() => {});
       } else {
         showToast(r?.message || t('toastSubmitFailed'));
       }
@@ -635,7 +639,7 @@ export default function ExpenseScreen({
                   } else {
                     setFeeMc(''); setFeeMw(''); setFeeEw(''); setFeeMt('');
                     setNegativeMode(false);
-                    setFeeDateErr(0); loadFeeData(); setShowFeeSheet(true);
+                    feeDate.setError(0); loadFeeData(); setShowFeeSheet(true);
                   }
                 }}
                 activeOpacity={0.7}
@@ -960,9 +964,9 @@ export default function ExpenseScreen({
       {/* Fee date picker */}
       <DatePickerModal
         visible={showFeeDatePicker}
-        value={feeEntryDate}
+        value={feeDate.value}
         onClose={() => setShowFeeDatePicker(false)}
-        onSelect={(d) => { setFeeEntryDate(d); setFeeDateErr(0); }}
+        onSelect={(d) => { feeDate.setValue(d); feeDate.setError(0); }}
         minDate={undefined}
         title={t('entryDate')}
       />
@@ -996,13 +1000,13 @@ export default function ExpenseScreen({
                       <Rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><Line x1="16" y1="2" x2="16" y2="6" /><Line x1="8" y1="2" x2="8" y2="6" /><Line x1="3" y1="10" x2="21" y2="10" />
                     </Svg>
                     <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary }}>
-                      {fmtLocalDate(feeEntryDate)}
+                      {fmtLocalDate(feeDate.value)}
                     </Text>
                     <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                       <Path d="M8 5l8 7-8 7" />
                     </Svg>
                   </TouchableOpacity>
-                  <DateErrorHint trigger={feeDateErr} message={t('errDateFuture')} colors={colors} />
+                  <DateErrorHint trigger={feeDate.error} message={t('errDateFuture')} colors={colors} />
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                   <Text style={{ fontSize: 10, color: colors.danger }}>负数</Text>
