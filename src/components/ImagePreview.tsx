@@ -131,7 +131,6 @@ export default function ImagePreview({
     setScrollLocked(zooming);
   }, []);
 
-  // Never unmount while images exist — keep Image components alive to preserve decode cache
   if (images.length === 0 || WINDOW_W === 0) return null;
   const isHidden = !visible && !dismissing;
 
