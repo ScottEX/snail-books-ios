@@ -245,110 +245,50 @@ function clampResist(val: number, low: number, high: number) {
 // ═══════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════
-//  NativeZoomableImage — PanResponder zoom for iOS (no inner ScrollView)
-//  At 1x: does NOT claim touches → outer ScrollView native paging
-//  Pinch / zoomed: claims → handles zoom + pan
+//  NativeZoomableImage — native ScrollView zoom (UIScrollView pinch)
+//  Pinch zoom is 100% native (no JS bridge) → buttery smooth
+//  onScroll reads zoomScale to lock/unlock outer paging ScrollView
 // ═══════════════════════════════════════════════════════════════════════
 
 function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange }: { src: string; windowW: number; windowH: number; isActive: boolean; onZoomChange: (zooming: boolean) => void }) {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const offsetX = useRef(new Animated.Value(0)).current;
-  const offsetY = useRef(new Animated.Value(0)).current;
-  const scaleRef = useRef(1);
-  const pinchBase = useRef({ dist: 0, scale: 1 });
-  const panBase = useRef({ x: 0, y: 0 });
-  const touchStart = useRef({ x: 0, y: 0 });
-  const lastTap = useRef(0);
+  const [resetKey, setResetKey] = useState(0);
+  const zoomedRef = useRef(false);
 
-  // Reset zoom when page becomes inactive (user swiped away)
+  // Reset zoom when page becomes inactive: change key → remount → fresh 1x
   const prevActive = useRef(isActive);
   useEffect(() => {
     if (!isActive && prevActive.current) {
-      scaleRef.current = 1;
-      scaleAnim.setValue(1);
-      offsetX.setValue(0);
-      offsetY.setValue(0);
+      setResetKey(k => k + 1);
+      if (zoomedRef.current) { zoomedRef.current = false; onZoomChange(false); }
     }
     prevActive.current = isActive;
   }, [isActive]);
 
-  const panResponder = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => scaleRef.current > 1.01,
-    onMoveShouldSetPanResponder: (_, gs) => {
-      if (gs.numberActiveTouches >= 2) return true;
-      if (scaleRef.current > 1.01) return true;
-      return false;
-    },
-    onPanResponderGrant: (e) => {
-      const ts = e.nativeEvent.touches ?? [];
-      if (ts.length >= 2) {
-        onZoomChange(true);
-        const dx = ts[0].pageX - ts[1].pageX;
-        const dy = ts[0].pageY - ts[1].pageY;
-        pinchBase.current = { dist: Math.hypot(dx, dy), scale: scaleRef.current };
-      } else if (scaleRef.current > 1.01) {
-        panBase.current = { x: (offsetX as any)._value, y: (offsetY as any)._value };
-        touchStart.current = { x: ts[0].pageX, y: ts[0].pageY };
-      }
-    },
-    onPanResponderMove: (e, _gs) => {
-      const ts = e.nativeEvent.touches ?? [];
-      if (ts.length >= 2) {
-        const dx = ts[0].pageX - ts[1].pageX;
-        const dy = ts[0].pageY - ts[1].pageY;
-        const dist = Math.hypot(dx, dy);
-        if (pinchBase.current.dist > 0) {
-          const s = Math.max(1, Math.min(MAX_ZOOM, pinchBase.current.scale * (dist / pinchBase.current.dist)));
-          scaleRef.current = s;
-          scaleAnim.setValue(s);
-        }
-      } else if (scaleRef.current > 1.01) {
-        offsetX.setValue(panBase.current.x + (ts[0].pageX - touchStart.current.x));
-        offsetY.setValue(panBase.current.y + (ts[0].pageY - touchStart.current.y));
-      }
-    },
-    onPanResponderRelease: (_, gs) => {
-      const now = Date.now();
-      if (now - lastTap.current < DOUBLE_TAP_MS && Math.abs(gs.dx) < 10 && Math.abs(gs.dy) < 10) {
-        if (scaleRef.current > 1.01) {
-          scaleRef.current = 1;
-          Animated.parallel([
-            Animated.timing(scaleAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
-            Animated.timing(offsetX, { toValue: 0, duration: 150, useNativeDriver: true }),
-            Animated.timing(offsetY, { toValue: 0, duration: 150, useNativeDriver: true }),
-          ]).start();
-          onZoomChange(false);
-        } else {
-          scaleRef.current = DOUBLE_TAP_ZOOM;
-          Animated.spring(scaleAnim, { toValue: DOUBLE_TAP_ZOOM, useNativeDriver: true }).start();
-          onZoomChange(true);
-        }
-        lastTap.current = 0;
-        return;
-      }
-      lastTap.current = now;
-      if (scaleRef.current <= 1.01) {
-        scaleRef.current = 1;
-        scaleAnim.setValue(1); offsetX.setValue(0); offsetY.setValue(0);
-      }
-      onZoomChange(false);
-    },
-    onPanResponderTerminate: () => {
-      if (scaleRef.current <= 1.01) {
-        scaleRef.current = 1;
-        scaleAnim.setValue(1); offsetX.setValue(0); offsetY.setValue(0);
-      }
-      onZoomChange(false);
-    },
-  }), [onZoomChange]);
-
   return (
-    <View style={{ width: windowW, height: '100%', alignItems: 'center', justifyContent: 'center' }} {...panResponder.panHandlers}>
-      <Animated.Image
+    <ScrollView
+      key={resetKey}
+      maximumZoomScale={4}
+      minimumZoomScale={1}
+      bouncesZoom={false}
+      centerContent
+      showsVerticalScrollIndicator={false}
+      showsHorizontalScrollIndicator={false}
+      scrollEventThrottle={16}
+      onScroll={(e) => {
+        const zs = e.nativeEvent.zoomScale ?? 1;
+        const isZoomed = zs > 1.01;
+        if (isZoomed !== zoomedRef.current) {
+          zoomedRef.current = isZoomed;
+          onZoomChange(isZoomed);
+        }
+      }}
+    >
+      <Image
         source={{ uri: src }}
-        style={{ width: windowW, height: windowH * 0.9, resizeMode: 'contain', transform: [{ translateX: offsetX }, { translateY: offsetY }, { scale: scaleAnim }] }}
+        style={{ width: windowW, height: windowH * 0.9 }}
+        resizeMode="contain"
       />
-    </View>
+    </ScrollView>
   );
 }
 
