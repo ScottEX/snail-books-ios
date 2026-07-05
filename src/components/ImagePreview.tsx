@@ -316,8 +316,10 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
         onScrollEndDrag={() => {
           isInteracting.current = false;
           if (reachedLeftEdge.current || reachedRightEdge.current) {
+            // Unlock + bump key for native zoom reset, then page change
             zoomedRef.current = false;
             onZoomChange(false);
+            setScrollKey(k => k + 1);
             const dir = reachedLeftEdge.current ? -1 : 1;
             reachedLeftEdge.current = false;
             reachedRightEdge.current = false;
