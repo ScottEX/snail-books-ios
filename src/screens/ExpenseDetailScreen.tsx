@@ -42,7 +42,7 @@ const fmtLocalDate = (s: string, lang: string) => {
 /* ── Date helpers ── */
 const fmtCreatedAt = (raw: string, lang: string) => {
   if (!raw) return '—';
-  const d = new Date(raw.endsWith('Z') ? raw : raw + 'Z');
+  const d = new Date(raw);
   if (isNaN(d.getTime())) return raw.slice(0, 19).replace('T', ' ');
   const y = d.getFullYear();
   const mo = d.getMonth() + 1;
