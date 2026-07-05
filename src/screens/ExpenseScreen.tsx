@@ -374,7 +374,7 @@ export default function ExpenseScreen({
         shangou_waimai: ew, meituan_tuan: mt,
       });
       if (r?.status === 'ok') {
-        setFeeData(r.data);
+        setFeeData(r?.data);
         setFeeMc(''); setFeeMw(''); setFeeEw(''); setFeeMt('');
         setNegativeMode(false);
         setShowFeeSheet(false);
@@ -1031,6 +1031,7 @@ export default function ExpenseScreen({
                     <EmptyState
                       icon={<Svg width={40} height={40} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><Rect x="3" y="4" width="18" height="17" rx="2" /><Line x1="9" y1="8" x2="15" y2="8" /><Line x1="9" y1="12" x2="15" y2="12" /><Line x1="9" y1="16" x2="13" y2="16" /></Svg>}
                       title={feeHistoryFilter === 'all' ? '暂无手续费数据' : '该月份暂无手续费记录'}
+                      hint="该月份还没有数据，去录入一笔吧"
                     />
                   );
                 }
