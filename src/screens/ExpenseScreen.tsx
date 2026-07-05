@@ -465,11 +465,6 @@ export default function ExpenseScreen({
     goods: (businessSummary as any)?.expense_by_category?.goods ?? 0,
   }), [(businessSummary as any)?.expense_by_category]);
 
-  const loadExpenses = async () => {
-    // Category totals now come from businessSummary.expense_by_category (web-aligned).
-    // No longer loading all transactions client-side.
-  };
-
   // Image upload handlers
   const [showRecDatePicker, setShowRecDatePicker] = useState(false);
   const [showExpDatePicker, setShowExpDatePicker] = useState(false);
