@@ -1029,7 +1029,7 @@ function DailyRevenueView(p: DailyRevProps) {
               {[
                 { label: t('revQuickToday'), d: p.td },
                 { label: t('revQuickYesterday'), d: p.sdYesterday },
-                { label: t('revQuickDB4') || '前天', d: p.sdDb4 },
+                { label: t('revQuickDB4'), d: p.sdDb4 },
               ].map(pill => (
                 <TouchableOpacity
                   key={pill.d}
