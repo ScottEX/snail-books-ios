@@ -38,6 +38,20 @@ export function useExpenseForm(options: UseExpenseFormOptions) {
     });
   }, [revokePreviewUrl]);
 
+  /* ── reset form ── */
+  const resetForm = useCallback(() => {
+    setExpAmount('');
+    setExpCategory('daily');
+    setPayMethod('payWechat');
+    setExpNote('');
+    setExpDate(sd.today || '');
+    setExpImages([]);
+    setExpDateErr(0);
+    setLoadingExp(false);
+    setUploadingImg(false);
+    setIsRefund(false);
+  }, [sd.today]);
+
   /* ── submit ── */
   const handleAddExpense = useCallback(async () => {
     const raw = parseFloat(expAmount.replace(/,/g, ''));
@@ -73,20 +87,14 @@ export function useExpenseForm(options: UseExpenseFormOptions) {
         thumb_images: thumbUrls,
       });
       clearUrlCache();
-      setExpAmount('');
-      setExpCategory('daily');
-      setPayMethod('payWechat');
-      setExpNote('');
-      setExpDate(sd.today || '');
-      setExpImages([]);
-      setIsRefund(false);
+      resetForm();
       onExpenseAdded?.();
       onExpenseHistory?.();
     } catch { onToast(t('toastSubmitFailed')); }
     setLoadingExp(false);
   }, [
     expAmount, expDate, expImages, expCategory, payMethod, expNote,
-    isRefund, sd, clearUrlCache, onExpenseHistory, onExpenseAdded, onToast,
+    isRefund, sd, clearUrlCache, resetForm, onExpenseHistory, onExpenseAdded, onToast,
   ]);
 
   /* ── derived ── */
@@ -104,6 +112,7 @@ export function useExpenseForm(options: UseExpenseFormOptions) {
     loadingExp,
     isRefund, setIsRefund,
     handleAddExpense,
+    resetForm,
     removeImage,
     isAmountInvalid,
   };
