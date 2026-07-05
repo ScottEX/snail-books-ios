@@ -138,6 +138,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   frostedBlock: {
     marginHorizontal: 0, marginTop: 4, borderRadius: 16, overflow: 'hidden' as const,
     borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
+    backgroundColor: withAlpha(c.surface, 0.65),
   },
   headerSection: { padding: 16, paddingBottom: 8 },
   headerTop: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, marginBottom: 12 },
@@ -187,7 +188,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
 
   cartBar: {
     position: 'absolute' as const, bottom: 68, left: 0, right: 0, zIndex: 100,
-    marginHorizontal: 12, borderRadius: 14, overflow: 'hidden' as const,
+    marginHorizontal: 12, backgroundColor: withAlpha(c.surface, 0.65), borderRadius: 14, overflow: 'hidden' as const,
     borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
   },
   cartPreview: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, padding: 12 },
