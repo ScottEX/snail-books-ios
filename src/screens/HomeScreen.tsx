@@ -1343,9 +1343,9 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   // 2→1) per user feedback. Unselected inherits headerColor so it
   // matches the rest of the header text (white over opaque bg, black
   // otherwise). Active stays colors.primary per web.
-  langRow: { flexDirection: 'row', gap: 2 },
+  langRow: { flexDirection: 'row', gap: 4 },
   langBtnTouch: { /* no extra padding */ },
-  langBtn: { fontSize: FONTS.micro.size, color: headerColor, fontWeight: FONTS.micro.weight, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 4 },
+  langBtn: { fontSize: FONTS.micro.size, color: headerColor, fontWeight: FONTS.micro.weight, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5 },
   langActive: { color: colors.primary, backgroundColor: withAlpha(colors.danger, 0.1), fontWeight: FONTS.microBold.weight },
 
   // Content
