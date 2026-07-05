@@ -9,6 +9,21 @@ export interface PickedImage {
   height?: number;
 }
 
+/** Normalize iOS UTI (e.g. public.jpeg) → MIME (image/jpeg) so validateImages() in useExpenseForm passes */
+const UTI_TO_MIME: Record<string, string> = {
+  'public.jpeg': 'image/jpeg',
+  'public.png': 'image/png',
+  'public.heic': 'image/heic',
+  'public.heif': 'image/heif',
+  'com.compuserve.gif': 'image/gif',
+  'public.tiff': 'image/tiff',
+  'org.webmproject.webp': 'image/webp',
+};
+const normalizeMime = (mimeType: string | null | undefined): string => {
+  if (!mimeType) return 'image/jpeg';
+  return UTI_TO_MIME[mimeType] ?? mimeType;
+};
+
 /**
  * Open the system image library and let the user pick one or more images.
  * Returns normalized { uri, type, name, size } — same shape as a web File
@@ -35,7 +50,7 @@ export async function pickImages(opts: { multiple?: boolean } = {}): Promise<Pic
   if (result.canceled) return [];
   return result.assets.map(a => ({
     uri: a.uri,
-    type: a.mimeType ?? 'image/jpeg',
+    type: normalizeMime(a.mimeType),
     name: a.fileName ?? `image-${Date.now()}.jpg`,
     size: a.fileSize ?? 0,
     width: a.width,
@@ -57,7 +72,7 @@ export async function takePhoto(): Promise<PickedImage | null> {
   const a = result.assets[0];
   return {
     uri: a.uri,
-    type: a.mimeType ?? 'image/jpeg',
+    type: normalizeMime(a.mimeType),
     name: a.fileName ?? `photo-${Date.now()}.jpg`,
     size: a.fileSize ?? 0,
     width: a.width,
