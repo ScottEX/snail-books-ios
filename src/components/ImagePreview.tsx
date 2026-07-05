@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   View, TouchableOpacity, StyleSheet, Animated,
-  PanResponder, ScrollView, Image, Platform, useWindowDimensions,
+  PanResponder, ScrollView, Platform, useWindowDimensions,
 } from 'react-native';
+import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
 
 const SPRING = { friction: 8, tension: 60 };
@@ -329,7 +330,7 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
           }
         }}
       >
-        <Image source={{ uri: src }} style={{ width: windowW, height: windowH * 0.9 }} resizeMode="contain" />
+        <Image source={src} style={{ width: windowW, height: windowH * 0.9 }} contentFit="contain" cachePolicy="disk" />
       </ScrollView>
     </View>
   );
