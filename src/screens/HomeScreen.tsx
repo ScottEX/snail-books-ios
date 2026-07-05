@@ -1169,7 +1169,7 @@ function DailyRevenueView(p: DailyRevProps) {
               <View key={i} style={styles.rev7Card}>
                 <View style={styles.rev7CardTop}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={styles.rev7CardDate}>{rec.date}</Text>
+                    <Text style={styles.rev7CardDate}>{p.fmtDateLabel(rec.date)}</Text>
                     {rec.date === p.td && (
                       <View style={styles.rev7TodayTag}>
                         <Text style={styles.rev7TodayTagText}>{t('today')}</Text>
