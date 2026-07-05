@@ -1346,7 +1346,7 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   langRow: { flexDirection: 'row', gap: 4 },
   langBtnTouch: { /* no extra padding */ },
   langBtn: { fontSize: FONTS.micro.size, color: headerColor, fontWeight: FONTS.micro.weight, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5 },
-  langActive: { color: colors.primary, backgroundColor: withAlpha(colors.danger, 0.1), fontWeight: FONTS.microBold.weight },
+  langActive: { color: colors.primary, backgroundColor: withAlpha(colors.danger, 0.1), fontWeight: FONTS.microBold.weight, borderRadius: 5, overflow: 'hidden' },
 
   // Content
   content: { flex: 1 },
