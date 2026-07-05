@@ -125,7 +125,7 @@ export default function ImagePreview({
     const nextIdx = idx + direction;
     if (nextIdx < 0 || nextIdx >= images.length) return;
     setIdx(nextIdx);
-    scrollRef.current?.scrollTo({ x: nextIdx * WINDOW_W, animated: true });
+    scrollRef.current?.scrollTo({ x: nextIdx * WINDOW_W, animated: false });
   }, [idx, images.length, WINDOW_W]);
 
   const handleZoomChange = useCallback((zooming: boolean) => {
@@ -254,6 +254,7 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
   const zoomedRef = useRef(false);
   const reachedLeftEdge = useRef(false);
   const reachedRightEdge = useRef(false);
+  const isInteracting = useRef(false);
 
   // When becoming inactive: release zoom lock so outer ScrollView can page
   const prevActive = useRef(isActive);
@@ -288,10 +289,10 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
           if (ox >= maxX - 1) reachedRightEdge.current = true;
         }
 
-        // Zoom lock/unlock
+        // Zoom lock/unlock — only when user is actively interacting
         const zs = e.nativeEvent.zoomScale ?? 1;
         const isZoomed = zs > 1.01;
-        if (isZoomed && !zoomedRef.current) {
+        if (isZoomed && !zoomedRef.current && isInteracting.current) {
           zoomedRef.current = true;
           onZoomChange(true);
         } else if (!isZoomed && zoomedRef.current) {
@@ -300,10 +301,12 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
         }
       }}
       onScrollBeginDrag={() => {
+        isInteracting.current = true;
         reachedLeftEdge.current = false;
         reachedRightEdge.current = false;
       }}
       onScrollEndDrag={() => {
+        isInteracting.current = false;
         if (reachedLeftEdge.current || reachedRightEdge.current) {
           // Unlock outer ScrollView before page change (scrollTo needs scrollEnabled=true)
           zoomedRef.current = false;
