@@ -7,7 +7,7 @@ import { BlurView } from 'expo-blur';
 import Svg, { Path, Circle, Line, Text as SvgText } from 'react-native-svg';
 import { t } from '../i18n';
 import { trPayment, payKey } from '../i18nHelpers';
-import { api } from '../api/client';
+import { api, resolveAssetUrl } from '../api/client';
 import { useTheme, withAlpha, ThemeColors, FONTS } from '../theme';
 import { bottomSheetOverlay } from '../sharedStyles';
 import SheetHeader from '../components/SheetHeader';
@@ -1019,15 +1019,15 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                     </View>
                   </View>
                   {(() => {
-                    const thumbImgs: string[] = (batch.thumb_images?.length ? batch.thumb_images : batch.images) || [];
-                    return thumbImgs.length > 0 && (
-                      <View style={styles.histImages}>
-                        {thumbImgs.map((img: string, i: number) => (
-                          <Image key={i} source={{ uri: img }}
-                            style={{ width: 60, height: 60, borderRadius: 6, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.08) }} />
-                        ))}
-                      </View>
-                    );
+                  const thumbImgs: string[] = (batch.thumb_images?.length ? batch.thumb_images : batch.images) || [];
+                  return thumbImgs.length > 0 && (
+                    <View style={styles.histImages}>
+                      {thumbImgs.map((img: string, i: number) => (
+                        <Image key={i} source={{ uri: resolveAssetUrl(img) || img }}
+                          style={{ width: 60, height: 60, borderRadius: 6, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.08) }} />
+                      ))}
+                    </View>
+                  );
                   })()}
                 </View>
               </TouchableOpacity>
