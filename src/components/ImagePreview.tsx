@@ -426,13 +426,21 @@ function ZoomableImage({
 
   if (Platform.OS !== 'web') {
     return (
-      <NativeZoomableImage
-        src={src}
-        windowW={windowW}
-        windowH={windowH}
-        onZoomActive={onZoomActive}
-        onSwipeToPage={onSwipeToPage}
-      />
+      <ScrollView
+        maximumZoomScale={MAX_ZOOM}
+        minimumZoomScale={1}
+        bouncesZoom={false}
+        centerContent
+        showsHorizontalScrollIndicator={false}
+        showsVerticalScrollIndicator={false}
+        style={{ width: '100%', height: '100%' }}
+      >
+        <Image
+          source={{ uri: src }}
+          style={{ width: windowW, height: windowH * 0.9 }}
+          resizeMode="contain"
+        />
+      </ScrollView>
     );
   }
 
@@ -468,141 +476,6 @@ function ZoomableImage({
         pointerEvents: 'none',
       } as React.CSSProperties,
     })
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-//  NativeZoomableImage — pinch-to-zoom for iOS/Android (PanResponder)
-// ═══════════════════════════════════════════════════════════════════════
-
-function NativeZoomableImage({
-  src, windowW, windowH, onZoomActive, onSwipeToPage,
-}: {
-  src: string; windowW: number; windowH: number;
-  onZoomActive: (active: boolean) => void;
-  onSwipeToPage?: (direction: -1 | 1) => void;
-}) {
-  const [scale, setScale] = useState(1);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const scaleRef = useRef(1);
-  const offRef = useRef({ x: 0, y: 0 });
-  const pinchBase = useRef({ dist: 0, scale: 1 });
-  const panStart = useRef({ x: 0, y: 0, offX: 0, offY: 0 });
-  const lastTap = useRef(0);
-  const imgSize = useRef({ w: 0, h: 0 });
-
-  const computeBounds = useCallback(() => {
-    const { w, h } = imgSize.current;
-    if (!w || !h) return { maxX: 0, maxY: 0 };
-    const fitted = getFittedSize(w, h, windowW, windowH);
-    const s = scaleRef.current;
-    return {
-      maxX: Math.max(0, (fitted.w * s - windowW) / 2),
-      maxY: Math.max(0, (fitted.h * s - windowH) / 2),
-    };
-  }, [windowW, windowH]);
-
-  const resetZoom = useCallback(() => {
-    scaleRef.current = 1;
-    setScale(1);
-    setOffset({ x: 0, y: 0 });
-    offRef.current = { x: 0, y: 0 };
-    onZoomActive(false);
-  }, [onZoomActive]);
-
-  const handleTouchStart = useCallback((e: any) => {
-    const ts: any[] = e.nativeEvent.touches ?? e.nativeEvent.changedTouches ?? [];
-    if (ts.length >= 2) {
-      const dx = ts[0].pageX - ts[1].pageX;
-      const dy = ts[0].pageY - ts[1].pageY;
-      pinchBase.current = { dist: Math.hypot(dx, dy), scale: scaleRef.current };
-      onZoomActive(true);
-    } else if (scaleRef.current > 1.005 && ts.length === 1) {
-      panStart.current = { x: ts[0].pageX, y: ts[0].pageY, offX: offRef.current.x, offY: offRef.current.y };
-    }
-  }, [onZoomActive]);
-
-  const handleTouchMove = useCallback((e: any) => {
-    const ts: any[] = e.nativeEvent.touches ?? e.nativeEvent.changedTouches ?? [];
-    if (ts.length >= 2 && pinchBase.current.dist > 0) {
-      const dx = ts[0].pageX - ts[1].pageX;
-      const dy = ts[0].pageY - ts[1].pageY;
-      const dist = Math.hypot(dx, dy);
-      const s = Math.max(1, Math.min(MAX_ZOOM, pinchBase.current.scale * (dist / pinchBase.current.dist)));
-      scaleRef.current = s;
-      setScale(s);
-      const { maxX, maxY } = computeBounds();
-      const nx = Math.max(-maxX, Math.min(maxX, offRef.current.x));
-      const ny = Math.max(-maxY, Math.min(maxY, offRef.current.y));
-      if (nx !== offRef.current.x || ny !== offRef.current.y) {
-        offRef.current = { x: nx, y: ny };
-        setOffset({ x: nx, y: ny });
-      }
-    } else if (scaleRef.current > 1.005 && ts.length === 1) {
-      const nx = panStart.current.offX + (ts[0].pageX - panStart.current.x);
-      const ny = panStart.current.offY + (ts[0].pageY - panStart.current.y);
-      const { maxX, maxY } = computeBounds();
-      offRef.current = { x: nx, y: ny };
-      setOffset({ x: clampResist(nx, -maxX, maxX), y: clampResist(ny, -maxY, maxY) });
-    }
-  }, [computeBounds]);
-
-  const handleTouchEnd = useCallback((e: any) => {
-    const ts: any[] = e.nativeEvent.touches ?? [];
-    if (ts.length === 0) {
-      const now = Date.now();
-      if (now - lastTap.current < DOUBLE_TAP_MS) {
-        if (scaleRef.current > 1.005) {
-          resetZoom();
-        } else {
-          scaleRef.current = DOUBLE_TAP_ZOOM;
-          setScale(DOUBLE_TAP_ZOOM);
-        }
-        lastTap.current = 0;
-      } else {
-        lastTap.current = now;
-      }
-
-      if (scaleRef.current <= 1.005) {
-        resetZoom();
-        return;
-      }
-
-      const { maxX } = computeBounds();
-      const rawX = offRef.current.x;
-      if (rawX < -maxX - OVERSCROLL_SWIPE) { onSwipeToPage?.(1); resetZoom(); return; }
-      if (rawX > maxX + OVERSCROLL_SWIPE) { onSwipeToPage?.(-1); resetZoom(); return; }
-
-      const { maxY } = computeBounds();
-      const snapX = Math.max(-maxX, Math.min(maxX, offRef.current.x));
-      const snapY = Math.max(-maxY, Math.min(maxY, offRef.current.y));
-      setOffset({ x: snapX, y: snapY });
-      offRef.current = { x: snapX, y: snapY };
-    }
-    onZoomActive(scaleRef.current > 1.005);
-  }, [computeBounds, onSwipeToPage, resetZoom, onZoomActive]);
-
-  return (
-    <View
-      style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      <Image
-        source={{ uri: src }}
-        onLoad={(e: any) => {
-          const { width: w, height: h } = e.nativeEvent.source || {};
-          if (w && h) imgSize.current = { w, h };
-        }}
-        style={{
-          width: `${100 * scale}%`,
-          height: `${90 * scale}%`,
-          resizeMode: 'contain',
-          transform: [{ translateX: offset.x }, { translateY: offset.y }, { scale }],
-        }}
-      />
-    </View>
   );
 }
 
