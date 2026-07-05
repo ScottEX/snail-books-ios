@@ -1,10 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Animated,
+  View, TouchableOpacity, StyleSheet, Animated,
   PanResponder, ScrollView, Image, Platform, useWindowDimensions,
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import { FONTS } from '../theme';
 
 const SPRING = { friction: 8, tension: 60 };
 const DISMISS_THRESHOLD = 80;
@@ -74,7 +73,6 @@ export default function ImagePreview({
   }, [dismissing, overlayOpacity, imageScale, onClose]);
 
   // ── PanResponder — vertical dismiss (native ScrollViews handle paging+zoom) ──
-  const zoomActiveRef = useRef(false);
   const [scrollLocked, setScrollLocked] = useState(false);
 
   const panResponder = useMemo(() => PanResponder.create({
@@ -173,7 +171,7 @@ export default function ImagePreview({
                 src={src}
                 windowW={WINDOW_W}
                 windowH={WINDOW_H}
-                onZoomActive={(v) => { zoomActiveRef.current = v; setScrollLocked(v); }}
+                onZoomActive={(v) => { setScrollLocked(v); }}
                 onSwipeToPage={handleSwipeToPage}
               />
             </Animated.View>
@@ -528,7 +526,6 @@ function ZoomableImage({
         rawOffsetRef.current = { x: 0, y: 0 };
         onZoomActive(false);
         return;
-        return;
       }
     }
 
@@ -552,14 +549,7 @@ function ZoomableImage({
     imgNatural.current = { w: img.naturalWidth || 0, h: img.naturalHeight || 0 };
   }, []);
 
-  if (Platform.OS !== 'web') {
-    return (
-      <Image
-        source={{ uri: src }}
-        style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
-      />
-    );
-  }
+  if (Platform.OS !== 'web') return null; // Only rendered inside web branch; NativeZoomableImage handles iOS
 
   // Web-only: raw elements for precise touch handling
   return React.createElement('div', {
