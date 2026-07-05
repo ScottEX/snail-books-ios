@@ -202,7 +202,7 @@ export default function ImagePreview({
               key={i}
               style={[styles.page, { width: WINDOW_W, transform: [{ scale: imageScale }] }]}
             >
-              <NativeZoomableImage src={src} windowW={WINDOW_W} windowH={WINDOW_H} isActive={i === idx} onZoomChange={handleZoomChange} />
+              <NativeZoomableImage src={src} windowW={WINDOW_W} windowH={WINDOW_H} isActive={i === idx} onZoomChange={handleZoomChange} onSwipeToPage={handleSwipeToPage} />
             </Animated.View>
           ))}
         </ScrollView>
@@ -250,9 +250,11 @@ function clampResist(val: number, low: number, high: number) {
 //  onScroll reads zoomScale to lock/unlock outer paging ScrollView
 // ═══════════════════════════════════════════════════════════════════════
 
-function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange }: { src: string; windowW: number; windowH: number; isActive: boolean; onZoomChange: (zooming: boolean) => void }) {
+function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, onSwipeToPage }: { src: string; windowW: number; windowH: number; isActive: boolean; onZoomChange: (zooming: boolean) => void; onSwipeToPage: (dir: -1 | 1) => void }) {
   const [resetKey, setResetKey] = useState(0);
   const zoomedRef = useRef(false);
+  const scrollDir = useRef(0);
+  const lastOX = useRef(0);
 
   // Reset zoom when page becomes inactive: change key → remount → fresh 1x
   const prevActive = useRef(isActive);
@@ -276,6 +278,12 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange }: 
       directionalLockEnabled
       scrollEventThrottle={16}
       onScroll={(e) => {
+        // Track scroll direction for edge-swipe detection
+        const ox = e.nativeEvent.contentOffset?.x ?? 0;
+        if (ox < lastOX.current - 2) scrollDir.current = -1;
+        else if (ox > lastOX.current + 2) scrollDir.current = 1;
+        lastOX.current = ox;
+
         const zs = e.nativeEvent.zoomScale ?? 1;
         const isZoomed = zs > 1.01;
         if (isZoomed && !zoomedRef.current) {
@@ -283,9 +291,19 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange }: 
           onZoomChange(true);
         } else if (!isZoomed && zoomedRef.current) {
           zoomedRef.current = false;
-          // One frame delay: let ScrollView gesture recognizer settle
           requestAnimationFrame(() => onZoomChange(false));
         }
+      }}
+      onScrollEndDrag={(e) => {
+        const ox = e.nativeEvent.contentOffset?.x ?? 0;
+        const cw = e.nativeEvent.contentSize?.width ?? windowW;
+        const lw = e.nativeEvent.layoutMeasurement?.width ?? windowW;
+        const maxX = Math.max(0, cw - lw);
+        // At left edge + swiping right → previous page
+        if (ox <= 2 && scrollDir.current === 1) { onSwipeToPage(-1); }
+        // At right edge + swiping left → next page
+        else if (ox >= maxX - 2 && scrollDir.current === -1) { onSwipeToPage(1); }
+        scrollDir.current = 0;
       }}
     >
       <Image
