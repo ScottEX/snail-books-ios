@@ -456,7 +456,6 @@ export default function ExpenseScreen({
     clearUrlCache,
     onToast: showToast,
   });
-  const [showExpConfirm, setShowExpConfirm] = useState(false);
 
   // Fast glass-card totals from business-summary API (matching web)
   const glassCatTotals = useMemo(() => ({
@@ -889,7 +888,7 @@ export default function ExpenseScreen({
                 leftLabel={t('expenseHistory')}
                 leftOnPress={() => onExpenseHistory?.()}
                 rightLabel={t('confirmRecord')}
-                rightOnPress={() => { if (parseFloat(expAmount.replace(/,/g, '')) !== 0) setShowExpConfirm(true); }}
+                rightOnPress={handleAddExpense}
                 rightDisabled={isAmountInvalid}
                 rightLoading={loadingExp}
               />
@@ -898,27 +897,6 @@ export default function ExpenseScreen({
         </FadeInView>
         )}
       </ScrollView>
-
-      {/* 支出确认弹窗 */}
-      <ModalOverlay visible={showExpConfirm} onClose={() => setShowExpConfirm(false)}>
-        <View style={st.modalCard} onStartShouldSetResponder={() => true}>
-          <View style={st.modalHeader}>
-            <Text style={st.modalTitle}>{t('expConfirmTitle')}</Text>
-            <CloseButton onPress={() => setShowExpConfirm(false)} />
-          </View>
-          <View style={{ padding: 20, gap: 16 }}>
-            <Text style={{ fontSize: FONTS.sub.size, color: colors.textSub, textAlign: 'center' }}>
-              {t('expConfirmMsg')}
-            </Text>
-            <ButtonPair
-              leftLabel={t('cancel')}
-              leftOnPress={() => setShowExpConfirm(false)}
-              rightLabel={t('confirm')}
-              rightOnPress={() => { setShowExpConfirm(false); handleAddExpense(); }}
-            />
-          </View>
-        </View>
-      </ModalOverlay>
 
       {/* 添加提示弹窗 */}
       <ModalOverlay visible={showReconConfirm} onClose={hideReconConfirm} animation="springScale">
