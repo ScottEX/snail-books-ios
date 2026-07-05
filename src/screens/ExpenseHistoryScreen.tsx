@@ -336,7 +336,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         onEndReached={loadMore}
         onEndReachedThreshold={0.4}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: showFilter ? 292 : 122, paddingHorizontal: 12, paddingBottom: 100 }}
+        contentContainerStyle={{ paddingTop: showFilter ? 292 : 112, paddingHorizontal: 12, paddingBottom: 100 }}
         ListEmptyComponent={!loading ? (
           <EmptyState
             icon={<ExpenseEmptyIcon color={colors.textSub} />}
@@ -354,7 +354,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
 
       {/* Initial loading overlay */}
       {loading && records.length === 0 && (
-        <View style={{ position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', paddingTop: 122 }}>
+        <View style={{ position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', paddingTop: 112 }}>
           <LoadingSpinner label={false} />
         </View>
       )}
