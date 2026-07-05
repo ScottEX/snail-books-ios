@@ -22,12 +22,15 @@ import SubmitButton from '../components/SubmitButton';
 import { useTheme, withAlpha, ThemeColors, FONTS, SHEET_HANDLE_COLOR } from '../theme';
 import { modalCardAnimation, modalClose, bottomSheetOverlay, uploadReceiptStyles } from '../sharedStyles';
 import { fmtAmt as fmt, fmtAmtFull, toDec2Comma } from '../utils/format';
+import { blockNeg, fmtDecInput, toDec2, fmtRefundInput } from '../utils/numbers';
 import NumberTickerExt from '../components/NumberTicker';
 import { useServerDate } from '../hooks/useServerDate';
 import { useExpenseForm } from '../hooks/useExpenseForm';
 import ModalOverlay from '../components/ModalOverlay';
 import { useDateField } from '../hooks/useDateField';
 import DateErrorHint from '../components/DateErrorHint';
+
+import FadeInView from '../components/FadeInView';
 
 /* ── helpers ── */
 // Date helpers replaced by useServerDate() hook (server time, not client)
@@ -41,57 +44,13 @@ const fmtLocalDate = (s: string) => {
   return `${y}年${m}月${d}日`;
 };
 const fmtMonth = (year: number, month: number) => {
-  const l = getLang();
-  if (l.startsWith('en')) {
-    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    return `${months[month-1]} ${year}`;
-  }
   return `${year}年${String(month).padStart(2, '0')}月`;
 };
 const toNum = (s: string) => parseFloat(s) || 0;
-const blockNeg = (s: string) => s.replace(/[^0-9.]/g, '');
-const fmtDecInput = (s: string) => {
-  let clean = blockNeg(s);
-  clean = clean.startsWith('.') ? '0' + clean : clean;
-  // Limit to 2 decimal places
-  const dotIdx = clean.indexOf('.');
-  if (dotIdx !== -1 && clean.length > dotIdx + 3) clean = clean.slice(0, dotIdx + 3);
-  return clean;
-};
-const toDec2 = (v: any) => String((parseFloat(String(v ?? 0)) || 0).toFixed(2));
-const fmtRefundInput = (v: string, refund: boolean) => {
-  if (!refund) return fmtDecInput(v);
-  // UI already renders a leading sign — strip any leading '-' from input
-  const stripped = v.startsWith('-') ? v.slice(1) : v;
-  return fmtDecInput(stripped);
-};
 
 /* ═══════════════════════════════════════════════════════════
    NumberTicker — moved to src/components/NumberTicker.tsx (imported as NumberTickerExt)
    ═══════════════════════════════════════════════════════════ */
-
-/* ═══════════════════════════════════════════════════════════
-   FadeInView — 卡片平滑淡入提升 (300ms)
-   ═══════════════════════════════════════════════════════════ */
-function FadeInView({ children, style }: {
-  children: React.ReactNode; style?: any;
-}) {
-  const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(10)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: false }),
-      Animated.timing(translateY, { toValue: 0, duration: 300, useNativeDriver: false }),
-    ]).start();
-  }, []);
-
-  return (
-    <Animated.View style={[style, { opacity, transform: [{ translateY }] }]}>
-      {children}
-    </Animated.View>
-  );
-}
 
 /* ═══════════════════════════════════════════════════════════
    InputWithFocus — 聚焦时边框过渡到品牌红
@@ -333,10 +292,9 @@ export default function ExpenseScreen({
   const feeDate = useDateField({ sd, initial: '' });
   // Default to today's date once server date is ready
   useEffect(() => { if (sd.ready && sd.today) feeDate.setValue(sd.today); }, [sd.ready]);
-  const [feeMc, setFeeMc] = useState('');
-  const [feeMw, setFeeMw] = useState('');
-  const [feeEw, setFeeEw] = useState('');
-  const [feeMt, setFeeMt] = useState('');
+  const [feeForm, setFeeForm] = useState({ feeMc: '', feeMw: '', feeEw: '', feeMt: '' });
+  const updateFee = (k: keyof typeof feeForm, v: string) => setFeeForm(f => ({ ...f, [k]: v }));
+  const { feeMc, feeMw, feeEw, feeMt } = feeForm;
   const [savingFee, setSavingFee] = useState(false);
   const [negativeMode, setNegativeMode] = useState(false);
   const feeLoadId = useRef(0);  // guard against stale async responses
@@ -375,7 +333,7 @@ export default function ExpenseScreen({
       });
       if (r?.status === 'ok') {
         setFeeData(r?.data);
-        setFeeMc(''); setFeeMw(''); setFeeEw(''); setFeeMt('');
+        setFeeForm({ feeMc: '', feeMw: '', feeEw: '', feeMt: '' });
         setNegativeMode(false);
         setShowFeeSheet(false);
         // Reload all months to keep totals accurate
@@ -588,7 +546,7 @@ export default function ExpenseScreen({
                   if (feeMonth === 'all') {
                     setShowFeeHistory(true); setFeeHistoryFilter('all');
                   } else {
-                    setFeeMc(''); setFeeMw(''); setFeeEw(''); setFeeMt('');
+                    setFeeForm({ feeMc: '', feeMw: '', feeEw: '', feeMt: '' });
                     setNegativeMode(false);
                     feeDate.setError(0); loadFeeData(); setShowFeeSheet(true);
                   }
@@ -958,10 +916,10 @@ export default function ExpenseScreen({
 
               {/* Fee rows */}
               {([
-                { k: 'meituanCashier', cur: feeData?.meituan_cashier || 0, val: feeMc, set: setFeeMc },
-                { k: 'meituanWaimai', cur: feeData?.meituan_waimai || 0, val: feeMw, set: setFeeMw },
-                { k: 'shangouWaimai', cur: feeData?.shangou_waimai || 0, val: feeEw, set: setFeeEw },
-                { k: 'meituanTuan', cur: feeData?.meituan_tuan || 0, val: feeMt, set: setFeeMt },
+                { k: 'meituanCashier', cur: feeData?.meituan_cashier || 0, val: feeMc, set: (v: string) => updateFee('feeMc', v) },
+                { k: 'meituanWaimai', cur: feeData?.meituan_waimai || 0, val: feeMw, set: (v: string) => updateFee('feeMw', v) },
+                { k: 'shangouWaimai', cur: feeData?.shangou_waimai || 0, val: feeEw, set: (v: string) => updateFee('feeEw', v) },
+                { k: 'meituanTuan', cur: feeData?.meituan_tuan || 0, val: feeMt, set: (v: string) => updateFee('feeMt', v) },
               ] as const).map((row) => {
                 const inputNum = toNum(row.val);
                 const sign = negativeMode ? -1 : 1;

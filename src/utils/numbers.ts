@@ -20,6 +20,13 @@ export const fmtDecInput = (s: string) => {
 /** Round to 2 decimal places, return string (e.g. '123.00') */
 export const toDec2 = (v: any) => String((parseFloat(String(v ?? 0)) || 0).toFixed(2));
 
+/** Format input for refund mode — strip leading '-' since UI renders the sign */
+export const fmtRefundInput = (v: string, refund: boolean) => {
+  if (!refund) return fmtDecInput(v);
+  const stripped = v.startsWith('-') ? v.slice(1) : v;
+  return fmtDecInput(stripped);
+};
+
 /** Format number with thousand separators, always 2 decimal places */
 export const toDec2Comma = (v: any) => {
   const n = parseFloat(String(v ?? 0)) || 0;

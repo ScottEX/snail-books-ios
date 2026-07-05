@@ -1,7 +1,7 @@
+import React, { useEffect, useRef } from 'react';
 import { Animated } from 'react-native';
-import { useEffect, useRef } from 'react';
 
-/** Fade-in + slide-up animation wrapper (300ms). */
+/** 卡片平滑淡入 + 上移动画 (300ms) */
 export default function FadeInView({ children, style }: {
   children: React.ReactNode; style?: any;
 }) {
