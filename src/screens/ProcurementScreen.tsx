@@ -799,15 +799,15 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
         </View>
 
         <View style={styles.subTabRow}>
-          <TouchableOpacity style={[styles.subTab, subTab === 'new' && styles.subTabOn]} onPress={() => setSubTab('new')}>
+          <TouchableOpacity activeOpacity={0.7} style={[styles.subTab, subTab === 'new' && styles.subTabOn]} onPress={() => setSubTab('new')}>
             <Text style={[styles.subTabText, subTab === 'new' && styles.subTabTextOn]}>{t('procNewOrder')}</Text>
             <Text style={styles.subTabCount}>{products.length}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.subTab, subTab === 'history' && styles.subTabOn]} onPress={() => setSubTab('history')}>
+          <TouchableOpacity activeOpacity={0.7} style={[styles.subTab, subTab === 'history' && styles.subTabOn]} onPress={() => setSubTab('history')}>
             <Text style={[styles.subTabText, subTab === 'history' && styles.subTabTextOn]}>{t('procHistory')}</Text>
             <Text style={styles.subTabCount}>{histTotal}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.subTab, subTab === 'products' && styles.subTabOn]} onPress={() => setSubTab('products')}>
+          <TouchableOpacity activeOpacity={0.7} style={[styles.subTab, subTab === 'products' && styles.subTabOn]} onPress={() => setSubTab('products')}>
             <Text style={[styles.subTabText, subTab === 'products' && styles.subTabTextOn]}>{t('procProductMgmt')}</Text>
             <Text style={styles.subTabCount}>{products.length}</Text>
           </TouchableOpacity>
