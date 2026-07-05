@@ -137,6 +137,7 @@ export default function ExpenseScreen({
   }, [activeTab]);
 
   const [showReconConfirm, setShowReconConfirm] = useState(false);
+  const [reconSaving, setReconSaving] = useState(false);
   const hideReconConfirm = () => setShowReconConfirm(false);
   const { showToast, ToastHost } = useToast();
 
@@ -214,9 +215,9 @@ export default function ExpenseScreen({
 
   const submitRecon = useCallback(async () => {
     if (sd.ready && sd.isFuture(recDate.value)) { showToast(t('errDateFuture')); return; }
+    setReconSaving(true);
     try {
       const username = getCurrentUser();
-      // 提交那一刻拉最新 businessSummary，确保 cash_on_hand 含本会话刚录的支出
       const latestSummary = await api.getBusinessSummary();
       const latestCashOnHand = latestSummary?.cash_on_hand || 0;
       const latestCashOnHandCents = toCents(latestCashOnHand);
@@ -236,8 +237,10 @@ export default function ExpenseScreen({
         reconciled_by: username,
       });
       showToast(t('reconComplete'));
+      setShowReconConfirm(false);
       onReconHistory?.();
     } catch { showToast(t('toastSubmitFailed')); }
+    finally { setReconSaving(false); }
   }, [recDate.value, cardBalance, cashBalance, dineIn, meituan, flashSale, tuan, jd, onReconHistory]);
 
   const toCents = (v: any) => Math.round((parseFloat(String(v ?? '0')) || 0) * 100);
@@ -820,8 +823,10 @@ export default function ExpenseScreen({
               <ButtonPair
                 leftLabel={t('cancel')}
                 leftOnPress={hideReconConfirm}
+                leftDisabled={reconSaving}
                 rightLabel={t('confirm')}
-                rightOnPress={() => { hideReconConfirm(); submitRecon(); }}
+                rightOnPress={submitRecon}
+                rightLoading={reconSaving}
               />
             </View>
           </View>
