@@ -15,7 +15,7 @@ export function useImagePreview() {
   }, []);
 
   const closePreview = useCallback(() => {
-    setPreview(prev => prev ? { ...prev, visible: false } : null);
+    setPreview(null);
   }, []);
 
   return { preview, openPreview, closePreview };
