@@ -1176,15 +1176,15 @@ function DailyRevenueView(p: DailyRevProps) {
                 ) : null}
                 <View style={styles.rev7CardAmounts}>
                   <View style={styles.rev7CardAmtCol}>
-                    {rec.revenue > 0 ? <Text style={styles.rev7CardAmtVal}>¥{toDec2(rec.revenue)}</Text> : <Dash color={colors.secondary} />}
+                    {rec.revenue > 0 ? <Text style={[styles.rev7CardAmtVal, { color: colors.textMain }]}>¥{toDec2(rec.revenue)}</Text> : <Dash color={colors.secondary} />}
                     <Text style={styles.rev7CardAmtLabel}>{t('revRevenue')}</Text>
                   </View>
                   <View style={styles.rev7CardAmtCol}>
-                    {rec.turnover > 0 ? <Text style={styles.rev7CardAmtVal}>¥{toDec2(rec.turnover)}</Text> : <Dash color={colors.secondary} />}
+                    {rec.turnover > 0 ? <Text style={[styles.rev7CardAmtVal, { color: colors.textMain }]}>¥{toDec2(rec.turnover)}</Text> : <Dash color={colors.secondary} />}
                     <Text style={styles.rev7CardAmtLabel}>{t('revTurnover')}</Text>
                   </View>
                   <View style={styles.rev7CardAmtCol}>
-                    {rec.jd_revenue > 0 ? <Text style={styles.rev7CardAmtVal}>¥{toDec2(rec.jd_revenue)}</Text> : <Dash color={colors.secondary} />}
+                    {rec.jd_revenue > 0 ? <Text style={[styles.rev7CardAmtVal, { color: colors.textMain }]}>¥{toDec2(rec.jd_revenue)}</Text> : <Dash color={colors.secondary} />}
                     <Text style={styles.rev7CardAmtLabel}>{t('revJD')}</Text>
                   </View>
                 </View>
@@ -1425,25 +1425,25 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   revHistoryBtn: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary },
   rev7Empty: { paddingVertical: 30, alignItems: 'center' },
   rev7Card: { backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 16, paddingHorizontal: 16, marginBottom: 10, marginHorizontal: 16, borderWidth: 1, borderColor: colors.secondary, gap: 12 },
-  rev7CardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  rev7CardDate: { fontSize: FONTS.sub.size, color: colors.textMain, fontWeight: FONTS.sub.weight },
-  rev7TodayTag: { backgroundColor: withAlpha(colors.primary, 0.12), borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
-  rev7TodayTagText: { fontSize: 11, color: colors.primary, fontWeight: '700' },
-  rev7CardBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 },
+  rev7CardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  rev7CardDate: { fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.textMain },
+  rev7TodayTag: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, backgroundColor: withAlpha(colors.success, 0.1) },
+  rev7TodayTagText: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.success },
+  rev7CardBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, gap: 5 },
   rev7CardBadgeGap: { backgroundColor: withAlpha(colors.danger, 0.1) },
-  rev7CardBadgeOk: { backgroundColor: withAlpha(colors.success, 0.12) },
+  rev7CardBadgeOk: { backgroundColor: withAlpha(colors.success, 0.1) },
   rev7CardDot: { width: 6, height: 6, borderRadius: 3 },
-  rev7CardStatus: { fontSize: 11, fontWeight: '600' },
-  rev7ArchivedBadge: { alignSelf: 'flex-start', backgroundColor: withAlpha(colors.textSub, 0.15), borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginBottom: 6 },
-  rev7ArchivedBadgeText: { fontSize: 10, color: colors.textSub, fontWeight: '600' },
-  rev7CardAmounts: { flexDirection: 'row', marginTop: 6, marginBottom: 8, gap: 6 },
-  rev7CardAmtCol: { flex: 1, alignItems: 'center' },
-  rev7CardAmtVal: { fontSize: FONTS.body.size, fontWeight: FONTS.subBold.weight, color: colors.textMain, marginBottom: 2 },
-  rev7CardAmtLabel: { fontSize: 10, color: colors.textSub },
-  rev7CardFooter: { marginTop: 4, paddingTop: 6, borderTopWidth: 1, borderTopColor: withAlpha(colors.textSub, 0.08) },
-  rev7CardFooterText: { fontSize: 11, color: colors.textSub },
-  rev7CardNote: { marginTop: 6, backgroundColor: withAlpha(colors.textSub, 0.06), borderRadius: 6, padding: 8 },
-  rev7CardNoteText: { fontSize: 12, color: colors.textSub },
+  rev7CardStatus: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight },
+  rev7ArchivedBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, backgroundColor: withAlpha(colors.danger, 0.1) },
+  rev7ArchivedBadgeText: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.danger },
+  rev7CardAmounts: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 8, backgroundColor: colors.surface, borderRadius: 8 },
+  rev7CardAmtCol: { alignItems: 'center', flex: 1, gap: 4 },
+  rev7CardAmtVal: { fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight },
+  rev7CardAmtLabel: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight },
+  rev7CardFooter: { borderTopWidth: 0.5, borderTopColor: colors.secondary, paddingTop: 8 },
+  rev7CardFooterText: { fontSize: FONTS.micro.size, color: colors.textSub },
+  rev7CardNote: { borderTopWidth: 0.5, borderTopColor: colors.secondary, paddingTop: 8, marginTop: 4 },
+  rev7CardNoteText: { fontSize: FONTS.micro.size, color: colors.textSub, lineHeight: 16 },
 });
 
 const getMo = (colors: ThemeColors) => StyleSheet.create({
