@@ -196,20 +196,7 @@ export default function ImagePreview({
               key={i}
               style={[styles.page, { width: WINDOW_W, transform: [{ scale: imageScale }] }]}
             >
-              <ScrollView
-                maximumZoomScale={4}
-                minimumZoomScale={1}
-                bouncesZoom={false}
-                centerContent
-                showsVerticalScrollIndicator={false}
-                showsHorizontalScrollIndicator={false}
-              >
-                <Image
-                  source={{ uri: src }}
-                  style={{ width: WINDOW_W, height: WINDOW_H * 0.9 }}
-                  resizeMode="contain"
-                />
-              </ScrollView>
+              <NativeZoomableImage src={src} windowW={WINDOW_W} windowH={WINDOW_H} />
             </Animated.View>
           ))}
         </ScrollView>
@@ -250,6 +237,89 @@ function clampResist(val: number, low: number, high: number) {
 // ═══════════════════════════════════════════════════════════════════════
 //  ZoomableImage — pinch-to-zoom + edge-constrained pan + edge-swipe page
 // ═══════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════
+//  NativeZoomableImage — PanResponder zoom for iOS (no inner ScrollView)
+//  At 1x: does NOT claim touches → outer ScrollView native paging
+//  Pinch / zoomed: claims → handles zoom + pan
+// ═══════════════════════════════════════════════════════════════════════
+
+function NativeZoomableImage({ src, windowW, windowH }: { src: string; windowW: number; windowH: number }) {
+  const [scale, setScale] = useState(1);
+  const scaleRef = useRef(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const pinchBase = useRef({ dist: 0, scale: 1 });
+  const panBase = useRef({ x: 0, y: 0 });
+  const touchStart = useRef({ x: 0, y: 0 });
+  const lastTap = useRef(0);
+
+  // Reset when src changes (page change)
+  useEffect(() => { scaleRef.current = 1; setScale(1); setOffset({ x: 0, y: 0 }); }, [src]);
+
+  const panResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => scaleRef.current > 1.01,
+    onMoveShouldSetPanResponder: (_, gs) => {
+      if (gs.numberActiveTouches >= 2) return true;
+      if (scaleRef.current > 1.01) return true;
+      return false;
+    },
+    onPanResponderGrant: (e) => {
+      const ts = e.nativeEvent.touches ?? [];
+      if (ts.length >= 2) {
+        const dx = ts[0].pageX - ts[1].pageX;
+        const dy = ts[0].pageY - ts[1].pageY;
+        pinchBase.current = { dist: Math.hypot(dx, dy), scale: scaleRef.current };
+      } else if (scaleRef.current > 1.01) {
+        panBase.current = { x: offset.x, y: offset.y };
+        touchStart.current = { x: ts[0].pageX, y: ts[0].pageY };
+      }
+    },
+    onPanResponderMove: (e, _gs) => {
+      const ts = e.nativeEvent.touches ?? [];
+      if (ts.length >= 2) {
+        const dx = ts[0].pageX - ts[1].pageX;
+        const dy = ts[0].pageY - ts[1].pageY;
+        const dist = Math.hypot(dx, dy);
+        if (pinchBase.current.dist > 0) {
+          const s = Math.max(1, Math.min(MAX_ZOOM, pinchBase.current.scale * (dist / pinchBase.current.dist)));
+          scaleRef.current = s;
+          setScale(s);
+        }
+      } else if (scaleRef.current > 1.01) {
+        setOffset({
+          x: panBase.current.x + (ts[0].pageX - touchStart.current.x),
+          y: panBase.current.y + (ts[0].pageY - touchStart.current.y),
+        });
+      }
+    },
+    onPanResponderRelease: (_, gs) => {
+      const now = Date.now();
+      if (now - lastTap.current < DOUBLE_TAP_MS && Math.abs(gs.dx) < 10 && Math.abs(gs.dy) < 10) {
+        if (scaleRef.current > 1.01) {
+          scaleRef.current = 1; setScale(1); setOffset({ x: 0, y: 0 });
+        } else {
+          scaleRef.current = DOUBLE_TAP_ZOOM; setScale(DOUBLE_TAP_ZOOM);
+        }
+        lastTap.current = 0;
+        return;
+      }
+      lastTap.current = now;
+      if (scaleRef.current <= 1.01) { scaleRef.current = 1; setScale(1); setOffset({ x: 0, y: 0 }); }
+    },
+    onPanResponderTerminate: () => {
+      if (scaleRef.current <= 1.01) { scaleRef.current = 1; setScale(1); setOffset({ x: 0, y: 0 }); }
+    },
+  }), [offset.x, offset.y]);
+
+  return (
+    <View style={{ width: windowW, height: '100%', alignItems: 'center', justifyContent: 'center' }} {...panResponder.panHandlers}>
+      <Image
+        source={{ uri: src }}
+        style={{ width: windowW, height: windowH * 0.9, resizeMode: 'contain', transform: [{ translateX: offset.x }, { translateY: offset.y }, { scale }] }}
+      />
+    </View>
+  );
+}
 
 function ZoomableImage({
   src, windowW, windowH, onZoomActive, onSwipeToPage,
