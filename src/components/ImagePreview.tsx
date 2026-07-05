@@ -130,10 +130,15 @@ export default function ImagePreview({
     setScrollLocked(zooming);
   }, []);
 
-  if (!visible || images.length === 0 || WINDOW_W === 0) return null;
+  // Never unmount while images exist — keep Image components alive to preserve decode cache
+  if (images.length === 0 || WINDOW_W === 0) return null;
+  const isHidden = !visible && !dismissing;
 
   return (
-    <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]} {...panResponder.panHandlers}>
+    <Animated.View
+      style={[styles.overlay, { opacity: overlayOpacity }]}
+      pointerEvents={isHidden ? 'none' : 'auto'}
+      {...panResponder.panHandlers}>
       {/* Close button */}
       <TouchableOpacity style={styles.close} onPress={animateClose} activeOpacity={0.7}>
         <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round">
