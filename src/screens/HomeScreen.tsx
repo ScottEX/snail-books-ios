@@ -16,6 +16,7 @@ import { getCurrentUserId } from '../utils/storage';
 import { useServerDate } from '../hooks/useServerDate';
 import { fmtDecInput, toDec2 } from '../utils/numbers';
 import Toast from '../components/Toast';
+import SubmitButton from '../components/SubmitButton';
 import DatePickerModal from '../components/DatePickerModal';
 import ModalOverlay from '../components/ModalOverlay';
 import ThemePickerModal from '../components/ThemePickerModal';
@@ -1051,16 +1052,19 @@ function DailyRevenueView(p: DailyRevProps) {
               title={t('revRevenue')} sub={t('revRevenueSub')} symbol="¥"
               value={p.revRevenue} onChangeText={(v) => p.setRevRevenue(fmtDecInput(v))}
               yesterdayValue={p.yesterdayRev?.revenue} colors={colors} styles={styles}
+              icon={<Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 6 }}><Path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></Svg>}
             />
             <RevInputCard
               title={t('revTurnover')} sub={t('revTurnoverSub')} symbol="¥"
               value={p.revTurnover} onChangeText={(v) => p.setRevTurnover(fmtDecInput(v))}
               yesterdayValue={p.yesterdayRev?.turnover} colors={colors} styles={styles}
+              icon={<Text style={{ fontSize: FONTS.sub.size, marginBottom: 6 }}>🛒</Text>}
             />
             <RevInputCard
               title={t('revJD')} sub={t('revJDSub')} symbol="¥"
               value={p.revJD} onChangeText={(v) => p.setRevJD(fmtDecInput(v))}
               yesterdayValue={p.yesterdayRev?.jd_revenue} colors={colors} styles={styles}
+              icon={<Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 6 }}><Path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" /></Svg>}
             />
           </View>
 
@@ -1090,27 +1094,25 @@ function DailyRevenueView(p: DailyRevProps) {
                 {p.revMarkedClosed ? t('revCancelArchive') : t('revMarkArchive')}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.revSubmitBtn, { flex: 4 }, (!p.revMarkedClosed && (!p.revTurnover || parseFloat(p.revTurnover) <= 0) || p.revSaving) && { opacity: 0.5 }]}
+            <SubmitButton
               onPress={p.submitDailyRev}
-              disabled={(!p.revMarkedClosed && (!p.revTurnover || parseFloat(p.revTurnover) <= 0)) || p.revSaving}
-              activeOpacity={0.8}
+              loading={p.revSaving}
+              disabled={(!p.revMarkedClosed && (!p.revTurnover || parseFloat(p.revTurnover) <= 0))}
+              style={[styles.revSubmitBtn, { flex: 4 }, (!p.revMarkedClosed && (!p.revTurnover || parseFloat(p.revTurnover) <= 0)) && { opacity: 0.5 }]}
             >
-              {p.revSaving ? <ActivityIndicator color={colors.surface} /> : (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.surface} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                    <Path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
-                    <Path d="M17 21v-8H7v8" />
-                  </Svg>
-                  <Text style={styles.revSubmitText}>
-                    {p.revDate === p.td ? t('revSaveToday') :
-                      p.revDate === p.sdYesterday ? t('revSaveYesterday') :
-                      p.revDate === p.sdDb4 ? t('revSaveDayBefore') :
-                      t('revSaveDate').replace('{date}', p.revDate.slice(5).replace('-', ''))}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.surface} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <Path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
+                  <Path d="M17 21v-8H7v8" />
+                </Svg>
+                <Text style={styles.revSubmitText}>
+                  {p.revDate === p.td ? t('revSaveToday') :
+                    p.revDate === p.sdYesterday ? t('revSaveYesterday') :
+                    p.revDate === p.sdDb4 ? t('revSaveDayBefore') :
+                    t('revSaveDate').replace('{date}', p.revDate.slice(5).replace('-', ''))}
+                </Text>
+              </View>
+            </SubmitButton>
           </View>
 
           {/* Last 30 days summary */}
@@ -1200,12 +1202,14 @@ function DailyRevenueView(p: DailyRevProps) {
   );
 }
 
-function RevInputCard({ title, sub, symbol, value, onChangeText, yesterdayValue, colors, styles }: {
+function RevInputCard({ title, sub, symbol, value, onChangeText, yesterdayValue, colors, styles, icon }: {
   title: string; sub: string; symbol: string; value: string; onChangeText: (v: string) => void;
   yesterdayValue: number | undefined; colors: ThemeColors; styles: ReturnType<typeof getStyles>;
+  icon?: React.ReactNode;
 }) {
   return (
     <View style={styles.revInputCard}>
+      {icon}
       <Text style={styles.revInputCardTitle}>{title}</Text>
       <Text style={styles.revInputCardSub}>{sub}</Text>
       <View style={styles.revInputCardInputWrap}>
