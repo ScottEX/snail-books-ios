@@ -878,7 +878,7 @@ export default function ExpenseScreen({
         visible={showRecDatePicker}
         value={recDate.value}
         onClose={() => setShowRecDatePicker(false)}
-        onSelect={(d) => { recDate.setValue(d); }}
+        onSelect={(d) => { recDate.setValue(d); recDate.setError(0); }}
         minDate={sd.today}
         title={t('billDate')}
       />
@@ -941,8 +941,8 @@ export default function ExpenseScreen({
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                   <Text style={{ fontSize: 10, color: colors.danger }}>负数</Text>
                   <Switch value={negativeMode} onValueChange={setNegativeMode}
-                    trackColor={{ false: colors.secondary, true: withAlpha(colors.success, 0.4) }}
-                    thumbColor={negativeMode ? colors.surface : colors.surface}
+                    trackColor={{ false: colors.secondary, true: withAlpha(colors.danger, 0.4) }}
+                    thumbColor={negativeMode ? colors.danger : colors.surface}
                     style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
                   />
                 </View>
