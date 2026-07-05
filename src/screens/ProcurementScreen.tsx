@@ -265,7 +265,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   histAmount: { fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: c.primary, marginTop: 8 },
   histImages: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 4, marginTop: 6 },
 
-  successOverlay: { position: 'absolute' as any, inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 400, alignItems: 'center' as const, justifyContent: 'center' as const },
+  successOverlay: { position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 400, alignItems: 'center' as const, justifyContent: 'center' as const },
   successCard: { backgroundColor: c.surface, borderRadius: 24, padding: 28, width: 'calc(100% - 40px)' as any, maxWidth: 320, alignItems: 'center' as const },
   successTitle: { fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: c.textMain, marginBottom: 6, marginTop: 8 },
   successSub: { fontSize: FONTS.sub.size, color: c.textSub, lineHeight: 20 } as any,
@@ -817,7 +817,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
       {/* ── New Order ── */}
       {subTab === 'new' && (
         <View style={{ flex: 1 }}>
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 150 }}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
             {groupedProducts.map(([sup, items]) => (
               <View key={sup}>
                 <Text style={styles.sectionHead}>{supplierLabel(sup)}</Text>
@@ -1050,7 +1050,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
             <PlusIcon color={c.primary} />
             <Text style={styles.mgmtAddBtnText}>{t('procAddProduct')}</Text>
           </TouchableOpacity>
-          <ScrollView style={styles.contentArea}>
+          <ScrollView style={styles.contentArea} showsVerticalScrollIndicator={false}>
           {filteredMgmtProducts.length === 0 ? (
             <EmptyState
               icon={<EmptyBoxIcon color={c.textSub} />}
@@ -1160,7 +1160,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
               onClose={handleDrawerClose}
             />
           </View>
-          <ScrollView style={styles.drawerBody}>
+          <ScrollView style={styles.drawerBody} showsVerticalScrollIndicator={false}>
             <View style={styles.dateCatRow}>
               <View style={styles.dateCatLine}>
                 <Text style={styles.dateCatLabel}>{t('procOrderDate')}</Text>
@@ -1289,7 +1289,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                   />
                 </View>
                 <View style={styles.itemsModalBodyWrap}>
-                  <ScrollView style={{ flex: 1, minHeight: 0, paddingHorizontal: 18 }}>
+                  <ScrollView style={{ flex: 1, minHeight: 0, paddingHorizontal: 18 }} showsVerticalScrollIndicator={false}>
                     {products
                       .filter(p => !productPickerSearch || p.name.includes(productPickerSearch) || (p.supplier || '').includes(productPickerSearch))
                       .map((p, idx, arr) => {
@@ -1331,7 +1331,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
             ) : (
               <View style={{ flex: 1, minHeight: 0 }}>
                 <View style={styles.itemsModalBodyWrap}>
-                  <ScrollView style={{ flex: 1, minHeight: 0, paddingHorizontal: 18 }}>
+                  <ScrollView style={{ flex: 1, minHeight: 0, paddingHorizontal: 18 }} showsVerticalScrollIndicator={false}>
                     {cartItems.length === 0 ? (
                       <View style={{ padding: 24, alignItems: 'center' }}>
                         <Text style={{ color: c.textSub, fontSize: FONTS.micro.size }}>—</Text>
