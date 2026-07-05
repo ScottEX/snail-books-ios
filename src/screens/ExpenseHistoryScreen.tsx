@@ -1,26 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, Image, StatusBar } from 'react-native';
 
-/** Thumbnail button that only fires onPress when finger hasn't moved (tap vs scroll) */
-function ThumbButton({ onPress, children }: { onPress: () => void; children: React.ReactNode }) {
-  const startRef = React.useRef({ x: 0, y: 0, locked: false });
-  return (
-    <View
-      onStartShouldSetResponder={() => true}
-      onResponderGrant={(e) => { startRef.current = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY, locked: false }; }}
-      onResponderMove={(e) => {
-        if (startRef.current.locked) return;
-        if (Math.abs(e.nativeEvent.pageX - startRef.current.x) > 6 ||
-            Math.abs(e.nativeEvent.pageY - startRef.current.y) > 6) {
-          startRef.current.locked = true;
-        }
-      }}
-      onResponderRelease={() => { if (!startRef.current.locked) onPress(); }}
-    >
-      {children}
-    </View>
-  );
-}
+
 import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
 import { t, getLang } from '../i18n';
@@ -230,9 +211,9 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         {resolvedImgs.length > 0 && (
           <View style={st.imgThumbs}>
             {resolvedImgs.map((url: string, j: number) => (
-              <ThumbButton key={j} onPress={() => openPreview(previewImgsList.map((u: string) => resolveAssetUrl(u) || u), j)}>
+              <TouchableOpacity key={j} onPress={() => openPreview(previewImgsList.map((u: string) => resolveAssetUrl(u) || u), j)} activeOpacity={0.7} delayPressIn={80}>
                 <Image source={{ uri: url }} style={st.thumbImg} />
-              </ThumbButton>
+              </TouchableOpacity>
             ))}
           </View>
         )}
