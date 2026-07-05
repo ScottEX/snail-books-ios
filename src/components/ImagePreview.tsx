@@ -304,10 +304,15 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
         reachedRightEdge.current = false;
       }}
       onScrollEndDrag={() => {
-        if (reachedLeftEdge.current) onSwipeToPage(-1);
-        else if (reachedRightEdge.current) onSwipeToPage(1);
-        reachedLeftEdge.current = false;
-        reachedRightEdge.current = false;
+        if (reachedLeftEdge.current || reachedRightEdge.current) {
+          // Unlock outer ScrollView before page change (scrollTo needs scrollEnabled=true)
+          zoomedRef.current = false;
+          onZoomChange(false);
+          const dir = reachedLeftEdge.current ? -1 : 1;
+          reachedLeftEdge.current = false;
+          reachedRightEdge.current = false;
+          requestAnimationFrame(() => onSwipeToPage(dir as -1 | 1));
+        }
       }}
     >
       <Image
