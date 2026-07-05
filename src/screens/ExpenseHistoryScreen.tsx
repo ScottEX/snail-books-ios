@@ -336,7 +336,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         onEndReached={loadMore}
         onEndReachedThreshold={0.4}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: showFilter ? 292 : 112, paddingHorizontal: 12, paddingBottom: 100 }}
+        contentContainerStyle={{ paddingTop: showFilter ? 302 : 112, paddingHorizontal: 12, paddingBottom: 100 }}
         ListEmptyComponent={!loading ? (
           <EmptyState
             icon={<ExpenseEmptyIcon color={colors.textSub} />}
