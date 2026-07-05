@@ -251,79 +251,83 @@ function clampResist(val: number, low: number, high: number) {
 // ═══════════════════════════════════════════════════════════════════════
 
 function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, onSwipeToPage }: { src: string; windowW: number; windowH: number; isActive: boolean; onZoomChange: (zooming: boolean) => void; onSwipeToPage: (dir: -1 | 1) => void }) {
+  const [scrollKey, setScrollKey] = useState(0);
   const zoomedRef = useRef(false);
   const reachedLeftEdge = useRef(false);
   const reachedRightEdge = useRef(false);
   const isInteracting = useRef(false);
 
-  // When becoming inactive: release zoom lock so outer ScrollView can page
+  // When becoming inactive while zoomed: bump key to remount ScrollView next time active
   const prevActive = useRef(isActive);
   useEffect(() => {
     if (!isActive && prevActive.current && zoomedRef.current) {
       zoomedRef.current = false;
       onZoomChange(false);
+      setScrollKey(k => k + 1);
     }
     prevActive.current = isActive;
   }, [isActive]);
 
+  const imageStyle = { position: 'absolute' as const, width: windowW, height: windowH * 0.9, resizeMode: 'contain' as const };
+
   return (
-    <ScrollView
-      pointerEvents={isActive ? 'auto' : 'none'}
-      maximumZoomScale={4}
-      minimumZoomScale={1}
-      bouncesZoom={false}
-      centerContent
-      showsVerticalScrollIndicator={false}
-      showsHorizontalScrollIndicator={false}
-      directionalLockEnabled
-      scrollEventThrottle={16}
-      onScroll={(e) => {
-        const ox = e.nativeEvent.contentOffset?.x ?? 0;
-        const cw = e.nativeEvent.contentSize?.width ?? windowW;
-        const lw = e.nativeEvent.layoutMeasurement?.width ?? windowW;
-        const maxX = Math.max(0, cw - lw);
+    <View style={{ width: windowW, height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Base layer: always 1x, always visible — covers any ScrollView remount gap */}
+      <Image source={{ uri: src }} style={imageStyle} />
+      {/* Zoom layer: remounts (via key) to reset native zoom when needed */}
+      <ScrollView
+        key={scrollKey}
+        pointerEvents={isActive ? 'auto' : 'none'}
+        style={StyleSheet.absoluteFillObject}
+        maximumZoomScale={4}
+        minimumZoomScale={1}
+        bouncesZoom={false}
+        centerContent
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+        directionalLockEnabled
+        scrollEventThrottle={16}
+        onScroll={(e) => {
+          const ox = e.nativeEvent.contentOffset?.x ?? 0;
+          const cw = e.nativeEvent.contentSize?.width ?? windowW;
+          const lw = e.nativeEvent.layoutMeasurement?.width ?? windowW;
+          const maxX = Math.max(0, cw - lw);
 
-        // Track if user reached an edge during this drag (for onScrollEndDrag)
-        if (zoomedRef.current && maxX > 0) {
-          if (ox <= 1) reachedLeftEdge.current = true;
-          if (ox >= maxX - 1) reachedRightEdge.current = true;
-        }
+          if (zoomedRef.current && maxX > 0) {
+            if (ox <= 1) reachedLeftEdge.current = true;
+            if (ox >= maxX - 1) reachedRightEdge.current = true;
+          }
 
-        // Zoom lock/unlock — only when user is actively interacting
-        const zs = e.nativeEvent.zoomScale ?? 1;
-        const isZoomed = zs > 1.01;
-        if (isZoomed && !zoomedRef.current && isInteracting.current) {
-          zoomedRef.current = true;
-          onZoomChange(true);
-        } else if (!isZoomed && zoomedRef.current) {
-          zoomedRef.current = false;
-          requestAnimationFrame(() => onZoomChange(false));
-        }
-      }}
-      onScrollBeginDrag={() => {
-        isInteracting.current = true;
-        reachedLeftEdge.current = false;
-        reachedRightEdge.current = false;
-      }}
-      onScrollEndDrag={() => {
-        isInteracting.current = false;
-        if (reachedLeftEdge.current || reachedRightEdge.current) {
-          // Unlock outer ScrollView before page change (scrollTo needs scrollEnabled=true)
-          zoomedRef.current = false;
-          onZoomChange(false);
-          const dir = reachedLeftEdge.current ? -1 : 1;
+          const zs = e.nativeEvent.zoomScale ?? 1;
+          const isZoomed = zs > 1.01;
+          if (isZoomed && !zoomedRef.current && isInteracting.current) {
+            zoomedRef.current = true;
+            onZoomChange(true);
+          } else if (!isZoomed && zoomedRef.current) {
+            zoomedRef.current = false;
+            requestAnimationFrame(() => onZoomChange(false));
+          }
+        }}
+        onScrollBeginDrag={() => {
+          isInteracting.current = true;
           reachedLeftEdge.current = false;
           reachedRightEdge.current = false;
-          requestAnimationFrame(() => onSwipeToPage(dir as -1 | 1));
-        }
-      }}
-    >
-      <Image
-        source={{ uri: src }}
-        style={{ width: windowW, height: windowH * 0.9 }}
-        resizeMode="contain"
-      />
-    </ScrollView>
+        }}
+        onScrollEndDrag={() => {
+          isInteracting.current = false;
+          if (reachedLeftEdge.current || reachedRightEdge.current) {
+            zoomedRef.current = false;
+            onZoomChange(false);
+            const dir = reachedLeftEdge.current ? -1 : 1;
+            reachedLeftEdge.current = false;
+            reachedRightEdge.current = false;
+            requestAnimationFrame(() => onSwipeToPage(dir as -1 | 1));
+          }
+        }}
+      >
+        <Image source={{ uri: src }} style={{ width: windowW, height: windowH * 0.9 }} resizeMode="contain" />
+      </ScrollView>
+    </View>
   );
 }
 
