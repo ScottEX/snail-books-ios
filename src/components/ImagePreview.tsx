@@ -253,6 +253,10 @@ function clampResist(val: number, low: number, high: number) {
 function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange }: { src: string; windowW: number; windowH: number; isActive: boolean; onZoomChange: (zooming: boolean) => void }) {
   const [resetKey, setResetKey] = useState(0);
   const zoomedRef = useRef(false);
+  const unlockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timer on unmount
+  useEffect(() => () => { if (unlockTimer.current) clearTimeout(unlockTimer.current); }, []);
 
   // Reset zoom when page becomes inactive: change key → remount → fresh 1x
   const prevActive = useRef(isActive);
@@ -260,6 +264,7 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange }: 
     if (!isActive && prevActive.current) {
       setResetKey(k => k + 1);
       if (zoomedRef.current) { zoomedRef.current = false; onZoomChange(false); }
+      if (unlockTimer.current) { clearTimeout(unlockTimer.current); unlockTimer.current = null; }
     }
     prevActive.current = isActive;
   }, [isActive]);
@@ -270,16 +275,23 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange }: 
       maximumZoomScale={4}
       minimumZoomScale={1}
       bouncesZoom={false}
-      centerContent
       showsVerticalScrollIndicator={false}
       showsHorizontalScrollIndicator={false}
+      directionalLockEnabled
       scrollEventThrottle={16}
       onScroll={(e) => {
         const zs = e.nativeEvent.zoomScale ?? 1;
         const isZoomed = zs > 1.01;
         if (isZoomed !== zoomedRef.current) {
           zoomedRef.current = isZoomed;
-          onZoomChange(isZoomed);
+          if (!isZoomed) {
+            // Delay unlock: let ScrollView gesture recognizer settle after zoom-out
+            if (unlockTimer.current) clearTimeout(unlockTimer.current);
+            unlockTimer.current = setTimeout(() => onZoomChange(false), 150);
+          } else {
+            if (unlockTimer.current) { clearTimeout(unlockTimer.current); unlockTimer.current = null; }
+            onZoomChange(true);
+          }
         }
       }}
     >
