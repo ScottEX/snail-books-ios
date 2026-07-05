@@ -251,9 +251,10 @@ function clampResist(val: number, low: number, high: number) {
 // ═══════════════════════════════════════════════════════════════════════
 
 function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange }: { src: string; windowW: number; windowH: number; isActive: boolean; onZoomChange: (zooming: boolean) => void }) {
-  const [scale, setScale] = useState(1);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const offsetX = useRef(new Animated.Value(0)).current;
+  const offsetY = useRef(new Animated.Value(0)).current;
   const scaleRef = useRef(1);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
   const pinchBase = useRef({ dist: 0, scale: 1 });
   const panBase = useRef({ x: 0, y: 0 });
   const touchStart = useRef({ x: 0, y: 0 });
@@ -263,7 +264,10 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange }: 
   const prevActive = useRef(isActive);
   useEffect(() => {
     if (!isActive && prevActive.current) {
-      scaleRef.current = 1; setScale(1); setOffset({ x: 0, y: 0 });
+      scaleRef.current = 1;
+      scaleAnim.setValue(1);
+      offsetX.setValue(0);
+      offsetY.setValue(0);
     }
     prevActive.current = isActive;
   }, [isActive]);
@@ -283,7 +287,7 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange }: 
         const dy = ts[0].pageY - ts[1].pageY;
         pinchBase.current = { dist: Math.hypot(dx, dy), scale: scaleRef.current };
       } else if (scaleRef.current > 1.01) {
-        panBase.current = { x: offset.x, y: offset.y };
+        panBase.current = { x: (offsetX as any)._value, y: (offsetY as any)._value };
         touchStart.current = { x: ts[0].pageX, y: ts[0].pageY };
       }
     },
@@ -296,43 +300,53 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange }: 
         if (pinchBase.current.dist > 0) {
           const s = Math.max(1, Math.min(MAX_ZOOM, pinchBase.current.scale * (dist / pinchBase.current.dist)));
           scaleRef.current = s;
-          setScale(s);
+          scaleAnim.setValue(s);
         }
       } else if (scaleRef.current > 1.01) {
-        setOffset({
-          x: panBase.current.x + (ts[0].pageX - touchStart.current.x),
-          y: panBase.current.y + (ts[0].pageY - touchStart.current.y),
-        });
+        offsetX.setValue(panBase.current.x + (ts[0].pageX - touchStart.current.x));
+        offsetY.setValue(panBase.current.y + (ts[0].pageY - touchStart.current.y));
       }
     },
     onPanResponderRelease: (_, gs) => {
       const now = Date.now();
       if (now - lastTap.current < DOUBLE_TAP_MS && Math.abs(gs.dx) < 10 && Math.abs(gs.dy) < 10) {
         if (scaleRef.current > 1.01) {
-          scaleRef.current = 1; setScale(1); setOffset({ x: 0, y: 0 });
+          scaleRef.current = 1;
+          Animated.parallel([
+            Animated.timing(scaleAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
+            Animated.timing(offsetX, { toValue: 0, duration: 150, useNativeDriver: true }),
+            Animated.timing(offsetY, { toValue: 0, duration: 150, useNativeDriver: true }),
+          ]).start();
           onZoomChange(false);
         } else {
-          scaleRef.current = DOUBLE_TAP_ZOOM; setScale(DOUBLE_TAP_ZOOM);
+          scaleRef.current = DOUBLE_TAP_ZOOM;
+          Animated.spring(scaleAnim, { toValue: DOUBLE_TAP_ZOOM, useNativeDriver: true }).start();
           onZoomChange(true);
         }
         lastTap.current = 0;
         return;
       }
       lastTap.current = now;
-      if (scaleRef.current <= 1.01) { scaleRef.current = 1; setScale(1); setOffset({ x: 0, y: 0 }); }
+      if (scaleRef.current <= 1.01) {
+        scaleRef.current = 1;
+        scaleAnim.setValue(1); offsetX.setValue(0); offsetY.setValue(0);
+      }
       onZoomChange(false);
     },
     onPanResponderTerminate: () => {
-      if (scaleRef.current <= 1.01) { scaleRef.current = 1; setScale(1); setOffset({ x: 0, y: 0 }); }
+      if (scaleRef.current <= 1.01) {
+        scaleRef.current = 1;
+        scaleAnim.setValue(1); offsetX.setValue(0); offsetY.setValue(0);
+      }
       onZoomChange(false);
     },
-  }), [offset.x, offset.y, onZoomChange]);
+  }), [onZoomChange]);
 
   return (
     <View style={{ width: windowW, height: '100%', alignItems: 'center', justifyContent: 'center' }} {...panResponder.panHandlers}>
-      <Image
+      <Animated.Image
         source={{ uri: src }}
-        style={{ width: windowW, height: windowH * 0.9, resizeMode: 'contain', transform: [{ translateX: offset.x }, { translateY: offset.y }, { scale }] }}
+        style={{ width: windowW, height: windowH * 0.9, resizeMode: 'contain', transform: [{ translateX: offsetX }, { translateY: offsetY }, { scale: scaleAnim }] }}
       />
     </View>
   );
