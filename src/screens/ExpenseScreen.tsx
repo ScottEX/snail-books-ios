@@ -887,7 +887,7 @@ export default function ExpenseScreen({
         visible={showExpDatePicker}
         value={expDate}
         onClose={() => setShowExpDatePicker(false)}
-        onSelect={(d) => { if (d <= sd.today) { setExpDate(d); setExpDateErr(0); } }}
+        onSelect={(d) => { if (d <= sd.today) { setExpDate(d); setExpDateErr(0); } else { setExpDateErr(c => c + 1); } }}
         minDate={undefined}
         title={t('billDate')}
       />
@@ -896,7 +896,7 @@ export default function ExpenseScreen({
         visible={showFeeDatePicker}
         value={feeDate.value}
         onClose={() => setShowFeeDatePicker(false)}
-        onSelect={(d) => { feeDate.setValue(d); feeDate.setError(0); }}
+        onSelect={(d) => { if (d <= sd.today) { feeDate.setValue(d); feeDate.setError(0); } else { feeDate.setError(Date.now()); } }}
         minDate={undefined}
         title={t('entryDate')}
       />
