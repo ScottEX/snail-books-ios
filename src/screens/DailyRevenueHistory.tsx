@@ -3,10 +3,13 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator
 import Svg, { Path } from 'react-native-svg';
 import { t, getLang } from '../i18n';
 import { api } from '../api/client';
+import { toDec2 } from '../utils/numbers';
 import { useServerDate } from '../hooks/useServerDate';
+import { usePaginatedList } from '../hooks/usePaginatedList';
+import EmptyState from '../components/EmptyState';
+import LoadingSpinner from '../components/LoadingSpinner';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
-import Toast from '../components/Toast';
 import DatePickerModal from '../components/DatePickerModal';
 import HistoryHeader from '../components/HistoryHeader';
 import FilterPanel from '../components/FilterPanel';
@@ -14,6 +17,26 @@ import DateErrorHint from '../components/DateErrorHint';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 
 interface Props { onBack: () => void }
+
+/** Strict calendar months between two ISO dates */
+function monthsBetween(from: string, to: string): number {
+  const [fy, fm, fd] = from.split('-').map(Number);
+  const [ty, tm, td] = to.split('-').map(Number);
+  let m = (ty - fy) * 12 + (tm - fm);
+  if (td < fd) m -= 1;
+  return m;
+}
+
+function RevenueEmptyIcon({ color }: { color: string }) {
+  return (
+    <Svg width={48} height={48} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <Path d="M14 2v6h6" />
+      <Path d="M7 15l4-4 2 2 4-5" />
+      <Path d="M17 8h.01" />
+    </Svg>
+  );
+}
 
 const fmtDate = (d: string) => {
   const [y, m, day] = d.split('-');
@@ -43,31 +66,34 @@ export default function DailyRevenueHistory({ onBack }: Props) {
 
   useEffect(() => { if (showFilter) setFilterDateError(0); }, [showFilter]);
 
-  const [records, setRecords] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState('');
-  const [total, setTotal] = useState(0);
-  const [totalAll, setTotalAll] = useState(0);
+  const rangeInvalid = useMemo(() =>
+    !!(dateFrom && dateTo && dateFrom > dateTo),
+    [dateFrom, dateTo]);
+  const rangeTooLong = useMemo(() =>
+    !!(dateFrom && dateTo && !rangeInvalid && monthsBetween(dateFrom, dateTo) > 24),
+    [dateFrom, dateTo, rangeInvalid]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const r: any = await api.getDailyRevenue(
-        1, 365,
-        undefined, undefined, undefined, undefined,
-        appliedFrom || undefined,
-        appliedTo || undefined,
-      );
-      setRecords(r?.records || []);
-      setTotal(r?.total || 0);
-      setTotalAll(r?.total_all || 0);
-    } catch { setToast(t('toastLoadFailed')); }
-    setLoading(false);
+  const fetchPage = useCallback(async (pg: number, perPage: number) => {
+    const r: any = await api.getDailyRevenue(
+      pg, perPage,
+      undefined, undefined, undefined, undefined,
+      appliedFrom || undefined,
+      appliedTo || undefined,
+    );
+    return { records: r?.records || [], total: r?.total || 0, total_all: r?.total_all, pages: r?.pages || 1 };
   }, [appliedFrom, appliedTo]);
 
-  useEffect(() => { load(); }, [load]);
+  const { records, total, totalAll, hasMore, loading, loadingMore, refresh, loadMore } = usePaginatedList({ fetcher: fetchPage });
 
-  const rangeInvalid = !!(dateFrom && dateTo && dateFrom > dateTo);
+  const filterKey = `${appliedFrom}|${appliedTo}`;
+  useEffect(() => { refresh(); }, [filterKey]);
+
+  const handleScroll = ({ nativeEvent }: any) => {
+    const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+    if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 20) {
+      if (hasMore && !loadingMore) loadMore();
+    }
+  };
 
   const resetFilters = () => {
     const from = sd.offset(-30);
@@ -90,6 +116,7 @@ export default function DailyRevenueHistory({ onBack }: Props) {
       <FilterPanel visible={showFilter} onClose={() => setShowFilter(false)}>
         <DateErrorHint trigger={filterDateError} message={t('errDateFuture')} color={colors.danger} />
         {rangeInvalid && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right' }}>{t('errDateRange')}</Text>}
+        {rangeTooLong && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right' }}>{t('errDateRangeTooLong')}</Text>}
         <View style={styles.filterField}>
           <Text style={styles.filterLabel}>{t('revenueDate')}</Text>
           <View style={styles.filterDateRange}>
@@ -113,68 +140,87 @@ export default function DailyRevenueHistory({ onBack }: Props) {
             <Text style={styles.filterResetBtnText}>{t('reset')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.filterApplyBtn, rangeInvalid && styles.filterApplyBtnDisabled]}
-            disabled={rangeInvalid}
+            style={[styles.filterApplyBtn, (rangeInvalid || rangeTooLong) && styles.filterApplyBtnDisabled]}
+            disabled={rangeInvalid || rangeTooLong}
             onPress={() => { setAppliedFrom(dateFrom); setAppliedTo(dateTo); setShowFilter(false); }}
             activeOpacity={0.8}
           >
-            <Text style={[styles.filterApplyBtnText, rangeInvalid && styles.filterApplyBtnTextDisabled]}>{t('apply')}</Text>
+            <Text style={[styles.filterApplyBtnText, (rangeInvalid || rangeTooLong) && styles.filterApplyBtnTextDisabled]}>{t('apply')}</Text>
           </TouchableOpacity>
         </View>
       </FilterPanel>
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: showFilter ? 224 : 112 }]}>
+      <ScrollView style={styles.list} showsVerticalScrollIndicator={false}
+        onScroll={handleScroll} scrollEventThrottle={50}
+        contentContainerStyle={{ paddingTop: showFilter ? 224 : 112, paddingHorizontal: 16, paddingBottom: 20 }}>
         {loading ? (
-          <View style={styles.empty}><ActivityIndicator color={colors.primary} /></View>
+          <LoadingSpinner />
         ) : records.length === 0 ? (
-          <View style={styles.empty}>
-            <Svg width={48} height={48} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={1.5} strokeLinecap="round">
-              <Path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-              <Path d="M14 2v6h6" />
-              <Path d="M7 15l4-4 2 2 4-5" />
-            </Svg>
-            <Text style={styles.emptyText}>{t('revEmpty')}</Text>
-          </View>
+          <EmptyState
+            icon={<RevenueEmptyIcon color={colors.textSub} />}
+            title={t('revEmpty')}
+          />
         ) : (
-          records.map((rec: any, i: number) => (
-            <View key={i} style={styles.card}>
-              <View style={styles.cardTopRow}>
-                <Text style={styles.cardDate}>{fmtDate(rec.date)}</Text>
-                <View style={[styles.statusBadge, (rec.status === '未录入' || !rec.recorded_by) ? styles.statusBadgeEmpty : styles.statusBadgeDone]}>
-                  <View style={[styles.statusDot, (rec.status === '未录入' || !rec.recorded_by) ? styles.statusDotEmpty : styles.statusDotDone]} />
-                  <Text style={[styles.statusText, (rec.status === '未录入' || !rec.recorded_by) ? styles.statusTextEmpty : styles.statusTextDone]}>
-                    {rec.status === '未录入' || !rec.recorded_by ? t('revNotEntered') : t('revEntered')}
-                  </Text>
+          <>
+            {records.map((rec: any, i: number) => (
+              <View key={i} style={styles.card}>
+                <View style={styles.cardTopRow}>
+                  <Text style={styles.cardDate}>{fmtDate(rec.date)}</Text>
+                  <View style={[styles.statusBadge, (rec.status === '未录入' || !rec.recorded_by) ? styles.statusBadgeEmpty : styles.statusBadgeDone]}>
+                    <View style={[styles.statusDot, (rec.status === '未录入' || !rec.recorded_by) ? styles.statusDotEmpty : styles.statusDotDone]} />
+                    <Text style={[styles.statusText, (rec.status === '未录入' || !rec.recorded_by) ? styles.statusTextEmpty : styles.statusTextDone]}>
+                      {rec.status === '未录入' || !rec.recorded_by ? t('revNotEntered') : t('revEntered')}
+                    </Text>
+                  </View>
                 </View>
-              </View>
 
-              {rec.archived ? (
-                <View style={styles.archivedBadge}>
-                  <Text style={styles.archivedText}>{t('revMarkArchive')}</Text>
-                </View>
-              ) : null}
+                {rec.archived ? (
+                  <View style={styles.archivedBadge}>
+                    <Text style={styles.archivedBadgeText}>{t('revMarkArchive')}</Text>
+                  </View>
+                ) : null}
 
-              <View style={styles.cardGrid}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.cardAmtLabel}>{t('revRevenue')}</Text>
-                  <Text style={[styles.cardAmtVal, { color: rec.revenue > 0 ? colors.textMain : colors.textSub }]}>¥{(rec.revenue || 0).toFixed(2)}</Text>
+                <View style={styles.cardAmounts}>
+                  <View style={styles.cardAmtCol}>
+                    <Text style={[styles.cardAmtVal, { color: rec.revenue > 0 ? colors.textMain : colors.textSub }]}>¥{toDec2(rec.revenue)}</Text>
+                    <Text style={styles.cardAmtLabel}>{t('revRevenue')}</Text>
+                  </View>
+                  <View style={styles.cardAmtCol}>
+                    <Text style={[styles.cardAmtVal, { color: rec.turnover > 0 ? colors.textMain : colors.textSub }]}>¥{toDec2(rec.turnover)}</Text>
+                    <Text style={styles.cardAmtLabel}>{t('revTurnover')}</Text>
+                  </View>
+                  <View style={styles.cardAmtCol}>
+                    <Text style={[styles.cardAmtVal, { color: rec.jd_revenue > 0 ? colors.textMain : colors.textSub }]}>¥{toDec2(rec.jd_revenue)}</Text>
+                    <Text style={styles.cardAmtLabel}>{t('revJD')}</Text>
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.cardAmtLabel}>{t('revTurnover')}</Text>
-                  <Text style={[styles.cardAmtVal, { color: rec.turnover > 0 ? colors.textMain : colors.textSub }]}>¥{(rec.turnover || 0).toFixed(2)}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.cardAmtLabel}>{t('revJD')}</Text>
-                  <Text style={[styles.cardAmtVal, { color: rec.jd_revenue > 0 ? colors.textMain : colors.textSub }]}>¥{(rec.jd_revenue || 0).toFixed(2)}</Text>
-                </View>
-              </View>
 
-              {rec.note ? <Text style={styles.note}>{rec.note}</Text> : null}
-              <View style={styles.footer}>
-                <Text style={styles.footerText}>{t('recordedBy')}: {rec.recorded_by || '—'}</Text>
+                <View style={styles.cardFooter}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Text style={styles.cardFooterText}>{t('recordedBy')}:</Text>
+                    {rec.recorded_by ? (
+                      <Text style={styles.cardFooterText}>{rec.recorded_by}</Text>
+                    ) : (
+                      <Svg width={16} height={8} viewBox="0 0 16 8" fill="none" stroke={colors.secondary} strokeWidth={1.5} strokeLinecap="round">
+                        <Path d="M2 4h12" />
+                      </Svg>
+                    )}
+                  </View>
+                </View>
+                {rec.note ? (
+                  <View style={styles.cardNote}>
+                    <Text style={styles.cardNoteText}>{rec.note}</Text>
+                  </View>
+                ) : null}
               </View>
-            </View>
-          ))
+            ))}
+            {hasMore && (
+              <View style={styles.loadingMore}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={styles.loadingMoreText}>{t('loading')}...</Text>
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
 
@@ -190,22 +236,21 @@ export default function DailyRevenueHistory({ onBack }: Props) {
         }}
         title={datePickTarget === 'from' ? t('startDate') : t('endDate')}
       />
-
-      <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
     </View>
   );
 }
 
 const getStyles = (colors: ThemeColors) => StyleSheet.create({
   root: { flex: 1, backgroundColor: 'transparent' },
-  content: { padding: 16, paddingBottom: 60 },
-  empty: { paddingVertical: 60, alignItems: 'center', gap: 12 },
-  emptyText: { color: colors.textSub, fontSize: 14 },
+  list: { flex: 1 },
 
   card: {
-    backgroundColor: colors.surface, borderRadius: 12, padding: 14, marginBottom: 10,
-    borderWidth: 1, borderColor: colors.secondary, gap: 10,
-  },
+    backgroundColor: colors.surface, borderRadius: 12,
+    paddingVertical: 16, paddingHorizontal: 16,
+    marginBottom: 10,
+    borderWidth: 1, borderColor: colors.secondary,
+    gap: 12,
+  } as any,
   cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cardDate: { fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.textMain },
   statusBadge: {
@@ -226,19 +271,25 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10,
     backgroundColor: withAlpha(colors.danger, 0.1),
   },
-  archivedText: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.danger },
+  archivedBadgeText: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.danger },
 
-  cardGrid: {
-    flexDirection: 'row', gap: 8,
-    paddingVertical: 10, paddingHorizontal: 8,
-    backgroundColor: colors.bg, borderRadius: 8,
+  cardAmounts: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    paddingVertical: 12, paddingHorizontal: 8,
+    backgroundColor: colors.surface, borderRadius: 8,
   },
-  cardAmtLabel: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight, marginBottom: 2 },
-  cardAmtVal: { fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight },
+  cardAmtCol: { alignItems: 'center', flex: 1, gap: 4 },
+  cardAmtVal: { fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight },
+  cardAmtLabel: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight },
 
-  note: { fontSize: 12, color: colors.textSub, fontStyle: 'italic' },
-  footer: { borderTopWidth: 0.5, borderTopColor: colors.secondary, paddingTop: 8 },
-  footerText: { fontSize: FONTS.micro.size, color: colors.textSub },
+  cardFooter: { borderTopWidth: 0.5, borderTopColor: colors.secondary, paddingTop: 8 },
+  cardFooterText: { fontSize: FONTS.micro.size, color: colors.textSub },
+
+  cardNote: { borderTopWidth: 0.5, borderTopColor: colors.secondary, paddingTop: 8, marginTop: 4 },
+  cardNoteText: { fontSize: FONTS.micro.size, color: colors.textSub, lineHeight: 16 },
+
+  loadingMore: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 20, gap: 8 },
+  loadingMoreText: { fontSize: FONTS.sub.size, color: colors.primary },
 
   // Filter
   filterField: { flexDirection: 'row', alignItems: 'center', gap: 8 },
