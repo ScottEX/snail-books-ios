@@ -972,9 +972,10 @@ export default function ExpenseScreen({
           overlayStyle={{ ...bottomSheetOverlay, paddingBottom: keyboardH } as any}
           contentStyle={{ alignItems: 'stretch' } as any}>
           <View style={[st.feeSheet, { width: '100%', maxWidth: 768, alignSelf: 'center' }]}>
-            <View style={st.modalHeader}>
+            {/* Sheet header: handle on top, title + close button row below */}
+            <View style={{ backgroundColor: colors.primary, paddingVertical: 14, paddingHorizontal: 20 }}>
               <View style={{ width: 36, height: 4, backgroundColor: SHEET_HANDLE_COLOR, borderRadius: 2, alignSelf: 'center', marginBottom: 12 }} />
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Text style={st.modalTitle}>{t('addFeeEntry')}</Text>
                 <TouchableOpacity style={{ padding: 4 }} onPress={() => setShowFeeSheet(false)}>
                   <Svg width="18" height="18" viewBox="0 0 24 24" stroke={colors.surface} strokeWidth="2" fill="none">
@@ -1071,9 +1072,10 @@ export default function ExpenseScreen({
           overlayStyle={bottomSheetOverlay as any}
           contentStyle={{ alignItems: 'stretch', justifyContent: 'flex-end' } as any}>
           <View style={[st.feeSheet, { height: Dimensions.get('window').height * 0.7, width: '100%', maxWidth: 768, alignSelf: 'center' }]}>
-            <View style={st.modalHeader}>
+            {/* Sheet header: handle on top, title + close button row below */}
+            <View style={{ backgroundColor: colors.primary, paddingVertical: 14, paddingHorizontal: 20 }}>
               <View style={{ width: 36, height: 4, backgroundColor: SHEET_HANDLE_COLOR, borderRadius: 2, alignSelf: 'center', marginBottom: 12 }} />
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Text style={st.modalTitle}>{t('feeHistory')}</Text>
                 <TouchableOpacity style={{ padding: 4 }} onPress={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }}>
                   <Svg width="18" height="18" viewBox="0 0 24 24" stroke={colors.surface} strokeWidth="2" fill="none">
