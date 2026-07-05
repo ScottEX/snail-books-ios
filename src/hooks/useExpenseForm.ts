@@ -108,7 +108,7 @@ export function useExpenseForm(options: UseExpenseFormOptions) {
     payMethod, setPayMethod,
     expNote, setExpNote,
     expImages, setExpImages,
-    uploadingImg, setUploadingImg,
+    uploadingImg,
     loadingExp,
     isRefund, setIsRefund,
     handleAddExpense,
