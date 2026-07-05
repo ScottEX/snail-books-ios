@@ -36,6 +36,7 @@ import PdfPreviewPage from './PdfPreviewPage';
 import ChartsPanel from './ChartsPanel';
 import { modalCardAnimation, modalClose } from '../sharedStyles';
 import { toDec2Comma } from '../utils/numbers';
+import DateErrorHint from '../components/DateErrorHint';
 import { fmtAmtFull } from '../utils/format';
 import NumberTicker from '../components/NumberTicker';
 
@@ -44,19 +45,7 @@ const LOGO_IMAGE = require('../../assets/img/logo.jpg');
 
 type Tab = 'list' | 'expense' | 'supply' | 'chart' | 'partner';
 
-// ── Sub-component: red error hint under date input ──
-function DateErrorHint({ trigger, message, colors }: { trigger: number; message: string; colors: ThemeColors }) {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    if (trigger > 0) {
-      setShow(true);
-      const t = setTimeout(() => setShow(false), 3000);
-      return () => clearTimeout(t);
-    } else { setShow(false); }
-  }, [trigger]);
-  if (!show) return null;
-  return <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'left', marginTop: 2 }}>{message}</Text>;
-}
+// ── Sub-component: DateErrorHint — moved to src/components/DateErrorHint.tsx ──
 
 export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const { colors, setTheme, allThemes } = useTheme();
@@ -1053,7 +1042,7 @@ function DailyRevenueView(p: DailyRevProps) {
               <Text style={styles.dateLabel}>{p.fmtDateLabel(p.revDate)}</Text>
               <Text style={{ fontSize: 14 }}>📅</Text>
             </TouchableOpacity>
-            <DateErrorHint trigger={p.revDateErr} message={t('errDateFuture')} colors={colors} />
+            <DateErrorHint trigger={p.revDateErr} message={t('errDateFuture')} color={colors.danger} textAlign="left" />
           </View>
 
           {/* Three input cards: 营业额收入 / 营业额 / 京东营收 */}

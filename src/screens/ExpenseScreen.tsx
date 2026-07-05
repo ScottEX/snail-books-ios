@@ -27,6 +27,7 @@ import { useServerDate } from '../hooks/useServerDate';
 import { useExpenseForm } from '../hooks/useExpenseForm';
 import ModalOverlay from '../components/ModalOverlay';
 import { useDateField } from '../hooks/useDateField';
+import DateErrorHint from '../components/DateErrorHint';
 
 /* ── helpers ── */
 // Date helpers replaced by useServerDate() hook (server time, not client)
@@ -150,24 +151,10 @@ function InputWithFocus({ style, inputStyle, ...props }: any) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   DateErrorHint — 未来日期红字提示，2.5s 自动消失
+   DateErrorHint — moved to src/components/DateErrorHint.tsx
    ═══════════════════════════════════════════════════════════ */
-function DateErrorHint({ trigger, message, colors, textAlign = 'right' }: { trigger: number; message: string; colors: any; textAlign?: 'left' | 'right' | 'center' }) {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    if (trigger > 0) {
-      setShow(true);
-      const t = setTimeout(() => setShow(false), 3000);
-      return () => clearTimeout(t);
-    } else {
-      setShow(false);
-    }
-  }, [trigger]);
-  if (!show) return null;
-  return <Text style={{ color: colors.danger, fontSize: 12, marginTop: 1, textAlign }}>{message}</Text>;
-}
 
-/* ═══════════════════════════════════════════════════════════ */
+// Image upload handlers
 /* ═══════════════════════════════════════════════════════════
    EXPENSE SCREEN
    ═══════════════════════════════════════════════════════════ */
@@ -707,7 +694,7 @@ export default function ExpenseScreen({
                 <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><Path d="M8 5l8 7-8 7"/></Svg>
               </TouchableOpacity>
             </View>
-            <DateErrorHint trigger={recDate.error} message={t('errDateFuture')} colors={colors} />
+            <DateErrorHint trigger={recDate.error} message={t('errDateFuture')} color={colors.danger} />
 
             <View style={st.row2}>
               <View style={st.inputGroup}>
@@ -875,7 +862,7 @@ export default function ExpenseScreen({
                     </Text>
                     <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><Path d="M8 5l8 7-8 7"/></Svg>
                   </TouchableOpacity>
-                  <DateErrorHint trigger={expDateErr} message={t('errDateFuture')} colors={colors} textAlign="left" />
+                  <DateErrorHint trigger={expDateErr} message={t('errDateFuture')} color={colors.danger} textAlign="left" />
                 </View>
               </View>
               {/* 按钮行 */}
@@ -981,7 +968,7 @@ export default function ExpenseScreen({
                       <Path d="M8 5l8 7-8 7" />
                     </Svg>
                   </TouchableOpacity>
-                  <DateErrorHint trigger={feeDate.error} message={t('errDateFuture')} colors={colors} />
+                  <DateErrorHint trigger={feeDate.error} message={t('errDateFuture')} color={colors.danger} />
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                   <Text style={{ fontSize: 10, color: colors.danger }}>负数</Text>
