@@ -136,12 +136,12 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   container: { flex: 1, position: 'relative' as const, paddingHorizontal: 16 },
 
   frostedBlock: {
-    marginHorizontal: 0, marginTop: 2, borderRadius: 16, overflow: 'hidden' as const,
+    marginHorizontal: 0, marginTop: 4, borderRadius: 16, overflow: 'hidden' as const,
     borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
     backgroundColor: withAlpha(c.surface, 0.65),
   },
-  headerSection: { padding: 12, paddingBottom: 6 },
-  headerTop: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, marginBottom: 8 },
+  headerSection: { padding: 16, paddingBottom: 8 },
+  headerTop: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, marginBottom: 12 },
   headerTitle: { fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: c.textMain },
   headerBadge: { backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 20, paddingHorizontal: 12, paddingVertical: 3 },
   headerBadgeText: { fontSize: FONTS.microBold.size, color: c.primary, fontWeight: FONTS.microBold.weight },
@@ -737,7 +737,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
       {/* ── Frosted Glass Block ── */}
       <View style={styles.frostedBlock}>
         <BlurView
-          intensity={70}
+          intensity={40}
           tint="regular"
           style={[StyleSheet.absoluteFill, { borderRadius: 16 }]}
           pointerEvents="none"
@@ -876,7 +876,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
             <View style={styles.cartBar}>
               <View style={{ ...StyleSheet.absoluteFill, borderRadius: 14, overflow: 'hidden' } as any}>
                 <BlurView
-                  intensity={70}
+                  intensity={40}
                   tint="regular"
                   style={StyleSheet.absoluteFill}
                   pointerEvents="none"
