@@ -260,12 +260,13 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
   const reachedRightEdge = useRef(false);
   const isInteracting = useRef(false);
 
-  // When swiped away while zoomed (not via edge-swipe): reset after page transition
+  // When becoming inactive while zoomed: delay key bump until page transition done
   const prevActive = useRef(isActive);
   useEffect(() => {
     if (!isActive && prevActive.current && zoomedRef.current) {
       zoomedRef.current = false;
       onZoomChange(false);
+      // Defer key bump: user is looking at the new page by now, won't see shrink
       const timer = setTimeout(() => setScrollKey(k => k + 1), 350);
       return () => clearTimeout(timer);
     }
@@ -319,13 +320,11 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
         onScrollEndDrag={() => {
           isInteracting.current = false;
           if (zoomedRef.current && (reachedLeftEdge.current || reachedRightEdge.current)) {
-            // Reset zoom to 1x via key bump BEFORE page transition, so user never sees the zoomed-out state
-            zoomedRef.current = false;
+            // Unlock for scrollTo; don't reset zoomedRef — let useEffect delay key bump
             onZoomChange(false);
             const dir = reachedLeftEdge.current ? -1 : 1;
             reachedLeftEdge.current = false;
             reachedRightEdge.current = false;
-            setScrollKey(k => k + 1);
             requestAnimationFrame(() => onSwipeToPage(dir as -1 | 1));
           }
         }}
