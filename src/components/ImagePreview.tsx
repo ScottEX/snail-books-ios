@@ -40,22 +40,26 @@ export default function ImagePreview({
   const imageScale = useRef(new Animated.Value(0.92)).current;
   const panY = useRef(new Animated.Value(0)).current;
 
-  // ── ① Mount: fade + scale ──
+  // ── ① Open: fade + scale ──
   useEffect(() => {
+    if (!visible) return;
     overlayOpacity.setValue(0);
     imageScale.setValue(0.92);
+    panY.setValue(0);
     Animated.parallel([
       Animated.timing(overlayOpacity, { toValue: 1, duration: OPEN_DURATION, useNativeDriver: false }),
       Animated.spring(imageScale, { ...SPRING, toValue: 1, useNativeDriver: false }),
     ]).start();
-  }, []);
+  }, [visible]);
 
-  // ── Scroll to initial index ──
+  // ── Scroll to initial index on open ──
   useEffect(() => {
+    if (!visible) return;
+    setIdx(initialIdx);
     if (WINDOW_W > 0) {
       scrollRef.current?.scrollTo({ x: initialIdx * WINDOW_W, animated: false });
     }
-  }, [initialIdx, WINDOW_W]);
+  }, [visible, initialIdx, WINDOW_W]);
 
   // ── Close ──
   const animateClose = useCallback(() => {
