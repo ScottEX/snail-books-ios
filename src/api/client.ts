@@ -279,6 +279,9 @@ export const api = {
     return data as { status: 'ok'; images: string[]; thumb_images: string[]; has_thumbs: boolean };
   },
 
+  deleteExpenseImage: async (url: string, txId: number) =>
+    authFetch('/api/expenses/images', { method: 'DELETE', body: JSON.stringify({ url, transaction_id: txId }) }),
+
   getPartners: () => authFetch('/api/partners'),
   getDividends: () => authFetch('/api/dividends'),
   createDividend: (data: any) => authFetch('/api/dividends', { method: 'POST', body: JSON.stringify(data) }),

@@ -23,6 +23,7 @@ import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { PickedImage } from '../utils/imagePicker';
 import { parseImages } from '../utils/parseImages';
 import ImagePreview from '../components/ImagePreview';
+import { Image as ExpoImage } from 'expo-image';
 import { useImagePreview } from '../hooks/useImagePreview';
 import ReceiptUpload from '../components/ReceiptUpload';
 import { useSwipeBack } from '../hooks/useSwipeBack';
@@ -176,9 +177,24 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
     }
   };
 
-  const removeImage = (idx: number) => {
+  const removeImage = async (idx: number) => {
+    const removedUrl = images[idx];
+    if (!removedUrl || !expense?.id) return;
+
+    // Optimistic UI update
     setImages(prev => prev.filter((_, i) => i !== idx));
     setThumbImages(prev => prev.filter((_, i) => i !== idx));
+
+    try {
+      await api.deleteExpenseImage(removedUrl, expense.id);
+      // Clear expo-image memory cache so stale image isn't shown
+      ExpoImage.clearMemoryCache?.();
+    } catch {
+      // Rollback on failure
+      setImages(parseImages(expense?.images));
+      setThumbImages(parseImages(expense?.thumb_images));
+      showToast(t('toastDeleteFailed'));
+    }
   };
   const removeNewFile = (idx: number) => setNewFiles(prev => prev.filter((_, i) => i !== idx));
 
