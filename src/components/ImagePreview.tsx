@@ -253,9 +253,8 @@ function clampResist(val: number, low: number, high: number) {
 function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, onSwipeToPage }: { src: string; windowW: number; windowH: number; isActive: boolean; onZoomChange: (zooming: boolean) => void; onSwipeToPage: (dir: -1 | 1) => void }) {
   const [resetKey, setResetKey] = useState(0);
   const zoomedRef = useRef(false);
-  const lastOX = useRef(0);
-  const edgeFrames = useRef(0);   // consecutive frames stuck at edge
-  const edgeSwipeDone = useRef(false);
+  const reachedLeftEdge = useRef(false);
+  const reachedRightEdge = useRef(false);
 
   // Reset zoom when page becomes inactive: change key → remount → fresh 1x
   const prevActive = useRef(isActive);
@@ -284,37 +283,32 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
         const lw = e.nativeEvent.layoutMeasurement?.width ?? windowW;
         const maxX = Math.max(0, cw - lw);
 
-        // Edge-swipe detection: when zoomed and stuck at boundary
-        if (zoomedRef.current && !edgeSwipeDone.current) {
-          const atLeft = ox <= 1;
-          const atRight = maxX > 0 && ox >= maxX - 1;
-          if (atLeft || atRight) {
-            edgeFrames.current++;
-            if (edgeFrames.current >= 8 && atRight) {
-              edgeSwipeDone.current = true;
-              onSwipeToPage(1);  // at right edge → next page
-            } else if (edgeFrames.current >= 8 && atLeft) {
-              edgeSwipeDone.current = true;
-              onSwipeToPage(-1); // at left edge → previous page
-            }
-          } else {
-            edgeFrames.current = 0;
-          }
+        // Track if user reached an edge during this drag (for onScrollEndDrag)
+        if (zoomedRef.current && maxX > 0) {
+          if (ox <= 1) reachedLeftEdge.current = true;
+          if (ox >= maxX - 1) reachedRightEdge.current = true;
         }
-        lastOX.current = ox;
 
         // Zoom lock/unlock
         const zs = e.nativeEvent.zoomScale ?? 1;
         const isZoomed = zs > 1.01;
         if (isZoomed && !zoomedRef.current) {
           zoomedRef.current = true;
-          edgeSwipeDone.current = false;
-          edgeFrames.current = 0;
           onZoomChange(true);
         } else if (!isZoomed && zoomedRef.current) {
           zoomedRef.current = false;
           requestAnimationFrame(() => onZoomChange(false));
         }
+      }}
+      onScrollBeginDrag={() => {
+        reachedLeftEdge.current = false;
+        reachedRightEdge.current = false;
+      }}
+      onScrollEndDrag={() => {
+        if (reachedLeftEdge.current) onSwipeToPage(-1);
+        else if (reachedRightEdge.current) onSwipeToPage(1);
+        reachedLeftEdge.current = false;
+        reachedRightEdge.current = false;
       }}
     >
       <Image
