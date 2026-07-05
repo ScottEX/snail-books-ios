@@ -57,6 +57,7 @@ export default function ImagePreview({
   useEffect(() => {
     if (!visible) return;
     setIdx(initialIdx);
+    setScrollLocked(false);
     if (WINDOW_W > 0) {
       scrollRef.current?.scrollTo({ x: initialIdx * WINDOW_W, animated: false });
     }
@@ -127,6 +128,10 @@ export default function ImagePreview({
     scrollRef.current?.scrollTo({ x: nextIdx * WINDOW_W, animated: true });
   }, [idx, images.length, WINDOW_W]);
 
+  const handleZoomChange = useCallback((zooming: boolean) => {
+    setScrollLocked(zooming);
+  }, []);
+
   if (!visible || images.length === 0 || WINDOW_W === 0) return null;
 
   return (
@@ -189,6 +194,7 @@ export default function ImagePreview({
             }
           }}
           bounces={false}
+          scrollEnabled={!scrollLocked}
           style={styles.scrollView}
         >
           {images.map((src, i) => (
@@ -196,7 +202,7 @@ export default function ImagePreview({
               key={i}
               style={[styles.page, { width: WINDOW_W, transform: [{ scale: imageScale }] }]}
             >
-              <NativeZoomableImage src={src} windowW={WINDOW_W} windowH={WINDOW_H} isActive={i === idx} />
+              <NativeZoomableImage src={src} windowW={WINDOW_W} windowH={WINDOW_H} isActive={i === idx} onZoomChange={handleZoomChange} />
             </Animated.View>
           ))}
         </ScrollView>
@@ -244,7 +250,7 @@ function clampResist(val: number, low: number, high: number) {
 //  Pinch / zoomed: claims → handles zoom + pan
 // ═══════════════════════════════════════════════════════════════════════
 
-function NativeZoomableImage({ src, windowW, windowH, isActive }: { src: string; windowW: number; windowH: number; isActive: boolean }) {
+function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange }: { src: string; windowW: number; windowH: number; isActive: boolean; onZoomChange: (zooming: boolean) => void }) {
   const [scale, setScale] = useState(1);
   const scaleRef = useRef(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -272,6 +278,7 @@ function NativeZoomableImage({ src, windowW, windowH, isActive }: { src: string;
     onPanResponderGrant: (e) => {
       const ts = e.nativeEvent.touches ?? [];
       if (ts.length >= 2) {
+        onZoomChange(true);
         const dx = ts[0].pageX - ts[1].pageX;
         const dy = ts[0].pageY - ts[1].pageY;
         pinchBase.current = { dist: Math.hypot(dx, dy), scale: scaleRef.current };
@@ -303,19 +310,23 @@ function NativeZoomableImage({ src, windowW, windowH, isActive }: { src: string;
       if (now - lastTap.current < DOUBLE_TAP_MS && Math.abs(gs.dx) < 10 && Math.abs(gs.dy) < 10) {
         if (scaleRef.current > 1.01) {
           scaleRef.current = 1; setScale(1); setOffset({ x: 0, y: 0 });
+          onZoomChange(false);
         } else {
           scaleRef.current = DOUBLE_TAP_ZOOM; setScale(DOUBLE_TAP_ZOOM);
+          onZoomChange(true);
         }
         lastTap.current = 0;
         return;
       }
       lastTap.current = now;
       if (scaleRef.current <= 1.01) { scaleRef.current = 1; setScale(1); setOffset({ x: 0, y: 0 }); }
+      onZoomChange(false);
     },
     onPanResponderTerminate: () => {
       if (scaleRef.current <= 1.01) { scaleRef.current = 1; setScale(1); setOffset({ x: 0, y: 0 }); }
+      onZoomChange(false);
     },
-  }), [offset.x, offset.y]);
+  }), [offset.x, offset.y, onZoomChange]);
 
   return (
     <View style={{ width: windowW, height: '100%', alignItems: 'center', justifyContent: 'center' }} {...panResponder.panHandlers}>
