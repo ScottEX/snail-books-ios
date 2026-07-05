@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Animated } from 'react-native';
+import { BlurView } from 'expo-blur';
 import Svg, { Path } from 'react-native-svg';
 import { t, getLang } from '../i18n';
 import { api } from '../api/client';
@@ -9,6 +9,8 @@ import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import Toast from '../components/Toast';
 import DatePickerModal from '../components/DatePickerModal';
+import HistoryHeader from '../components/HistoryHeader';
+import DateErrorHint from '../components/DateErrorHint';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 
 interface Props { onBack: () => void }
@@ -25,19 +27,28 @@ const fmtDate = (d: string) => {
 
 export default function DailyRevenueHistory({ onBack }: Props) {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
   const sd = useServerDate();
   const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(colors), [colors]);
 
-  // Filter
+  // Filter state — aligned with ReconHistoryScreen pattern
   const [showFilter, setShowFilter] = useState(false);
-  const [dateFrom, setDateFrom] = useState(sd.offset(-30));
-  const [dateTo, setDateTo] = useState(sd.today);
-  const [appliedFrom, setAppliedFrom] = useState(dateFrom);
-  const [appliedTo, setAppliedTo] = useState(dateTo);
-  const [showFromPicker, setShowFromPicker] = useState(false);
-  const [showToPicker, setShowToPicker] = useState(false);
+  const [filterVisible, setFilterVisible] = useState(false);
+  const filterAnim = useRef(new Animated.Value(0)).current;
+
+  const openFilter = () => { setFilterVisible(true); setShowFilter(true); Animated.spring(filterAnim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 }).start(); };
+  const closeFilter = () => { Animated.timing(filterAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => { setFilterVisible(false); setShowFilter(false); }); };
+
+  const initFrom = sd.offset(-30);
+  const initTo = sd.today;
+  const [dateFrom, setDateFrom] = useState(initFrom);
+  const [dateTo, setDateTo] = useState(initTo);
+  const [appliedFrom, setAppliedFrom] = useState(initFrom);
+  const [appliedTo, setAppliedTo] = useState(initTo);
+  const [filterDateError, setFilterDateError] = useState(0);
+  const [datePickTarget, setDatePickTarget] = useState<'from' | 'to' | null>(null);
+
+  useEffect(() => { if (showFilter) setFilterDateError(0); }, [showFilter]);
 
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -65,75 +76,66 @@ export default function DailyRevenueHistory({ onBack }: Props) {
 
   const rangeInvalid = !!(dateFrom && dateTo && dateFrom > dateTo);
 
+  const resetFilters = () => {
+    const from = sd.offset(-30);
+    const to = sd.today;
+    setDateFrom(from); setDateTo(to);
+    setAppliedFrom(from); setAppliedTo(to);
+  };
+
+  const todayISO = sd.today;
+
   return (
     <View style={styles.root} {...swipeBack}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={styles.backBtn}>
-          <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.textMain} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <Path d="M15 18l-6-6 6-6" />
-          </Svg>
-        </TouchableOpacity>
-        <Text style={styles.title}>{t('revHistoryBtn')} ({total}/{totalAll})</Text>
-        <TouchableOpacity
-          style={[styles.filterBtn, showFilter && styles.filterBtnActive]}
-          onPress={() => setShowFilter(!showFilter)}
-          activeOpacity={0.7}
-        >
-          <Svg width={18} height={18} viewBox="0 0 24 24" fill="none"
-            stroke={showFilter ? colors.surface : colors.textMain} strokeWidth={2} strokeLinecap="round">
-            <Path d="M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.35-4.35" />
-          </Svg>
-        </TouchableOpacity>
-      </View>
+      <HistoryHeader
+        onBack={onBack}
+        title={`${t('revHistoryBtn')} (${total}/${totalAll})`}
+        filterActive={showFilter}
+        onToggleFilter={() => showFilter ? closeFilter() : openFilter()}
+      />
 
-      {/* Filter panel */}
-      {showFilter && (
-        <View style={styles.filterPanel}>
-          <View style={styles.filterField}>
-            <Text style={styles.filterLabel}>{t('revenueDate')}</Text>
-            <View style={styles.filterDateRange}>
-              <TouchableOpacity style={styles.filterDateWrap} onPress={() => setShowFromPicker(true)}>
-                <Text style={dateFrom ? styles.filterDateText : styles.filterDatePlaceholder}>
-                  {dateFrom ? fmtDate(dateFrom) : t('any')}
-                </Text>
+      {/* Filter panel — dark glass, aligned with ReconHistoryScreen */}
+      {filterVisible && (
+        <View style={{ position: 'absolute' as any, top: 100, left: 0, right: 0, bottom: 0, zIndex: 100 }}>
+          <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' }} activeOpacity={1} onPress={closeFilter} />
+          <Animated.View style={{ position: 'absolute', top: 0, left: 12, right: 12, borderRadius: 16, overflow: 'hidden', boxShadow: '0 8px 30px rgba(0,0,0,0.12)', transform: [{ translateY: filterAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0], extrapolate: 'clamp' }) }], opacity: filterAnim } as any}>
+            <BlurView intensity={45} tint="dark" style={{ padding: 16, borderRadius: 16 }}>
+            <DateErrorHint trigger={filterDateError} message={t('errDateFuture')} color={colors.danger} />
+            {rangeInvalid && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right', marginTop: 2 }}>{t('errDateRange')}</Text>}
+            <View style={styles.filterField}>
+              <Text style={styles.filterLabel}>{t('revenueDate')}</Text>
+              <View style={styles.filterDateRange}>
+                <TouchableOpacity style={styles.filterDateChip} onPress={() => setDatePickTarget('from')} activeOpacity={0.7}>
+                  <Text style={styles.filterDateText}>{dateFrom ? fmtDate(dateFrom) : t('any')}</Text>
+                </TouchableOpacity>
+                <Text style={{ color: '#FFFFFF' }}>→</Text>
+                <TouchableOpacity style={styles.filterDateChip} onPress={() => setDatePickTarget('to')} activeOpacity={0.7}>
+                  <Text style={styles.filterDateText}>{dateTo ? fmtDate(dateTo) : t('any')}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View style={styles.filterActions}>
+              <TouchableOpacity style={styles.filterResetBtn} onPress={resetFilters} activeOpacity={0.7}>
+                <Text style={styles.filterResetBtnText}>{t('reset')}</Text>
               </TouchableOpacity>
-              <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={colors.secondary} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <Path d="M9 18l6-6-6-6"/>
-              </Svg>
-              <TouchableOpacity style={styles.filterDateWrap} onPress={() => setShowToPicker(true)}>
-                <Text style={dateTo ? styles.filterDateText : styles.filterDatePlaceholder}>
-                  {dateTo ? fmtDate(dateTo) : t('any')}
+              <TouchableOpacity
+                style={[styles.filterApplyBtn, rangeInvalid && styles.filterApplyBtnDisabled]}
+                disabled={rangeInvalid}
+                onPress={() => { setAppliedFrom(dateFrom); setAppliedTo(dateTo); closeFilter(); }}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.filterApplyBtnText, rangeInvalid && styles.filterApplyBtnTextDisabled]}>
+                  {t('apply')}
                 </Text>
               </TouchableOpacity>
             </View>
-          </View>
-          {rangeInvalid && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right', marginTop: 4 }}>{t('errDateRange')}</Text>}
-          <View style={styles.filterActions}>
-            <TouchableOpacity style={styles.filterResetBtn} onPress={() => {
-              const from = sd.offset(-30);
-              const to = sd.today;
-              setDateFrom(from); setDateTo(to);
-              setAppliedFrom(from); setAppliedTo(to);
-              setShowFilter(false);
-            }} activeOpacity={0.7}>
-              <Text style={styles.filterResetBtnText}>{t('reset')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.filterApplyBtn, rangeInvalid && styles.filterApplyBtnDisabled]}
-              disabled={rangeInvalid}
-              onPress={() => {
-                setAppliedFrom(dateFrom);
-                setAppliedTo(dateTo);
-                setShowFilter(false);
-              }} activeOpacity={0.8}>
-              <Text style={[styles.filterApplyBtnText, rangeInvalid && styles.filterApplyBtnTextDisabled]}>{t('apply')}</Text>
-            </TouchableOpacity>
-          </View>
+            </BlurView>
+          </Animated.View>
         </View>
       )}
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: showFilter ? 150 : 0 }]}>
+      <ScrollView style={styles.list} showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: showFilter ? 266 : 112 }}>
         {loading ? (
           <View style={styles.empty}><ActivityIndicator color={colors.primary} /></View>
         ) : records.length === 0 ? (
@@ -186,21 +188,21 @@ export default function DailyRevenueHistory({ onBack }: Props) {
             </View>
           ))
         )}
+        <View style={{ height: 20 }} />
       </ScrollView>
 
+      {/* Date Picker — single instance, aligned with ReconHistoryScreen */}
       <DatePickerModal
-        visible={showFromPicker}
-        value={dateFrom}
-        onClose={() => setShowFromPicker(false)}
-        onSelect={(d) => { setDateFrom(d); setShowFromPicker(false); }}
-        title={t('startDate')}
-      />
-      <DatePickerModal
-        visible={showToPicker}
-        value={dateTo}
-        onClose={() => setShowToPicker(false)}
-        onSelect={(d) => { setDateTo(d); setShowToPicker(false); }}
-        title={t('endDate')}
+        visible={datePickTarget !== null}
+        value={datePickTarget === 'from' ? dateFrom : dateTo}
+        onClose={() => setDatePickTarget(null)}
+        onSelect={(d: string) => {
+          if (d > todayISO) { setFilterDateError(c => c + 1); return; }
+          if (datePickTarget === 'from') setDateFrom(d);
+          else setDateTo(d);
+          setDatePickTarget(null);
+        }}
+        title={datePickTarget === 'from' ? t('startDate') : t('endDate')}
       />
 
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
@@ -209,54 +211,8 @@ export default function DailyRevenueHistory({ onBack }: Props) {
 }
 
 const getStyles = (colors: ThemeColors) => StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
-  header: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12,
-    backgroundColor: withAlpha(colors.bg, 0.6),
-    borderBottomWidth: 1, borderBottomColor: withAlpha(colors.textSub, 0.1),
-  },
-  backBtn: { padding: 4 },
-  title: { fontSize: 16, fontWeight: '700', color: colors.textMain, flex: 1 },
-  filterBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: withAlpha(colors.textSub, 0.1),
-    alignItems: 'center', justifyContent: 'center',
-  },
-  filterBtnActive: { backgroundColor: colors.primary },
-  filterPanel: {
-    position: 'absolute', top: 56, left: 0, right: 0, zIndex: 10,
-    backgroundColor: colors.surface,
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: colors.secondary,
-    gap: 8,
-  },
-  filterField: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  filterLabel: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.textSub, width: 64 },
-  filterDateRange: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 },
-  filterDateWrap: {
-    flex: 1, height: 34,
-    backgroundColor: colors.bg, borderRadius: 6,
-    borderWidth: 1, borderColor: colors.secondary,
-    justifyContent: 'center', paddingHorizontal: 8,
-  },
-  filterDateText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.textSub },
-  filterDatePlaceholder: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.textSub, fontStyle: 'italic' },
-  filterActions: { flexDirection: 'row', gap: 8 },
-  filterResetBtn: {
-    flex: 1, alignItems: 'center', paddingVertical: 8,
-    backgroundColor: colors.secondary, borderRadius: 8,
-  },
-  filterResetBtnText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.textSub },
-  filterApplyBtn: {
-    flex: 1, alignItems: 'center', paddingVertical: 8,
-    backgroundColor: colors.primary, borderRadius: 8,
-  },
-  filterApplyBtnDisabled: { backgroundColor: colors.secondary },
-  filterApplyBtnText: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.surface },
-  filterApplyBtnTextDisabled: { color: colors.textSub },
-
-  content: { padding: 16, paddingBottom: 60 },
+  root: { flex: 1, backgroundColor: 'transparent' },
+  list: { flex: 1, paddingHorizontal: 12 },
   empty: { paddingVertical: 60, alignItems: 'center', gap: 12 },
   emptyText: { color: colors.textSub, fontSize: 14 },
 
@@ -297,4 +253,18 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   note: { fontSize: 12, color: colors.textSub, fontStyle: 'italic' },
   footer: { borderTopWidth: 0.5, borderTopColor: colors.secondary, paddingTop: 8 },
   footerText: { fontSize: FONTS.micro.size, color: colors.textSub },
-});
+
+  // Filter — dark glass, aligned with ReconHistoryScreen
+  filterField: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  filterLabel: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: '#FFFFFF', width: 64, flexShrink: 0 },
+  filterDateRange: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  filterDateChip: { flex: 1, height: 34, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 6, borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', paddingHorizontal: 8 },
+  filterDateText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: '#FFFFFF' },
+  filterActions: { flexDirection: 'row', gap: 8, paddingTop: 6 },
+  filterResetBtn: { flex: 1, height: 34, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.secondary },
+  filterResetBtnText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.textSub },
+  filterApplyBtn: { flex: 1, height: 34, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.primary },
+  filterApplyBtnText: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.surface },
+  filterApplyBtnDisabled: { backgroundColor: colors.secondary },
+  filterApplyBtnTextDisabled: { color: colors.surface },
+} as any);
