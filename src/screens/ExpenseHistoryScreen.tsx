@@ -99,6 +99,10 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
   }, [sd.ready, appliedFrom, appliedTo, sd.today, sd.offset]);
   const [datePickTarget, setDatePickTarget] = useState<'from' | 'to' | null>(null);
   const { preview, openPreview, closePreview } = useImagePreview();
+  const [failedImgs, setFailedImgs] = useState<Set<string>>(new Set());
+  const markImgFailed = useCallback((url: string) => {
+    setFailedImgs(prev => { if (prev.has(url)) return prev; const n = new Set(prev); n.add(url); return n; });
+  }, []);
 
   const toggleCat = (cat: string) => {
     setFilCats(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
@@ -207,20 +211,28 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
             <View style={{ flex: 1 }} />
           )}
         </View>
-        {/* Image thumbnails */}
-        {resolvedImgs.length > 0 && (
-          <View style={st.imgThumbs}>
-            {resolvedImgs.map((url: string, j: number) => (
-              <TouchableOpacity key={j} onPress={() => openPreview(previewImgsList.map((u: string) => resolveAssetUrl(u) || u), j)} activeOpacity={0.7} delayPressIn={80}>
-                <Image source={{ uri: url }} style={st.thumbImg} />
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+        {/* Image thumbnails — skip failed URLs */}
+        {(() => {
+          const validThumbs = resolvedImgs.filter(u => !failedImgs.has(u));
+          if (validThumbs.length === 0) return null;
+          const validPreviews = previewImgsList.map((u: string) => resolveAssetUrl(u) || u).filter(u => !failedImgs.has(u));
+          return (
+            <View style={st.imgThumbs}>
+              {validThumbs.map((url: string, j: number) => {
+                const pIdx = validPreviews.indexOf(url);
+                return (
+                  <TouchableOpacity key={j} onPress={() => openPreview(validPreviews, Math.max(0, pIdx))} activeOpacity={0.7} delayPressIn={80}>
+                    <Image source={{ uri: url }} style={st.thumbImg} onError={() => markImgFailed(url)} />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          );
+        })()}
       </View>
       </View>
     </TouchableOpacity>
-  ); }, [colors, st, onExpDetail, onInvoice, currentUser]);
+  ); }, [colors, st, onExpDetail, onInvoice, currentUser, failedImgs, markImgFailed, openPreview]);
 
   const CATEGORIES = ['daily', 'rent', 'salary', 'goods'];
 
