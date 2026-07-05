@@ -1184,7 +1184,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
             <View style={{ marginTop: 12 }}>
               <ReceiptUpload
-                existingImages={existingImageUrls}
+                existingImages={existingImageUrls.map(u => resolveAssetUrl(u) || u)}
                 newFiles={receipts}
                 onAdd={handleAddFiles}
                 onRemoveExisting={removeExistingImage}
@@ -1243,10 +1243,10 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
         animation="stagger"
         staggerCount={3}
         overlayStyle={{ justifyContent: 'center', padding: 0, alignItems: 'stretch' } as any}
-        contentStyle={{ alignItems: 'stretch' } as any}
+        contentStyle={{ alignItems: 'stretch' as const, flex: 1 } as any}
       >
         {(anims) => (
-          <View style={[styles.itemsModalCard, { width: '90%', maxWidth: 768 * 0.9, maxHeight: Dimensions.get('window').height * 0.6, alignSelf: 'center' } as any]}>
+          <View style={[styles.itemsModalCard, { width: '90%', maxWidth: 768 * 0.9, maxHeight: Dimensions.get('window').height * 0.6, alignSelf: 'center', flex: 1 } as any]}>
             <Animated.View style={{
               opacity: anims[0],
               transform: [{ translateY: anims[0].interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }]
