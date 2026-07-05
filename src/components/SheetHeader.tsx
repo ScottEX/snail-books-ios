@@ -17,7 +17,7 @@ interface SheetHeaderProps {
 
 export default function SheetHeader({ title, onClose, titleColor = '#FFFFFF', backgroundColor }: SheetHeaderProps) {
   return (
-    <View style={{ backgroundColor, paddingVertical: 14, paddingHorizontal: 20, flexDirection: 'column', alignItems: 'flex-start' }}>
+    <View style={{ backgroundColor, width: '100%' as const }}>
       {/* Drag handle */}
       <View style={{ width: 36, height: 4, backgroundColor: SHEET_HANDLE_COLOR, borderRadius: 2, alignSelf: 'center', marginBottom: 12 }} />
       {/* Title + Close */}
