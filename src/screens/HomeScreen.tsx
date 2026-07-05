@@ -1244,7 +1244,7 @@ function RevInputCard({ title, sub, symbol, value, onChangeText, yesterdayValue,
       </View>
       <Text style={styles.revInputCardFooter}>
         {t('revYesterdayLabel')}{' '}
-        {yesterdayValue ? `¥${toDec2(yesterdayValue)}` : t('revYesterdayNA')}
+        {yesterdayValue != null && yesterdayValue > 0 ? `¥${toDec2(yesterdayValue)}` : t('revYesterdayNA')}
       </Text>
     </View>
   );
