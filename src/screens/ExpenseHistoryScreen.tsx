@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, Image, StatusBar } from 'react-native';
 import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg';
+import { BlurView } from 'expo-blur';
 import { t, getLang } from '../i18n';
 import { api, resolveAssetUrl } from '../api/client';
 import { useServerDate } from '../hooks/useServerDate';
@@ -231,8 +232,10 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         onToggleFilter={() => setShowFilter(!showFilter)}
       />
 
-      {/* Filter panel — uses shared FilterPanel for consistent backdrop */}
-      <FilterPanel visible={showFilter} onClose={() => setShowFilter(false)}>
+      {/* Filter panel — shared FilterPanel for backdrop, BlurView inside for iOS frosted look */}
+      <FilterPanel visible={showFilter} onClose={() => setShowFilter(false)} style={{ backgroundColor: 'transparent', borderWidth: 0 }}>
+        <BlurView intensity={45} tint="dark" style={{ borderRadius: 10, overflow: 'hidden' }}>
+          <View style={{ padding: 12, gap: 8 }}>
         {rangeInvalid && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right' }}>{t('errDateRange')}</Text>}
         {rangeTooLong && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right' }}>{t('errDateRangeTooLong')}</Text>}
         <View style={st.filterField}>
@@ -241,7 +244,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
             <TouchableOpacity style={st.filterDateChip} onPress={() => setDatePickTarget('from')} activeOpacity={0.7}>
               <Text style={st.filterDateText}>{filDateFrom ? fmtDate(filDateFrom) : t('any')}</Text>
             </TouchableOpacity>
-            <Text style={{ color: colors.textSub }}>→</Text>
+            <Text style={{ color: '#FFFFFF' }}>→</Text>
             <TouchableOpacity style={st.filterDateChip} onPress={() => setDatePickTarget('to')} activeOpacity={0.7}>
               <Text style={st.filterDateText}>{filDateTo ? fmtDate(filDateTo) : t('any')}</Text>
             </TouchableOpacity>
@@ -306,6 +309,8 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
             <Text style={[st.filterApplyBtnText, (rangeInvalid || rangeTooLong) && st.filterApplyBtnTextDisabled]}>{t('apply')}</Text>
           </TouchableOpacity>
         </View>
+          </View>
+        </BlurView>
       </FilterPanel>
 
       {/* Date picker modal */}
@@ -397,24 +402,24 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   loadingMoreText: { fontSize: FONTS.sub.size, color: colors.primary },
   /* Filter */
   filterField: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  filterLabel: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.textSub, width: 64, flexShrink: 0 },
+  filterLabel: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: '#FFFFFF', width: 64, flexShrink: 0 },
   filterDateRange: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
   filterDateChip: {
-    flex: 1, height: 34, backgroundColor: colors.bg, borderRadius: 6,
-    borderWidth: 0.5, borderColor: colors.secondary,
+    flex: 1, height: 34, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 6,
+    borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.12)',
     justifyContent: 'center', paddingHorizontal: 8,
   },
-  filterDateText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.textMain },
+  filterDateText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: '#FFFFFF' },
   filterChipRow: { flex: 1, flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  filterChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: colors.bg },
+  filterChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.04)' },
   filterChipActive: { backgroundColor: colors.primary },
-  filterChipText: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.textSub },
-  filterChipTextActive: { color: colors.surface },
+  filterChipText: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: 'rgba(255,255,255,0.55)' },
+  filterChipTextActive: { color: '#FFFFFF' },
   filterActions: { flexDirection: 'row', gap: 8, marginTop: 4 },
   filterResetBtn: { flex: 1, height: 34, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.secondary },
   filterResetBtnText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.textSub },
   filterApplyBtn: { flex: 1, height: 34, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.primary },
   filterApplyBtnDisabled: { opacity: 0.3 },
   filterApplyBtnText: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.surface },
-  filterApplyBtnTextDisabled: { color: withAlpha(colors.surface, 0.3) },
+  filterApplyBtnTextDisabled: { color: 'rgba(255,255,255,0.3)' },
 });
