@@ -31,7 +31,6 @@ import DateErrorHint from '../components/DateErrorHint';
 
 /* ── helpers ── */
 // Date helpers replaced by useServerDate() hook (server time, not client)
-const fmtInt = (n: number) => n.toLocaleString();
 const fmtLocalDate = (s: string) => {
   const [y, m, d] = s.split('-');
   const l = getLang();
@@ -68,40 +67,8 @@ const fmtRefundInput = (v: string, refund: boolean) => {
 };
 
 /* ═══════════════════════════════════════════════════════════
-   NumberTicker — 数字从 0 平滑滚动到目标值
+   NumberTicker — moved to src/components/NumberTicker.tsx (imported as NumberTickerExt)
    ═══════════════════════════════════════════════════════════ */
-function NumberTicker({ value, duration = 500, style }: {
-  value: number; duration?: number; style?: any;
-}) {
-  const [display, setDisplay] = useState(value);
-  const prevRef = useRef(value);
-  const rafRef = useRef<number>(0);
-
-  useEffect(() => {
-    const from = prevRef.current;
-    prevRef.current = value;
-    const start = performance.now();
-
-    const tick = (now: number) => {
-      const p = Math.min((now - start) / duration, 1);
-      // ease-out cubic
-      const eased = 1 - Math.pow(1 - p, 3);
-      setDisplay(from + (value - from) * eased);
-      if (p < 1) rafRef.current = requestAnimationFrame(tick);
-    };
-
-    cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [value, duration]);
-
-  // Pick formatter: if value has decimals use fmt, else fmtInt + ¥
-  const text = value !== 0 && Number.isInteger(value) && Number.isInteger(display)
-    ? '¥' + fmtInt(Math.round(display))
-    : fmt(display);
-
-  return <Text style={style}>{text}</Text>;
-}
 
 /* ═══════════════════════════════════════════════════════════
    FadeInView — 卡片平滑淡入提升 (300ms)
