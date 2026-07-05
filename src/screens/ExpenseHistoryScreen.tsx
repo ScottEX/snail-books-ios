@@ -98,7 +98,6 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
   const [datePickTarget, setDatePickTarget] = useState<'from' | 'to' | null>(null);
   const { preview, openPreview, closePreview } = useImagePreview();
   const scrollingRef = useRef(false);
-  const touchStartRef = useRef({ x: 0, y: 0 });
 
   const handleThumbPress = useCallback((imgs: string[], idx: number) => {
     if (scrollingRef.current) return;
@@ -214,15 +213,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         </View>
         {/* Image thumbnails */}
         {resolvedImgs.length > 0 && (
-          <View
-            style={st.imgThumbs}
-            onTouchStart={(e) => { touchStartRef.current = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY }; }}
-            onTouchMove={(e) => {
-              const dx = Math.abs(e.nativeEvent.pageX - touchStartRef.current.x);
-              const dy = Math.abs(e.nativeEvent.pageY - touchStartRef.current.y);
-              if (dx > 5 || dy > 5) scrollingRef.current = true;
-            }}
-            onTouchEnd={() => { setTimeout(() => { scrollingRef.current = false; }, 100); }}>
+          <View style={st.imgThumbs}>
             {resolvedImgs.map((url: string, j: number) => (
               <TouchableOpacity key={j} onPress={() => handleThumbPress(previewImgsList.map((u: string) => resolveAssetUrl(u) || u), j)} activeOpacity={0.8}>
                 <Image source={{ uri: url }} style={st.thumbImg} />
@@ -350,6 +341,9 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         renderItem={renderItem}
         onEndReached={loadMore}
         onEndReachedThreshold={0.4}
+        onScrollBeginDrag={() => { scrollingRef.current = true; }}
+        onScrollEndDrag={() => { scrollingRef.current = false; }}
+        onMomentumScrollEnd={() => { scrollingRef.current = false; }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: showFilter ? 302 : 112, paddingHorizontal: 12, paddingBottom: 100 }}
         ListEmptyComponent={!loading ? (
