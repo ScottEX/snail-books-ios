@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path, Circle } from 'react-native-svg';
+import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
 import { t, getLang, langs, useLang } from '../i18n';
 import { api, resolveAssetUrl } from '../api/client';
@@ -460,10 +460,16 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
 
   // ── Date label formatter (localized) ──
   const fmtDateLabel = (s: string) => {
-    const l = getLang();
+    if (!s) return '';
     const [y, m, d] = s.split('-');
-    if (l === 'zh-TW') return `${y}年${m}月${d}日`;
-    return `${y}年${m}月${d}日`;
+    const l = getLang();
+    if (l === 'en') {
+      const months = ['January','February','March','April','May','June',
+                      'July','August','September','October','November','December'];
+      return `${months[+m - 1]} ${+d}, ${y}`;
+    }
+    // zh / zh-TW / default
+    return `${y}年${+m}月${+d}日`;
   };
 
   return (
@@ -1038,10 +1044,18 @@ function DailyRevenueView(p: DailyRevProps) {
             </View>
             <TouchableOpacity
               onPress={() => p.setShowDatePicker(true)}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 1 }}
             >
-              <Text style={styles.dateLabel}>{p.fmtDateLabel(p.revDate)}</Text>
-              <Text style={{ fontSize: 14 }}>📅</Text>
+              <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={1.5}>
+                <Rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <Line x1="16" y1="2" x2="16" y2="6"/>
+                <Line x1="8" y1="2" x2="8" y2="6"/>
+                <Line x1="3" y1="10" x2="21" y2="10"/>
+              </Svg>
+              <Text style={[styles.dateLabel, { color: colors.primary }]}>{p.fmtDateLabel(p.revDate)}</Text>
+              <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                <Path d="M8 5l8 7-8 7" />
+              </Svg>
             </TouchableOpacity>
             <DateErrorHint trigger={p.revDateErr} message={t('errDateFuture')} color={colors.danger} textAlign="left" />
           </View>
