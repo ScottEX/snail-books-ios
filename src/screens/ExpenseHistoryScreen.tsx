@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, Animated, Image, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, Image, StatusBar } from 'react-native';
 import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg';
-import { BlurView } from 'expo-blur';
 import { t, getLang } from '../i18n';
 import { api, resolveAssetUrl } from '../api/client';
 import { useServerDate } from '../hooks/useServerDate';
@@ -12,13 +11,14 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../hooks/useToast';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import DatePickerModal from '../components/DatePickerModal';
 import HistoryHeader from '../components/HistoryHeader';
 import { parseImages } from '../utils/parseImages';
 import ImagePreview from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
 import { useSwipeBack } from '../hooks/useSwipeBack';
+import FilterPanel from '../components/FilterPanel';
 
 /* ── Helpers ── */
 const fmtDate = (d: string) => { if (!d) return ''; const [y, m, day] = d.split('-'); const l = getLang(); if (l.startsWith('en')) { const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return `${months[+m-1]} ${+day}, ${y}`; } return `${y}年${m}月${day}日`; };
@@ -75,12 +75,6 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
   const { showToast, ToastHost } = useToast();
 
   const [showFilter, setShowFilter] = useState(false);
-  const [filterVisible, setFilterVisible] = useState(false);
-  const filterAnim = useRef(new Animated.Value(0)).current;
-  const thumbTapRef = useRef(false);
-
-  const openFilter = () => { setFilterVisible(true); setShowFilter(true); Animated.spring(filterAnim, { toValue: 1, useNativeDriver: true, tension: 300, friction: 24 }).start(); };
-  const closeFilter = () => { Animated.timing(filterAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => { setFilterVisible(false); setShowFilter(false); }); };
 
   const [filDateFrom, setFilDateFrom] = useState(sd.offset ? sd.offset(-30) : '');
   const [filDateTo, setFilDateTo] = useState(sd.today || '');
@@ -214,7 +208,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         {resolvedImgs.length > 0 && (
           <View style={st.imgThumbs}>
             {resolvedImgs.map((url: string, j: number) => (
-              <TouchableOpacity key={j} onPress={() => { thumbTapRef.current = true; openPreview(previewImgsList.map((u: string) => resolveAssetUrl(u) || u), j); }} activeOpacity={0.8}>
+              <TouchableOpacity key={j} onPress={() => { openPreview(previewImgsList.map((u: string) => resolveAssetUrl(u) || u), j); }} activeOpacity={0.8}>
                 <Image source={{ uri: url }} style={st.thumbImg} />
               </TouchableOpacity>
             ))}
@@ -234,82 +228,85 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         onBack={onBack}
         title={`${t('expenseHistory')} (${total}/${totalAll})`}
         filterActive={showFilter}
-        onToggleFilter={() => showFilter ? closeFilter() : openFilter()}
+        onToggleFilter={() => setShowFilter(!showFilter)}
       />
 
-      {/* Filter panel */}
-      {filterVisible && (
-        <View style={{ position: 'absolute' as any, top: 100, left: 0, right: 0, bottom: 0, zIndex: 100 }}>
-          <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' }} activeOpacity={1} onPress={closeFilter} />
-          <Animated.View style={{ position: 'absolute', top: 0, left: 12, right: 12, borderRadius: 16, overflow: 'hidden', transform: [{ translateY: filterAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0], extrapolate: 'clamp' }) }], opacity: filterAnim } as any}>
-            <BlurView intensity={45} tint="dark" style={{ padding: 16, borderRadius: 16 }}>
-              <View style={st.filterField}>
-                <Text style={st.filterLabel}>{t('expenseDate')}</Text>
-                <View style={st.filterDateRange}>
-                  <TouchableOpacity style={st.filterDateChip} onPress={() => setDatePickTarget('from')} activeOpacity={0.7}>
-                    <Text style={st.filterDateText}>{filDateFrom ? fmtDate(filDateFrom) : t('any')}</Text>
-                  </TouchableOpacity>
-                  <Text style={{ color: '#FFFFFF' }}>→</Text>
-                  <TouchableOpacity style={st.filterDateChip} onPress={() => setDatePickTarget('to')} activeOpacity={0.7}>
-                    <Text style={st.filterDateText}>{filDateTo ? fmtDate(filDateTo) : t('any')}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-              {rangeInvalid && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right', marginTop: 4 }}>{t('errDateRange')}</Text>}
-              {rangeTooLong && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right', marginTop: 4 }}>{t('errDateRangeTooLong')}</Text>}
-              {/* Quick date buttons — matches web */}
-              <View style={st.filterField}>
-                <Text style={st.filterLabel}>　</Text>
-                <View style={st.filterChipRow}>
-                  {[
-                    { label: t('today'), date: sd.today },
-                    { label: t('yesterday'), date: sd.offset ? sd.offset(-1) : '' },
-                    { label: t('dayBeforeYesterday'), date: sd.offset ? sd.offset(-2) : '' },
-                  ].map(q => {
-                    const active = filDateFrom === q.date && filDateTo === q.date;
-                    return (
-                      <TouchableOpacity key={q.label}
-                        style={[st.filterChip, active && st.filterChipActive]}
-                        onPress={() => { if (q.date) { setFilDateFrom(q.date); setFilDateTo(q.date); } }} activeOpacity={0.7}>
-                        <Text style={[st.filterChipText, active && st.filterChipTextActive]}>{q.label}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-              <View style={st.filterField}>
-                <Text style={st.filterLabel}>{t('filterCategory')}</Text>
-                <View style={st.filterChipRow}>
-                  {CATEGORIES.map(cat => {
-                    const active = filCats.includes(cat);
-                    return (
-                      <TouchableOpacity key={cat} style={[st.filterChip, active && st.filterChipActive]} onPress={() => toggleCat(cat)} activeOpacity={0.7}>
-                        <Text style={[st.filterChipText, active && st.filterChipTextActive]}>{localeCat(cat)}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-              <View style={st.filterActions}>
-                <TouchableOpacity style={st.filterResetBtn} onPress={resetFilters} activeOpacity={0.7}>
-                  <Text style={st.filterResetBtnText}>{t('reset')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[st.filterApplyBtn, (rangeInvalid || rangeTooLong) && st.filterApplyBtnDisabled]}
-                  disabled={rangeInvalid || rangeTooLong}
-                  onPress={() => {
-                    setAppliedFrom(filDateFrom);
-                    setAppliedTo(filDateTo);
-                    setAppliedCats(filCats.join(','));
-                    closeFilter();
-                  }} activeOpacity={0.8}>
-                  <Text style={[st.filterApplyBtnText, (rangeInvalid || rangeTooLong) && st.filterApplyBtnTextDisabled]}>{t('apply')}</Text>
-                </TouchableOpacity>
-              </View>
-            </BlurView>
-          </Animated.View>
+      {/* Filter panel — uses shared FilterPanel for consistent backdrop */}
+      <FilterPanel visible={showFilter} onClose={() => setShowFilter(false)}>
+        {rangeInvalid && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right' }}>{t('errDateRange')}</Text>}
+        {rangeTooLong && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right' }}>{t('errDateRangeTooLong')}</Text>}
+        <View style={st.filterField}>
+          <Text style={st.filterLabel}>{t('expenseDate')}</Text>
+          <View style={st.filterDateRange}>
+            <TouchableOpacity style={st.filterDateChip} onPress={() => setDatePickTarget('from')} activeOpacity={0.7}>
+              <Text style={st.filterDateText}>{filDateFrom ? fmtDate(filDateFrom) : t('any')}</Text>
+            </TouchableOpacity>
+            <Text style={{ color: colors.textSub }}>→</Text>
+            <TouchableOpacity style={st.filterDateChip} onPress={() => setDatePickTarget('to')} activeOpacity={0.7}>
+              <Text style={st.filterDateText}>{filDateTo ? fmtDate(filDateTo) : t('any')}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      )}
+        {/* Quick date buttons — 3-language adapted */}
+        <View style={st.filterField}>
+          <Text style={st.filterLabel}>　</Text>
+          <View style={st.filterChipRow}>
+            {(() => {
+              const l = getLang();
+              const isEn = l.startsWith('en');
+              const labels = isEn
+                ? ['Today', 'Yest.', '2d ago', '3d ago']
+                : (l.startsWith('zh-Hant') || l.startsWith('zh-TW'))
+                  ? ['今天', '昨天', '前天', '大前天']
+                  : ['今天', '昨天', '前天', '大前天'];
+              return [
+                { label: labels[0], date: sd.today },
+                { label: labels[1], date: sd.offset ? sd.offset(-1) : '' },
+                { label: labels[2], date: sd.offset ? sd.offset(-2) : '' },
+                { label: labels[3], date: sd.offset ? sd.offset(-3) : '' },
+              ].map(q => {
+                const active = filDateFrom === q.date && filDateTo === q.date;
+                return (
+                  <TouchableOpacity key={q.label}
+                    style={[st.filterChip, active && st.filterChipActive]}
+                    onPress={() => { if (q.date) { setFilDateFrom(q.date); setFilDateTo(q.date); } }} activeOpacity={0.7}>
+                    <Text style={[st.filterChipText, active && st.filterChipTextActive]}>{q.label}</Text>
+                  </TouchableOpacity>
+                );
+              });
+            })()}
+          </View>
+        </View>
+        <View style={st.filterField}>
+          <Text style={st.filterLabel}>{t('filterCategory')}</Text>
+          <View style={st.filterChipRow}>
+            {CATEGORIES.map(cat => {
+              const active = filCats.includes(cat);
+              return (
+                <TouchableOpacity key={cat} style={[st.filterChip, active && st.filterChipActive]} onPress={() => toggleCat(cat)} activeOpacity={0.7}>
+                  <Text style={[st.filterChipText, active && st.filterChipTextActive]}>{localeCat(cat)}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+        <View style={st.filterActions}>
+          <TouchableOpacity style={st.filterResetBtn} onPress={resetFilters} activeOpacity={0.7}>
+            <Text style={st.filterResetBtnText}>{t('reset')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[st.filterApplyBtn, (rangeInvalid || rangeTooLong) && st.filterApplyBtnDisabled]}
+            disabled={rangeInvalid || rangeTooLong}
+            onPress={() => {
+              setAppliedFrom(filDateFrom);
+              setAppliedTo(filDateTo);
+              setAppliedCats(filCats.join(','));
+              setShowFilter(false);
+            }} activeOpacity={0.8}>
+            <Text style={[st.filterApplyBtnText, (rangeInvalid || rangeTooLong) && st.filterApplyBtnTextDisabled]}>{t('apply')}</Text>
+          </TouchableOpacity>
+        </View>
+      </FilterPanel>
 
       {/* Date picker modal */}
       <DatePickerModal
@@ -400,24 +397,24 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   loadingMoreText: { fontSize: FONTS.sub.size, color: colors.primary },
   /* Filter */
   filterField: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  filterLabel: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: '#FFFFFF', width: 64, flexShrink: 0 },
+  filterLabel: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.textSub, width: 64, flexShrink: 0 },
   filterDateRange: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
   filterDateChip: {
-    flex: 1, height: 34, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 6,
-    borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.12)',
+    flex: 1, height: 34, backgroundColor: colors.bg, borderRadius: 6,
+    borderWidth: 0.5, borderColor: colors.secondary,
     justifyContent: 'center', paddingHorizontal: 8,
   },
-  filterDateText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: '#FFFFFF' },
+  filterDateText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.textMain },
   filterChipRow: { flex: 1, flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  filterChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.04)' },
+  filterChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: colors.bg },
   filterChipActive: { backgroundColor: colors.primary },
-  filterChipText: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: 'rgba(255,255,255,0.55)' },
-  filterChipTextActive: { color: '#FFFFFF' },
+  filterChipText: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.textSub },
+  filterChipTextActive: { color: colors.surface },
   filterActions: { flexDirection: 'row', gap: 8, marginTop: 4 },
   filterResetBtn: { flex: 1, height: 34, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.secondary },
   filterResetBtnText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.textSub },
   filterApplyBtn: { flex: 1, height: 34, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.primary },
   filterApplyBtnDisabled: { opacity: 0.3 },
   filterApplyBtnText: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.surface },
-  filterApplyBtnTextDisabled: { color: 'rgba(255,255,255,0.3)' },
+  filterApplyBtnTextDisabled: { color: withAlpha(colors.surface, 0.3) },
 });
