@@ -90,7 +90,6 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showSavedConfirm, setShowSavedConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState('');
   const { showToast, ToastHost } = useToast();
   const { preview, openPreview, closePreview } = useImagePreview();
@@ -164,8 +163,8 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
       setThumbImages(finalThumbs);
       setNewFiles([]);
       setEditMode(false);
-      setShowSavedConfirm(true);
       onSaved?.();
+      onBack();
     } catch (e: any) {
       showToast(e?.message || t('errNetworkError'));
     } finally {
@@ -468,15 +467,6 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
         loading={deleting}
         onConfirm={handleDelete}
         onCancel={() => { setShowDeleteConfirm(false); setDeleteError(''); }} />
-
-      {/* Save success — shared ConfirmModal */}
-      <ConfirmModal visible={showSavedConfirm}
-        title={t('expUpdated')}
-        message={t('expSavedMsg')}
-        confirmLabel={t('backToList') || t('confirm')}
-        cancelLabel={t('stayPage')}
-        onConfirm={() => { setShowSavedConfirm(false); onBack(); }}
-        onCancel={() => setShowSavedConfirm(false)} />
 
       {/* Image preview */}
       <ImagePreview
