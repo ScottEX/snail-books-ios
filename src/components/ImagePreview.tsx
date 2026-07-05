@@ -70,7 +70,7 @@ export default function ImagePreview({
     Animated.parallel([
       Animated.timing(overlayOpacity, { toValue: 0, duration: CLOSE_DURATION, useNativeDriver: false }),
       Animated.spring(imageScale, { ...SPRING, toValue: 0.92, useNativeDriver: false }),
-    ]).start(() => onClose());
+    ]).start(() => { onClose(); setDismissing(false); });
   }, [dismissing, overlayOpacity, imageScale, onClose]);
 
   // ── PanResponder — vertical dismiss (native ScrollViews handle paging+zoom) ──
@@ -108,7 +108,7 @@ export default function ImagePreview({
           Animated.timing(overlayOpacity, { toValue: 0, duration: CLOSE_DURATION, useNativeDriver: false }),
           Animated.timing(panY, { toValue: WINDOW_H * 0.5, duration: CLOSE_DURATION, useNativeDriver: false }),
           Animated.spring(imageScale, { ...SPRING, toValue: 0.92, useNativeDriver: false }),
-        ]).start(() => onClose());
+        ]).start(() => { onClose(); setDismissing(false); });
       } else {
         Animated.parallel([
           Animated.timing(panY, { toValue: 0, duration: SNAP_DURATION, useNativeDriver: false }),

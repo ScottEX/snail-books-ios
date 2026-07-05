@@ -10,7 +10,16 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.lanx.snailbooks",
       "infoPlist": {
-        "NSFaceIDUsageDescription": "用于使用 Face ID 快速登录柳味探秘"
+        "NSFaceIDUsageDescription": "用于使用 Face ID 快速登录柳味探秘",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false,
+          "NSAllowsLocalNetworking": true,
+          "NSExceptionDomains": {
+            "8.135.58.90": {
+              "NSExceptionAllowsInsecureHTTPLoads": true
+            }
+          }
+        }
       }
     },
     "android": {
@@ -30,7 +39,8 @@
     "plugins": [
       "expo-asset",
       "expo-localization",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "./plugins/withTunnelConfig"
     ]
   }
 }
