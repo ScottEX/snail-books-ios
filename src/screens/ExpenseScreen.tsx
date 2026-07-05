@@ -364,7 +364,9 @@ export default function ExpenseScreen({
 
   const [feeData, setFeeData] = useState<any>(null);        // current month
   const [allFees, setAllFees] = useState<any[]>([]);         // all months for detail
-  const [feeMonth, setFeeMonth] = useState<'all' | { year: number; month: number }>({ year: thisYear, month: thisMonth });
+  const [feeMonth, setFeeMonth] = useState<'all' | { year: number; month: number }>('all');
+  const feeMonthInited = useRef(false);
+  useEffect(() => { if (sd.ready && !feeMonthInited.current) { feeMonthInited.current = true; setFeeMonth({ year: sd.year, month: sd.month }); } }, [sd.ready, sd.year, sd.month]);
   const [showFeeSheet, setShowFeeSheet] = useState(false);
   const [keyboardH, setKeyboardH] = useState(0);
   useEffect(() => {
