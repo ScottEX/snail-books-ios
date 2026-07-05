@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { FONTS } from '../theme';
-import NativeImagePager from './NativeImagePager';
 
 const SPRING = { friction: 8, tension: 60 };
 const DISMISS_THRESHOLD = 80;
@@ -45,8 +44,6 @@ export default function ImagePreview({
   useEffect(() => {
     if (!visible) return;
     setDismissing(false);
-    setScrollLocked(false);
-    zoomActiveRef.current = false;
     overlayOpacity.setValue(0);
     imageScale.setValue(0.92);
     panY.setValue(0);
@@ -75,15 +72,14 @@ export default function ImagePreview({
     ]).start(() => onClose());
   }, [dismissing, overlayOpacity, imageScale, onClose]);
 
-  // ── Pinch-zoom guard: suppress overlay PanResponder while zooming ──
+  // ── PanResponder — vertical dismiss (native ScrollViews handle paging+zoom) ──
   const zoomActiveRef = useRef(false);
   const [scrollLocked, setScrollLocked] = useState(false);
 
-  // ── PanResponder — vertical dismiss (disabled during pinch-zoom) ──
   const panResponder = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => !dismissing && !zoomActiveRef.current,
+    onStartShouldSetPanResponder: () => false,
     onMoveShouldSetPanResponder: (_, gs) =>
-      !dismissing && !zoomActiveRef.current && Math.abs(gs.dy) > Math.abs(gs.dx) * 1.5 && Math.abs(gs.dy) > 20,
+      !dismissing && Math.abs(gs.dy) > Math.abs(gs.dx) * 1.5 && Math.abs(gs.dy) > 20,
 
     onPanResponderGrant: () => {
       panY.stopAnimation();
@@ -179,11 +175,44 @@ export default function ImagePreview({
           ))}
         </ScrollView>
       ) : (
-        <NativeImagePager
-          images={images}
-          initialIdx={idx}
-          onIndexChange={setIdx}
-        />
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          directionalLockEnabled
+          showsHorizontalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={(e) => {
+            const page = Math.round(e.nativeEvent.contentOffset.x / WINDOW_W);
+            if (page >= 0 && page < images.length && page !== idx) {
+              setIdx(page);
+            }
+          }}
+          bounces={false}
+          style={styles.scrollView}
+        >
+          {images.map((src, i) => (
+            <Animated.View
+              key={i}
+              style={[styles.page, { width: WINDOW_W, transform: [{ scale: imageScale }] }]}
+            >
+              <ScrollView
+                maximumZoomScale={4}
+                minimumZoomScale={1}
+                bouncesZoom={false}
+                centerContent
+                showsVerticalScrollIndicator={false}
+                showsHorizontalScrollIndicator={false}
+              >
+                <Image
+                  source={{ uri: src }}
+                  style={{ width: WINDOW_W, height: WINDOW_H * 0.9 }}
+                  resizeMode="contain"
+                />
+              </ScrollView>
+            </Animated.View>
+          ))}
+        </ScrollView>
       )}
 
       {/* Counter — dots */}
