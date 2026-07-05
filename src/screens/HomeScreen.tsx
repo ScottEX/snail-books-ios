@@ -1409,7 +1409,7 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   revInputCardInput: { flex: 1, fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.textMain, padding: 0 },
   revInputCardFooter: { fontSize: FONTS.micro.size, color: colors.textSub },
   revNoteInput: { backgroundColor: colors.surface, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: FONTS.sub.size, color: colors.textSub, marginBottom: 14, borderWidth: 1, borderColor: colors.secondary },
-  revArchiveBtn: { backgroundColor: withAlpha(colors.textMain, 0.08), borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+  revArchiveBtn: { backgroundColor: colors.secondary, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   revArchiveBtnDone: { backgroundColor: withAlpha(colors.primary, 0.1) },
   revArchiveText: { fontSize: FONTS.subBold.size, color: colors.textSub, fontWeight: FONTS.subBold.weight },
   revArchiveTextDone: { color: colors.primary },
