@@ -1,6 +1,7 @@
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
+import LoadingSpinner from './LoadingSpinner';
 
 interface ButtonPairProps {
   leftLabel: string;
@@ -41,7 +42,7 @@ export default function ButtonPair({
         activeOpacity={0.8}
       >
         {rightLoading ? (
-          <ActivityIndicator size="small" color="#fff" />
+          <LoadingSpinner label={false} size={20} color="#fff" />
         ) : (
           <Text style={st.rightText}>{rightLabel}</Text>
         )}
