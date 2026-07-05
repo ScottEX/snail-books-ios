@@ -1,43 +1,48 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity,
-  FlatList, Image, ActivityIndicator, StyleSheet, Animated, PanResponder
+  View, Text, TextInput, ScrollView, TouchableOpacity,
+  FlatList, Image, ActivityIndicator, StyleSheet, Animated, Dimensions
 } from 'react-native';
-import AppTextInput from '../components/AppTextInput';
-import Svg, { Path, Rect, Circle, Text as SvgText } from 'react-native-svg';
-import { t, getLang } from '../i18n';
+import Svg, { Path, Circle, Line, Text as SvgText } from 'react-native-svg';
+import { t } from '../i18n';
+import { trPayment, payKey } from '../i18nHelpers';
 import { api } from '../api/client';
-import { useTheme, withAlpha, ThemeColors } from '../theme';
-import { FONTS } from '../theme';
-import { modalCardAnimation, modalClose, uploadReceiptStyles } from '../sharedStyles';
-import Toast from '../components/Toast';
-import DatePickerModal from '../components/DatePickerModal';
-import ReceiptUpload from '../components/ReceiptUpload';
-import type { PickedImage } from '../utils/imagePicker';
-import ConfirmModal from '../components/ConfirmModal';
+import { useTheme, withAlpha, ThemeColors, FONTS } from '../theme';
+import { bottomSheetOverlay } from '../sharedStyles';
+import SheetHeader from '../components/SheetHeader';
+import { usePaginatedList } from '../hooks/usePaginatedList';
 import { useServerDate } from '../hooks/useServerDate';
+import ConfirmModal from "../components/ConfirmModal";
+import EmptyState from "../components/EmptyState";
+import TextField from '../components/TextField';
+import ButtonPair from '../components/ButtonPair';
+import SubmitButton from '../components/SubmitButton';
+import { useToast } from '../hooks/useToast';
+import ModalOverlay from '../components/ModalOverlay';
+import CloseButton from '../components/CloseButton';
+import { formatDate } from '../utils/format';
+import DatePicker from '../components/DatePicker';
+import TrashIcon from '../components/icons/TrashIcon';
+import ReceiptUpload from '../components/ReceiptUpload';
+import PaymentMethodChips from '../components/PaymentMethodChips';
+import ExpenseNoteInput from '../components/ExpenseNoteInput';
+import PlusIcon from '../components/icons/PlusIcon';
+import { fmtDecInput } from '../utils/numbers';
+import type { PickedImage } from '../utils/imagePicker';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 type SubTab = 'new' | 'history' | 'products';
-type PayMethod = '现金' | '微信' | '支付宝';
+type PayMethod = 'payCash' | 'payWechat' | 'payAlipay';
 
 interface Product { id: number; name: string; spec: string; price: number; supplier: string; note?: string; }
 interface CartItem { product: Product; quantity: number; subtotal: number; }
 interface BatchRecord { id: number; batch_number: number; date: string; payment_method: string; category: string; total: number; images: string[]; thumb_images?: string[]; note: string; items: any[]; settled_at?: string | null; settled_by?: number | null; settled_by_username?: string | null; invoice_status?: string | null; }
 interface ProcStats { total_spent: number; total_income: number; batch_count: number; margin_pct: number; }
 
-import { parseImages } from '../utils/parseImages';
-// SVG Icons
 // ═══════════════════════════════════════════════
-// Stamp seal — procurement settle state (mirrors invoice 已作废 style)
-function IcnSealProc({ color, label }: { color: string; label: string }) {
-  return (
-    <Svg width={48} height={48} viewBox="0 0 48 48">
-      <Circle cx={24} cy={24} r={22} fill="none" stroke={color} strokeWidth={1.4} />
-      <Circle cx={24} cy={24} r={19.5} fill="none" stroke={color} strokeWidth={0.5} strokeDasharray="3 2" />
-      <SvgText x={24} y={27} textAnchor="middle" fontSize={9} fontWeight="700" fill={color} transform="rotate(-12, 24, 24)">{label}</SvgText>
-    </Svg>
-  );
-}
+// SVG Icons (local)
+// ═══════════════════════════════════════════════
+
 function CartIcon({ color }: { color: string }) {
   return (
     <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -61,34 +66,6 @@ function CheckIcon({ color }: { color: string }) {
     </Svg>
   );
 }
-// Payment SVG icons — clean, modern design
-const PAY_ICONS: Record<string, (color: string) => React.ReactNode> = {
-  '现金': (color: string) => (
-    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-      <Rect x="1" y="4" width="22" height="16" rx="2" />
-      <Path d="M1 10h22" />
-      <Circle cx="12" cy="12" r="3" />
-    </Svg>
-  ),
-  '微信': (color: string) => (
-    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M21 11.5a8.4 8.4 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.4 8.4 0 01-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.4 8.4 0 013.8-.9h.5a8.5 8.5 0 018 8v.5z" />
-    </Svg>
-  ),
-  '支付宝': (color: string) => (
-    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-      <Path d="M9 12l2 2 4-4" />
-    </Svg>
-  ),
-};
-function TrashIcon({ color }: { color: string }) {
-  return (
-    <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-    </Svg>
-  );
-}
 function BoxIcon({ color }: { color: string }) {
   return (
     <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -97,9 +74,51 @@ function BoxIcon({ color }: { color: string }) {
     </Svg>
   );
 }
+function ChevronDownIcon({ color, size = 14 }: { color: string; size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M6 9l6 6 6-6" />
+    </Svg>
+  );
+}
+function IcnSealProc({ color, label }: { color: string; label: string }) {
+  return (
+    <Svg width={48} height={48} viewBox="0 0 48 48">
+      <Circle cx={24} cy={24} r={22} fill="none" stroke={color} strokeWidth={1.4} />
+      <Circle cx={24} cy={24} r={19.5} fill="none" stroke={color} strokeWidth={0.5} strokeDasharray="3 2" />
+      <SvgText x={24} y={27} textAnchor="middle" fontSize={9} fontWeight="700" fill={color} transform="rotate(-12, 24, 24)">{label}</SvgText>
+    </Svg>
+  );
+}
+function EmptyCartIcon({ color }: { color: string }) {
+  return (
+    <Svg width={48} height={48} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+      <Path d="M3 6h18" />
+      <Path d="M16 10a4 4 0 0 1-8 0" />
+    </Svg>
+  );
+}
+function EmptyClipboardIcon({ color }: { color: string }) {
+  return (
+    <Svg width={48} height={48} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+      <Path d="M15 2H9a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z" />
+    </Svg>
+  );
+}
+function EmptyBoxIcon({ color }: { color: string }) {
+  return (
+    <Svg width={48} height={48} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+      <Path d="M3.27 6.96L12 12.01l8.73-5.05" />
+      <Path d="M12 22.08V12" />
+    </Svg>
+  );
+}
 
-const SUPPLIER_DISPLAY: Record<string, string> = { '蓝姐螺蛳粉': '蓝姐', '鲜禾配送': '鲜禾', '桂螺帮': '桂螺' };
-const SUPPLIER_ORDER = ['蓝姐螺蛳粉', '蒙方', '鲜禾配送', '桂螺帮', '粉仔'];
+const SUPPLIER_DISPLAY: Record<string, string> = {};
+const SUPPLIER_ORDER = ['蓝姐', '蒙方', '鲜禾', '粉仔', '桂螺'];
 const displaySupplier = (s: string) => SUPPLIER_DISPLAY[s] || s;
 const sortByOrder = (a: string, b: string) => {
   const ai = SUPPLIER_ORDER.indexOf(a), bi = SUPPLIER_ORDER.indexOf(b);
@@ -109,38 +128,35 @@ const sortByOrder = (a: string, b: string) => {
   return ai - bi;
 };
 
-const PAY_KEYS = ['现金', '微信', '支付宝'] as const;
-const CHIP_ICON_BG: Record<string, string> = { '微信': '#07C160', '支付宝': '#1677FF', '现金': '#333' };
-
 // ═══════════════════════════════════════════════
 // Styles
 // ═══════════════════════════════════════════════
 const getStyles = (c: ThemeColors) => StyleSheet.create({
-  ...uploadReceiptStyles(c),
   container: { flex: 1, position: 'relative' as const },
 
   frostedBlock: {
-    marginHorizontal: 12, marginTop: 4, borderRadius: 16, overflow: 'hidden' as const,
+    marginHorizontal: 0, marginTop: 4, borderRadius: 16, overflow: 'hidden' as const,
     borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
     backgroundColor: withAlpha(c.surface, 0.65),
     // @ts-ignore
-    backdropFilter: 'saturate(180%) blur(24px)',
+    backdropFilter: 'saturate(180%) blur(20px)',
     // @ts-ignore
-    boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
+    WebkitBackdropFilter: 'saturate(180%) blur(20px)',
   },
   headerSection: { padding: 16, paddingBottom: 8 },
   headerTop: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, marginBottom: 12 },
   headerTitle: { fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: c.textMain },
   headerBadge: { backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 20, paddingHorizontal: 12, paddingVertical: 3 },
   headerBadgeText: { fontSize: FONTS.microBold.size, color: c.primary, fontWeight: FONTS.microBold.weight },
+  headerComingSoon: { fontSize: FONTS.micro.size, color: c.textSub },
   statRow: { flexDirection: 'row' as const, gap: 6 },
   statPill: { flex: 1, backgroundColor: withAlpha(c.textMain, 0.04), borderRadius: 10, padding: 10, alignItems: 'center' as const },
   statNum: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.textMain },
   statLbl: { fontSize: FONTS.micro.size, color: c.textSub, marginTop: 3 },
 
-  searchSection: { paddingHorizontal: 16, paddingBottom: 8, borderTopWidth: 0.5, borderTopColor: withAlpha(c.textMain, 0.06) },
+  searchSection: { paddingHorizontal: 18, paddingBottom: 8, borderTopWidth: 0.5, borderTopColor: withAlpha(c.textMain, 0.06) },
   searchRow: { position: 'relative' as const },
-  searchInput: { paddingHorizontal: 12, paddingVertical: 9, paddingRight: 36, borderWidth: 0, borderRadius: 10, fontSize: FONTS.sub.size, color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), outline: 'none' },
+  searchInput: { paddingHorizontal: 12, paddingVertical: 9, paddingRight: 36, borderWidth: 0, borderRadius: 10, fontSize: FONTS.sub.size, color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), outline: 'none' as any },
   searchClear: { position: 'absolute' as const, right: 8, top: 0, bottom: 0, justifyContent: 'center' as const, alignItems: 'center' as const },
   filterRow: { flexDirection: 'row' as const, gap: 6, marginTop: 8 },
   filterChip: { paddingHorizontal: 13, paddingVertical: 5, borderRadius: 20, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.12) },
@@ -148,18 +164,17 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   filterChipText: { fontSize: FONTS.micro.size, color: c.textSub },
   filterChipTextOn: { color: c.surface },
 
-  // Sub-tabs inside frosted block
   subTabRow: { flexDirection: 'row' as const, borderTopWidth: 0.5, borderTopColor: withAlpha(c.textMain, 0.06), marginHorizontal: 4, paddingTop: 2, marginBottom: 6 },
-  subTab: { flex: 1, paddingVertical: 10, alignItems: 'center' as const },
+  subTab: { flex: 1, flexDirection: 'row' as const, gap: 4, paddingVertical: 10, alignItems: 'center' as const, justifyContent: 'center' as const },
   subTabOn: { backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 10 },
   subTabText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: c.textSub },
   subTabTextOn: { color: c.primary, fontWeight: FONTS.subBold.weight },
   subTabCount: { fontSize: 10, fontWeight: '600' as any, color: c.textSub, backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, minWidth: 18, textAlign: 'center' as any, overflow: 'hidden' as const },
 
-  sectionHead: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 4, fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: c.primary, textTransform: 'uppercase' as const, letterSpacing: 1 },
-  productCard: { marginHorizontal: 12, marginBottom: 6, backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06), overflow: 'hidden' as const },
+  sectionHead: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 4, fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: c.primary, textTransform: 'uppercase' as const, letterSpacing: 1 },
+  productCard: { marginHorizontal: 0, marginBottom: 6, backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06), overflow: 'hidden' as const },
   productCardSel: { borderColor: c.primary, borderWidth: 1.5 },
-  prodRow: { flexDirection: 'row' as const, alignItems: 'center' as const, padding: 10, gap: 10 },
+  prodRow: { flexDirection: 'row' as const, alignItems: 'center' as const, paddingVertical: 10, paddingHorizontal: 18, gap: 10 },
   prodInfo: { flex: 1 },
   prodName: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textMain, marginBottom: 2 },
   prodSpec: { fontSize: FONTS.micro.size, color: c.textSub },
@@ -176,10 +191,12 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
 
   cartBar: {
     position: 'absolute' as const, bottom: 68, left: 0, right: 0, zIndex: 100,
-    marginHorizontal: 12, backgroundColor: withAlpha(c.surface, 0.95), borderRadius: 14,
+    marginHorizontal: 12, backgroundColor: withAlpha(c.surface, 0.65), borderRadius: 14,
     borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
     // @ts-ignore
     backdropFilter: 'saturate(180%) blur(20px)',
+    // @ts-ignore
+    WebkitBackdropFilter: 'saturate(180%) blur(20px)',
   },
   cartPreview: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, padding: 12 },
   cartIconWrap: { width: 40, height: 40, borderRadius: 10, alignItems: 'center' as const, justifyContent: 'center' as const, overflow: 'visible' as const },
@@ -192,103 +209,51 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   cartClearBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: withAlpha(c.primary, 0.08) },
   cartClearBtnText: { fontSize: FONTS.micro.size, color: c.primary, fontWeight: FONTS.microBold.weight },
 
-  // Drawer overlay
-  overlay: { position: 'absolute' as any, inset: 0, backgroundColor: 'rgba(0,0,0,0)', zIndex: 200 },
-  // Animated drawer — slides up
-  drawer: {
-    position: 'absolute' as any, bottom: 0, left: 0, right: 0,
-    backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    maxHeight: '88%' as any, zIndex: 201, display: 'flex' as any, flexDirection: 'column' as any,
-    // @ts-ignore
-    boxShadow: '0 -4px 24px rgba(0,0,0,0.12)',
-  },
-  drawerHandle: { width: 36, height: 4, backgroundColor: withAlpha(c.textMain, 0.15), borderRadius: 2, alignSelf: 'center' as const, marginTop: 10 },
-  drawerHead: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, padding: 12, borderBottomWidth: 1, borderBottomColor: withAlpha(c.textMain, 0.08) },
-  drawerHeadTitle: { fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: c.textMain },
-  drawerClose: { width: 30, height: 30, borderRadius: 15, backgroundColor: withAlpha(c.textMain, 0.06), alignItems: 'center' as const, justifyContent: 'center' as const },
-  drawerCloseText: { fontSize: FONTS.h2.size, color: c.textSub },
-  drawerBody: { padding: 16, overflow: 'scroll' as any, flex: 1 } as any,
-  drawerFooter: { backgroundColor: c.surface, borderTopWidth: 0.5, borderTopColor: withAlpha(c.textMain, 0.08), paddingHorizontal: 16, paddingVertical: 10, paddingBottom: 60 },
+  drawerHead: { flexDirection: 'column' as const, alignItems: 'flex-start' as const, paddingVertical: 14, paddingHorizontal: 20, backgroundColor: c.primary, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  drawerBody: { padding: 16, flex: 1 } as any,
+  drawerFooter: { backgroundColor: c.surface, borderTopWidth: 0.5, borderTopColor: withAlpha(c.textMain, 0.08), paddingHorizontal: 18, paddingVertical: 10, paddingBottom: 24 },
 
-  // Date row (all 4 elements inline)
   dateCatRow: { marginBottom: 12 },
   dateCatLine: { flexDirection: 'row' as const, alignItems: 'center' as const, paddingVertical: 9, borderBottomWidth: 0.5, borderBottomColor: withAlpha(c.textMain, 0.06), gap: 8 },
-  dateCatLabel: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textMain },
-  dateCatValue: { fontSize: FONTS.sub.size, color: c.textSub, flexDirection: 'row' as const, alignItems: 'center' as const },
+  dateCatLabel: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textSub },
+  dateCatValue: { fontSize: FONTS.sub.size, color: c.textMain, flexDirection: 'row' as const, alignItems: 'center' as const },
 
-  // Payment capsules (matching ExpenseScreen)
-  sectionLabel: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textMain, marginBottom: 6 },
-  payRow: { flexDirection: 'row' as const, gap: 6, marginBottom: 12 },
-  payChip: {
-    flex: 1, flexDirection: 'row' as const, paddingVertical: 8, borderRadius: 22,
-    backgroundColor: c.bg,
-    alignItems: 'center' as const, justifyContent: 'center' as const,
-  },
-  payChipOn: { backgroundColor: c.primary },
-  payChipOnWechat: { backgroundColor: '#07C160' },
-  payChipOnAlipay: { backgroundColor: '#1677FF' },
-  payChipText: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.textSub },
-  payChipTextOn: { color: c.surface },
-
-  chipIconCircle: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(0,0,0,0.04)', alignItems: 'center' as const, justifyContent: 'center' as const, marginRight: 4 },
-  chipIconCircleActive: { backgroundColor: 'rgba(255,255,255,0.2)' },
-
-  // Upload (expense page style)
-  // Image upload — now in sharedStyles
-
-  // Items row
+  sectionLabel: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textSub, marginBottom: 6 },
   itemsBtnText: { fontSize: FONTS.sub.size, color: c.textMain, fontWeight: FONTS.sub.weight },
 
-  // Items modal
-  itemsModalOverlay: { position: 'absolute' as any, inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 500, alignItems: 'center' as const, justifyContent: 'center' as const },
-  itemsModalCard: { backgroundColor: c.surface, borderRadius: 16, width: 'calc(100% - 40px)' as any, maxWidth: 360, maxHeight: '75%' as any, overflow: 'hidden' as const, display: 'flex' as any, flexDirection: 'column' as any },
-  itemsModalHeader: { backgroundColor: c.primary, paddingHorizontal: 20, paddingVertical: 14, flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const },
-  itemsModalTitle: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.surface },
-  itemsModalClose: { fontSize: FONTS.h2.size, color: withAlpha(c.surface, 0.7), fontWeight: '300' as const },
-  itemsModalBody: { padding: 16 },
-  itemsRow: { flexDirection: 'row' as const, alignItems: 'center' as const, paddingVertical: 10 },
+  itemsModalCard: { backgroundColor: c.surface, borderRadius: 24, overflow: 'hidden' as const, display: 'flex' as any, flexDirection: 'column' as any },
+  itemsModalBodyWrap: { flex: 1, minHeight: 0, paddingTop: 12, paddingBottom: 4 },
+  itemsRow: { flexDirection: 'row' as const, alignItems: 'center' as const, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: withAlpha(c.textMain, 0.06) },
+  itemsRowLast: { borderBottomWidth: 0 },
   itemsRowName: { flex: 1, fontSize: FONTS.sub.size, color: c.textMain },
-  itemsRowQty: { fontSize: FONTS.micro.size, color: c.textSub, marginRight: 12 },
-  itemsRowAmt: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.primary },
-  itemsTotalRow: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, paddingTop: 14, marginTop: 8, borderTopWidth: 1, borderTopColor: withAlpha(c.textMain, 0.12) },
+  itemsRowQty: { fontSize: FONTS.micro.size, color: c.textSub, marginRight: 12, width: 48, textAlign: 'right' as const },
+  itemsRowAmt: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.primary, width: 80, textAlign: 'right' as const },
+  itemsTotalRow: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, paddingVertical: 14, paddingHorizontal: 18, marginTop: 6, borderTopWidth: 1, borderTopColor: withAlpha(c.textMain, 0.12) },
   itemsTotalLabel: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.textMain },
   itemsTotal: { fontSize: FONTS.amount.size, fontWeight: FONTS.amount.weight, color: c.primary },
 
-  // Submit
   submitBtn: { backgroundColor: c.primary, borderRadius: 12, paddingVertical: 15, alignItems: 'center' as const, marginTop: 16 },
   submitBtnDisabled: { opacity: 0.45 },
   submitBtnText: { color: c.surface, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight },
 
-  // Product mgmt
-  mgmtRow: { flexDirection: 'row' as const, alignItems: 'center' as const, padding: 12, marginHorizontal: 12, marginBottom: 6, backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06) },
+  mgmtRow: { flexDirection: 'row' as const, alignItems: 'center' as const, paddingVertical: 10, paddingHorizontal: 18, marginHorizontal: 0, marginBottom: 6, backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06) },
   mgmtInfo: { flex: 1 },
   mgmtName: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textMain },
   mgmtMeta: { fontSize: FONTS.micro.size, color: c.textSub, marginTop: 2 },
   mgmtActions: { flexDirection: 'row' as const, gap: 8 },
   mgmtActionBtn: { width: 32, height: 32, borderRadius: 8, alignItems: 'center' as const, justifyContent: 'center' as const, backgroundColor: withAlpha(c.textMain, 0.05) },
-  mgmtAddBtn: { marginHorizontal: 12, marginTop: 8, marginBottom: 16, backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: withAlpha(c.primary, 0.2), paddingVertical: 12, alignItems: 'center' as const },
-  mgmtAddBtnText: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.primary },
+  mgmtAddBtn: { marginHorizontal: 0, marginTop: 8, marginBottom: 8, flexDirection: 'row' as const, backgroundColor: c.surface, borderRadius: 10, paddingVertical: 11, alignItems: 'center' as const, justifyContent: 'center' as const, gap: 6 },
+  mgmtAddBtnText: { fontSize: FONTS.sub.size, fontWeight: FONTS.subBold.weight, color: c.primary },
 
-  // Modal (product add/edit)
-  modalOverlay: { position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 400, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center' as const, alignItems: 'center' as const },
-  modalCard: { backgroundColor: c.surface, borderRadius: 16, width: 340, maxWidth: '90%' as any, overflow: 'hidden' as const,
-    // @ts-ignore
-    ...modalCardAnimation, },
+  modalCard: { backgroundColor: c.surface, borderRadius: 24, width: 340, maxWidth: '90%' as any, overflow: 'hidden' as const },
   modalHeader: { backgroundColor: c.primary, paddingHorizontal: 20, paddingVertical: 14, flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const },
   modalTitle: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.surface },
-  modalClose: { ...modalClose, },
   modalBody: { padding: 24 },
-  modalInput: { paddingHorizontal: 10, paddingVertical: 9, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.12), borderRadius: 8, fontSize: FONTS.sub.size, color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), marginBottom: 10, outline: 'none' },
-  modalBtnRow: { flexDirection: 'row' as const, gap: 8, marginTop: 10, width: '100%' as any },
-  modalBtnCancel: { flex: 1, paddingVertical: 13, borderRadius: 10, backgroundColor: withAlpha(c.textMain, 0.06), alignItems: 'center' as const },
-  modalBtnCancelText: { fontSize: FONTS.sub.size, color: c.textSub, fontWeight: FONTS.sub.weight },
-  modalBtnConfirm: { flex: 1, paddingVertical: 13, borderRadius: 10, backgroundColor: c.primary, alignItems: 'center' as const },
-  modalBtnConfirmText: { fontSize: FONTS.subBold.size, color: c.surface, fontWeight: FONTS.subBold.weight },
+  modalInput: { paddingHorizontal: 10, paddingVertical: 9, borderRadius: 8, fontSize: FONTS.sub.size, color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), marginBottom: 10 },
   modalDeleteBox: { backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 12, padding: 12, alignItems: 'center' as const },
   modalDeleteText: { fontSize: FONTS.micro.size, color: c.textSub, textAlign: 'center' as const },
 
-  // History
-  historyList: { padding: 12, paddingBottom: 100 },
+  historyList: { paddingVertical: 12, paddingBottom: 100 },
   historyCard: { backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06), marginBottom: 10, overflow: 'hidden' as const },
   histHead: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, padding: 10, borderBottomWidth: 1, borderBottomColor: withAlpha(c.textMain, 0.05) },
   histNo: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: c.primary },
@@ -300,16 +265,15 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   histAmountSealOverlay: { position: 'absolute' as const, right: 0, top: '50%', marginTop: -40, opacity: 0.75, zIndex: 2 },
   histBody: { padding: 10 },
   histRow: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, marginBottom: 4 },
-  histRowLabel: { fontSize: FONTS.micro.size, color: c.textSub },
-  histRowVal: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: c.textMain },
+  histRowLabel: { fontSize: FONTS.micro.size, color: c.textSub, flexShrink: 0 },
+  histRowVal: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: c.textMain, flex: 1, textAlign: 'right' as const },
   histPayBadge: { alignSelf: 'flex-start' as const, paddingHorizontal: 8, paddingVertical: 2, backgroundColor: withAlpha(c.primary, 0.08), borderRadius: 12, marginTop: 4 },
   histPayText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: c.primary },
   histAmount: { fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: c.primary, marginTop: 8 },
-  histImages: { flexDirection: 'row' as const, gap: 4, marginTop: 6 },
+  histImages: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 4, marginTop: 6 },
 
-  // Success
   successOverlay: { position: 'absolute' as any, inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 400, alignItems: 'center' as const, justifyContent: 'center' as const },
-  successCard: { backgroundColor: c.surface, borderRadius: 20, padding: 28, width: 'calc(100% - 40px)' as any, maxWidth: 320, alignItems: 'center' as const },
+  successCard: { backgroundColor: c.surface, borderRadius: 24, padding: 28, width: 'calc(100% - 40px)' as any, maxWidth: 320, alignItems: 'center' as const },
   successTitle: { fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: c.textMain, marginBottom: 6, marginTop: 8 },
   successSub: { fontSize: FONTS.sub.size, color: c.textSub, lineHeight: 20 } as any,
   successAmount: { fontSize: FONTS.amount.size, fontWeight: FONTS.amount.weight, color: c.primary, marginVertical: 12 },
@@ -319,19 +283,14 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   successBtnView: { flex: 1, paddingVertical: 12, backgroundColor: c.secondary, borderRadius: 12, alignItems: 'center' as const },
   successBtnViewText: { color: c.textMain, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight },
 
-  // Empty state
-  emptyWrap: { alignItems: 'center' as const, paddingVertical: 60 },
-  emptyTitle: { fontSize: FONTS.body.size, fontWeight: FONTS.body.weight, color: c.textSub, marginBottom: 6 },
-  emptyHint: { fontSize: FONTS.sub.size, color: c.textSub, textAlign: 'center' as const, paddingHorizontal: 40, lineHeight: 20 },
-  loadingWrap: { paddingVertical: 20, alignItems: 'center' as const },
   loadingMore: { paddingVertical: 20, alignItems: 'center' as const },
-  contentArea: { flex: 1, paddingBottom: 100 },
+  contentArea: { flex: 1, paddingBottom: 150 },
 });
 
 // ═══════════════════════════════════════════════
 // Main Component
 // ═══════════════════════════════════════════════
-export default function ProcurementScreen() {
+export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcurementDetail, pendingEditBatch, onPendingEditConsumed, onInvoice }: { onDrawerOpen?: () => void; onDrawerClose?: () => void; onProcurementDetail?: (batch: BatchRecord) => void; pendingEditBatch?: BatchRecord | null; onPendingEditConsumed?: () => void; onInvoice?: (batchId: number) => void }) {
   const { colors: c } = useTheme();
   const sd = useServerDate();
   const styles = useMemo(() => getStyles(c), [c]);
@@ -342,14 +301,9 @@ export default function ProcurementScreen() {
       return (saved === 'new' || saved === 'history' || saved === 'products') ? saved : 'new';
     } catch { return 'new'; }
   });
-  // Persist selected tab across page navigations
-  useEffect(() => {
-    try { localStorage.setItem('snail_proc_tab', subTab); } catch {}
-  }, [subTab]);
-  // Auto-clear search when switching between sub-tabs
+  useEffect(() => { try { localStorage.setItem('snail_proc_tab', subTab); } catch {} }, [subTab]);
   useEffect(() => { setSearch(''); }, [subTab]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [productsLoaded, setProductsLoaded] = useState(false);
   const [cart, setCart] = useState<Record<number, number>>({});
   const [search, setSearch] = useState('');
   const [supplierFilter, setSupplierFilter] = useState('全部');
@@ -357,59 +311,78 @@ export default function ProcurementScreen() {
   const [editPriceVal, setEditPriceVal] = useState('');
 
   const [showDrawer, setShowDrawer] = useState(false);
-  const drawerAnim = useRef(new Animated.Value(0)).current;
-  const overlayAnim = useRef(new Animated.Value(0)).current;
+  const handleDrawerClose = () => {
+    setShowDrawer(false);
+    onDrawerClose?.();
+    setTimeout(() => {
+    if (editingBatchId !== null) {
+      setEditingBatchId(null); setEditingBatchNumber(0);
+      setEditingBatchSettled(false); setCartUnitPrices({});
+      setExistingImageUrls([]); setExistingThumbUrls([]);
+      setEditSnapshot(null);
+      setCart({}); setReceipts([]); setOrderNote('');
+      setOrderDate(sd.today); setPayMethod('payWechat');
+    }
+    }, 300);
+  };
   const [orderDate, setOrderDate] = useState('');
   useEffect(() => { if (sd.ready && orderDate === '') setOrderDate(sd.today); }, [sd.ready, sd.today, orderDate]);
-  const [payMethod, setPayMethod] = useState<PayMethod>('微信');
+  const [payMethod, setPayMethod] = useState<PayMethod>('payWechat');
   const [orderNote, setOrderNote] = useState('');
   const [receipts, setReceipts] = useState<PickedImage[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  // Edit mode: when set, the drawer is editing this batch instead of creating a new one
   const [editingBatchId, setEditingBatchId] = useState<number | null>(null);
   const [editingBatchNumber, setEditingBatchNumber] = useState<number>(0);
-  // True when the editing batch has been settled — locks the cart UI (no add/+/-, no 完成/添加产品)
   const [editingBatchSettled, setEditingBatchSettled] = useState(false);
-  // Historical unit prices for the editing batch, keyed by product_id
   const [cartUnitPrices, setCartUnitPrices] = useState<Record<number, number>>({});
-  // Server-side image URLs kept across edit (new uploads get appended)
   const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
   const [existingThumbUrls, setExistingThumbUrls] = useState<string[]>([]);
-  // Edit mode snapshot: serialized initial values, used to detect changes
   const [editSnapshot, setEditSnapshot] = useState<string | null>(null);
-  // Delete confirmation target (batch record)
   const [deleteBatchTarget, setDeleteBatchTarget] = useState<BatchRecord | null>(null);
+  const delBatchRef = useRef<BatchRecord | null>(null);
 
   const [showItemsModal, setShowItemsModal] = useState(false);
-  const [itemsModalView, setItemsModalView] = useState<'items' | 'products' | 'detail'>('items');
+  const [itemsModalIsCart, setItemsModalIsCart] = useState(false);
+  const [itemsModalView, setItemsModalView] = useState<'items' | 'products'>('items');
   const [productPickerSearch, setProductPickerSearch] = useState('');
-  const [detailItems, setDetailItems] = useState<Array<{ name: string; quantity: number; subtotal: number }>>([]);
-  const [detailTotal, setDetailTotal] = useState(0);
 
   const [successTotal, setSuccessTotal] = useState(0);
   const [successBatch, setSuccessBatch] = useState(0);
   const [successIsEdit, setSuccessIsEdit] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMsg, setToastMsg] = useState('');
+  const { showToast, ToastHost } = useToast();
 
   const [stats, setStats] = useState<ProcStats>({ total_spent: 0, total_income: 0, batch_count: 0, margin_pct: 0 });
-  const [batches, setBatches] = useState<BatchRecord[]>([]);
-  const [histPage, setHistPage] = useState(1);
-  const [histTotal, setHistTotal] = useState(0);
-  const [loadingHist, setLoadingHist] = useState(false);
 
-  // Load all batches for search
+  const { records: batches, total: histTotal, hasMore, loading: loadingHist, loadingMore, refresh, loadMore } = usePaginatedList<BatchRecord>({
+    fetcher: useCallback(async (pg: number, perPage: number) => {
+      const data: any = await api.getProcurementBatches(pg, perPage);
+      return { records: data?.records || [], total: data?.total || 0, total_all: data?.total_all, pages: data?.pages || 1 };
+    }, []),
+  });
+
   const [searchBatches, setSearchBatches] = useState<BatchRecord[] | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
+  useEffect(() => {
+    if (!search || subTab !== 'history') { setSearchBatches(null); return; }
+    let cancelled = false;
+    setSearchLoading(true);
+    api.getProcurementBatches(1, 9999).then((data: any) => {
+      if (cancelled) return;
+      setSearchBatches(data?.records || []);
+    }).catch(() => {}).finally(() => {
+      if (!cancelled) setSearchLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [search, subTab]);
 
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [prodForm, setProdForm] = useState({ name: '', spec: '', price: '', supplier: '', note: '' });
   const [prodSaving, setProdSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const delTargetRef = useRef<Product | null>(null);
 
-  // ── Shared slide-from-top animation for product/delete/success modals ──
   const modalSlide = useRef(new Animated.Value(0)).current;
   const modalOverlayFade = useRef(new Animated.Value(0)).current;
   const openSlideModal = (show: () => void) => {
@@ -428,101 +401,17 @@ export default function ProcurementScreen() {
     ]).start(() => hide());
   };
 
-  // ── Items modal animation (slide from top) ──
-  const itemsModalAnim = useRef(new Animated.Value(0)).current;
-  const itemsModalOverlayAnim = useRef(new Animated.Value(0)).current;
   const openItemsModal = () => {
+    setItemsModalIsCart(true);
     setItemsModalView('items');
     setProductPickerSearch('');
     setShowItemsModal(true);
-    itemsModalAnim.setValue(-300);
-    itemsModalOverlayAnim.setValue(0);
-    Animated.parallel([
-      Animated.spring(itemsModalAnim, { toValue: 0, useNativeDriver: true, bounciness: 4, speed: 14 }),
-      Animated.timing(itemsModalOverlayAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
-    ]).start();
   };
-  const closeItemsModal = () => {
-    Animated.parallel([
-      Animated.timing(itemsModalAnim, { toValue: -300, duration: 180, useNativeDriver: true }),
-      Animated.timing(itemsModalOverlayAnim, { toValue: 0, duration: 180, useNativeDriver: true }),
-    ]).start(() => setShowItemsModal(false));
-  };
+
   const openHistoryDetail = (batch: BatchRecord) => {
-    setDetailItems(batch.items.map((item: any) => ({
-      name: item.name || item.product_name || `商品#${item.product_id}`,
-      quantity: item.quantity,
-      subtotal: item.subtotal || item.unit_price * item.quantity || 0,
-    })));
-    setDetailTotal(batch.total);
-    setItemsModalView('detail');
-    setShowItemsModal(true);
-    itemsModalAnim.setValue(-300);
-    itemsModalOverlayAnim.setValue(0);
-    Animated.parallel([
-      Animated.spring(itemsModalAnim, { toValue: 0, useNativeDriver: true, bounciness: 4, speed: 14 }),
-      Animated.timing(itemsModalOverlayAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
-    ]).start();
+    onProcurementDetail?.(batch);
   };
 
-  // ── Drawer animation ──
-  const openDrawer = () => {
-    setShowDrawer(true);
-    if (!orderNote) setOrderNote(t('procNowBatch').replace('{n}', String(stats.batch_count + 1)));
-    Animated.parallel([
-      Animated.spring(drawerAnim, { toValue: 1, useNativeDriver: true, bounciness: 4, speed: 14 }),
-      Animated.timing(overlayAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
-    ]).start();
-  };
-  const closeDrawer = () => {
-    Animated.parallel([
-      Animated.timing(drawerAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
-      Animated.timing(overlayAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
-    ]).start(() => {
-      setShowDrawer(false);
-      // Reset edit state when drawer is closed (in any way)
-      if (editingBatchId !== null) {
-        setEditingBatchId(null); setEditingBatchNumber(0);
-        setEditingBatchSettled(false); setCartUnitPrices({});
-        setExistingImageUrls([]); setExistingThumbUrls([]);
-        setEditSnapshot(null);
-        setCart({}); setReceipts([]); setOrderNote('');
-        setOrderDate(sd.today); setPayMethod('微信');
-      }
-    });
-  };
-
-  const drawerTranslateY = drawerAnim.interpolate({ inputRange: [0, 1], outputRange: [400, 0] });
-  const overlayOpacity = overlayAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.45] });
-
-  // ── Swipe down to close drawer ──
-  const dragY = useRef(new Animated.Value(0)).current;
-  const panResponder = useRef(PanResponder.create({
-    onMoveShouldSetPanResponder: (_: any, gs: any) => gs.dy > 8 && Math.abs(gs.dy) > Math.abs(gs.dx),
-    onPanResponderMove: (_: any, gs: any) => { if (gs.dy > 0) dragY.setValue(gs.dy); },
-    onPanResponderRelease: (_: any, gs: any) => {
-      if (gs.dy > 120 || gs.vy > 0.6) {
-        closeDrawer();
-        dragY.setValue(0);
-      } else {
-        Animated.spring(dragY, { toValue: 0, useNativeDriver: true, bounciness: 0 }).start();
-      }
-    },
-  })).current;
-
-  // ── Date formatting ──
-  const formatDateLocale = useCallback((d: string) => {
-    const l = getLang();
-    const [y, m, day] = d.split('-');
-    if (l.startsWith('en')) {
-      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      return `${months[+m - 1]} ${+day}, ${y}`;
-    }
-    return `${y}年${+m}月${+day}日`;
-  }, []);
-
-  // ── Image compression — no-op on RN (use expo-image-manipulator instead) ──
-  // ── Suppliers ──
   const suppliers = useMemo(() => {
     const set = new Set(products.map(p => p.supplier).filter(Boolean));
     const sorted = Array.from(set).sort(sortByOrder);
@@ -531,8 +420,17 @@ export default function ProcurementScreen() {
 
   const loadProducts = useCallback(() => {
     api.getProducts().then((data: any) => {
-      if (Array.isArray(data)) { setProducts(data); setProductsLoaded(true); }
-    }).catch(() => { setProductsLoaded(true); });
+      if (Array.isArray(data)) { setProducts(data); }
+      if (pendingEditRef.current) {
+        openEditBatch(pendingEditRef.current);
+        onPendingEditConsumedRef.current?.();
+      }
+    }).catch(() => {
+      if (pendingEditRef.current) {
+        openEditBatch(pendingEditRef.current);
+        onPendingEditConsumedRef.current?.();
+      }
+    });
   }, []);
   const loadStats = useCallback(() => {
     api.getProcurementStats().then((s: any) => {
@@ -549,8 +447,8 @@ export default function ProcurementScreen() {
 
   useEffect(() => { loadProducts(); loadStats(); }, [loadProducts, loadStats]);
 
-  // Load shared cart from server on mount
   useEffect(() => {
+    if (pendingEditBatch) return;
     api.getCart().then((data: any) => {
       if (Array.isArray(data)) {
         const map: Record<number, number> = {};
@@ -560,36 +458,8 @@ export default function ProcurementScreen() {
     }).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    if (subTab !== 'history') return;
-    setLoadingHist(true);
-    api.getProcurementBatches(1).then((data: any) => {
-      setBatches(data.records || []); setHistTotal(data.total || 0); setHistPage(1);
-    }).catch(() => {}).finally(() => setLoadingHist(false));
-  }, [subTab]);
-
-  // Search across all batches when search is active in history tab
-  useEffect(() => {
-    if (!search || subTab !== 'history') { setSearchBatches(null); return; }
-    let cancelled = false;
-    setSearchLoading(true);
-    api.getProcurementBatches(1, 9999).then((data: any) => {
-      if (cancelled) return;
-      setSearchBatches(data?.records || []);
-    }).catch(() => {}).finally(() => {
-      if (!cancelled) setSearchLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, [search, subTab]);
-
-  const loadMoreHistory = () => {
-    if (loadingHist) return;
-    const next = histPage + 1;
-    setLoadingHist(true);
-    api.getProcurementBatches(next).then((data: any) => {
-      setBatches(prev => [...prev, ...(data.records || [])]); setHistPage(next);
-    }).catch(() => {}).finally(() => setLoadingHist(false));
-  };
+  useEffect(() => { refresh(); }, []);
+  useEffect(() => { if (subTab !== 'history') return; refresh(); }, [subTab]);
 
   const filteredProducts = useMemo(() => {
     let list = products;
@@ -623,12 +493,10 @@ export default function ProcurementScreen() {
       if (!map[sup]) map[sup] = [];
       map[sup].push(p);
     });
-    // Sort section heads by SUPPLIER_ORDER, unknown suppliers at end
     const sortedMap: [string, Product[]][] = Object.entries(map).sort(([a], [b]) => sortByOrder(a, b));
     return sortedMap;
   }, [filteredProducts]);
 
-  // section head display name
   const supplierLabel = (sup: string) => displaySupplier(sup) || t('procAll');
 
   const cartItems: CartItem[] = useMemo(() => {
@@ -637,7 +505,6 @@ export default function ProcurementScreen() {
       .map(([pid, qty]) => {
         const product = products.find(p => p.id === Number(pid));
         if (!product) return null;
-        // For SETTLED edits, use the snapshot (historical) unit price; otherwise current product price
         const unitPrice = cartUnitPrices[product.id] ?? product.price;
         return { product, quantity: qty, subtotal: unitPrice * qty };
       }).filter(Boolean) as CartItem[];
@@ -646,7 +513,6 @@ export default function ProcurementScreen() {
   const cartTotal = useMemo(() => cartItems.reduce((s, i) => s + i.subtotal, 0), [cartItems]);
   const cartCount = cartItems.length;
 
-  // Edit mode: true when nothing has changed from the initial batch values
   const editUnchanged = useMemo(() => {
     if (editingBatchId === null || !editSnapshot) return false;
     try {
@@ -686,15 +552,19 @@ export default function ProcurementScreen() {
     const val = parseFloat(editPriceVal);
     if (!isNaN(val) && val > 0) {
       api.updateProduct({ id: pid, name: products.find(p => p.id === pid)?.name, price: val }).then((r: any) => {
-        if (r.status === 'ok') setProducts(prev => prev.map(p => p.id === pid ? { ...p, price: val } : p));
+        if (r?.status === 'ok') setProducts(prev => prev.map(p => p.id === pid ? { ...p, price: val } : p));
       }).catch(() => {});
     }
     setEditingPrice(null);
   };
 
-  // ── File upload (using shared ReceiptUpload) ──
   const handleAddFiles = async (files: PickedImage[]) => {
-    setReceipts(prev => [...prev, ...files]);
+    const newFiles: PickedImage[] = [];
+    for (const f of files) {
+      if (receipts.some(r => r.uri === f.uri)) continue;
+      newFiles.push(f);
+    }
+    setReceipts(prev => [...prev, ...newFiles]);
   };
 
   const handleRemoveNewFile = (i: number) => {
@@ -703,21 +573,17 @@ export default function ProcurementScreen() {
 
   const getPreviewUrl = (file: PickedImage) => file.uri || '';
 
-  const [showOrderDatePicker, setShowOrderDatePicker] = useState(false);
-
   const submitOrder = async () => {
     if (cartItems.length === 0) return;
     setSubmitting(true);
     try {
-      // Upload new images first (matching ExpenseScreen pattern)
       let newImageUrls: string[] = [];
       let newThumbUrls: string[] = [];
       if (receipts.length > 0) {
         const result = await api.uploadExpenseImages(receipts);
         if (result.status !== 'ok') {
           setSubmitting(false);
-          setToastMsg(t('toastSubmitFailed'));
-          setShowToast(true);
+          showToast(t('toastSubmitFailed'));
           return;
         }
         newImageUrls = result.images || [];
@@ -725,7 +591,6 @@ export default function ProcurementScreen() {
           ? result.thumb_images
           : newImageUrls;
       }
-      // Edit mode: combine existing + new images; call update endpoint
       if (editingBatchId !== null) {
         const allImages = [...existingImageUrls, ...newImageUrls];
         const allThumbs = [...existingThumbUrls, ...newThumbUrls];
@@ -735,66 +600,54 @@ export default function ProcurementScreen() {
           images: allImages, thumb_images: allThumbs, note: orderNote,
         });
         if (r?.status === 'ok') {
-          Animated.parallel([
-            Animated.timing(drawerAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
-            Animated.timing(overlayAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
-          ]).start(() => {
-            setCart({}); setReceipts([]); setOrderNote('');
-            setExistingImageUrls([]); setExistingThumbUrls([]);
-            setEditingBatchId(null); setEditingBatchNumber(0);
-            setEditingBatchSettled(false); setCartUnitPrices({});
-            setOrderDate(sd.today); setPayMethod('微信');
-            setShowDrawer(false);
-            setSuccessTotal(r.total); setSuccessBatch(editingBatchNumber);
-            setSuccessIsEdit(true);
-            openSlideModal(() => setShowSuccess(true));
-            loadStats();
-            // Reload history
-            setSubTab('history');
-            setBatches([]);
-          });
+          setShowDrawer(false);
+          onDrawerClose?.();
+          setTimeout(() => {
+          setCart({}); setReceipts([]); setOrderNote('');
+          setExistingImageUrls([]); setExistingThumbUrls([]);
+          setEditingBatchId(null); setEditingBatchNumber(0);
+          setEditingBatchSettled(false); setCartUnitPrices({});
+          setOrderDate(sd.today); setPayMethod('payWechat');
+          }, 300);
+          setSuccessTotal(r.total); setSuccessBatch(editingBatchNumber);
+          setSuccessIsEdit(true);
+          setTimeout(() => openSlideModal(() => setShowSuccess(true)), 250);
+          loadStats();
         } else {
-          setToastMsg(t('toastSubmitFailed'));
-          setShowToast(true);
+          showToast(t('toastSubmitFailed'));
         }
         setSubmitting(false);
         return;
       }
-      // Create mode (default)
       const r = await api.createProcurementBatch({
-        date: orderDate, payment_method: payMethod, category: t('procPurchase'),
+        date: orderDate, payment_method: payMethod, category: 'goods',
         items: cartItems.map(i => ({ product_id: i.product.id, quantity: i.quantity })),
         images: newImageUrls, thumb_images: newThumbUrls, note: orderNote,
       });
-      if (r.status === 'ok') {
+      if (r?.status === 'ok') {
         setSuccessTotal(r.total); setSuccessBatch(r.batch_number); setSuccessIsEdit(false);
-        Animated.parallel([
-          Animated.timing(drawerAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
-          Animated.timing(overlayAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
-        ]).start(() => {
-          setCart({}); api.clearCart().catch(() => {}); setReceipts([]); setOrderNote('');
-          setShowDrawer(false);
-          openSlideModal(() => setShowSuccess(true));
-        });
+        setShowDrawer(false);
+        onDrawerClose?.();
+        setTimeout(() => {
+        setCart({}); api.clearCart().catch(() => {}); setReceipts([]); setOrderNote('');
+        }, 300);
+        setTimeout(() => openSlideModal(() => setShowSuccess(true)), 250);
         loadStats();
       } else {
-        setToastMsg(t('toastSubmitFailed'));
-        setShowToast(true);
+        showToast(t('toastSubmitFailed'));
       }
     } catch (err) {
       console.error('[procurement] submit error:', err);
-      setToastMsg(t('toastSubmitFailed'));
-      setShowToast(true);
+      showToast(t('toastSubmitFailed'));
     }
     setSubmitting(false);
   };
 
-  // Open drawer in edit mode, prefilled from the batch
   const openEditBatch = (batch: BatchRecord) => {
     setEditingBatchId(batch.id);
     setEditingBatchNumber(batch.batch_number);
     setOrderDate(batch.date);
-    setPayMethod((batch.payment_method as PayMethod) || '微信');
+    setPayMethod((payKey(batch.payment_method) as PayMethod) || 'payWechat');
     setOrderNote(batch.note || '');
     const newCart: Record<number, number> = {};
     const newUnitPrices: Record<number, number> = {};
@@ -813,37 +666,32 @@ export default function ProcurementScreen() {
     setReceipts([]);
     setExistingImageUrls(batch.images || []);
     setExistingThumbUrls(batch.thumb_images || []);
-    setEditSnapshot(JSON.stringify({ date: batch.date, pm: batch.payment_method, cart: newCart, note: batch.note || '', imgs: (batch.images || []).length }));
+    setEditSnapshot(JSON.stringify({ date: batch.date, pm: payKey(batch.payment_method), cart: newCart, note: batch.note || '', imgs: (batch.images || []).length }));
     setShowDrawer(true);
-    Animated.parallel([
-      Animated.spring(drawerAnim, { toValue: 1, useNativeDriver: true, bounciness: 4, speed: 14 }),
-      Animated.timing(overlayAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
-    ]).start();
+    onDrawerOpen?.();
   };
 
-  // Confirm delete batch + cascade
+  const pendingEditRef = useRef<any>(null);
+  useEffect(() => { pendingEditRef.current = pendingEditBatch; }, [pendingEditBatch]);
+
+  const onPendingEditConsumedRef = useRef(onPendingEditConsumed);
+  useEffect(() => { onPendingEditConsumedRef.current = onPendingEditConsumed; }, [onPendingEditConsumed]);
+
   const confirmDeleteBatch = async () => {
-    if (!deleteBatchTarget) return;
-    const targetId = deleteBatchTarget.id;
+    if (!delBatchRef.current) return;
+    const targetId = delBatchRef.current.id;
     setDeleteBatchTarget(null);
     try {
       const r = await api.deleteProcurementBatch(targetId);
       if (r?.status === 'ok') {
-        // Refresh history list and stats
-        setBatches([]);
+        refresh();
         loadStats();
-        // force reload
-        api.getProcurementBatches(1).then((data: any) => {
-          setBatches(data.records || []); setHistTotal(data.total || 0); setHistPage(1);
-        }).catch(() => {});
       } else {
-        setToastMsg(t('toastSubmitFailed'));
-        setShowToast(true);
+        showToast(t('toastSubmitFailed'));
       }
     } catch (err) {
       console.error('[procurement] delete error:', err);
-      setToastMsg(t('toastSubmitFailed'));
-      setShowToast(true);
+      showToast(t('toastSubmitFailed'));
     }
   };
 
@@ -851,19 +699,20 @@ export default function ProcurementScreen() {
     setExistingImageUrls(prev => prev.filter((_, idx) => idx !== i));
     setExistingThumbUrls(prev => prev.filter((_, idx) => idx !== i));
   };
+
   const resetOrder = () => {
-    closeSlideModal(() => { setShowSuccess(false); setOrderDate(sd.today); setPayMethod('微信'); setOrderNote(''); setReceipts([]); });
+    closeSlideModal(() => { setShowSuccess(false); setOrderDate(sd.today); setPayMethod('payWechat'); setOrderNote(''); setReceipts([]); });
   };
 
   const openAddProduct = () => {
     setEditingProduct(null);
     setProdForm({ name: '', spec: '', price: '', supplier: '', note: '' });
-    openSlideModal(() => setShowProductModal(true));
+    setShowProductModal(true);
   };
   const openEditProduct = (p: Product) => {
     setEditingProduct(p);
     setProdForm({ name: p.name, spec: p.spec, price: String(p.price), supplier: p.supplier, note: p.note || '' });
-    openSlideModal(() => setShowProductModal(true));
+    setShowProductModal(true);
   };
   const saveProduct = async () => {
     if (!prodForm.name || prodSaving) return;
@@ -871,41 +720,40 @@ export default function ProcurementScreen() {
     const data = { name: prodForm.name, spec: prodForm.spec, price: parseFloat(prodForm.price) || 0, supplier: prodForm.supplier, note: prodForm.note };
     try {
       editingProduct ? await api.updateProduct({ ...data, id: editingProduct.id }) : await api.createProduct(data);
-      closeSlideModal(() => setShowProductModal(false));
+      setShowProductModal(false);
       loadProducts();
     } catch {
-      setToastMsg(t('toastSubmitFailed'));
-      setShowToast(true);
+      showToast(t('toastSubmitFailed'));
     }
     setProdSaving(false);
   };
   const confirmDelete = async () => {
-    if (!deleteTarget) return;
+    if (!delTargetRef.current) return;
     try {
-      await api.deleteProduct(deleteTarget.id);
-      // Clean orphan cart entries for deleted product
-      setCart(prev => { const cp = { ...prev }; delete cp[deleteTarget.id]; return cp; });
+      await api.deleteProduct(delTargetRef.current.id);
+      setCart(prev => { const cp = { ...prev }; delete cp[delTargetRef.current!.id]; return cp; });
       loadProducts();
     } catch {
-      setToastMsg(t('toastSubmitFailed'));
-      setShowToast(true);
+      showToast(t('toastSubmitFailed'));
     }
-    closeSlideModal(() => setDeleteTarget(null));
+    setDeleteTarget(null);
   };
 
   return (
     <View style={styles.container}>
-      {/* ── Frosted Glass Block (everything merged) ── */}
+      {/* ── Frosted Glass Block ── */}
       <View style={styles.frostedBlock}>
-        {/* Header */}
         <View style={styles.headerSection}>
           <View style={styles.headerTop}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <BoxIcon color={c.primary} />
               <Text style={styles.headerTitle}>{t('procTitle')}</Text>
             </View>
-            <View style={styles.headerBadge}>
-              <Text style={styles.headerBadgeText}>{t('procNowBatch').replace('{n}', String(stats.batch_count + 1))}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={styles.headerComingSoon}>{t('procComingSoon')}</Text>
+              <View style={styles.headerBadge}>
+                <Text style={styles.headerBadgeText}>{t('procNowBatch').replace('{n}', String(stats.batch_count + 1))}</Text>
+              </View>
             </View>
           </View>
           <View style={styles.statRow}>
@@ -924,10 +772,9 @@ export default function ProcurementScreen() {
           </View>
         </View>
 
-        {/* Search + filters */}
         <View style={styles.searchSection}>
           <View style={styles.searchRow}>
-            <AppTextInput
+            <TextInput
               style={styles.searchInput}
               placeholder={subTab === 'history' ? t('procSearchHistory') : subTab === 'products' ? t('procSearchProducts') : t('procSearchPlaceholder')}
               placeholderTextColor={c.textSub}
@@ -952,7 +799,6 @@ export default function ProcurementScreen() {
           )}
         </View>
 
-        {/* Sub-tabs inside frosted block */}
         <View style={styles.subTabRow}>
           <TouchableOpacity style={[styles.subTab, subTab === 'new' && styles.subTabOn]} onPress={() => setSubTab('new')}>
             <Text style={[styles.subTabText, subTab === 'new' && styles.subTabTextOn]}>{t('procNewOrder')}</Text>
@@ -988,10 +834,10 @@ export default function ProcurementScreen() {
                         </View>
                         <View style={styles.prodPriceWrap}>
                           {isEditing ? (
-                            <AppTextInput
-                              style={{ width: 70, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.primary, borderWidth: 1, borderColor: c.primary, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, outline: 'none', backgroundColor: c.surface } as any}
-                              value={editPriceVal} onChangeText={setEditPriceVal}
-                              onBlur={() => commitPrice(p.id)} autoFocus keyboardType="numeric"
+                            <TextInput
+                              style={{ width: 70, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.textMain, borderWidth: 1, borderColor: c.primary, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: c.surface } as any}
+                              value={editPriceVal} onChangeText={(v) => setEditPriceVal(fmtDecInput(v))}
+                              onBlur={() => commitPrice(p.id)} autoFocus keyboardType="decimal-pad"
                             />
                           ) : (
                             <>
@@ -1018,11 +864,18 @@ export default function ProcurementScreen() {
                 })}
               </View>
             ))}
+            {groupedProducts.length === 0 && (
+              <EmptyState
+                icon={<EmptyCartIcon color={c.textSub} />}
+                title={t('procEmptyNewTitle')}
+                hint={t('procEmptyNewHint')}
+              />
+            )}
           </ScrollView>
 
           {cartCount > 0 && (
             <View style={styles.cartBar}>
-              <TouchableOpacity style={styles.cartPreview} onPress={openDrawer} activeOpacity={0.8}>
+              <TouchableOpacity style={styles.cartPreview} onPress={() => { setShowDrawer(true); onDrawerOpen?.(); }} activeOpacity={0.8}>
                 <View style={[styles.cartIconWrap, { backgroundColor: c.primary }]}>
                   <CartIcon color={c.surface} />
                   <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{cartCount}</Text></View>
@@ -1044,7 +897,7 @@ export default function ProcurementScreen() {
       {subTab === 'history' && (
         loadingHist || (search !== '' && searchLoading) ? (
           <View style={styles.historyList}>
-            {[...Array(6)].map((_, i) => (
+            {[...Array(10)].map((_, i) => (
               <View key={i} style={[styles.historyCard, { pointerEvents: 'none' as any }]}>
                 <View style={styles.histHead}>
                   <View style={{ width: 100, height: 14, backgroundColor: withAlpha(c.textSub, 0.08), borderRadius: 4 }} />
@@ -1063,21 +916,26 @@ export default function ProcurementScreen() {
                     <View style={{ width: 64, height: 12, backgroundColor: withAlpha(c.textSub, 0.05), borderRadius: 4 }} />
                     <View style={{ width: 32, height: 12, backgroundColor: withAlpha(c.textSub, 0.06), borderRadius: 4 }} />
                   </View>
+                  <View style={[styles.histAmountRow, { marginTop: 4 }]}>
+                    <View style={{ width: 48, height: 12, backgroundColor: withAlpha(c.textSub, 0.05), borderRadius: 4 }} />
+                    <View style={{ width: 80, height: 20, backgroundColor: withAlpha(c.primary, 0.08), borderRadius: 4 }} />
+                  </View>
                 </View>
               </View>
             ))}
           </View>
         ) : batches.length === 0 ? (
-          <View style={styles.emptyWrap}>
-            <Text style={styles.emptyTitle}>{t('noRecords')}</Text>
-            <Text style={styles.emptyHint}>{t('procNoHistory')}</Text>
-          </View>
+          <EmptyState
+            icon={<EmptyClipboardIcon color={c.textSub} />}
+            title={t('procEmptyHistoryTitle')}
+            hint={t('procEmptyHistoryHint')}
+          />
         ) : (
           <FlatList
             data={filteredBatches}
             keyExtractor={item => String(item.id)}
             contentContainerStyle={styles.historyList}
-            onEndReached={batches.length < histTotal ? loadMoreHistory : undefined}
+            onEndReached={hasMore ? () => loadMore() : undefined}
             onEndReachedThreshold={0.4}
             renderItem={({ item: batch }) => (
             <View style={styles.historyCard}>
@@ -1087,6 +945,27 @@ export default function ProcurementScreen() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                     <Text style={styles.histDate}>{batch.date}</Text>
                     <View style={styles.histActions}>
+                      {batch.invoice_status ? (
+                        <TouchableOpacity
+                          onPress={(e) => { e.stopPropagation?.(); onInvoice?.(batch.id); }}
+                          activeOpacity={0.7}
+                          style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: batch.invoice_status === 'done' ? withAlpha(c.success, 0.12) : withAlpha(c.warning, 0.12) }}
+                        >
+                          <Text style={{ fontSize: 11, fontWeight: '600', color: batch.invoice_status === 'done' ? c.success : c.warning }}>
+                            {batch.invoice_status === 'done' ? t('invRecStatusDone') : t('invRecStatusPending')}
+                          </Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity
+                          onPress={(e) => { e.stopPropagation?.(); onInvoice?.(batch.id); }}
+                          activeOpacity={0.7}
+                          style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: withAlpha(c.primary, 0.10) }}
+                        >
+                          <Text style={{ fontSize: 11, fontWeight: '600', color: c.primary }}>
+                            {t('invToInvoice')}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
                       <TouchableOpacity
                         style={styles.histActionBtn}
                         onPress={(e) => { e.stopPropagation?.(); openEditBatch(batch); }}
@@ -1097,12 +976,12 @@ export default function ProcurementScreen() {
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[styles.histActionBtn, batch.settled_at && { opacity: 0.3 }]}
-                        onPress={(e) => { e.stopPropagation?.(); if (!batch.settled_at) openSlideModal(() => setDeleteBatchTarget(batch)); }}
+                        onPress={(e) => { e.stopPropagation?.(); if (!batch.settled_at) { delBatchRef.current = batch; openSlideModal(() => setDeleteBatchTarget(batch)); } }}
                         disabled={!!batch.settled_at}
                         activeOpacity={batch.settled_at ? 1 : 0.7}
                         hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                       >
-                        <TrashIcon color={c.danger} />
+                        <TrashIcon color={c.danger} size={14} />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1114,7 +993,7 @@ export default function ProcurementScreen() {
                   </View>
                   <View style={styles.histRow}>
                     <Text style={styles.histRowLabel}>{t('procPaymentMethod')}</Text>
-                    <Text style={styles.histRowVal}>{batch.payment_method}</Text>
+                    <Text style={styles.histRowVal}>{trPayment(batch.payment_method)}</Text>
                   </View>
                   {batch.note ? (
                     <View style={styles.histRow}>
@@ -1135,7 +1014,7 @@ export default function ProcurementScreen() {
                     </View>
                   </View>
                   {(() => {
-                    const thumbImgs: string[] = parseImages(batch.thumb_images?.length ? batch.thumb_images : batch.images) || [];
+                    const thumbImgs: string[] = (batch.thumb_images?.length ? batch.thumb_images : batch.images) || [];
                     return thumbImgs.length > 0 && (
                       <View style={styles.histImages}>
                         {thumbImgs.map((img: string, i: number) => (
@@ -1149,7 +1028,11 @@ export default function ProcurementScreen() {
               </TouchableOpacity>
             </View>
           )}
-          ListFooterComponent={loadingHist ? <View style={styles.loadingMore}><ActivityIndicator color={c.primary} /></View> : null}
+          ListFooterComponent={hasMore ? (
+            <View style={styles.loadingMore}>
+              <ActivityIndicator size="small" color={c.primary} />
+            </View>
+          ) : null}
         />
       ))}
 
@@ -1157,14 +1040,16 @@ export default function ProcurementScreen() {
       {subTab === 'products' && (
         <>
           <TouchableOpacity style={styles.mgmtAddBtn} onPress={openAddProduct}>
-            <Text style={styles.mgmtAddBtnText}>+ {t('procAddProduct')}</Text>
+            <PlusIcon color={c.primary} />
+            <Text style={styles.mgmtAddBtnText}>{t('procAddProduct')}</Text>
           </TouchableOpacity>
           <ScrollView style={styles.contentArea}>
           {filteredMgmtProducts.length === 0 ? (
-            <View style={styles.emptyWrap}>
-              <Text style={styles.emptyTitle}>{t('noRecords')}</Text>
-              <Text style={styles.emptyHint}>{t('noProducts')}</Text>
-            </View>
+            <EmptyState
+              icon={<EmptyBoxIcon color={c.textSub} />}
+              title={t('procEmptyProductsTitle')}
+              hint={t('procEmptyProductsHint')}
+            />
           ) : (
             [...filteredMgmtProducts].sort((a, b) => b.id - a.id).map(p => (
               <View key={p.id} style={styles.mgmtRow}>
@@ -1176,8 +1061,8 @@ export default function ProcurementScreen() {
                   <TouchableOpacity style={styles.mgmtActionBtn} onPress={() => openEditProduct(p)}>
                     <PencilIcon color={c.textSub} />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.mgmtActionBtn} onPress={() => openSlideModal(() => setDeleteTarget(p))}>
-                    <TrashIcon color={c.danger} />
+                  <TouchableOpacity style={styles.mgmtActionBtn} onPress={() => { delTargetRef.current = p; openSlideModal(() => setDeleteTarget(p)); }}>
+                    <TrashIcon color={c.danger} size={14} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1187,215 +1072,223 @@ export default function ProcurementScreen() {
         </>
       )}
 
-      {/* ── Product Modal ── */}
-      {showProductModal && (
-        <Animated.View style={[styles.modalOverlay, { opacity: modalOverlayFade }]}>
-          <Animated.View style={[styles.modalCard, { transform: [{ translateY: modalSlide }] }]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{editingProduct ? t('procEditProduct') : t('procAddProduct')}</Text>
-              <TouchableOpacity onPress={() => closeSlideModal(() => setShowProductModal(false))}>
-                <Text style={styles.modalClose}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.modalBody}>
-              <AppTextInput style={styles.modalInput} placeholder={t('procProductName')} placeholderTextColor={c.textSub} value={prodForm.name} onChangeText={v => setProdForm(p => ({ ...p, name: v }))} />
-              <AppTextInput style={styles.modalInput} placeholder={t('procProductSpec')} placeholderTextColor={c.textSub} value={prodForm.spec} onChangeText={v => setProdForm(p => ({ ...p, spec: v }))} />
-              <AppTextInput style={styles.modalInput} placeholder={t('procProductSupplier')} placeholderTextColor={c.textSub} value={prodForm.supplier} onChangeText={v => setProdForm(p => ({ ...p, supplier: v }))} />
-              <AppTextInput style={styles.modalInput} placeholder={t('procProductPrice')} placeholderTextColor={c.textSub} value={prodForm.price} onChangeText={v => setProdForm(p => ({ ...p, price: v }))} keyboardType="numeric" />
-              <AppTextInput style={styles.modalInput} placeholder={t('procProductNote')} placeholderTextColor={c.textSub} value={prodForm.note} onChangeText={v => setProdForm(p => ({ ...p, note: v }))} />
-              <View style={styles.modalBtnRow}>
-                <TouchableOpacity style={styles.modalBtnCancel} onPress={() => closeSlideModal(() => setShowProductModal(false))}>
-                  <Text style={styles.modalBtnCancelText}>{t('cancel')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.modalBtnConfirm} onPress={saveProduct}>
-                  <Text style={styles.modalBtnConfirmText}>{t('procSubmit')}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Animated.View>
-        </Animated.View>
-      )}
-
-      {/* ── Delete confirmation modal ── */}
-      {deleteTarget && (
-        <Animated.View style={[styles.modalOverlay, { opacity: modalOverlayFade }]}>
-          <Animated.View style={[styles.modalCard, { transform: [{ translateY: modalSlide }] }]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t('procDeleteProduct') || '删除商品'}</Text>
-              <TouchableOpacity onPress={() => closeSlideModal(() => setDeleteTarget(null))}>
-                <Text style={styles.modalClose}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={[styles.modalBody, { gap: 16 }]}>
-              <View style={styles.modalDeleteBox}>
-                <Text style={styles.modalDeleteText}>
-                  {t('procDeleteProductConfirm').replace('{name}', deleteTarget.name)}{' '}{t('procDeleteProductWarning')}
-                </Text>
-              </View>
-              <View style={styles.modalBtnRow}>
-                <TouchableOpacity style={styles.modalBtnCancel} onPress={() => closeSlideModal(() => setDeleteTarget(null))}>
-                  <Text style={styles.modalBtnCancelText}>{t('cancel')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.modalBtnConfirm, { backgroundColor: c.primary }]} onPress={confirmDelete}>
-                  <Text style={styles.modalBtnConfirmText}>{t('delete') || '删除'}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Animated.View>
-        </Animated.View>
-      )}
-
-      {/* ── Order Drawer (slides up) ── */}
-      {showDrawer && (
-        <>
-          <Animated.View style={[styles.overlay, { backgroundColor: 'rgba(0,0,0,0.45)', opacity: overlayOpacity }]}>
-            <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={closeDrawer} />
-          </Animated.View>
-          <Animated.View style={[styles.drawer, { transform: [{ translateY: Animated.add(drawerTranslateY, dragY) }] }]}>
-            <View style={styles.drawerHandle} {...panResponder.panHandlers} />
-            <View style={styles.drawerHead} {...panResponder.panHandlers}>
-              <Text style={styles.drawerHeadTitle}>
-                {editingBatchId !== null
-                  ? t('procEditBatch').replace('{n}', String(editingBatchNumber))
-                  : t('procConfirmOrder')}
+      {/* ── Product Modal (springScale) ── */}
+      <ModalOverlay visible={showProductModal} onClose={() => setShowProductModal(false)} animation="springScale">
+        <View style={styles.modalCard}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{editingProduct ? t('procEditProduct') : t('procAddProduct')}</Text>
+            <CloseButton onPress={() => setShowProductModal(false)} />
+          </View>
+          <View style={styles.modalBody}>
+            <TextField placeholder={t('procProductName')} value={prodForm.name} onChangeText={v => setProdForm(p => ({ ...p, name: v }))} />
+            <TextField placeholder={t('procProductSpec')} value={prodForm.spec} onChangeText={v => setProdForm(p => ({ ...p, spec: v }))} />
+            <View style={[styles.modalInput, { position: 'relative', justifyContent: 'center' }]}>
+              <Text style={{ fontSize: FONTS.sub.size, color: prodForm.supplier ? c.textMain : c.textSub }}>
+                {prodForm.supplier || t('procProductSupplier')}
               </Text>
-              <TouchableOpacity style={styles.drawerClose} onPress={closeDrawer}>
-                <Text style={styles.drawerCloseText}>×</Text>
-              </TouchableOpacity>
+              <View style={{ position: 'absolute', right: 10, top: 0, bottom: 0, justifyContent: 'center' }}>
+                <ChevronDownIcon color={c.textSub} />
+              </View>
             </View>
-            <ScrollView style={styles.drawerBody}>
-              {/* Date + Category — single line */}
-              <View style={styles.dateCatRow}>
-                <View style={styles.dateCatLine}>
-                  <Text style={styles.dateCatLabel}>{t('procOrderDate')}</Text>
-                  <TouchableOpacity onPress={() => setShowOrderDatePicker(true)} activeOpacity={0.7} style={styles.dateCatValue}>
-                    <Text style={{ fontSize: FONTS.sub.size, color: c.textSub }}>{formatDateLocale(orderDate)}</Text>
+            <ScrollView horizontal style={{ marginBottom: 10 }} showsHorizontalScrollIndicator={false}>
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                {suppliers.filter((s: string) => s !== '全部').map((s: string) => (
+                  <TouchableOpacity key={s}
+                    style={[styles.filterChip, prodForm.supplier === s && styles.filterChipOn]}
+                    onPress={() => setProdForm(p => ({ ...p, supplier: s }))}>
+                    <Text style={[styles.filterChipText, prodForm.supplier === s && styles.filterChipTextOn]}>{s}</Text>
                   </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+            <TextField placeholder={t('procProductPrice')} value={prodForm.price} onChangeText={v => setProdForm(p => ({ ...p, price: fmtDecInput(v) }))} keyboardType="decimal-pad" />
+            <TextField placeholder={t('procProductNote')} value={prodForm.note} onChangeText={v => setProdForm(p => ({ ...p, note: v }))} />
+            <ButtonPair
+              leftLabel={t('cancel')}
+              leftOnPress={() => setShowProductModal(false)}
+              rightLabel={t('procSubmit')}
+              rightOnPress={saveProduct}
+              rightLoading={prodSaving}
+            />
+          </View>
+        </View>
+      </ModalOverlay>
+
+      {/* ── Delete confirmation modal (product) ── */}
+      <ConfirmModal
+        visible={deleteTarget !== null}
+        title={t('procDeleteProduct') || '删除商品'}
+        message={<>{t('procDeleteProductConfirm').split('{name}')[0]}<Text style={{ color: c.primary, fontWeight: '600' }}>{delTargetRef.current?.name}</Text>{t('procDeleteProductConfirm').split('{name}')[1]}{' '}{t('procDeleteProductWarning')}</>}
+        confirmLabel={t('delete')}
+        onConfirm={() => confirmDelete()}
+        onCancel={() => setDeleteTarget(null)}
+        animation="blurMorph"
+      />
+
+      {/* ── Delete batch confirmation modal ── */}
+      <ConfirmModal
+        visible={deleteBatchTarget !== null}
+        title={t('procDeleteBatch')}
+        message={<>{t('procDeleteBatchConfirmV2').split('{batch}')[0]}<Text style={{ color: c.primary, fontWeight: '600' }}>{t('procNowBatch').replace('{n}', String(delBatchRef.current?.batch_number ?? ''))}</Text>{t('procDeleteBatchConfirmV2').split('{batch}')[1]}</>}
+        confirmLabel={t('delete')}
+        onConfirm={() => confirmDeleteBatch()}
+        onCancel={() => setDeleteBatchTarget(null)}
+        animation="blurMorph"
+      />
+
+      {/* ── Order Drawer (slide up + scale) ── */}
+      <ModalOverlay
+        visible={showDrawer}
+        onClose={handleDrawerClose}
+        animation="slideUpScale"
+        overlayStyle={bottomSheetOverlay as any}
+        contentStyle={{ position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'stretch' } as any}
+      >
+        <View style={[{ backgroundColor: c.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '70vh' as any, width: '100%', maxWidth: 768, alignSelf: 'center', overflow: 'hidden' as any, display: 'flex' as any, flexDirection: 'column' as any }]}>
+          <View style={styles.drawerHead}>
+            <SheetHeader
+              title={editingBatchId !== null
+                ? t('procEditBatch').replace('{n}', String(editingBatchNumber))
+                : t('procConfirmOrder')}
+              onClose={handleDrawerClose}
+            />
+          </View>
+          <ScrollView style={styles.drawerBody}>
+            <View style={styles.dateCatRow}>
+              <View style={styles.dateCatLine}>
+                <Text style={styles.dateCatLabel}>{t('procOrderDate')}</Text>
+                <DatePicker
+                  date={orderDate}
+                  onChange={setOrderDate}
+                  max={sd.today}
+                  displayDate={formatDate(orderDate)}
+                  fontSize={FONTS.sub.size}
+                  showChevron
+                  showCalendarIcon
+                />
+                <View style={{ marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Text style={styles.dateCatLabel}>{t('expenseCategory')}</Text>
-                  <Text style={{ fontSize: FONTS.sub.size, color: c.textSub }}>{t('procPurchase')}</Text>
+                  <Text style={{ fontSize: FONTS.sub.size, color: c.textMain, fontWeight: FONTS.sub.weight }}>{t('goods')}</Text>
                 </View>
               </View>
-
-              {/* Payment method capsules */}
-              <Text style={styles.sectionLabel}>{t('procPaymentMethod')}</Text>
-              <View style={styles.payRow}>
-                {PAY_KEYS.map(pm => {
-                  const active = payMethod === pm;
-                  const isWechat = pm === '微信';
-                  const isAlipay = pm === '支付宝';
-                  return (
-                    <TouchableOpacity key={pm}
-                      style={[styles.payChip, active && (isWechat ? styles.payChipOnWechat : isAlipay ? styles.payChipOnAlipay : styles.payChipOn)]}
-                      onPress={() => setPayMethod(pm)} activeOpacity={0.7}>
-                      <View style={[styles.chipIconCircle, active && { backgroundColor: CHIP_ICON_BG[pm] }]}>
-                        {PAY_ICONS[pm](active ? c.surface : c.textSub)}
-                      </View>
-                      <Text style={[styles.payChipText, active && styles.payChipTextOn]}>{pm}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {/* Upload receipts (shared ReceiptUpload) */}
-              <View style={{ marginTop: 12 }}>
-                <ReceiptUpload
-                  existingImages={existingImageUrls}
-                  newFiles={receipts}
-                  onAdd={handleAddFiles}
-                  onRemoveExisting={removeExistingImage}
-                  onRemoveNew={handleRemoveNewFile}
-                  getPreviewUrl={getPreviewUrl}
-                />
-              </View>
-
-              {/* Items row — matching 近7天 pattern: label left, theme button right */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 12 }}>
-                <Text style={styles.itemsBtnText}>{t('procOrderItems')}（{cartCount} 项）</Text>
-                <TouchableOpacity onPress={openItemsModal} activeOpacity={0.7}>
-                  <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.primary }}>{t('procViewDetail')} →</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>{t('procBatchLabel')}</Text>
-                <Text style={{ flex: 1, fontSize: FONTS.sub.size, color: c.textMain, fontWeight: FONTS.sub.weight }}>
-                  {t('procNowBatch').replace('{n}', String(editingBatchId !== null ? editingBatchNumber : stats.batch_count + 1))}
-                </Text>
-              </View>
-
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>{t('procNoteOptional')}</Text>
-                <AppTextInput style={{ flex: 1, paddingHorizontal: 10, paddingVertical: 9, borderRadius: 8, fontSize: FONTS.sub.size, color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), outline: 'none' } as any}
-                  value={orderNote} onChangeText={setOrderNote} placeholder={t('procNowBatch').replace('{n}', String(stats.batch_count + 1))} placeholderTextColor={c.textSub} />
-              </View>
-
-              {/* Total + Submit moved to drawer footer */}
-            </ScrollView>
-            {/* Footer: Total + Submit — fixed at drawer bottom, above nav bar */}
-            <View style={styles.drawerFooter}>
-              <View style={{ flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const }}>
-                <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: c.primary }}>{t('procTotal')}：¥{cartTotal.toFixed(2)}</Text>
-                <TouchableOpacity style={[styles.submitBtn, (cartCount === 0 || editUnchanged) && styles.submitBtnDisabled, { marginTop: 0, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 22 }]} onPress={submitOrder} disabled={cartCount === 0 || submitting || editUnchanged}>
-                  {submitting ? <ActivityIndicator color={c.surface} /> : <Text style={[styles.submitBtnText, { fontSize: FONTS.sub.size }]}>{t('procSubmit')}</Text>}
-                </TouchableOpacity>
-              </View>
             </View>
-          </Animated.View>
-        </>
-      )}
 
-      {/* ── Items Modal (slides from top) ── */}
-      {showItemsModal && (
-        <Animated.View style={[styles.itemsModalOverlay, { opacity: itemsModalOverlayAnim }]}>
-          <Animated.View style={[styles.itemsModalCard, { transform: [{ translateY: itemsModalAnim }] }]}>
-            <View style={styles.itemsModalHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                {itemsModalView === 'products' && (
-                  <TouchableOpacity onPress={() => setItemsModalView('items')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <Text style={[styles.itemsModalClose, { fontSize: 18 }]}>←</Text>
-                  </TouchableOpacity>
-                )}
-                <Text style={styles.itemsModalTitle}>
-                  {itemsModalView === 'products' ? t('procAddProduct') : t('procOrderItems')}
-                </Text>
-              </View>
-              <TouchableOpacity onPress={closeItemsModal}>
-                <Text style={styles.itemsModalClose}>✕</Text>
+            <PaymentMethodChips label={t('procPaymentMethod') as string} selected={payMethod} onSelect={(m) => setPayMethod(m as PayMethod)} />
+
+            <View style={{ marginTop: 12 }}>
+              <ReceiptUpload
+                existingImages={existingImageUrls}
+                newFiles={receipts}
+                onAdd={handleAddFiles}
+                onRemoveExisting={removeExistingImage}
+                onRemoveNew={handleRemoveNewFile}
+                getPreviewUrl={getPreviewUrl}
+              />
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 12 }}>
+              <Text style={styles.itemsBtnText}>{t('procOrderItems')}（{cartCount} 项）</Text>
+              <TouchableOpacity onPress={openItemsModal} activeOpacity={0.7}>
+                <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.primary }}>{t('procViewDetail')} →</Text>
               </TouchableOpacity>
             </View>
-            {itemsModalView === 'detail' ? (
-              // ── Read-only history detail view ──
-              <ScrollView style={{ flex: 1, minHeight: 0, paddingHorizontal: 18 }}>
-                {detailItems.map((item, idx) => (
-                  <View key={idx} style={[styles.itemsRow, idx === detailItems.length - 1 && { borderBottomWidth: 0 }]}>
-                    <Text style={styles.itemsRowName}>{item.name}</Text>
-                    <Text style={{ fontSize: FONTS.micro.size, color: c.textSub, marginRight: 12 }}>×{item.quantity}</Text>
-                    <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.primary }}>¥{item.subtotal.toFixed(2)}</Text>
-                  </View>
-                ))}
-              </ScrollView>
-            ) : itemsModalView === 'products' ? (
-              // ── Product picker view ──
-              <>
-                <View style={{ paddingHorizontal: 18, paddingTop: 12, paddingBottom: 8 }}>
-                  <AppTextInput
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>{t('procBatchLabel')}</Text>
+              <Text style={{ flex: 1, fontSize: FONTS.sub.size, color: c.textMain, fontWeight: FONTS.sub.weight }}>
+                {t('procNowBatch').replace('{n}', String(editingBatchId !== null ? editingBatchNumber : stats.batch_count + 1))}
+              </Text>
+            </View>
+
+            <ExpenseNoteInput
+              label={t('procNoteOptional') as string}
+              value={orderNote}
+              onChangeText={setOrderNote}
+              placeholder={`${t('procNoteHintPhone')}\n${t('procNoteHintAddress')}`}
+            />
+          </ScrollView>
+          <View style={styles.drawerFooter}>
+            <View style={{ flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const }}>
+              <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: c.primary }}>{t('procTotal')}：¥{cartTotal.toFixed(2)}</Text>
+              <SubmitButton
+                onPress={submitOrder}
+                loading={submitting}
+                disabled={cartCount === 0 || editUnchanged}
+                label={t('procSubmit')}
+                style={[styles.submitBtn, (cartCount === 0 || editUnchanged) && styles.submitBtnDisabled, { marginTop: 0, paddingVertical: 10, paddingHorizontal: 20, borderRadius: 22 }]}
+                textStyle={[styles.submitBtnText, { fontSize: FONTS.sub.size }]}
+              />
+            </View>
+          </View>
+        </View>
+      </ModalOverlay>
+
+      {/* ── Items Modal (stagger reveal) ── */}
+      <ModalOverlay
+        visible={showItemsModal}
+        onClose={() => {
+          if (itemsModalIsCart && itemsModalView === 'products') {
+            setItemsModalView('items');
+          } else {
+            setShowItemsModal(false);
+          }
+        }}
+        animation="stagger"
+        staggerCount={3}
+        overlayStyle={{ justifyContent: 'center', padding: 0, alignItems: 'stretch' } as any}
+        contentStyle={{ alignItems: 'stretch' } as any}
+      >
+        {(anims) => (
+          <View style={[styles.itemsModalCard, { width: '90%', maxWidth: 768 * 0.9, maxHeight: Dimensions.get('window').height * 0.6, alignSelf: 'center' } as any]}>
+            <Animated.View style={{
+              opacity: anims[0],
+              transform: [{ translateY: anims[0].interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }]
+            }}>
+              <View style={{ backgroundColor: c.primary, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingVertical: 14, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.surface }}>
+                  {itemsModalIsCart && itemsModalView === 'products' ? t('procAddProduct') : t('procOrderItems')}
+                </Text>
+                <TouchableOpacity style={{ padding: 4 }} onPress={() => {
+                  if (itemsModalIsCart && itemsModalView === 'products') {
+                    setItemsModalView('items');
+                  } else {
+                    setShowItemsModal(false);
+                  }
+                }}>
+                  <Svg width="18" height="18" viewBox="0 0 24 24" stroke={c.surface} strokeWidth="2" fill="none">
+                    <Line x1="18" y1="6" x2="6" y2="18" />
+                    <Line x1="6" y1="6" x2="18" y2="18" />
+                  </Svg>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+            <Animated.View style={{
+              opacity: anims[1],
+              transform: [{ translateY: anims[1].interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
+              flex: 1, minHeight: 0,
+            }}>
+            {itemsModalIsCart && itemsModalView === 'products' ? (
+              <View style={{ flex: 1, minHeight: 0 }}>
+                <View style={{ paddingHorizontal: 18, paddingTop: 0, paddingBottom: 8 }}>
+                  <TextInput
                     value={productPickerSearch}
                     onChangeText={setProductPickerSearch}
                     placeholder={t('procSearchProducts')}
                     placeholderTextColor={c.textSub}
                     style={{
                       paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, fontSize: FONTS.sub.size,
-                      color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.04), outline: 'none',
+                      color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.04),
                     } as any}
                   />
                 </View>
-                <ScrollView style={{ flex: 1, minHeight: 0, paddingHorizontal: 18 }}>
-                  {products
-                    .filter(p => !productPickerSearch || p.name.includes(productPickerSearch) || (p.supplier || '').includes(productPickerSearch))
-                    .map((p, idx, arr) => {
-                      const qty = cart[p.id] || 0;
-                      return (
-                        <View key={p.id} style={[styles.itemsRow, idx === arr.length - 1 && { borderBottomWidth: 0 }]}>
+                <View style={styles.itemsModalBodyWrap}>
+                  <ScrollView style={{ flex: 1, minHeight: 0, paddingHorizontal: 18 }}>
+                    {products
+                      .filter(p => !productPickerSearch || p.name.includes(productPickerSearch) || (p.supplier || '').includes(productPickerSearch))
+                      .map((p, idx, arr) => {
+                        const qty = cart[p.id] || 0;
+                        return (
+                          <View key={p.id} style={[styles.itemsRow, idx === arr.length - 1 && styles.itemsRowLast]}>
                           <View style={{ flex: 1 }}>
                             <Text style={styles.itemsRowName}>{p.name}</Text>
                             <Text style={{ fontSize: FONTS.micro.size, color: c.textSub, marginTop: 2 }}>
@@ -1425,27 +1318,22 @@ export default function ProcurementScreen() {
                       <Text style={{ color: c.textSub, fontSize: FONTS.micro.size }}>—</Text>
                     </View>
                   )}
-                </ScrollView>
-                <TouchableOpacity
-                  style={{ marginHorizontal: 16, marginBottom: 16, marginTop: 4, paddingVertical: 12, borderRadius: 8, backgroundColor: c.primary, alignItems: 'center' }}
-                  onPress={() => setItemsModalView('items')}
-                >
-                  <Text style={{ fontSize: FONTS.body.size, fontWeight: '600', color: c.surface }}>{t('done') || '完成'}</Text>
-                </TouchableOpacity>
-              </>
+                  </ScrollView>
+                </View>
+              </View>
             ) : (
-              // ── Cart edit view (with +/- qty) ──
-              <>
-                <ScrollView style={{ flex: 1, minHeight: 0, paddingHorizontal: 18 }}>
-                  {cartItems.length === 0 ? (
-                    <View style={{ padding: 24, alignItems: 'center' }}>
-                      <Text style={{ color: c.textSub, fontSize: FONTS.micro.size }}>—</Text>
-                    </View>
-                  ) : (
-                    cartItems.map((i, idx, arr) => {
-                      const unitPrice = cartUnitPrices[i.product.id] ?? i.product.price;
-                      return (
-                        <View key={i.product.id} style={[styles.itemsRow, idx === arr.length - 1 && { borderBottomWidth: 0 }]}>
+              <View style={{ flex: 1, minHeight: 0 }}>
+                <View style={styles.itemsModalBodyWrap}>
+                  <ScrollView style={{ flex: 1, minHeight: 0, paddingHorizontal: 18 }}>
+                    {cartItems.length === 0 ? (
+                      <View style={{ padding: 24, alignItems: 'center' }}>
+                        <Text style={{ color: c.textSub, fontSize: FONTS.micro.size }}>—</Text>
+                      </View>
+                    ) : (
+                      cartItems.map((i, idx, arr) => {
+                        const unitPrice = cartUnitPrices[i.product.id] ?? i.product.price;
+                        return (
+                        <View key={i.product.id} style={[styles.itemsRow, idx === arr.length - 1 && styles.itemsRowLast]}>
                           <View style={{ flex: 1 }}>
                             <Text style={styles.itemsRowName}>{i.product.name}</Text>
                             <Text style={{ fontSize: FONTS.micro.size, color: c.textSub, marginTop: 2 }}>
@@ -1478,11 +1366,21 @@ export default function ProcurementScreen() {
                       );
                     })
                   )}
-                </ScrollView>
+                  </ScrollView>
+                </View>
                 <View style={styles.itemsTotalRow}>
                   <Text style={styles.itemsTotalLabel}>{t('procTotal')}</Text>
                   <Text style={styles.itemsTotal}>¥{cartTotal.toFixed(2)}</Text>
                 </View>
+              </View>
+            )}
+            </Animated.View>
+            <Animated.View style={{
+              opacity: anims[2],
+              transform: [{ translateY: anims[2].interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }]
+            }}>
+            {!(itemsModalIsCart && itemsModalView === 'products') ? (
+              <>
                 {!editingBatchSettled && (
                 <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 18, paddingBottom: 16, paddingTop: 4 }}>
                   <TouchableOpacity
@@ -1493,27 +1391,25 @@ export default function ProcurementScreen() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={{ flex: 1, paddingVertical: 12, borderRadius: 8, backgroundColor: c.primary, alignItems: 'center' }}
-                    onPress={closeItemsModal}
+                    onPress={() => setShowItemsModal(false)}
                   >
                     <Text style={{ fontSize: FONTS.body.size, fontWeight: '600', color: c.surface }}>{t('done') || '完成'}</Text>
                   </TouchableOpacity>
                 </View>
                 )}
               </>
+            ) : (
+              <TouchableOpacity
+                style={{ marginHorizontal: 16, marginBottom: 16, marginTop: 4, paddingVertical: 12, borderRadius: 8, backgroundColor: c.primary, alignItems: 'center' }}
+                onPress={() => setItemsModalView('items')}
+              >
+                <Text style={{ fontSize: FONTS.body.size, fontWeight: '600', color: c.surface }}>{t('done') || '完成'}</Text>
+              </TouchableOpacity>
             )}
-          </Animated.View>
-        </Animated.View>
-      )}
-
-      {/* ── Delete batch confirmation modal ── */}
-      <ConfirmModal
-        visible={deleteBatchTarget !== null}
-        title={t('procDeleteBatch')}
-        message={<><Text>{t('procDeleteBatchConfirm').replace('{batch}', t('procNowBatch').replace('{n}', String(deleteBatchTarget?.batch_number ?? '')))}</Text></>}
-        confirmLabel={t('delete')}
-        onConfirm={() => confirmDeleteBatch()}
-        onCancel={() => closeSlideModal(() => setDeleteBatchTarget(null))}
-      />
+            </Animated.View>
+          </View>
+        )}
+      </ModalOverlay>
 
       {/* ── Success ── */}
       {showSuccess && (
@@ -1539,15 +1435,7 @@ export default function ProcurementScreen() {
           </Animated.View>
         </Animated.View>
       )}
-      <DatePickerModal
-        visible={showOrderDatePicker}
-        value={orderDate}
-        onClose={() => setShowOrderDatePicker(false)}
-        onSelect={(d) => setOrderDate(d)}
-        minDate={undefined}
-        title={t('procOrderDate') || '选择日期'}
-      />
-      <Toast message={toastMsg} visible={showToast} onDismiss={() => setShowToast(false)} />
+      {ToastHost}
     </View>
   );
 }
