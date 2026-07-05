@@ -12,7 +12,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../hooks/useToast';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DatePickerModal from '../components/DatePickerModal';
 import HistoryHeader from '../components/HistoryHeader';
 import { parseImages } from '../utils/parseImages';
@@ -97,6 +97,13 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
   }, [sd.ready, appliedFrom, appliedTo, sd.today, sd.offset]);
   const [datePickTarget, setDatePickTarget] = useState<'from' | 'to' | null>(null);
   const { preview, openPreview, closePreview } = useImagePreview();
+  const scrollingRef = useRef(false);
+  const touchStartRef = useRef({ x: 0, y: 0 });
+
+  const handleThumbPress = useCallback((imgs: string[], idx: number) => {
+    if (scrollingRef.current) return;
+    openPreview(imgs, idx);
+  }, [openPreview]);
 
   const toggleCat = (cat: string) => {
     setFilCats(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
@@ -207,9 +214,17 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         </View>
         {/* Image thumbnails */}
         {resolvedImgs.length > 0 && (
-          <View style={st.imgThumbs}>
+          <View
+            style={st.imgThumbs}
+            onTouchStart={(e) => { touchStartRef.current = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY }; }}
+            onTouchMove={(e) => {
+              const dx = Math.abs(e.nativeEvent.pageX - touchStartRef.current.x);
+              const dy = Math.abs(e.nativeEvent.pageY - touchStartRef.current.y);
+              if (dx > 5 || dy > 5) scrollingRef.current = true;
+            }}
+            onTouchEnd={() => { setTimeout(() => { scrollingRef.current = false; }, 100); }}>
             {resolvedImgs.map((url: string, j: number) => (
-              <TouchableOpacity key={j} onPress={() => { openPreview(previewImgsList.map((u: string) => resolveAssetUrl(u) || u), j); }} activeOpacity={0.8}>
+              <TouchableOpacity key={j} onPress={() => handleThumbPress(previewImgsList.map((u: string) => resolveAssetUrl(u) || u), j)} activeOpacity={0.8}>
                 <Image source={{ uri: url }} style={st.thumbImg} />
               </TouchableOpacity>
             ))}
