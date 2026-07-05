@@ -285,7 +285,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   // ── Data state for chart / supply / partner ──
   const [chartMonthly, setChartMonthly] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
-  const [procurements, setProcurements] = useState<any[]>([]);
+  const [procurements] = useState<any[]>([]);
   const [businessSummary, setBusinessSummary] = useState<{
     cash_on_hand?: number;
     cumulative_revenue?: number;
@@ -381,9 +381,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const loadProducts = useCallback(async () => {
     try { const p: any = await api.getProducts(); setProducts(p || []); } catch { setToast(t('toastLoadFailed')); }
   }, []);
-  const loadProcurements = useCallback(async () => {
-    try { const p: any = await api.getProcurements(); setProcurements(p || []); } catch { setToast(t('toastLoadFailed')); }
-  }, []);
+  const loadProcurements = useCallback(async () => {}, []);
 
   useEffect(() => { loadLast7(); loadYesterday(); loadWeekTotals(); loadBusinessSummary(); }, [loadLast7, loadYesterday, loadWeekTotals, loadBusinessSummary]);
 
@@ -393,7 +391,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
 
   useEffect(() => {
     if (tab === 'chart') { loadChartMonthly(); loadBusinessSummary(); }
-    if (tab === 'supply') { loadProducts(); loadProcurements(); }
+    if (tab === 'supply') { loadProducts(); }
   }, [tab, loadChartMonthly, loadBusinessSummary, loadProducts, loadProcurements]);
 
   // Check admin status (for User Management nav). Non-blocking — failure just means non-admin.
