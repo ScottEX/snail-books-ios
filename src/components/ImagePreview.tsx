@@ -275,6 +275,7 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange }: 
       maximumZoomScale={4}
       minimumZoomScale={1}
       bouncesZoom={false}
+      centerContent
       showsVerticalScrollIndicator={false}
       showsHorizontalScrollIndicator={false}
       directionalLockEnabled
