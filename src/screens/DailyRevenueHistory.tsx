@@ -159,6 +159,7 @@ export default function DailyRevenueHistory({ onBack }: Props) {
           <EmptyState
             icon={<RevenueEmptyIcon color={colors.textSub} />}
             title={t('revEmpty')}
+            hint={t('revEmptyHint')}
           />
         ) : (
           <>
