@@ -11,7 +11,7 @@ import { api, resolveAssetUrl } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import ButtonPair from '../components/ButtonPair';
-import Toast from '../components/Toast';
+import { useToast } from '../hooks/useToast';
 import ConfirmModal from '../components/ConfirmModal';
 import CategoryChips from '../components/CategoryChips';
 import PaymentMethodChips from '../components/PaymentMethodChips';
@@ -25,6 +25,7 @@ import ImagePreview from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
 import ReceiptUpload from '../components/ReceiptUpload';
 import { useSwipeBack } from '../hooks/useSwipeBack';
+import { useServerDate } from '../hooks/useServerDate';
 
 /* ── Date helpers ── */
 const fmtLocalDate = (s: string, lang: string) => {
@@ -37,14 +38,7 @@ const fmtLocalDate = (s: string, lang: string) => {
   return `${y}年${m}月${d}日`;
 };
 
-const todayStr = () => {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-};
-
+/* ── Date helpers ── */
 const fmtCreatedAt = (raw: string, lang: string) => {
   if (!raw) return '—';
   const d = new Date(raw.endsWith('Z') ? raw : raw + 'Z');
@@ -85,6 +79,7 @@ interface Props {
 
 export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDeleted }: Props) {
   const { colors: c, theme } = useTheme();
+  const sd = useServerDate();
   const lang = getLang();
   const { width: w } = useWindowDimensions();
   const swipeBack = useSwipeBack(onBack);
@@ -97,13 +92,13 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showSavedConfirm, setShowSavedConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState('');
-  const [toast, setToast] = useState('');
+  const { showToast, ToastHost } = useToast();
   const { preview, openPreview, closePreview } = useImagePreview();
 
   const [category, setCategory] = useState(expense?.category || 'daily');
   const [account, setAccount] = useState(expense?.account || 'payWechat');
   const [amount, setAmount] = useState(toDec2(Math.abs(Number(expense?.amount || 0))));
-  const [date, setDate] = useState(expense?.date || expense?.created_at?.slice(0, 10) || todayStr());
+  const [date, setDate] = useState(expense?.date || expense?.created_at?.slice(0, 10) || sd.today);
   const [note, setNote] = useState(expense?.note || '');
   const [images, setImages] = useState<string[]>(parseImages(expense?.images));
   const [thumbImages, setThumbImages] = useState<string[]>(parseImages(expense?.thumb_images));
@@ -113,7 +108,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
     category !== (expense?.category || 'daily') ||
     account !== (expense?.account || 'payWechat') ||
     amount !== toDec2(Math.abs(Number(expense?.amount || 0))) ||
-    date !== (expense?.date || expense?.created_at?.slice(0, 10) || todayStr()) ||
+    date !== (expense?.date || expense?.created_at?.slice(0, 10) || sd.today) ||
     note !== (expense?.note || '') ||
     JSON.stringify(images) !== JSON.stringify(parseImages(expense?.images)) ||
     JSON.stringify(thumbImages) !== JSON.stringify(parseImages(expense?.thumb_images)) ||
@@ -138,7 +133,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
 
   const handleSave = async () => {
     const absAmt = parseFloat(amount) || Math.abs(Number(expense?.amount || 0));
-    if (!absAmt || absAmt <= 0) { setToast(t('enterAmount')); return; }
+    if (!absAmt || absAmt <= 0) { showToast(t('enterAmount')); return; }
     const amt = absAmt * (Number(expense?.amount || 0) < 0 ? -1 : 1);
     setSaving(true);
     try {
@@ -147,7 +142,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
       if (newFiles.length > 0) {
         const uploadRes: any = await api.uploadExpenseImages(newFiles);
         if (uploadRes?.status !== 'ok') {
-          setToast(t('uploadFailed'));
+          showToast(t('uploadFailed'));
           setSaving(false);
           return;
         }
@@ -172,7 +167,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
       setShowSavedConfirm(true);
       onSaved?.();
     } catch (e: any) {
-      setToast(e?.message || t('errNetworkError'));
+      showToast(e?.message || t('errNetworkError'));
     } finally {
       setSaving(false);
     }
@@ -393,7 +388,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
                 <DatePicker
                   date={date}
                   onChange={setDate}
-                  max={todayStr()}
+                  max={sd.today}
                   displayDate={fmtLocalDate(date, lang)}
                   fontSize={FONTS.sub.size}
                   color={c.textSub}
@@ -435,7 +430,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
               setCategory(expense?.category || 'daily');
               setAccount(expense?.account || 'payWechat');
               setAmount(toDec2(Math.abs(Number(expense?.amount || 0))));
-              setDate(expense?.date || expense?.created_at?.slice(0, 10) || todayStr());
+              setDate(expense?.date || expense?.created_at?.slice(0, 10) || sd.today);
               setNote(expense?.note || '');
               setImages(parseImages(expense?.images));
               setThumbImages(parseImages(expense?.thumb_images));
@@ -491,7 +486,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
         onClose={closePreview}
       />
 
-      <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
+      {ToastHost}
     </View>
   );
 }
