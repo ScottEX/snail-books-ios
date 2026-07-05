@@ -6,6 +6,7 @@ import {
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path } from 'react-native-svg';
 import { t, getLang } from '../i18n';
+import { trCategory, trPayment } from '../i18nHelpers';
 import { fmtDecInput, toDec2 } from '../utils/numbers';
 import { api, resolveAssetUrl } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
@@ -56,27 +57,15 @@ const fmtCreatedAt = (raw: string, lang: string) => {
   return `${y}年${mo}月${day}日 ${h}:${mi}:${s}`;
 };
 
-/* Category / payment label maps (mirrors i18nHelpers.trCategory/trPayment) */
-const CATEGORY_MAP: Record<string, string> = {
-  daily: '日常', rent: '房租', salary: '薪资', goods: '采购',
-  '日常': '日常', '房租': '房租', '薪资': '薪资', '采购': '采购',
-};
-const PAYMENT_MAP: Record<string, string> = {
-  payCash: '现金', payWechat: '微信', payAlipay: '支付宝',
-  '现金': '现金', '微信': '微信', '支付宝': '支付宝',
-};
-const trCategory = (k: string) => CATEGORY_MAP[k] || k || '—';
-const trPayment = (k: string) => PAYMENT_MAP[k] || k || '—';
-
 /* ── Props ── */
 interface Props {
   expense: any;
   onBack: () => void;
-  onSaved: () => void;
+  onEdited: () => void;
   onDeleted: () => void;
 }
 
-export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDeleted }: Props) {
+export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDeleted }: Props) {
   const { colors: c, theme } = useTheme();
   const sd = useServerDate();
   const lang = getLang();
@@ -164,7 +153,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
       setNewFiles([]);
       setEditMode(false);
       setShowSavedConfirm(true);
-      onSaved?.();
+      onEdited?.();
     } catch (e: any) {
       showToast(e?.message || t('errNetworkError'));
     } finally {

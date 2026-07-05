@@ -561,7 +561,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           <ExpenseDetailScreen
             expense={showExpenseDetail}
             onBack={onBack}
-            onSaved={() => { setExpenseRefreshKey(k => k + 1); }}
+            onEdited={() => { setExpenseRefreshKey(k => k + 1); }}
             onDeleted={() => { setShowExpenseDetail(null); setExpenseRefreshKey(k => k + 1); }}
           />
         ) : null}
