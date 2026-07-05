@@ -305,6 +305,8 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
             onZoomChange(true);
           } else if (!isZoomed && zoomedRef.current) {
             zoomedRef.current = false;
+            reachedLeftEdge.current = false;
+            reachedRightEdge.current = false;
             requestAnimationFrame(() => onZoomChange(false));
           }
         }}
@@ -315,7 +317,7 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
         }}
         onScrollEndDrag={() => {
           isInteracting.current = false;
-          if (reachedLeftEdge.current || reachedRightEdge.current) {
+          if (zoomedRef.current && (reachedLeftEdge.current || reachedRightEdge.current)) {
             // Unlock + bump key for native zoom reset, then page change
             zoomedRef.current = false;
             onZoomChange(false);
