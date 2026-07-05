@@ -31,16 +31,6 @@ export function useExpenseForm(options: UseExpenseFormOptions) {
   const [loadingExp, setLoadingExp] = useState(false);
 
   /* ── image helpers ── */
-  const validateImages = useCallback((files: any[]) => {
-    const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
-    return files.filter(f => {
-      if (!ALLOWED.includes(f.type || '')) return false;
-      if ((f.size || 0) > 10 * 1024 * 1024) return false;
-      if (expImages.some((ei: any) => ei.name === f.name && ei.size === f.size)) return false;
-      return true;
-    });
-  }, [expImages]);
-
   const removeImage = useCallback((idx: number) => {
     setExpImages(prev => {
       if (prev[idx]) revokePreviewUrl(prev[idx]);
@@ -58,10 +48,9 @@ export function useExpenseForm(options: UseExpenseFormOptions) {
     try {
       let imageUrls: string[] = [];
       let thumbUrls: string[] = [];
-      const validImages = validateImages(expImages);
-      if (validImages.length > 0) {
+      if (expImages.length > 0) {
         setUploadingImg(true);
-        const result = await api.uploadExpenseImages(validImages);
+        const result = await api.uploadExpenseImages(expImages);
         setUploadingImg(false);
         if (result.status !== 'ok') {
           onToast(t('uploadFailed'));
@@ -97,7 +86,7 @@ export function useExpenseForm(options: UseExpenseFormOptions) {
     setLoadingExp(false);
   }, [
     expAmount, expDate, expImages, expCategory, payMethod, expNote,
-    isRefund, sd, validateImages, clearUrlCache, onExpenseHistory, onExpenseAdded, onToast,
+    isRefund, sd, clearUrlCache, onExpenseHistory, onExpenseAdded, onToast,
   ]);
 
   /* ── derived ── */
