@@ -188,7 +188,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
 
   cartBar: {
     position: 'absolute' as const, bottom: 68, left: 0, right: 0, zIndex: 100,
-    marginHorizontal: 12, backgroundColor: withAlpha(c.surface, 0.65), borderRadius: 14, overflow: 'hidden' as const,
+    marginHorizontal: 12, backgroundColor: withAlpha(c.surface, 0.65), borderRadius: 14,
     borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
   },
   cartPreview: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, padding: 12 },
@@ -874,12 +874,14 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
           {cartCount > 0 && (
             <View style={styles.cartBar}>
-              <BlurView
-                intensity={70}
-                tint="regular"
-                style={[StyleSheet.absoluteFill, { borderRadius: 14 }]}
-                pointerEvents="none"
-              />
+              <View style={{ ...StyleSheet.absoluteFill, borderRadius: 14, overflow: 'hidden' } as any}>
+                <BlurView
+                  intensity={70}
+                  tint="regular"
+                  style={StyleSheet.absoluteFill}
+                  pointerEvents="none"
+                />
+              </View>
               <TouchableOpacity style={styles.cartPreview} onPress={() => { setShowDrawer(true); onDrawerOpen?.(); }} activeOpacity={0.8}>
                 <View style={[styles.cartIconWrap, { backgroundColor: c.primary }]}>
                   <CartIcon color={c.surface} />
