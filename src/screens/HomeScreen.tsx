@@ -562,7 +562,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             expense={showExpenseDetail}
             onBack={onBack}
             onEdited={() => { setExpenseRefreshKey(k => k + 1); }}
-            onDeleted={() => { setShowExpenseDetail(null); setExpenseRefreshKey(k => k + 1); }}
+            onDeleted={() => { setExpenseRefreshKey(k => k + 1); }}
           />
         ) : null}
       </SlideScreen>
