@@ -329,7 +329,7 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
           }
         }}
       >
-        <Image source={src} style={{ width: windowW, height: windowH * 0.9 }} contentFit="contain" cachePolicy="disk" />
+        <Image source={src} style={{ width: windowW, height: windowH * 0.9 }} contentFit="contain" cachePolicy="memory" />
       </ScrollView>
     </View>
   );
