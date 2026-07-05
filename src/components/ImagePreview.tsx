@@ -466,7 +466,7 @@ function ZoomableImage({
 
 const styles = StyleSheet.create({
   overlay: {
-    position: 'fixed' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 999,
+    position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 999,
     backgroundColor: 'rgba(0,0,0,0.85)',
   },
   scrollView: { flex: 1 },
