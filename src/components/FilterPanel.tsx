@@ -50,12 +50,7 @@ export default function FilterPanel({ visible, onClose, children, style }: Filte
   return (
     <>
       {/* Backdrop */}
-      <Animated.View
-        style={[
-          st.backdrop,
-          { opacity: anim },
-        ]}
-      >
+      <Animated.View style={[st.backdrop, { opacity: anim }]}>
         <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={close} />
       </Animated.View>
 
@@ -69,18 +64,8 @@ export default function FilterPanel({ visible, onClose, children, style }: Filte
           zIndex: 9999,
           opacity: anim,
           transform: [
-            {
-              translateY: anim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [16, 0],
-              }),
-            },
-            {
-              scale: anim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.96, 1],
-              }),
-            },
+            { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) },
+            { scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) },
           ],
         }}
       >
