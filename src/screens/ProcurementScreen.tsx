@@ -874,7 +874,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
           {cartCount > 0 && (
             <View style={styles.cartBar}>
-              <View style={{ ...StyleSheet.absoluteFill, borderRadius: 14, overflow: 'hidden' } as any}>
+              <View style={{ position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0, borderRadius: 14, overflow: 'hidden' as const } as any}>
                 <BlurView
                   intensity={40}
                   tint="regular"
@@ -1244,10 +1244,10 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
         animation="stagger"
         staggerCount={3}
         overlayStyle={{ justifyContent: 'center', padding: 0, alignItems: 'stretch' } as any}
-        contentStyle={{ alignItems: 'stretch' as const, flex: 1 } as any}
+        contentStyle={{ alignItems: 'stretch' } as any}
       >
         {(anims) => (
-          <View style={[styles.itemsModalCard, { width: '90%', maxWidth: 768 * 0.9, maxHeight: Dimensions.get('window').height * 0.6, alignSelf: 'center', flex: 1 } as any]}>
+          <View style={[styles.itemsModalCard, { width: '90%', maxWidth: 768 * 0.9, maxHeight: Dimensions.get('window').height * 0.6, alignSelf: 'center' } as any]}>
             <Animated.View style={{
               opacity: anims[0],
               transform: [{ translateY: anims[0].interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }]
@@ -1273,10 +1273,9 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
             <Animated.View style={{
               opacity: anims[1],
               transform: [{ translateY: anims[1].interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
-              flex: 1, minHeight: 0,
             }}>
             {itemsModalIsCart && itemsModalView === 'products' ? (
-              <View style={{ flex: 1, minHeight: 0 }}>
+              <View>
                 <View style={{ paddingHorizontal: 18, paddingTop: 0, paddingBottom: 8 }}>
                   <TextInput
                     value={productPickerSearch}
@@ -1290,7 +1289,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                   />
                 </View>
                 <View style={styles.itemsModalBodyWrap}>
-                  <ScrollView style={{ flex: 1, minHeight: 0, paddingHorizontal: 18 }} showsVerticalScrollIndicator={false}>
+                  <ScrollView style={{ paddingHorizontal: 18, maxHeight: Math.max(120, Dimensions.get('window').height * 0.6 - 180) }} showsVerticalScrollIndicator={false}>
                     {products
                       .filter(p => !productPickerSearch || p.name.includes(productPickerSearch) || (p.supplier || '').includes(productPickerSearch))
                       .map((p, idx, arr) => {
@@ -1330,9 +1329,9 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                 </View>
               </View>
             ) : (
-              <View style={{ flex: 1, minHeight: 0 }}>
+              <View>
                 <View style={styles.itemsModalBodyWrap}>
-                  <ScrollView style={{ flex: 1, minHeight: 0, paddingHorizontal: 18 }} showsVerticalScrollIndicator={false}>
+                  <ScrollView style={{ paddingHorizontal: 18, maxHeight: Math.max(120, Dimensions.get('window').height * 0.6 - 180) }} showsVerticalScrollIndicator={false}>
                     {cartItems.length === 0 ? (
                       <View style={{ padding: 24, alignItems: 'center' }}>
                         <Text style={{ color: c.textSub, fontSize: FONTS.micro.size }}>—</Text>
