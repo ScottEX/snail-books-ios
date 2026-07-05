@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Animated, PanResponder, StatusBar, Dimensions } from 'react-native';
-import { BlurView } from 'expo-blur';
 import Svg, { Path, Line } from 'react-native-svg';
 import { t, getLang } from '../i18n';
 import { api } from '../api/client';
@@ -191,48 +190,46 @@ export default function ReconHistoryScreen({ onBack }: Props) {
         onToggleFilter={() => setShowFilter(!showFilter)}
       />
 
-      {/* Filter panel — dark glass via FilterPanel + BlurView */}
+      {/* Filter — dark glass via FilterPanel (BlurView inside) */}
       <FilterPanel visible={showFilter} onClose={closeFilter}>
-        <BlurView intensity={45} tint="dark" style={{ borderRadius: 10, margin: -12, padding: 12 }}>
-          <DateErrorHint trigger={filterDateError} message={t('errDateFuture')} color={colors.danger} />
-          {rangeInvalid && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right', marginTop: 2 }}>{t('errDateRange')}</Text>}
-          {rangeTooLong && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right', marginTop: 2 }}>{t('errDateRangeTooLong')}</Text>}
-          <View style={st.filterField}>
-            <Text style={st.filterLabel}>{t('reconDate')}</Text>
-            <View style={st.filterDateRange}>
-              <TouchableOpacity style={st.filterDateChip} onPress={() => setDatePickTarget('from')} activeOpacity={0.7}>
-                <Text style={st.filterDateText}>{filDateFrom ? fmtDate(filDateFrom) : t('any')}</Text>
-              </TouchableOpacity>
-              <Text style={{ color: '#FFFFFF' }}>→</Text>
-              <TouchableOpacity style={st.filterDateChip} onPress={() => setDatePickTarget('to')} activeOpacity={0.7}>
-                <Text style={st.filterDateText}>{filDateTo ? fmtDate(filDateTo) : t('any')}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-          <View style={st.filterField}>
-            <Text style={st.filterLabel}>{t('reconciledBy')}</Text>
-            <View style={st.filterSelectWrap}>
-              <TouchableOpacity style={{ flex: 1, justifyContent: 'center' }} onPress={openUserDrop} activeOpacity={0.7}>
-                <Text style={st.filterSelectText}>{filBy || t('any')}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-          <View style={st.filterActions}>
-            <TouchableOpacity style={st.filterResetBtn} onPress={resetFilters} activeOpacity={0.7}>
-              <Text style={st.filterResetBtnText}>{t('reset')}</Text>
+        <DateErrorHint trigger={filterDateError} message={t('errDateFuture')} color={colors.danger} />
+        {rangeInvalid && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right', marginTop: 2 }}>{t('errDateRange')}</Text>}
+        {rangeTooLong && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right', marginTop: 2 }}>{t('errDateRangeTooLong')}</Text>}
+        <View style={st.filterField}>
+          <Text style={st.filterLabel}>{t('reconDate')}</Text>
+          <View style={st.filterDateRange}>
+            <TouchableOpacity style={st.filterDateChip} onPress={() => setDatePickTarget('from')} activeOpacity={0.7}>
+              <Text style={st.filterDateText}>{filDateFrom ? fmtDate(filDateFrom) : t('any')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[st.filterApplyBtn, (rangeInvalid || rangeTooLong) && st.filterApplyBtnDisabled]}
-              disabled={rangeInvalid || rangeTooLong}
-              onPress={() => { setAppliedFrom(filDateFrom); setAppliedTo(filDateTo); setAppliedBy(filBy); closeFilter(); }}
-              activeOpacity={0.8}
-            >
-              <Text style={[st.filterApplyBtnText, (rangeInvalid || rangeTooLong) && st.filterApplyBtnTextDisabled]}>
-                {t('apply')}
-              </Text>
+            <Text style={{ color: '#FFFFFF' }}>→</Text>
+            <TouchableOpacity style={st.filterDateChip} onPress={() => setDatePickTarget('to')} activeOpacity={0.7}>
+              <Text style={st.filterDateText}>{filDateTo ? fmtDate(filDateTo) : t('any')}</Text>
             </TouchableOpacity>
           </View>
-        </BlurView>
+        </View>
+        <View style={st.filterField}>
+          <Text style={st.filterLabel}>{t('reconciledBy')}</Text>
+          <View style={st.filterSelectWrap}>
+            <TouchableOpacity style={{ flex: 1, justifyContent: 'center' }} onPress={openUserDrop} activeOpacity={0.7}>
+              <Text style={st.filterSelectText}>{filBy || t('any')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        <View style={st.filterActions}>
+          <TouchableOpacity style={st.filterResetBtn} onPress={resetFilters} activeOpacity={0.7}>
+            <Text style={st.filterResetBtnText}>{t('reset')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[st.filterApplyBtn, (rangeInvalid || rangeTooLong) && st.filterApplyBtnDisabled]}
+            disabled={rangeInvalid || rangeTooLong}
+            onPress={() => { setAppliedFrom(filDateFrom); setAppliedTo(filDateTo); setAppliedBy(filBy); closeFilter(); }}
+            activeOpacity={0.8}
+          >
+            <Text style={[st.filterApplyBtnText, (rangeInvalid || rangeTooLong) && st.filterApplyBtnTextDisabled]}>
+              {t('apply')}
+            </Text>
+          </TouchableOpacity>
+        </View>
         {/* User dropdown */}
         {showUserPick && (
           <View style={{ position: 'absolute' as any, top: 96, left: 100, width: 160, zIndex: 10 }}>

@@ -3,7 +3,6 @@ import { View, Text, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, 
 
 
 import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg';
-import { BlurView } from 'expo-blur';
 import { t, getLang } from '../i18n';
 import { api, resolveAssetUrl } from '../api/client';
 import { useServerDate } from '../hooks/useServerDate';
@@ -234,11 +233,8 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         onToggleFilter={() => setShowFilter(!showFilter)}
       />
 
-      {/* Filter panel — shared FilterPanel for backdrop, BlurView inside for iOS frosted look */}
-      <FilterPanel visible={showFilter} onClose={() => setShowFilter(false)} style={{ backgroundColor: 'transparent', borderWidth: 0 }}>
-        <View style={{ margin: -12 }}>
-        <BlurView intensity={45} tint="dark" style={{ borderRadius: 10, overflow: 'hidden' }}>
-          <View style={{ padding: 12, gap: 8 }}>
+      {/* Filter — dark glass via FilterPanel (BlurView inside) */}
+      <FilterPanel visible={showFilter} onClose={() => setShowFilter(false)}>
         {rangeInvalid && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right' }}>{t('errDateRange')}</Text>}
         {rangeTooLong && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right' }}>{t('errDateRangeTooLong')}</Text>}
         <View style={st.filterField}>
@@ -253,7 +249,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
             </TouchableOpacity>
           </View>
         </View>
-        {/* Quick date buttons — 3-language adapted */}
+        {/* Quick date buttons */}
         <View style={st.filterField}>
           <Text style={st.filterLabel}>　</Text>
           <View style={st.filterChipRow}>
@@ -311,9 +307,6 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
             }} activeOpacity={0.8}>
             <Text style={[st.filterApplyBtnText, (rangeInvalid || rangeTooLong) && st.filterApplyBtnTextDisabled]}>{t('apply')}</Text>
           </TouchableOpacity>
-        </View>
-          </View>
-        </BlurView>
         </View>
       </FilterPanel>
 
