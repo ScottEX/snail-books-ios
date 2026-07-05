@@ -1203,9 +1203,15 @@ function DailyRevenueView(p: DailyRevProps) {
                   </View>
                 </View>
                 <View style={styles.rev7CardFooter}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                     <Text style={styles.rev7CardFooterText}>{t('recordedBy')}:</Text>
-                    <Text style={styles.rev7CardFooterText}>{rec.recorded_by || '—'}</Text>
+                    {rec.recorded_by ? (
+                      <Text style={styles.rev7CardFooterText}>{rec.recorded_by}</Text>
+                    ) : (
+                      <Svg width={16} height={8} viewBox="0 0 16 8" fill="none" stroke={colors.secondary} strokeWidth={1.5} strokeLinecap="round">
+                        <Path d="M2 4h12" />
+                      </Svg>
+                    )}
                   </View>
                 </View>
                 {rec.note ? <View style={styles.rev7CardNote}><Text style={styles.rev7CardNoteText}>{rec.note}</Text></View> : null}
