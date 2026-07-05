@@ -1,6 +1,7 @@
 import { View, TouchableOpacity, Animated, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useTheme, withAlpha, ThemeColors, BACKDROP_COLOR } from '../theme';
+import { BlurView } from 'expo-blur';
+import { BACKDROP_COLOR } from '../theme';
 
 interface FilterPanelProps {
   visible: boolean;
@@ -11,8 +12,7 @@ interface FilterPanelProps {
 
 export default function FilterPanel({ visible, onClose, children, style }: FilterPanelProps) {
   const anim = useRef(new Animated.Value(0)).current;
-  const { colors: c } = useTheme();
-  const st = getStyles(c);
+  const st = getStyles();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -69,17 +69,17 @@ export default function FilterPanel({ visible, onClose, children, style }: Filte
           ],
         }}
       >
-        <View style={[st.panel, style]}>
+        <BlurView intensity={45} tint="dark" style={[st.panel, style]}>
           <View style={st.content}>
             {children}
           </View>
-        </View>
+        </BlurView>
       </Animated.View>
     </>
   );
 }
 
-const getStyles = (c: ThemeColors) =>
+const getStyles = () =>
   StyleSheet.create({
     backdrop: {
       position: 'absolute' as any,
@@ -91,14 +91,13 @@ const getStyles = (c: ThemeColors) =>
       zIndex: 9998,
     },
     panel: {
-      backgroundColor: c.surface,
-      borderRadius: 10,
-      borderWidth: 1,
-      borderColor: c.secondary,
+      borderRadius: 16,
+      borderWidth: 0.5,
+      borderColor: 'rgba(255,255,255,0.12)',
       overflow: 'hidden' as any,
     },
     content: {
-      padding: 12,
+      padding: 16,
       gap: 8,
     },
   });
