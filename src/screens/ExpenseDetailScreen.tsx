@@ -30,12 +30,12 @@ import { useServerDate } from '../hooks/useServerDate';
 /* ── Date helpers ── */
 const fmtLocalDate = (s: string, lang: string) => {
   if (!s) return '—';
-  const [y, m, d] = s.split('-');
+  const [y, m, day] = s.split('-');
   if (lang.startsWith('en')) {
-    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    return `${months[+m - 1]} ${+d}, ${y}`;
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${months[+m - 1]} ${+day}, ${y}`;
   }
-  return `${y}年${m}月${d}日`;
+  return `${y}年${+m}月${+day}日`;
 };
 
 /* ── Date helpers ── */
@@ -89,6 +89,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showSavedConfirm, setShowSavedConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState('');
   const { showToast, ToastHost } = useToast();
   const { preview, openPreview, closePreview } = useImagePreview();
@@ -162,8 +163,8 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
       setThumbImages(finalThumbs);
       setNewFiles([]);
       setEditMode(false);
+      setShowSavedConfirm(true);
       onSaved?.();
-      onBack();
     } catch (e: any) {
       showToast(e?.message || t('errNetworkError'));
     } finally {
@@ -466,6 +467,14 @@ export default function ExpenseDetailScreen({ expense, onBack, onSaved, onDelete
         loading={deleting}
         onConfirm={handleDelete}
         onCancel={() => { setShowDeleteConfirm(false); setDeleteError(''); }} />
+
+      {/* Save success confirm */}
+      <ConfirmModal visible={showSavedConfirm}
+        title={t('expUpdated')}
+        message={t('expSavedMsg')}
+        confirmLabel={t('backToList')} cancelLabel={t('stayPage')}
+        onConfirm={() => { setShowSavedConfirm(false); onBack(); }}
+        onCancel={() => setShowSavedConfirm(false)} />
 
       {/* Image preview */}
       <ImagePreview
