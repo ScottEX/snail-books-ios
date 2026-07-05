@@ -635,7 +635,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         ) : isHome && tab === 'supply' ? (
           <ProcurementScreen />
         ) : isHome && (
-        <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false} bounces={false}>
+        <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false}>
 
           {tab === 'list' ? (
             <DailyRevenueView
