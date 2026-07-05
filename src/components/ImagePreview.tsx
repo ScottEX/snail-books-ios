@@ -486,21 +486,20 @@ function NativeZoomableImage({
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const scaleRef = useRef(1);
   const offRef = useRef({ x: 0, y: 0 });
-  const pinchBase = useRef({ dist: 0, scale: 1, cx: 0, cy: 0 });
-  const panBase = useRef({ x: 0, y: 0 });
+  const pinchBase = useRef({ dist: 0, scale: 1 });
+  const panStart = useRef({ x: 0, y: 0, offX: 0, offY: 0 });
   const lastTap = useRef(0);
   const imgSize = useRef({ w: 0, h: 0 });
-
-  const zoomed = scaleRef.current > 1.005;
 
   const computeBounds = useCallback(() => {
     const { w, h } = imgSize.current;
     if (!w || !h) return { maxX: 0, maxY: 0 };
     const fitted = getFittedSize(w, h, windowW, windowH);
     const s = scaleRef.current;
-    const maxX = Math.max(0, (fitted.w * s - windowW) / 2);
-    const maxY = Math.max(0, (fitted.h * s - windowH) / 2);
-    return { maxX, maxY };
+    return {
+      maxX: Math.max(0, (fitted.w * s - windowW) / 2),
+      maxY: Math.max(0, (fitted.h * s - windowH) / 2),
+    };
   }, [windowW, windowH]);
 
   const resetZoom = useCallback(() => {
@@ -511,106 +510,85 @@ function NativeZoomableImage({
     onZoomActive(false);
   }, [onZoomActive]);
 
-  const panResponder = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: (_, gs) => {
-      if (gs.numberActiveTouches >= 2) return true;
-      if (zoomed && Math.abs(gs.dx) > 4 || Math.abs(gs.dy) > 4) return true;
-      return false;
-    },
-    onPanResponderGrant: (e) => {
-      const ts = e.nativeEvent.touches ?? [];
-      if (ts.length >= 2) {
-        const dx = ts[0].pageX - ts[1].pageX;
-        const dy = ts[0].pageY - ts[1].pageY;
-        pinchBase.current = {
-          dist: Math.hypot(dx, dy),
-          scale: scaleRef.current,
-          cx: (ts[0].pageX + ts[1].pageX) / 2,
-          cy: (ts[0].pageY + ts[1].pageY) / 2,
-        };
-        onZoomActive(true);
-      } else {
-        panBase.current = { x: offRef.current.x, y: offRef.current.y };
-      }
-    },
-    onPanResponderMove: (e, gs) => {
-      const ts = e.nativeEvent.touches ?? [];
-      if (ts.length >= 2) {
-        const dx = ts[0].pageX - ts[1].pageX;
-        const dy = ts[0].pageY - ts[1].pageY;
-        const dist = Math.hypot(dx, dy);
-        if (pinchBase.current.dist > 0) {
-          const s = Math.max(1, Math.min(MAX_ZOOM, pinchBase.current.scale * (dist / pinchBase.current.dist)));
-          scaleRef.current = s;
-          setScale(s);
-          const { maxX, maxY } = computeBounds();
-          const cx = offRef.current.x;
-          const cy = offRef.current.y;
-          const nx = Math.max(-maxX, Math.min(maxX, cx));
-          const ny = Math.max(-maxY, Math.min(maxY, cy));
-          if (nx !== cx || ny !== cy) {
-            offRef.current = { x: nx, y: ny };
-            setOffset({ x: nx, y: ny });
-          }
-        }
-      } else if (zoomed) {
-        const nx = panBase.current.x + gs.dx;
-        const ny = panBase.current.y + gs.dy;
-        const { maxX, maxY } = computeBounds();
-        const clampedX = clampResist(nx, -maxX, maxX);
-        const clampedY = clampResist(ny, -maxY, maxY);
+  const handleTouchStart = useCallback((e: any) => {
+    const ts: any[] = e.nativeEvent.touches ?? e.nativeEvent.changedTouches ?? [];
+    if (ts.length >= 2) {
+      const dx = ts[0].pageX - ts[1].pageX;
+      const dy = ts[0].pageY - ts[1].pageY;
+      pinchBase.current = { dist: Math.hypot(dx, dy), scale: scaleRef.current };
+      onZoomActive(true);
+    } else if (scaleRef.current > 1.005 && ts.length === 1) {
+      panStart.current = { x: ts[0].pageX, y: ts[0].pageY, offX: offRef.current.x, offY: offRef.current.y };
+    }
+  }, [onZoomActive]);
+
+  const handleTouchMove = useCallback((e: any) => {
+    const ts: any[] = e.nativeEvent.touches ?? e.nativeEvent.changedTouches ?? [];
+    if (ts.length >= 2 && pinchBase.current.dist > 0) {
+      const dx = ts[0].pageX - ts[1].pageX;
+      const dy = ts[0].pageY - ts[1].pageY;
+      const dist = Math.hypot(dx, dy);
+      const s = Math.max(1, Math.min(MAX_ZOOM, pinchBase.current.scale * (dist / pinchBase.current.dist)));
+      scaleRef.current = s;
+      setScale(s);
+      const { maxX, maxY } = computeBounds();
+      const nx = Math.max(-maxX, Math.min(maxX, offRef.current.x));
+      const ny = Math.max(-maxY, Math.min(maxY, offRef.current.y));
+      if (nx !== offRef.current.x || ny !== offRef.current.y) {
         offRef.current = { x: nx, y: ny };
-        setOffset({ x: clampedX, y: clampedY });
+        setOffset({ x: nx, y: ny });
       }
-    },
-    onPanResponderRelease: (e) => {
-      const ts = e.nativeEvent.touches ?? [];
-      if (ts.length === 0) {
-        const now = Date.now();
-        if (now - lastTap.current < DOUBLE_TAP_MS) {
-          if (zoomed) {
-            scaleRef.current = 1;
-            setScale(1);
-            setOffset({ x: 0, y: 0 });
-            offRef.current = { x: 0, y: 0 };
-            onZoomActive(false);
-          } else {
-            scaleRef.current = DOUBLE_TAP_ZOOM;
-            setScale(DOUBLE_TAP_ZOOM);
-          }
-          lastTap.current = 0;
+    } else if (scaleRef.current > 1.005 && ts.length === 1) {
+      const nx = panStart.current.offX + (ts[0].pageX - panStart.current.x);
+      const ny = panStart.current.offY + (ts[0].pageY - panStart.current.y);
+      const { maxX, maxY } = computeBounds();
+      offRef.current = { x: nx, y: ny };
+      setOffset({ x: clampResist(nx, -maxX, maxX), y: clampResist(ny, -maxY, maxY) });
+    }
+  }, [computeBounds]);
+
+  const handleTouchEnd = useCallback((e: any) => {
+    const ts: any[] = e.nativeEvent.touches ?? [];
+    if (ts.length === 0) {
+      const now = Date.now();
+      if (now - lastTap.current < DOUBLE_TAP_MS) {
+        if (scaleRef.current > 1.005) {
+          resetZoom();
         } else {
-          lastTap.current = now;
+          scaleRef.current = DOUBLE_TAP_ZOOM;
+          setScale(DOUBLE_TAP_ZOOM);
         }
-
-        if (scaleRef.current <= 1.005) {
-          scaleRef.current = 1;
-          setScale(1);
-          setOffset({ x: 0, y: 0 });
-          offRef.current = { x: 0, y: 0 };
-          onZoomActive(false);
-          return;
-        }
-
-        const { maxX } = computeBounds();
-        const rawX = offRef.current.x;
-        if (rawX < -maxX - OVERSCROLL_SWIPE) { onSwipeToPage?.(1); resetZoom(); return; }
-        if (rawX > maxX + OVERSCROLL_SWIPE) { onSwipeToPage?.(-1); resetZoom(); return; }
-
-        const { maxY } = computeBounds();
-        const snapX = Math.max(-maxX, Math.min(maxX, offRef.current.x));
-        const snapY = Math.max(-maxY, Math.min(maxY, offRef.current.y));
-        setOffset({ x: snapX, y: snapY });
-        offRef.current = { x: snapX, y: snapY };
+        lastTap.current = 0;
+      } else {
+        lastTap.current = now;
       }
-      onZoomActive(scaleRef.current > 1.005);
-    },
-    onPanResponderTerminate: () => onZoomActive(false),
-  }), [zoomed, computeBounds, onZoomActive, onSwipeToPage, resetZoom]);
+
+      if (scaleRef.current <= 1.005) {
+        resetZoom();
+        return;
+      }
+
+      const { maxX } = computeBounds();
+      const rawX = offRef.current.x;
+      if (rawX < -maxX - OVERSCROLL_SWIPE) { onSwipeToPage?.(1); resetZoom(); return; }
+      if (rawX > maxX + OVERSCROLL_SWIPE) { onSwipeToPage?.(-1); resetZoom(); return; }
+
+      const { maxY } = computeBounds();
+      const snapX = Math.max(-maxX, Math.min(maxX, offRef.current.x));
+      const snapY = Math.max(-maxY, Math.min(maxY, offRef.current.y));
+      setOffset({ x: snapX, y: snapY });
+      offRef.current = { x: snapX, y: snapY };
+    }
+    onZoomActive(scaleRef.current > 1.005);
+  }, [computeBounds, onSwipeToPage, resetZoom, onZoomActive]);
 
   return (
-    <View style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }} {...panResponder.panHandlers}>
+    <View
+      style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       <Image
         source={{ uri: src }}
         onLoad={(e: any) => {
