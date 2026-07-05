@@ -43,6 +43,9 @@ export default function ImagePreview({
   // ── ① Open: fade + scale ──
   useEffect(() => {
     if (!visible) return;
+    setDismissing(false);
+    setScrollLocked(false);
+    zoomActiveRef.current = false;
     overlayOpacity.setValue(0);
     imageScale.setValue(0.92);
     panY.setValue(0);
