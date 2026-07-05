@@ -43,13 +43,12 @@ const fmtCreatedAt = (raw: string, lang: string) => {
   if (!raw) return '—';
   const d = new Date(raw.endsWith('Z') ? raw : raw + 'Z');
   if (isNaN(d.getTime())) return raw.slice(0, 19).replace('T', ' ');
-  const cn = new Date(d.getTime() + 8 * 3600000);
-  const y = cn.getFullYear();
-  const mo = cn.getMonth() + 1;
-  const day = cn.getDate();
-  const h = String(cn.getHours()).padStart(2, '0');
-  const mi = String(cn.getMinutes()).padStart(2, '0');
-  const s = String(cn.getSeconds()).padStart(2, '0');
+  const y = d.getFullYear();
+  const mo = d.getMonth() + 1;
+  const day = d.getDate();
+  const h = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+  const s = String(d.getSeconds()).padStart(2, '0');
   if (lang.startsWith('en')) {
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     return `${months[mo - 1]} ${day}, ${y} ${h}:${mi}:${s}`;
