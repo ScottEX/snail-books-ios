@@ -503,14 +503,14 @@ function NativeImage({ src, windowW, windowH }: { src: string; windowW: number; 
 
   return (
     <View
-      style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+      style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' }}
       onTouchStart={onStart}
       onTouchMove={onMove}
       onTouchEnd={onEnd}
     >
       <Image
         source={{ uri: src }}
-        style={{ width: `${100 * scale}%`, height: `${90 * scale}%`, resizeMode: 'contain' }}
+        style={{ width: '100%', height: '100%', resizeMode: 'contain', transform: [{ scale }] }}
       />
     </View>
   );
