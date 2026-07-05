@@ -801,7 +801,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         visible={showDatePicker}
         value={revDate}
         onClose={() => setShowDatePicker(false)}
-        onSelect={(d) => { if (d <= td) { setRevDate(d); setRevDateErr(0); } }}
+        onSelect={(d) => { if (d > td) { setRevDateErr(c => c + 1); } else { setRevDate(d); setRevDateErr(0); } }}
         title={t('billDate') || '选择日期'}
       />
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
