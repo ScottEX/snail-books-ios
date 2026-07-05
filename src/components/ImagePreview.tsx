@@ -196,7 +196,7 @@ export default function ImagePreview({
               key={i}
               style={[styles.page, { width: WINDOW_W, transform: [{ scale: imageScale }] }]}
             >
-              <NativeZoomableImage src={src} windowW={WINDOW_W} windowH={WINDOW_H} />
+              <NativeZoomableImage src={src} windowW={WINDOW_W} windowH={WINDOW_H} isActive={i === idx} />
             </Animated.View>
           ))}
         </ScrollView>
@@ -244,7 +244,7 @@ function clampResist(val: number, low: number, high: number) {
 //  Pinch / zoomed: claims → handles zoom + pan
 // ═══════════════════════════════════════════════════════════════════════
 
-function NativeZoomableImage({ src, windowW, windowH }: { src: string; windowW: number; windowH: number }) {
+function NativeZoomableImage({ src, windowW, windowH, isActive }: { src: string; windowW: number; windowH: number; isActive: boolean }) {
   const [scale, setScale] = useState(1);
   const scaleRef = useRef(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -253,8 +253,14 @@ function NativeZoomableImage({ src, windowW, windowH }: { src: string; windowW: 
   const touchStart = useRef({ x: 0, y: 0 });
   const lastTap = useRef(0);
 
-  // Reset when src changes (page change)
-  useEffect(() => { scaleRef.current = 1; setScale(1); setOffset({ x: 0, y: 0 }); }, [src]);
+  // Reset zoom when page becomes inactive (user swiped away)
+  const prevActive = useRef(isActive);
+  useEffect(() => {
+    if (!isActive && prevActive.current) {
+      scaleRef.current = 1; setScale(1); setOffset({ x: 0, y: 0 });
+    }
+    prevActive.current = isActive;
+  }, [isActive]);
 
   const panResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => scaleRef.current > 1.01,
