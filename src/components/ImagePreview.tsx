@@ -426,9 +426,12 @@ function ZoomableImage({
 
   if (Platform.OS !== 'web') {
     return (
-      <Image
-        source={{ uri: src }}
-        style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
+      <NativeZoomableImage
+        src={src}
+        windowW={windowW}
+        windowH={windowH}
+        onZoomActive={onZoomActive}
+        onSwipeToPage={onSwipeToPage}
       />
     );
   }
@@ -465,6 +468,163 @@ function ZoomableImage({
         pointerEvents: 'none',
       } as React.CSSProperties,
     })
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  NativeZoomableImage — pinch-to-zoom for iOS/Android (PanResponder)
+// ═══════════════════════════════════════════════════════════════════════
+
+function NativeZoomableImage({
+  src, windowW, windowH, onZoomActive, onSwipeToPage,
+}: {
+  src: string; windowW: number; windowH: number;
+  onZoomActive: (active: boolean) => void;
+  onSwipeToPage?: (direction: -1 | 1) => void;
+}) {
+  const [scale, setScale] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const scaleRef = useRef(1);
+  const offRef = useRef({ x: 0, y: 0 });
+  const pinchBase = useRef({ dist: 0, scale: 1, cx: 0, cy: 0 });
+  const panBase = useRef({ x: 0, y: 0 });
+  const lastTap = useRef(0);
+  const imgSize = useRef({ w: 0, h: 0 });
+
+  const zoomed = scaleRef.current > 1.005;
+
+  const computeBounds = useCallback(() => {
+    const { w, h } = imgSize.current;
+    if (!w || !h) return { maxX: 0, maxY: 0 };
+    const fitted = getFittedSize(w, h, windowW, windowH);
+    const s = scaleRef.current;
+    const maxX = Math.max(0, (fitted.w * s - windowW) / 2);
+    const maxY = Math.max(0, (fitted.h * s - windowH) / 2);
+    return { maxX, maxY };
+  }, [windowW, windowH]);
+
+  const resetZoom = useCallback(() => {
+    scaleRef.current = 1;
+    setScale(1);
+    setOffset({ x: 0, y: 0 });
+    offRef.current = { x: 0, y: 0 };
+    onZoomActive(false);
+  }, [onZoomActive]);
+
+  const panResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, gs) => {
+      if (gs.numberActiveTouches >= 2) return true;
+      if (zoomed && Math.abs(gs.dx) > 4 || Math.abs(gs.dy) > 4) return true;
+      return false;
+    },
+    onPanResponderGrant: (e) => {
+      const ts = e.nativeEvent.touches ?? [];
+      if (ts.length >= 2) {
+        const dx = ts[0].pageX - ts[1].pageX;
+        const dy = ts[0].pageY - ts[1].pageY;
+        pinchBase.current = {
+          dist: Math.hypot(dx, dy),
+          scale: scaleRef.current,
+          cx: (ts[0].pageX + ts[1].pageX) / 2,
+          cy: (ts[0].pageY + ts[1].pageY) / 2,
+        };
+        onZoomActive(true);
+      } else {
+        panBase.current = { x: offRef.current.x, y: offRef.current.y };
+      }
+    },
+    onPanResponderMove: (e, gs) => {
+      const ts = e.nativeEvent.touches ?? [];
+      if (ts.length >= 2) {
+        const dx = ts[0].pageX - ts[1].pageX;
+        const dy = ts[0].pageY - ts[1].pageY;
+        const dist = Math.hypot(dx, dy);
+        if (pinchBase.current.dist > 0) {
+          const s = Math.max(1, Math.min(MAX_ZOOM, pinchBase.current.scale * (dist / pinchBase.current.dist)));
+          scaleRef.current = s;
+          setScale(s);
+          const { maxX, maxY } = computeBounds();
+          const cx = offRef.current.x;
+          const cy = offRef.current.y;
+          const nx = Math.max(-maxX, Math.min(maxX, cx));
+          const ny = Math.max(-maxY, Math.min(maxY, cy));
+          if (nx !== cx || ny !== cy) {
+            offRef.current = { x: nx, y: ny };
+            setOffset({ x: nx, y: ny });
+          }
+        }
+      } else if (zoomed) {
+        const nx = panBase.current.x + gs.dx;
+        const ny = panBase.current.y + gs.dy;
+        const { maxX, maxY } = computeBounds();
+        const clampedX = clampResist(nx, -maxX, maxX);
+        const clampedY = clampResist(ny, -maxY, maxY);
+        offRef.current = { x: nx, y: ny };
+        setOffset({ x: clampedX, y: clampedY });
+      }
+    },
+    onPanResponderRelease: (e) => {
+      const ts = e.nativeEvent.touches ?? [];
+      if (ts.length === 0) {
+        const now = Date.now();
+        if (now - lastTap.current < DOUBLE_TAP_MS) {
+          if (zoomed) {
+            scaleRef.current = 1;
+            setScale(1);
+            setOffset({ x: 0, y: 0 });
+            offRef.current = { x: 0, y: 0 };
+            onZoomActive(false);
+          } else {
+            scaleRef.current = DOUBLE_TAP_ZOOM;
+            setScale(DOUBLE_TAP_ZOOM);
+          }
+          lastTap.current = 0;
+        } else {
+          lastTap.current = now;
+        }
+
+        if (scaleRef.current <= 1.005) {
+          scaleRef.current = 1;
+          setScale(1);
+          setOffset({ x: 0, y: 0 });
+          offRef.current = { x: 0, y: 0 };
+          onZoomActive(false);
+          return;
+        }
+
+        const { maxX } = computeBounds();
+        const rawX = offRef.current.x;
+        if (rawX < -maxX - OVERSCROLL_SWIPE) { onSwipeToPage?.(1); resetZoom(); return; }
+        if (rawX > maxX + OVERSCROLL_SWIPE) { onSwipeToPage?.(-1); resetZoom(); return; }
+
+        const { maxY } = computeBounds();
+        const snapX = Math.max(-maxX, Math.min(maxX, offRef.current.x));
+        const snapY = Math.max(-maxY, Math.min(maxY, offRef.current.y));
+        setOffset({ x: snapX, y: snapY });
+        offRef.current = { x: snapX, y: snapY };
+      }
+      onZoomActive(scaleRef.current > 1.005);
+    },
+    onPanResponderTerminate: () => onZoomActive(false),
+  }), [zoomed, computeBounds, onZoomActive, onSwipeToPage, resetZoom]);
+
+  return (
+    <View style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }} {...panResponder.panHandlers}>
+      <Image
+        source={{ uri: src }}
+        onLoad={(e: any) => {
+          const { width: w, height: h } = e.nativeEvent.source || {};
+          if (w && h) imgSize.current = { w, h };
+        }}
+        style={{
+          width: `${100 * scale}%`,
+          height: `${90 * scale}%`,
+          resizeMode: 'contain',
+          transform: [{ translateX: offset.x }, { translateY: offset.y }, { scale }],
+        }}
+      />
+    </View>
   );
 }
 
