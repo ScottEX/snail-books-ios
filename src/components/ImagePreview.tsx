@@ -255,7 +255,7 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
   const reachedLeftEdge = useRef(false);
   const reachedRightEdge = useRef(false);
 
-  // When becoming inactive: release zoom lock
+  // When becoming inactive: release zoom lock so outer ScrollView can page
   const prevActive = useRef(isActive);
   useEffect(() => {
     if (!isActive && prevActive.current && zoomedRef.current) {
@@ -265,19 +265,9 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
     prevActive.current = isActive;
   }, [isActive]);
 
-  if (!isActive) {
-    // Inactive page: plain image, no ScrollView overhead, no flash on remount
-    return (
-      <Image
-        source={{ uri: src }}
-        style={{ width: windowW, height: windowH * 0.9 }}
-        resizeMode="contain"
-      />
-    );
-  }
-
   return (
     <ScrollView
+      pointerEvents={isActive ? 'auto' : 'none'}
       maximumZoomScale={4}
       minimumZoomScale={1}
       bouncesZoom={false}
