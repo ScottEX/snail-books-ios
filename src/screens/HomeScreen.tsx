@@ -1116,8 +1116,7 @@ function DailyRevenueView(p: DailyRevProps) {
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.surface} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <Path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
-                  <Path d="M17 21v-8H7v8" />
+                  <Path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2zM17 21v-8H7v8M7 3v5h8" />
                 </Svg>
                 <Text style={styles.revSubmitText}>
                   {p.revDate === p.td ? t('revSaveToday') :
@@ -1436,7 +1435,7 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   revSubmitBtn: { backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   revSubmitText: { fontSize: FONTS.subBold.size, color: colors.surface, fontWeight: FONTS.subBold.weight },
   revWeekRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, paddingHorizontal: 4 },
-  revWeekLabel: { fontSize: FONTS.micro.size, color: colors.textSub, marginBottom: 4 },
+  revWeekLabel: { fontSize: FONTS.micro.size, color: colors.textSub, marginBottom: 2 },
   revWeekVal: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain },
 
   // Last 7 days
