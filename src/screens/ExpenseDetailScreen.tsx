@@ -3,6 +3,8 @@ import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
   Image, useWindowDimensions,
 } from 'react-native';
+import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
+import ReAnimated, { useAnimatedStyle } from 'react-native-reanimated';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path } from 'react-native-svg';
 import { t, getLang } from '../i18n';
@@ -70,7 +72,11 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
   const { colors: c, theme } = useTheme();
   const sd = useServerDate();
   const lang = getLang();
-  const { width: w } = useWindowDimensions();
+  const { width: w, height: windowHeight } = useWindowDimensions();
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const contentStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: Math.max(keyboardHeight.value, -windowHeight * 0.28) }],
+  }));
   const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(c), [c]);
   const thumbSize = (w - 16 * 2 - 8 * 3) / 4;
@@ -215,6 +221,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
   const amtBg = withAlpha(amtColor, 0.10);
 
   return (
+    <ReAnimated.View style={[{ flex: 1 }, contentStyle]}>
     <View style={styles.container} {...swipeBack}>
       <HistoryHeader
         onBack={onBack}
@@ -492,6 +499,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
 
       {ToastHost}
     </View>
+    </ReAnimated.View>
   );
 }
 
