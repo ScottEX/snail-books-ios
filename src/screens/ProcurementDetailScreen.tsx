@@ -148,7 +148,8 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
     }
   };
 
-  const thumbImgs: string[] = parseImages(cur.thumb_images?.length ? cur.thumb_images : cur.images);
+  const thumbImgs = parseImages(cur.thumb_images);
+  const displayImgs = thumbImgs.length > 0 ? thumbImgs : parseImages(cur.images);
   const images: string[] = parseImages(cur.images);
   const items = cur.items || [];
 
@@ -249,12 +250,12 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
         ) : null}
 
         {/* Images */}
-        {thumbImgs.length > 0 && (
+        {displayImgs.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('procImages')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {thumbImgs.map((img: string, i: number) => (
-                <TouchableOpacity key={i} onPress={() => openPreview(images.length ? images : thumbImgs, i)} activeOpacity={0.8}>
+              {displayImgs.map((img: string, i: number) => (
+                <TouchableOpacity key={i} onPress={() => openPreview(images.length ? images : displayImgs, i)} activeOpacity={0.8}>
                   <Image
                     source={{ uri: img }}
                     style={styles.thumb}
