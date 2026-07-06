@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, NativeSyntheticEvent, NativeScrollEvent, Animated } from 'react-native';
 import AppTextInput from './AppTextInput';
 import ModalOverlay from './ModalOverlay';
 import { BlurView } from 'expo-blur';
@@ -84,6 +84,8 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
   const [draft, setDraft] = useState(value);
   const [year, month] = (draft || todayStr()).split('-').map(Number);
   const [yearMode, setYearMode] = useState(false);
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const [slideDir, setSlideDir] = useState<'left' | 'right'>('right');
 
   const [wheelYearIdx, setWheelYearIdx] = useState(0);
   const [wheelMonthIdx, setWheelMonthIdx] = useState(0);
@@ -145,15 +147,32 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
     setYearMode(false);
   };
 
+  const animateMonthSwitch = (dir: 'left' | 'right', cb: () => void) => {
+    setSlideDir(dir);
+    slideAnim.setValue(0);
+    Animated.timing(slideAnim, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      cb();
+      slideAnim.setValue(0);
+    });
+  };
+
   const handlePrevMonth = () => {
-    let m = month - 1, y2 = year;
-    if (m < 1) { m = 12; y2 -= 1; }
-    setDraft(`${y2}-${String(m).padStart(2,'0')}-01`);
+    animateMonthSwitch('right', () => {
+      let m = month - 1, y2 = year;
+      if (m < 1) { m = 12; y2 -= 1; }
+      setDraft(`${y2}-${String(m).padStart(2,'0')}-01`);
+    });
   };
   const handleNextMonth = () => {
-    let m = month + 1, y2 = year;
-    if (m > 12) { m = 1; y2 += 1; }
-    setDraft(`${y2}-${String(m).padStart(2,'0')}-01`);
+    animateMonthSwitch('left', () => {
+      let m = month + 1, y2 = year;
+      if (m > 12) { m = 1; y2 += 1; }
+      setDraft(`${y2}-${String(m).padStart(2,'0')}-01`);
+    });
   };
 
   const quickChips = [
@@ -236,7 +255,18 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
                 <Text style={styles.monthBtnText}>›</Text>
               </TouchableOpacity>
             </View>
-            <View style={styles.gridArea}>
+            <Animated.View style={[styles.gridArea, {
+              transform: [{
+                translateX: slideAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: slideDir === 'left' ? [0, -30] : [0, 30],
+                }),
+              }],
+              opacity: slideAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, 0],
+              }),
+            }]}>
               <View style={styles.weekdayRow}>
                 {(getLang().startsWith('en') ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] : ['日','一','二','三','四','五','六']).map(d => (
                   <Text key={d} style={styles.weekdayText}>{d}</Text>
@@ -262,7 +292,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
                   );
                 })}
               </View>
-            </View>
+            </Animated.View>
             <View style={styles.footer}>
               <TouchableOpacity style={styles.footerBtn} onPress={() => setDraft(value)}>
                 <Text style={{ color: w, fontSize: 14, fontWeight: '500' }}>{getLang().startsWith('en') ? 'Reset' : '重置'}</Text>
