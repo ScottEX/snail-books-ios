@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, NativeSyntheticEvent, NativeScrollEvent, Animated, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, NativeSyntheticEvent, NativeScrollEvent, Animated } from 'react-native';
 import AppTextInput from './AppTextInput';
 import ModalOverlay from './ModalOverlay';
 import { BlurView } from 'expo-blur';
@@ -85,10 +85,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
   const [year, month] = (draft || todayStr()).split('-').map(Number);
   const [yearMode, setYearMode] = useState(false);
   const slideAnim = useRef(new Animated.Value(0)).current;
-  const [targetYear, setTargetYear] = useState<number | null>(null);
-  const [targetMonth, setTargetMonth] = useState<number | null>(null);
-  const slideDirRef = useRef<'left' | 'right'>('right');
-  const slidingRef = useRef(false);
+  const [slideDir, setSlideDir] = useState<'left' | 'right'>('right');
 
   const [wheelYearIdx, setWheelYearIdx] = useState(0);
   const [wheelMonthIdx, setWheelMonthIdx] = useState(0);
@@ -126,20 +123,6 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
   while (cells.length % 7 !== 0) cells.push(null);
 
-  // Target month cells for slide-in animation
-  const targetCells: (number | null)[] = React.useMemo(() => {
-    if (targetYear == null || targetMonth == null) return [];
-    const tfd = new Date(targetYear, targetMonth - 1, 1);
-    const tld = new Date(targetYear, targetMonth, 0);
-    const tsd = tfd.getDay();
-    const tdim = tld.getDate();
-    const tc: (number | null)[] = [];
-    for (let j = 0; j < tsd; j++) tc.push(null);
-    for (let d = 1; d <= tdim; d++) tc.push(d);
-    while (tc.length % 7 !== 0) tc.push(null);
-    return tc;
-  }, [targetYear, targetMonth]);
-
   const monthLabel = (() => {
     const l = getLang();
     if (l.startsWith('en')) return `${MONTHS_EN[month-1]} ${year}`;
@@ -164,36 +147,32 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
     setYearMode(false);
   };
 
-  const SW = Dimensions.get('window').width * 0.88; // grid slide distance
-
-  const animateMonthSwitch = (ty: number, tm: number, dir: 'left' | 'right') => {
-    if (slidingRef.current) return;
-    slidingRef.current = true;
-    slideDirRef.current = dir;
-    setTargetYear(ty);
-    setTargetMonth(tm);
+  const animateMonthSwitch = (dir: 'left' | 'right', cb: () => void) => {
+    setSlideDir(dir);
     slideAnim.setValue(0);
     Animated.timing(slideAnim, {
       toValue: 1,
-      duration: 250,
+      duration: 200,
       useNativeDriver: true,
     }).start(() => {
-      setDraft(`${ty}-${String(tm).padStart(2,'0')}-01`);
-      setTargetYear(null);
-      setTargetMonth(null);
-      slidingRef.current = false;
+      cb();
+      slideAnim.setValue(0);
     });
   };
 
   const handlePrevMonth = () => {
-    let m = month - 1, y2 = year;
-    if (m < 1) { m = 12; y2 -= 1; }
-    animateMonthSwitch(y2, m, 'right');
+    animateMonthSwitch('right', () => {
+      let m = month - 1, y2 = year;
+      if (m < 1) { m = 12; y2 -= 1; }
+      setDraft(`${y2}-${String(m).padStart(2,'0')}-01`);
+    });
   };
   const handleNextMonth = () => {
-    let m = month + 1, y2 = year;
-    if (m > 12) { m = 1; y2 += 1; }
-    animateMonthSwitch(y2, m, 'left');
+    animateMonthSwitch('left', () => {
+      let m = month + 1, y2 = year;
+      if (m > 12) { m = 1; y2 += 1; }
+      setDraft(`${y2}-${String(m).padStart(2,'0')}-01`);
+    });
   };
 
   const quickChips = [
@@ -286,92 +265,44 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
                 <Text style={styles.monthBtnText}>›</Text>
               </TouchableOpacity>
             </View>
-            {/* Grid area — with iOS-style slide animation */}
-            <View style={{ overflow: 'hidden', position: 'relative' }}>
-              {/* Current grid — slides out */}
-              <Animated.View style={[styles.gridArea, {
-                position: 'absolute' as const, left: 0, right: 0,
-                transform: [{
-                  translateX: slideAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: slideDirRef.current === 'left' ? [0, -SW] : [0, SW],
-                  }),
-                }],
-              }]} onTouchStart={onGridTouchStart} onTouchEnd={onGridTouchEnd}>
-                <View style={styles.weekdayRow}>
-                  {(getLang().startsWith('en') ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] : ['日','一','二','三','四','五','六']).map(d => (
-                    <Text key={d} style={styles.weekdayText}>{d}</Text>
-                  ))}
-                </View>
-                <View style={styles.daysGrid}>
-                  {cells.map((d, i) => {
-                    if (d === null) return <View key={i} style={styles.dayCell} />;
-                    const iso = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                    const isToday = iso === todayStr();
-                    const isSelected = iso === draft;
-                    const disabled = isFuture(iso);
-                    return (
-                      <TouchableOpacity key={i} style={styles.dayCell} disabled={disabled} onPress={() => setDraft(iso)} activeOpacity={0.7}>
-                        {isSelected ? (
-                          <View style={styles.dayCapsule}><Text style={styles.dayTextSelected}>{d}</Text></View>
-                        ) : isToday ? (
-                          <View style={styles.dayCapsuleToday}><Text style={styles.dayTextToday}>{d}</Text></View>
-                        ) : (
-                          <Text style={[styles.dayText, disabled && styles.dayTextDisabled]}>{d}</Text>
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </Animated.View>
-              {/* Target grid — slides in (only during animation) */}
-              {targetYear != null && targetMonth != null && (
-                  <Animated.View style={[styles.gridArea, {
-                    position: 'absolute' as const, left: 0, right: 0,
-                    transform: [{
-                      translateX: slideAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: slideDirRef.current === 'left' ? [SW, 0] : [-SW, 0],
-                      }),
-                    }],
-                  } as any]} pointerEvents="none">
-                    <View style={styles.weekdayRow}>
-                      {(getLang().startsWith('en') ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] : ['日','一','二','三','四','五','六']).map(d2 => (
-                        <Text key={d2} style={styles.weekdayText}>{d2}</Text>
-                      ))}
-                    </View>
-                    <View style={styles.daysGrid}>
-                      {targetCells.map((d2, i2) => {
-                        if (d2 === null) return <View key={i2} style={styles.dayCell} />;
-                        const iso2 = `${targetYear}-${String(targetMonth).padStart(2,'0')}-${String(d2).padStart(2,'0')}`;
-                        const ist = iso2 === todayStr();
-                        return (
-                          <View key={i2} style={styles.dayCell}>
-                            {ist ? (
-                              <View style={styles.dayCapsuleToday}><Text style={styles.dayTextToday}>{d2}</Text></View>
-                            ) : (
-                              <Text style={styles.dayText}>{d2}</Text>
-                            )}
-                          </View>
-                        );
-                      })}
-                    </View>
-                  </Animated.View>
-              )}
-              {/* Spacer to maintain height when grids are absolute-positioned */}
-              <View style={styles.weekdayRow} pointerEvents="none">
+            <Animated.View style={[styles.gridArea, {
+              transform: [{
+                translateX: slideAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: slideDir === 'left' ? [0, -30] : [0, 30],
+                }),
+              }],
+              opacity: slideAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, 0],
+              }),
+            }]} onTouchStart={onGridTouchStart} onTouchEnd={onGridTouchEnd}>
+              <View style={styles.weekdayRow}>
                 {(getLang().startsWith('en') ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] : ['日','一','二','三','四','五','六']).map(d => (
-                  <Text key={d} style={[styles.weekdayText, { opacity: 0 }]}>{d}</Text>
+                  <Text key={d} style={styles.weekdayText}>{d}</Text>
                 ))}
               </View>
-              {[0,1,2,3,4,5].map(row => (
-                <View key={row} style={{ flexDirection: 'row' as const }} pointerEvents="none">
-                  {[0,1,2,3,4,5,6].map(col => (
-                    <View key={col} style={[styles.dayCell, { opacity: 0 }]}><Text style={styles.dayText}>1</Text></View>
-                  ))}
-                </View>
-              ))}
-            </View>
+              <View style={styles.daysGrid}>
+                {cells.map((d, i) => {
+                  if (d === null) return <View key={i} style={styles.dayCell} />;
+                  const iso = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                  const isToday = iso === todayStr();
+                  const isSelected = iso === draft;
+                  const disabled = isFuture(iso);
+                  return (
+                    <TouchableOpacity key={i} style={styles.dayCell} disabled={disabled} onPress={() => setDraft(iso)} activeOpacity={0.7}>
+                      {isSelected ? (
+                        <View style={styles.dayCapsule}><Text style={styles.dayTextSelected}>{d}</Text></View>
+                      ) : isToday ? (
+                        <View style={styles.dayCapsuleToday}><Text style={styles.dayTextToday}>{d}</Text></View>
+                      ) : (
+                        <Text style={[styles.dayText, disabled && styles.dayTextDisabled]}>{d}</Text>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </Animated.View>
             <View style={styles.footer}>
               <TouchableOpacity style={styles.footerBtn} onPress={() => setDraft(value)}>
                 <Text style={{ color: w, fontSize: 14, fontWeight: '500' }}>{getLang().startsWith('en') ? 'Reset' : '重置'}</Text>
