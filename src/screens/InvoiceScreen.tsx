@@ -1267,7 +1267,7 @@ const getStyles = (c: ThemeColors) =>
     sectionTitleText: { fontSize: 10, fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase', color: c.textSub },
     sectionTitleLine: { flex: 1, height: 1 },
 
-    infoCard: { backgroundColor: c.surface, borderRadius: 0, borderWidth: 1, borderLeftWidth: 0, borderRightWidth: 0, overflow: 'hidden', marginBottom: 14 },
+    infoCard: { backgroundColor: c.surface, borderRadius: 12, overflow: 'hidden', marginHorizontal: 16 },
     divider: { height: 0.5, backgroundColor: withAlpha(c.textMain, 0.08), marginLeft: 16 },
 
     typeToggle: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.secondary },
