@@ -544,9 +544,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           <ProcurementDetailScreen
             batch={showProcurementDetail}
             onBack={onBack}
-            onEdit={(b) => { setShowProcurementDetail(null); }}
-            onDelete={(b) => { setShowProcurementDetail(null); }}
-            onOpenInvoice={(batchId) => { setShowProcurementDetail(null); setTimeout(() => setShowInvoice({ filterBatchId: batchId }), 250); }}
+            onEdit={() => { setShowProcurementDetail(null); }}
+            onPreview={(id, num) => { setShowProcurementDetail(null); setShowPdfPreview({ id, number: num }); }}
           />
         ) : null}
       </SlideScreen>

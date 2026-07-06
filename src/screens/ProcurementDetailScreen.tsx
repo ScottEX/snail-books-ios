@@ -1,22 +1,24 @@
-import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
-  Image, Alert, Modal,
+  Image, Switch,
 } from 'react-native';
-import { parseImages } from '../utils/parseImages';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Line } from 'react-native-svg';
 import { t } from '../i18n';
 import { trCategory, trPayment } from '../i18nHelpers';
 import { api } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
+import { useSwipeBack } from '../hooks/useSwipeBack';
 import { FONTS } from '../theme';
 import { historyHeader } from '../sharedStyles';
+import ConfirmModal from '../components/ConfirmModal';
+import ModalOverlay from '../components/ModalOverlay';
+import ImagePreview from '../components/ImagePreview';
+import { useImagePreview } from '../hooks/useImagePreview';
+import { formatDate } from '../utils/format';
 import BackArrow from '../components/icons/BackArrow';
 import TrashIcon from '../components/icons/TrashIcon';
 import { getCurrentUser } from '../utils/storage';
-import { formatDate } from '../utils/format';
-import Toast from '../components/Toast';
-import { useSwipeBack } from '../hooks/useSwipeBack';
+import { useEffect, useMemo, useState } from 'react';
 
 interface BatchItem {
   name?: string;
@@ -25,6 +27,7 @@ interface BatchItem {
   quantity: number;
   subtotal?: number;
   unit_price?: number;
+  supplier?: string;
 }
 
 interface BatchRecord {
@@ -41,15 +44,6 @@ interface BatchRecord {
   settled_at?: string | null;
   settled_by?: number | null;
   settled_by_username?: string | null;
-  supplier?: string;
-}
-
-interface Props {
-  batch: BatchRecord | null;
-  onBack: () => void;
-  onEdit: (batch: BatchRecord) => void;
-  onDelete: (batch: BatchRecord) => void;
-  onOpenInvoice: (batchId: number) => void;
 }
 
 function ViewIcon({ color }: { color: string }) {
@@ -73,39 +67,19 @@ function EditIcon({ color }: { color: string }) {
   );
 }
 
-function ShareIcon({ color }: { color: string }) {
-  return (
-    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-      <Path d="M16 6l-4-4-4 4" />
-      <Path d="M12 2v13" />
-    </Svg>
-  );
-}
-
-function InvoiceIcon({ color }: { color: string }) {
-  return (
-    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <Path d="M14 2v6h6" />
-      <Path d="M9 13h6" />
-      <Path d="M9 17h4" />
-    </Svg>
-  );
-}
-
-export default function ProcurementDetailScreen({ batch, onBack, onEdit, onDelete, onOpenInvoice }: Props) {
+export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPreview }: { batch: BatchRecord | null; onBack: () => void; onEdit?: () => void; onPreview: (id: number, number: number, supplier?: string) => void }) {
   const { colors: c } = useTheme();
   const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(c), [c]);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [settling, setSettling] = useState(false);
-  const [showSettleConfirm, setShowSettleConfirm] = useState(false);
-  const [toast, setToast] = useState('');
-  // Local mirror so settled state updates without waiting for parent
+  const [deleteError, setDeleteError] = useState('');
+  const { preview: previewData, openPreview, closePreview } = useImagePreview();
   const [cur, setCur] = useState<BatchRecord | null>(batch);
   useEffect(() => { setCur(batch); }, [batch]);
+  const [settling, setSettling] = useState(false);
+  const [showSettleConfirm, setShowSettleConfirm] = useState(false);
+  const [settleError, setSettleError] = useState('');
 
   if (!cur) {
     return (
@@ -125,61 +99,62 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onDelet
     );
   }
 
-  const isSettled = !!cur.settled_at;
+  const [showSupplierPicker, setShowSupplierPicker] = useState(false);
+  const downloadPDF = () => {
+    const suppliers = [...new Set((cur?.items || []).map(i => i.supplier).filter(Boolean))];
+    if (suppliers.length === 0) {
+      jumpToPdf();
+      return;
+    }
+    setShowSupplierPicker(true);
+  };
+  const jumpToPdf = (supplier?: string) => {
+    setShowSupplierPicker(false);
+    onPreview(cur!.id, cur!.batch_number, supplier);
+  };
 
   const handleDelete = async () => {
-    if (deleting) return;
+    if (!cur || deleting) return;
     setDeleting(true);
+    setDeleteError('');
     try {
       await api.deleteProcurementBatch(cur.id);
       setShowDeleteConfirm(false);
       setDeleting(false);
-      onDelete(cur);
+      onBack();
     } catch (err: any) {
-      setToast(err?.message || t('toastSubmitFailed'));
+      setDeleteError(err?.message || '删除失败，请重试');
       setDeleting(false);
     }
   };
 
   const handleSettle = async () => {
-    if (settling) return;
+    if (!cur || settling) return;
     setSettling(true);
+    setSettleError('');
     try {
       const r: any = await api.settleProcurementBatch(cur.id);
       if (r?.status === 'ok' && r.batch) {
         setCur({ ...cur, ...r.batch });
         setShowSettleConfirm(false);
-        setToast(t('procSettle') + ' ✓');
       } else {
-        setToast(r?.message || t('toastSubmitFailed'));
+        setSettleError(r?.message || t('toastSubmitFailed'));
       }
     } catch (err: any) {
-      setToast(err?.message || t('toastSubmitFailed'));
+      setSettleError(err?.message || t('toastSubmitFailed'));
     } finally {
       setSettling(false);
     }
   };
 
-  const handleShare = async () => {
-    try {
-      const r: any = await api.getProcurementShareLink(cur.id);
-      if (r?.url) {
-        Alert.alert(t('shareLink'), r.url);
-      } else {
-        setToast(t('uploadFailedShort'));
-      }
-    } catch {
-      setToast(t('toastLoadFailed'));
-    }
-  };
-
-  const thumbImgs = (parseImages(cur.thumb_images).length ? parseImages(cur.thumb_images) : parseImages(cur.images));
+  const thumbImgs: string[] = (cur.thumb_images?.length ? cur.thumb_images : cur.images) || [];
+  const images: string[] = cur.images || [];
   const items = cur.items || [];
+
   const paymentLabel = trPayment(cur.payment_method);
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
+    <View style={styles.container} {...swipeBack}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
           <View style={styles.backBtn}>
@@ -187,7 +162,6 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onDelet
           </View>
         </TouchableOpacity>
         <Text style={styles.title}>{t('procDetail')}</Text>
-        <View style={{ width: 36 }} />
       </View>
 
       <ScrollView
@@ -195,57 +169,43 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onDelet
         contentContainerStyle={styles.bodyContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Batch info row with status + actions */}
+        {/* Batch info — with action buttons on the right */}
         <View style={styles.batchInfoRow}>
-          <View style={{ flex: 1 }}>
+          <View>
             <Text style={styles.batchLabel}>
               {t('procNowBatch').replace('{n}', String(cur.batch_number))}
             </Text>
             <Text style={styles.batchDate}>{formatDate(cur.date)}</Text>
           </View>
-          <View style={[styles.statusBadge, isSettled ? styles.statusBadgeSettled : styles.statusBadgePending]}>
-            <Text style={[styles.statusBadgeText, { color: isSettled ? c.success : c.warning }]}>
-              {isSettled ? t('procSettle') : '待清账'}
-            </Text>
+          <View style={styles.batchActions}>
+            <Switch
+              value={!!cur.settled_at}
+              onValueChange={(v) => {
+                if (v && !cur.settled_at) setShowSettleConfirm(true);
+              }}
+              disabled={settling}
+              trackColor={{ false: withAlpha(c.textMain, 0.18), true: '#3DBC75' }}
+              thumbColor="#fff"
+            />
+            <TouchableOpacity onPress={downloadPDF} activeOpacity={0.6} style={styles.actionBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <ViewIcon color={c.primary} />
+            </TouchableOpacity>
+            {onEdit && (
+              <TouchableOpacity onPress={onEdit} activeOpacity={0.6} style={styles.actionBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <EditIcon color={c.primary} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={() => setShowDeleteConfirm(true)}
+              activeOpacity={0.6}
+              style={[styles.actionBtn, !!cur.settled_at && { opacity: 0.3 }]}
+              disabled={deleting || !!cur.settled_at}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <TrashIcon color={c.danger} />
+            </TouchableOpacity>
           </View>
         </View>
-
-        {/* Action row */}
-        <View style={styles.actionRow}>
-          <TouchableOpacity onPress={handleShare} activeOpacity={0.7} style={styles.actionBtn}>
-            <ShareIcon color={c.primary} />
-            <Text style={styles.actionLabel}>{t('shareLink')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => onOpenInvoice(cur.id)} activeOpacity={0.7} style={styles.actionBtn}>
-            <InvoiceIcon color={c.primary} />
-            <Text style={styles.actionLabel}>{'发票'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => onEdit(cur)} activeOpacity={0.7} style={styles.actionBtn}>
-            <EditIcon color={c.primary} />
-            <Text style={styles.actionLabel}>{t('changeEmail').includes('email') ? 'Edit' : '编辑'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setShowDeleteConfirm(true)}
-            activeOpacity={isSettled ? 1 : 0.7}
-            style={[styles.actionBtn, isSettled && { opacity: 0.3 }]}
-            disabled={isSettled || deleting}
-          >
-            <TrashIcon color={c.danger} />
-            <Text style={[styles.actionLabel, { color: c.danger }]}>{t('delete')}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Settle button — only when not yet settled */}
-        {!isSettled && (
-          <TouchableOpacity
-            onPress={() => setShowSettleConfirm(true)}
-            activeOpacity={0.8}
-            style={styles.settleBtn}
-            disabled={settling}
-          >
-            <Text style={styles.settleBtnText}>{settling ? '...' : t('procSettle')}</Text>
-          </TouchableOpacity>
-        )}
 
         {/* Info card */}
         <View style={styles.infoCard}>
@@ -257,12 +217,6 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onDelet
             <Text style={styles.infoLabel}>{t('expenseCategory')}</Text>
             <Text style={styles.infoValue}>{trCategory(cur.category)}</Text>
           </View>
-          {cur.supplier ? (
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>{'供应商'}</Text>
-              <Text style={styles.infoValue}>{cur.supplier}</Text>
-            </View>
-          ) : null}
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>{t('procOperator')}</Text>
             <Text style={styles.infoValue}>{getCurrentUser() || '—'}</Text>
@@ -275,7 +229,7 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onDelet
           ) : null}
         </View>
 
-        {/* Settlement info */}
+        {/* Settlement info — only shown if this batch has been settled */}
         {cur.settled_at ? (
           <View style={styles.infoCard}>
             <Text style={[styles.sectionTitle, { marginBottom: 8, color: c.success }]}>
@@ -292,13 +246,18 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onDelet
           </View>
         ) : null}
 
-        {/* Image thumbnails */}
+        {/* Images */}
         {thumbImgs.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('procImages')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {thumbImgs.map((img: string, i: number) => (
-                <Image key={i} source={{ uri: img }} style={styles.thumb} />
+                <TouchableOpacity key={i} onPress={() => openPreview(images.length ? images : thumbImgs, i)} activeOpacity={0.8}>
+                  <Image
+                    source={{ uri: img }}
+                    style={styles.thumb}
+                  />
+                </TouchableOpacity>
               ))}
             </ScrollView>
           </View>
@@ -319,78 +278,93 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onDelet
               const subtotal = item.subtotal ?? (item.unit_price ?? 0) * item.quantity;
               return (
                 <View key={idx} style={[styles.itemRow, idx < items.length - 1 && styles.itemRowBorder]}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.itemName} numberOfLines={1}>{name}</Text>
-                    <Text style={styles.itemMeta}>
-                      {item.quantity}{t('procProductSpec') ? ' · ' : ' × '}
-                      {item.unit_price ? `¥${item.unit_price.toFixed(2)}` : ''}
-                    </Text>
-                  </View>
+                  <Text style={styles.itemName} numberOfLines={1}>{name}</Text>
+                  <Text style={styles.itemQty}>×{item.quantity}</Text>
                   <Text style={styles.itemAmt}>¥{(subtotal || 0).toFixed(2)}</Text>
                 </View>
               );
             })}
-            {items.length === 0 ? (
-              <Text style={{ color: c.textSub, padding: 16, textAlign: 'center' }}>—</Text>
-            ) : null}
           </View>
         </View>
 
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Delete confirmation modal */}
-      <Modal visible={showDeleteConfirm} transparent animationType="fade" onRequestClose={() => setShowDeleteConfirm(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{t('procDeleteBatch')}</Text>
-            <Text style={styles.modalMsg}>
-              {t('procDeleteBatchConfirmV2')
-                .split('{batch}')
-                .map((part: string, i: number, arr: string[]) =>
-                  i < arr.length - 1
-                    ? (
-                      <Text key={i}>
-                        {part}
-                        <Text style={{ color: c.primary, fontWeight: '600' }}>
-                          {t('procNowBatch').replace('{n}', String(cur.batch_number))}
-                        </Text>
-                      </Text>
-                    )
-                    : <Text key={i}>{part}</Text>
-                )}
-            </Text>
-            <View style={styles.modalBtnRow}>
-              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowDeleteConfirm(false)}>
-                <Text style={styles.modalCancelText}>{t('cancel')}</Text>
+      <ConfirmModal
+        visible={showDeleteConfirm}
+        title={t('procDeleteBatch')}
+        message={deleteError ? (
+          <Text style={{ color: c.danger, fontSize: FONTS.micro.size, textAlign: 'center' }}>{deleteError}</Text>
+        ) : (
+          <>{t('procDeleteBatchConfirmV2').split('{batch}')[0]}<Text style={{ color: c.primary, fontWeight: '600' }}>{t('procNowBatch').replace('{n}', String(cur.batch_number))}</Text>{t('procDeleteBatchConfirmV2').split('{batch}')[1]}</>
+        )}
+        confirmLabel={deleting ? '删除中…' : t('delete')}
+        loading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => { setShowDeleteConfirm(false); setDeleteError(''); }}
+      />
+
+      <ConfirmModal
+        visible={showSettleConfirm}
+        title={t('procSettleTitle')}
+        message={settleError ? (
+          <Text style={{ color: c.danger, fontSize: FONTS.micro.size, textAlign: 'center' }}>{settleError}</Text>
+        ) : (
+          <Text>{t('procSettleMsg')}</Text>
+        )}
+        confirmLabel={settling ? '清账中…' : t('procSettle')}
+        loading={settling}
+        onConfirm={handleSettle}
+        onCancel={() => { setShowSettleConfirm(false); setSettleError(''); }}
+      />
+
+      {previewData && (
+        <ImagePreview
+          images={previewData.images}
+          initialIdx={previewData.idx}
+          visible={true}
+          onClose={closePreview}
+        />
+      )}
+
+      {/* Supplier picker for PDF */}
+      <ModalOverlay visible={showSupplierPicker} onClose={() => setShowSupplierPicker(false)} animation="springScale">
+        <View style={{ backgroundColor: c.surface, borderRadius: 24, width: 320, maxWidth: '90%', overflow: 'hidden' as const }}>
+          <View style={{ backgroundColor: c.primary, borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingVertical: 14, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.surface }}>{t('procSelectSupplier')}</Text>
+              <TouchableOpacity style={{ padding: 4 }} onPress={() => setShowSupplierPicker(false)}>
+                <Svg width="18" height="18" viewBox="0 0 24 24" stroke={c.surface} strokeWidth="2" fill="none">
+                  <Line x1="18" y1="6" x2="6" y2="18" />
+                  <Line x1="6" y1="6" x2="18" y2="18" />
+                </Svg>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalDeleteBtn} onPress={handleDelete} disabled={deleting}>
-                <Text style={styles.modalDeleteText}>{deleting ? '...' : t('delete')}</Text>
-              </TouchableOpacity>
-            </View>
+          </View>
+          <View style={{ padding: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {(() => {
+              const suppliers = ['__all__', ...new Set((cur?.items || []).map(i => i.supplier).filter(Boolean))];
+              return suppliers.map((sup, idx) => {
+                const isAll = sup === '__all__';
+                const label = isAll ? t('procAll') : sup;
+                return (
+                  <TouchableOpacity key={idx}
+                    style={{
+                      flexGrow: 1, flexBasis: '30%', maxWidth: '32%',
+                      paddingVertical: 9, borderRadius: 20, alignItems: 'center',
+                      backgroundColor: withAlpha(c.primary, 0.08),
+                      borderWidth: 1.5, borderColor: withAlpha(c.primary, 0.15),
+                    }}
+                    onPress={() => jumpToPdf(isAll ? undefined : sup)}
+                    activeOpacity={0.6}
+                  >
+                    <Text style={{ fontSize: FONTS.sub.size, color: c.primary, fontWeight: '500' }}>{label}</Text>
+                  </TouchableOpacity>
+                );
+              });
+            })()}
           </View>
         </View>
-      </Modal>
+      </ModalOverlay>
 
-      {/* Settle confirmation modal */}
-      <Modal visible={showSettleConfirm} transparent animationType="fade" onRequestClose={() => setShowSettleConfirm(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{t('procSettleTitle')}</Text>
-            <Text style={styles.modalMsg}>{t('procSettleMsg')}</Text>
-            <View style={styles.modalBtnRow}>
-              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowSettleConfirm(false)}>
-                <Text style={styles.modalCancelText}>{t('cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.modalConfirmBtn} onPress={handleSettle} disabled={settling}>
-                <Text style={styles.modalConfirmText}>{settling ? '...' : t('procSettle')}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
     </View>
   );
 }
@@ -403,31 +377,23 @@ const getStyles = (c: ThemeColors) => {
     },
     ...hdr,
     actionBtn: {
-      flex: 1,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      paddingVertical: 10,
-      gap: 4,
-      backgroundColor: withAlpha(c.bg, 0.5),
-      borderRadius: 10,
-      borderWidth: 0.5,
-      borderColor: withAlpha(c.textMain, 0.08),
-    },
-    actionRow: {
-      flexDirection: 'row',
-      gap: 8,
-      marginBottom: 16,
-    },
-    actionLabel: {
-      fontSize: FONTS.micro.size,
-      color: c.primary,
-      fontWeight: FONTS.micro.weight,
+      width: 36, height: 36, borderRadius: 18,
+      backgroundColor: withAlpha(c.bg, 0.30),
+      justifyContent: 'center' as const, alignItems: 'center' as const,
+      // @ts-ignore
+      borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.10)',
     },
     batchInfoRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
       marginBottom: 16,
+    },
+    batchActions: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: 10,
+      marginTop: 2,
     },
     batchLabel: {
       fontSize: FONTS.subBold.size,
@@ -491,32 +457,21 @@ const getStyles = (c: ThemeColors) => {
       letterSpacing: 0.5,
       marginBottom: 10,
     },
-    settleBtn: {
-      backgroundColor: c.success,
-      borderRadius: 12,
-      paddingVertical: 14,
-      alignItems: 'center',
-      marginBottom: 16,
-    },
-    settleBtnText: {
-      color: '#fff',
-      fontSize: FONTS.subBold.size,
-      fontWeight: FONTS.subBold.weight,
-    },
-    statusBadge: {
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 100,
-    },
-    statusBadgePending: {
-      backgroundColor: withAlpha(c.warning, 0.12),
-    },
-    statusBadgeSettled: {
-      backgroundColor: withAlpha(c.success, 0.12),
-    },
-    statusBadgeText: {
+    totalLabel: {
       fontSize: FONTS.micro.size,
-      fontWeight: '600',
+      color: c.textSub,
+      marginRight: 6,
+    },
+    totalWrap: {
+      flexDirection: 'row', alignItems: 'baseline',
+      marginRight: 16,
+    },
+    totalAmt: {
+      fontSize: FONTS.body.size,
+      fontWeight: '700' as const,
+      color: c.primary,
+      minWidth: 72,
+      textAlign: 'right' as const,
     },
     thumb: {
       width: 72,
@@ -536,114 +491,27 @@ const getStyles = (c: ThemeColors) => {
       flexDirection: 'row',
       alignItems: 'center',
       paddingVertical: 12,
-      gap: 12,
     },
     itemRowBorder: {
       borderBottomWidth: 0.5,
       borderBottomColor: withAlpha(c.textMain, 0.06),
     },
     itemName: {
+      flex: 1,
       fontSize: FONTS.sub.size,
       color: c.textMain,
-      fontWeight: FONTS.sub.weight,
     },
-    itemMeta: {
-      fontSize: FONTS.micro.size,
+    itemQty: {
+      fontSize: FONTS.sub.size,
       color: c.textSub,
-      marginTop: 2,
+      marginRight: 16,
     },
     itemAmt: {
       fontSize: FONTS.sub.size,
       fontWeight: '600' as const,
       color: c.textMain,
-      minWidth: 80,
-      textAlign: 'right' as const,
-    },
-    totalLabel: {
-      fontSize: FONTS.micro.size,
-      color: c.textSub,
-      marginRight: 6,
-    },
-    totalWrap: {
-      flexDirection: 'row' as const,
-      alignItems: 'baseline' as const,
-      marginRight: 16,
-    },
-    totalAmt: {
-      fontSize: FONTS.body.size,
-      fontWeight: '700' as const,
-      color: c.primary,
       minWidth: 72,
       textAlign: 'right' as const,
-    },
-    // Modal
-    modalBackdrop: {
-      flex: 1,
-      backgroundColor: withAlpha(c.textMain, 0.4),
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 16,
-    },
-    modalCard: {
-      backgroundColor: c.surface,
-      borderRadius: 16,
-      width: 320,
-      maxWidth: '100%',
-      padding: 20,
-    },
-    modalTitle: {
-      fontSize: FONTS.subBold.size,
-      fontWeight: '700' as const,
-      color: c.textMain,
-      marginBottom: 12,
-      textAlign: 'center',
-    },
-    modalMsg: {
-      fontSize: FONTS.sub.size,
-      color: c.textSub,
-      lineHeight: 22,
-      textAlign: 'center',
-      marginBottom: 20,
-    },
-    modalBtnRow: {
-      flexDirection: 'row',
-      gap: 12,
-    },
-    modalCancelBtn: {
-      flex: 1,
-      backgroundColor: c.bg,
-      borderRadius: 12,
-      paddingVertical: 12,
-      alignItems: 'center',
-    },
-    modalCancelText: {
-      fontSize: FONTS.sub.size,
-      fontWeight: FONTS.sub.weight,
-      color: c.textSub,
-    },
-    modalConfirmBtn: {
-      flex: 1,
-      backgroundColor: c.primary,
-      borderRadius: 12,
-      paddingVertical: 12,
-      alignItems: 'center',
-    },
-    modalConfirmText: {
-      fontSize: FONTS.sub.size,
-      fontWeight: FONTS.sub.weight,
-      color: c.surface,
-    },
-    modalDeleteBtn: {
-      flex: 1,
-      backgroundColor: c.danger,
-      borderRadius: 12,
-      paddingVertical: 12,
-      alignItems: 'center',
-    },
-    modalDeleteText: {
-      fontSize: FONTS.sub.size,
-      fontWeight: FONTS.sub.weight,
-      color: c.surface,
     },
   });
 };
