@@ -220,7 +220,7 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
             <Text style={styles.infoLabel}>{t('expenseCategory')}</Text>
             <Text style={styles.infoValue}>{trCategory(cur.category)}</Text>
           </View>
-          <View style={styles.infoRow}>
+          <View style={[styles.infoRow, !cur.note && { borderBottomWidth: 0 }]}>
             <Text style={styles.infoLabel}>{t('procOperator')}</Text>
             <Text style={styles.infoValue}>{getCurrentUser() || '—'}</Text>
           </View>
