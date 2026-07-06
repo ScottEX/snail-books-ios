@@ -547,7 +547,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             onBack={onBack}
             onEdit={() => {
               setPendingEditBatch(showProcurementDetail);
-              setShowProcurementDetail(null);
+              onBack();
             }}
             onPreview={(id, num) => { setShowProcurementDetail(null); setShowPdfPreview({ id, number: num }); }}
           />
