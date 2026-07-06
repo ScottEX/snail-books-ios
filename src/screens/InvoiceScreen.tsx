@@ -206,11 +206,8 @@ function formatAmountForStorage(raw: string): string {
 }
 
 function fmtBankAccount(v: string) {
-  const raw = (v || '').replace(/\s/g, '');
-  if (!raw) return '';
-  if (raw.length <= 4) return raw;
-  const last4 = raw.slice(-4);
-  return '****' + last4;
+  if (!v) return '';
+  return v.replace(/\s/g, '').replace(/(.{4})/g, '$1 ').trim();
 }
 
 const formatPhone = (phone: string): string => {
@@ -1150,7 +1147,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
 
 /* ═══════════════ EDITABLE INFO ROW ═══════════════ */
 
-function EditableInfoRow({ icon, iconBg, label, value, colors, mono, onChange, editable = true }: {
+function EditableInfoRow({ icon, iconBg, label, value, colors, mono, onChange, editable = true, placeholder, filter, validate, keyboardType }: {
   icon: React.ReactNode;
   iconBg: string;
   label: string;
@@ -1159,13 +1156,29 @@ function EditableInfoRow({ icon, iconBg, label, value, colors, mono, onChange, e
   mono?: boolean;
   onChange: (v: string) => void;
   editable?: boolean;
+  placeholder?: string;
+  filter?: (v: string) => string;
+  validate?: (v: string) => string | null;
+  keyboardType?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
+  const [err, setErr] = useState<string | null>(null);
+
+  const handleChange = (v: string) => {
+    const filtered = filter ? filter(v) : v;
+    setDraft(filtered);
+    if (validate) setErr(validate(filtered));
+  };
 
   const commit = () => {
+    if (validate) {
+      const e = validate(draft);
+      if (e) { setErr(e); return; }
+    }
     if (draft !== value) onChange(draft);
     setEditing(false);
+    setErr(null);
   };
 
   const styles = useMemo(() => getEirStyles(), []);
@@ -1179,12 +1192,14 @@ function EditableInfoRow({ icon, iconBg, label, value, colors, mono, onChange, e
           <AppTextInput
             style={[styles.valueInput, { color: colors.textMain }]}
             value={draft}
-            onChangeText={setDraft}
+            onChangeText={handleChange}
             onBlur={commit}
             autoFocus
-            placeholder={value || '—'}
+            placeholder={placeholder || value || '—'}
             placeholderTextColor={colors.textSub}
+            keyboardType={keyboardType as any}
           />
+          {err && <Text style={{ fontSize: 10, color: colors.danger, marginTop: 4 }}>{err}</Text>}
         </View>
         <TouchableOpacity style={styles.editBtn} onPress={commit}>
           <PencilSvg color={colors.primary} />
