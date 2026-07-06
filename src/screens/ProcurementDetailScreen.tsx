@@ -5,7 +5,7 @@ import {
 import Svg, { Path, Line } from 'react-native-svg';
 import { t } from '../i18n';
 import { trCategory, trPayment } from '../i18nHelpers';
-import { api } from '../api/client';
+import { api, resolveAssetUrl } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 import { FONTS } from '../theme';
@@ -249,23 +249,18 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
         ) : null}
 
         {/* Images */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('procImages')} ({thumbImgs.length})</Text>
-          {thumbImgs.length > 0 ? (
+        {thumbImgs.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('procImages')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {thumbImgs.map((img: string, i: number) => (
                 <TouchableOpacity key={i} onPress={() => openPreview(images.length ? images : thumbImgs, i)} activeOpacity={0.8} style={{ marginRight: 8 }}>
-                  <Image source={{ uri: img }} style={[styles.thumb, { marginRight: 0 }]} />
+                  <Image source={{ uri: resolveAssetUrl(img) || img }} style={[styles.thumb, { marginRight: 0 }]} />
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          ) : (
-            <Text style={{ color: c.textSub, fontSize: FONTS.micro.size }}>
-              cur.thumb_images: {JSON.stringify(cur.thumb_images)?.substring(0, 60)}
-              {'\n'}cur.images: {JSON.stringify(cur.images)?.substring(0, 60)}
-            </Text>
-          )}
-        </View>
+          </View>
+        )}
 
         {/* Items */}
         <View style={styles.section}>
