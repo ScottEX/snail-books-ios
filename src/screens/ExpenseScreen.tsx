@@ -292,9 +292,9 @@ export default function ExpenseScreen({
     (v) => runOnJS(setKeyboardH)(v),
     [keyboardHeight],
   );
+  const cap = -Dimensions.get('window').height * 0.28;
   const contentStyle = useAnimatedStyle(() => ({
-    const h = Dimensions.get('window').height;
-    transform: [{ translateY: Math.max(keyboardHeight.value, -h * 0.28) }],
+    transform: [{ translateY: Math.max(keyboardHeight.value, cap) }],
   }));
   const [showFeeHistory, setShowFeeHistory] = useState(false);
   const [feeHistoryFilter, setFeeHistoryFilter] = useState<'all' | { year: number; month: number }>('all');
