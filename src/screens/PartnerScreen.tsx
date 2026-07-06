@@ -7,7 +7,7 @@
 //      translateName / translateDividendNote / getRoleKey / usePartnerData)
 //   2. Toast 用 useToast hook + ToastHost
 //   3. 加 onProfile prop(头像点击跳 profile)
-//   4. 加 showInvoice + SlideScreen 包 InvoiceScreen 入口
+//   4. InvoiceScreen 入口通过 onInvoice 回调提升到 HomeScreen 渲染（全屏）
 //   5. 内联 CropModal(头像裁剪,跟 web 一样;实际触发由 ProfileScreen 接管)
 //   6. 删除 langRow JSX(跟 web 一致,switchLang 函数仍保留)
 //   7. 中投额算法改 (investment - init_capital),不再用 add_amount
@@ -24,13 +24,12 @@ import { api } from '../api/client';
 import { useToast } from '../hooks/useToast';
 import ModalOverlay from '../components/ModalOverlay';
 import ConfirmModal from '../components/ConfirmModal';
-import InvoiceScreen from './InvoiceScreen';
-import SlideScreen from '../components/SlideScreen';
+
 import CropModal from '../components/CropModal';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 import { FONTS } from '../theme';
-import { modalClose } from '../sharedStyles';
+import { modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
 
 import {
   partnerShare, translateName, translateDividendNote, getRoleKey,
@@ -83,7 +82,7 @@ function IconPeople({ color = '#8C8583' }: { color?: string }) {
 
 /* ========== MAIN SCREEN ========== */
 
-export default function PartnerScreen({ onBack, onProfile, refreshKey = 0 }: { onBack: () => void; onProfile?: () => void; refreshKey?: number }) {
+export default function PartnerScreen({ onBack, onProfile, onInvoice, refreshKey = 0 }: { onBack: () => void; onProfile?: () => void; onInvoice?: () => void; refreshKey?: number }) {
   const sd = useServerDate();
   const { showToast, ToastHost } = useToast();
   const {
@@ -103,7 +102,6 @@ export default function PartnerScreen({ onBack, onProfile, refreshKey = 0 }: { o
   const [showDetail, setShowDetail] = useState<any>(null);
   const [detailPartner, setDetailPartner] = useState<any>(null);
   const [showOrg, setShowOrg] = useState(false);
-  const [showInvoice, setShowInvoice] = useState(false);
   const [divAmount, setDivAmount] = useState('');
   const [divRoundNum, setDivRoundNum] = useState(0);
   const [divPreview, setDivPreview] = useState<any[]>([]);
@@ -254,7 +252,7 @@ export default function PartnerScreen({ onBack, onProfile, refreshKey = 0 }: { o
                   <Text style={s.statGreen}>{t('paidInRate')} 100%</Text>
                 </View>
               </View>
-              <TouchableOpacity style={s.dividendBtn} onPress={() => setShowInvoice(true)}>
+              <TouchableOpacity style={s.dividendBtn} onPress={onInvoice}>
                 <Text style={s.dividendBtnText}>{t('invCenter')}</Text>
               </TouchableOpacity>
             </View>
@@ -623,11 +621,6 @@ export default function PartnerScreen({ onBack, onProfile, refreshKey = 0 }: { o
         </View>
       </ModalOverlay>
 
-      {/* ====== INVOICE SCREEN (SlideScreen 包 InvoiceScreen) ====== */}
-      <SlideScreen visible={showInvoice} onClose={() => setShowInvoice(false)}>
-        {(close) => <InvoiceScreen onBack={close} />}
-      </SlideScreen>
-
       {/* ====== CROP MODAL(对齐 web,触发由 ProfileScreen 接管) ====== */}
       <CropModal
         visible={cropSrc !== '' && !showResult}
@@ -757,7 +750,7 @@ const getMo = (colors: ThemeColors) => StyleSheet.create({
   overlay: { position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 200, justifyContent: 'center', alignItems: 'center', padding: 16 },
   content: { alignItems: 'center', justifyContent: 'center' },
   modalCard: {
-    backgroundColor: colors.surface, borderRadius: 16, width: 360, maxWidth: '100%', overflow: 'hidden',
+    backgroundColor: colors.surface, borderRadius: MODAL_CARD_RADIUS, width: 360, maxWidth: '100%', overflow: 'hidden',
   },
   header: { backgroundColor: colors.primary, paddingVertical: 14, paddingHorizontal: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.surface },

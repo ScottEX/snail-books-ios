@@ -11,6 +11,7 @@ import { t, getLang, langs, useLang } from '../i18n';
 import { api, resolveAssetUrl } from '../api/client';
 import * as FileSystem from 'expo-file-system';
 import { useTheme, withAlpha, ThemeColors, DEFAULT_THEME_ID } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
 import { FONTS } from '../theme';
 import { getCurrentUserId } from '../utils/storage';
 import { useServerDate } from '../hooks/useServerDate';
@@ -319,6 +320,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const [last7Records, setLast7Records] = useState<any[]>([]);
   const [yesterdayRev, setYesterdayRev] = useState<any>(null);
   const [weekRev, setWeekRev] = useState<any>(null);
+  const [monthRevRecords, setMonthRevRecords] = useState<any[]>([]);
   const [revMarkedClosed, setRevMarkedClosed] = useState(false);
   const [toast, setToast] = useState('');
 
@@ -368,6 +370,14 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
       setWeekRev(r.totals || null);
     } catch {}
   }, []);
+  const loadMonthRevenues = useCallback(async () => {
+    try {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const monthStart = todayStr.slice(0, 7) + '-01';
+      const r: any = await api.getDailyRevenue(1, 31, undefined, undefined, undefined, undefined, monthStart, todayStr);
+      setMonthRevRecords(r?.records || []);
+    } catch {}
+  }, []);
 
   // ── Lazy load on tab change (chart / supply) ──
   const loadChartMonthly = useCallback(async () => {
@@ -391,9 +401,9 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   }, [tab, loadLast7, loadYesterday, loadWeekTotals]);
 
   useEffect(() => {
-    if (tab === 'chart') { loadChartMonthly(); loadBusinessSummary(); }
+    if (tab === 'chart') { loadChartMonthly(); loadBusinessSummary(); loadMonthRevenues(); }
     if (tab === 'supply') { loadProducts(); }
-  }, [tab, loadChartMonthly, loadBusinessSummary, loadProducts, loadProcurements]);
+  }, [tab, loadChartMonthly, loadBusinessSummary, loadMonthRevenues, loadProducts, loadProcurements]);
 
   // Check admin status (for User Management nav). Non-blocking — failure just means non-admin.
   useEffect(() => {
@@ -638,7 +648,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           />
         ) : isHome && tab === 'partner' ? (
           <View style={styles.page}>
-            <PartnerScreen onBack={() => setTab('list')} onProfile={() => openModal(() => setShowProfile(true))} refreshKey={partnerRefreshKey} />
+            <PartnerScreen onBack={() => setTab('list')} onProfile={() => openModal(() => setShowProfile(true))} onInvoice={() => setShowInvoice({})} refreshKey={partnerRefreshKey} />
           </View>
         ) : isHome && tab === 'supply' ? (
           <ProcurementScreen
@@ -668,6 +678,9 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           ) : tab === 'chart' ? (
             <ChartGlassView
               colors={colors}
+              bgOpacity={bgOpacity}
+              weekRev={weekRev}
+              monthRevRecords={monthRevRecords}
               businessSummary={businessSummary}
               chartMonthly={chartMonthly}
             />
@@ -820,6 +833,9 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
 
 interface ChartGlassProps {
   colors: ThemeColors;
+  bgOpacity: number;
+  weekRev: any;
+  monthRevRecords: any[];
   businessSummary: {
     cash_on_hand?: number;
     cumulative_revenue?: number;
@@ -864,13 +880,13 @@ function ExpenseSummaryCardsInline({
             key={i}
             style={{
               width: '48%' as any, flexGrow: 1, flexBasis: '46%' as any,
-              backgroundColor: 'rgba(255,255,255,0.88)',
+              backgroundColor: colors.surface,
               borderRadius: 12, paddingVertical: 10, paddingHorizontal: 18,
-              borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.45)',
+              borderWidth: 0.5, borderColor: colors.secondary,
               borderLeftColor: c.clr, borderLeftWidth: 3,
             }}
           >
-            <Text style={{ fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(0,0,0,0.55)', marginBottom: 4 }}>
+            <Text style={{ fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.textSub, marginBottom: 4 }}>
               {c.label}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
@@ -879,7 +895,7 @@ function ExpenseSummaryCardsInline({
                   {c.value >= 0 ? '+' : '-'}{fmtAmtFull(Math.abs(c.value))}
                 </Text>
               ) : (
-                <NumberTicker value={c.value} style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: 'rgba(0,0,0,0.9)' }} formatFn={fmtAmtFull} />
+                <NumberTicker value={c.value} style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain }} formatFn={fmtAmtFull} />
               )}
             </View>
           </View>
@@ -889,70 +905,79 @@ function ExpenseSummaryCardsInline({
   );
 }
 
-function ChartGlassView({ colors, businessSummary, chartMonthly }: ChartGlassProps) {
-  // Use the iOS white glass card (matches web's iOS-specific branch)
-  const glassBg = 'rgba(255,255,255,0.78)';
-  const glassBgStrong = 'rgba(255,255,255,0.88)';
-  const glassBorder = 'rgba(255,255,255,0.45)';
-  const card: any = {
-    backgroundColor: glassBg, borderRadius: 16, padding: 20,
-    borderWidth: 1, borderColor: glassBorder, marginBottom: 12,
+function ChartGlassView({ colors, bgOpacity, weekRev, monthRevRecords, businessSummary, chartMonthly }: ChartGlassProps) {
+  // ── Match web's gradient glass card (dark gradient + white text) ──
+  const gradientAlpha = bgOpacity === 1 ? 0.30 : 0.48;
+  const cardStyle: any = {
+    borderRadius: 14, paddingVertical: 14, paddingHorizontal: 18, gap: 12, marginBottom: 8,
   };
-  const labelStyle = { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: 'rgba(0,0,0,0.55)' };
-  const symStyle = { fontSize: 16, fontWeight: '600' as const, color: 'rgba(0,0,0,0.7)', marginRight: 2 };
-  const valueStyle = { fontSize: FONTS.amount.size, fontWeight: FONTS.amount.weight, color: 'rgba(0,0,0,0.9)' };
-  const subCard: any = {
-    flex: 1, backgroundColor: glassBgStrong, borderRadius: 12, padding: 12,
-    borderWidth: 1, borderColor: glassBorder,
+  const cardLabelStyle = { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.70)' };
+  const symbolStyle = { fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.expenseAmountColor, marginRight: 2 };
+  const valueStyle = { fontSize: FONTS.h1.size + 4, fontWeight: FONTS.h1.weight, color: colors.expenseAmountColor };
+  const subCardStyle: any = {
+    flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: 14, gap: 6,
+    borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.20)',
   };
-  const subLabelStyle = { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(0,0,0,0.55)' };
-  const subValueStyle = { fontSize: 16, fontWeight: '700' as const, color: 'rgba(0,0,0,0.9)', marginTop: 4 };
+  const subLabelStyle = { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.70)' };
+  const subValueStyle = { fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: 'rgba(255,255,255,0.95)' };
+
+  // ── KPI card (web: colors.surface + secondary border) ──
+  const kpiCardStyle: any = {
+    borderRadius: 14, paddingTop: 18, paddingHorizontal: 18, paddingBottom: 12,
+    backgroundColor: colors.surface, borderWidth: 0.5, borderColor: colors.secondary, marginBottom: 12,
+  };
+  const kpiLabelStyle = { fontSize: FONTS.sub.size, color: colors.textSub, fontWeight: FONTS.sub.weight };
+  const kpiValueStyle = { fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.textMain };
 
   const toNum = (v: any) => parseFloat(String(v ?? 0)) || 0;
   const yesterdayIncome = toNum(businessSummary.yesterday_income);
   const yesterdayExpense = toNum(businessSummary.yesterday_expense);
   const monthExpense = toNum(businessSummary.month_expense_amount);
-  // Month income: use daily_revenues or fallback from businessSummary
-  const monthIncomeVal = toNum(businessSummary.yesterday_income) * 30; // rough estimate if not available
+  const monthIncomeVal = monthRevRecords.reduce((s: number, r: any) => s + (r.revenue || 0) + (r.jd_revenue || 0), 0);
 
   return (
-    <View style={{ paddingBottom: 100, paddingTop: 4 }}>
-      {/* ── Glass card: 在手资金 ── */}
-      <View style={card}>
-        <Text style={{ fontSize: FONTS.amount.size, fontWeight: FONTS.amount.weight, color: 'rgba(0,0,0,0.9)', marginBottom: 16 }}>
+    <View style={{ paddingBottom: 100, paddingTop: 4, paddingHorizontal: 16 }}>
+      {/* ── Glass card: 在手资金 (gradient + white text, matching web) ── */}
+      <LinearGradient
+        colors={[withAlpha(colors.expenseGradientStart, gradientAlpha), withAlpha(colors.expenseGradientEnd, gradientAlpha)]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+        style={cardStyle}
+      >
+        {/* @ts-ignore — 收支总览大标题 */}
+        <Text style={{ fontSize: FONTS.amount.size, fontWeight: FONTS.amount.weight, color: 'rgba(255,255,255,0.95)' }}>
           {t('summary')}
         </Text>
-        <View style={{ alignItems: 'flex-start', gap: 2, marginBottom: 16 }}>
-          <Text style={labelStyle}>{t('cashOnHand')}</Text>
+        <View style={{ flex: 1, justifyContent: 'space-between' } as any}>
+        <View style={{ alignItems: 'flex-start', gap: 2 }}>
+          <Text style={cardLabelStyle}>{t('cashOnHand')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-            <Text style={symStyle}>¥</Text>
+            <Text style={symbolStyle}>¥</Text>
             <Text style={valueStyle}>{toDec2Comma(businessSummary.cash_on_hand || 0)}</Text>
           </View>
         </View>
         <View style={{ flexDirection: 'row', gap: 10 }}>
-          <View style={subCard}>
+          <View style={subCardStyle}>
             <Text style={subLabelStyle}>{t('cumulativeRevenue')}</Text>
             <Text style={subValueStyle}>{'¥' + toDec2Comma(businessSummary.cumulative_revenue || 0)}</Text>
           </View>
-          <View style={subCard}>
+          <View style={subCardStyle}>
             <Text style={subLabelStyle}>{t('cumulativeExpense')}</Text>
             <Text style={subValueStyle}>{'¥' + toDec2Comma(businessSummary.cumulative_expense || 0)}</Text>
           </View>
         </View>
-      </View>
+        </View>
+      </LinearGradient>
 
-      {/* ── KPI 三行：实收 / 应收 / 优惠减免 ── */}
-      <View style={[card, { paddingVertical: 18, paddingHorizontal: 18, gap: 14 }]}>
+      {/* ── KPI 三行：实收 / 应收 / 优惠减免 (web: surface card + secondary border) ── */}
+      <View style={kpiCardStyle}>
         {[
           { label: t('actualReceived'), val: toNum(businessSummary.actual_received) },
           { label: t('receivable'), val: toNum(businessSummary.receivable) },
           { label: t('discountAmount'), val: toNum(businessSummary.discount) },
         ].map((item, i) => (
           <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 }}>
-            <Text style={{ fontSize: FONTS.sub.size, color: 'rgba(0,0,0,0.55)', fontWeight: FONTS.sub.weight }}>{item.label}</Text>
-            <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: 'rgba(0,0,0,0.9)' }}>
-              {'¥' + toDec2Comma(item.val)}
-            </Text>
+            <Text style={kpiLabelStyle}>{item.label}</Text>
+            <Text style={kpiValueStyle}>{'¥' + toDec2Comma(item.val)}</Text>
           </View>
         ))}
       </View>
