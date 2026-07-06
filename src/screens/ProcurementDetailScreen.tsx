@@ -186,6 +186,7 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
               disabled={settling}
               trackColor={{ false: withAlpha(c.textMain, 0.18), true: '#3DBC75' }}
               thumbColor="#fff"
+              style={{ transform: [{ scale: 0.75 }] }}
             />
             <TouchableOpacity onPress={downloadPDF} activeOpacity={0.6} style={styles.actionBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <ViewIcon color={c.primary} />
