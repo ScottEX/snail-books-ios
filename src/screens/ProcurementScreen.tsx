@@ -1387,7 +1387,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
             {!(itemsModalIsCart && itemsModalView === 'products') ? (
               <>
                 {!editingBatchSettled && (
-                <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 18, paddingBottom: 22, paddingTop: 4 }}>
+                <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 18, paddingBottom: 16, paddingTop: 4 }}>
                   <TouchableOpacity
                     style={{ flex: 1, paddingVertical: 12, borderRadius: 8, backgroundColor: withAlpha(c.primary, 0.08), alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 }}
                     onPress={() => setItemsModalView('products')}
@@ -1405,7 +1405,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
               </>
             ) : (
               <TouchableOpacity
-                style={{ marginHorizontal: 16, marginBottom: 22, marginTop: 4, paddingVertical: 12, borderRadius: 8, backgroundColor: c.primary, alignItems: 'center' }}
+                style={{ marginHorizontal: 16, marginBottom: 16, marginTop: 4, paddingVertical: 12, borderRadius: 8, backgroundColor: c.primary, alignItems: 'center' }}
                 onPress={() => setItemsModalView('items')}
               >
                 <Text style={{ fontSize: FONTS.body.size, fontWeight: '600', color: c.surface }}>{t('done') || '完成'}</Text>
