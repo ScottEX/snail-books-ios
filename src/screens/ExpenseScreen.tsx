@@ -10,7 +10,7 @@ import { api } from '../api/client';
 import { useToast } from '../hooks/useToast';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
-import ReAnimated, { useAnimatedReaction, runOnJS, useAnimatedStyle } from 'react-native-reanimated';
+import ReAnimated, { useAnimatedStyle } from 'react-native-reanimated';
 import DatePickerModal from '../components/DatePickerModal';
 import CategoryChips from '../components/CategoryChips';
 import MonthPicker from '../components/MonthPicker';
@@ -285,14 +285,12 @@ export default function ExpenseScreen({
   const feeMonthInited = useRef(false);
   useEffect(() => { if (sd.ready && !feeMonthInited.current) { feeMonthInited.current = true; setFeeMonth({ year: sd.year, month: sd.month }); } }, [sd.ready, sd.year, sd.month]);
   const [showFeeSheet, setShowFeeSheet] = useState(false);
-  const [keyboardH, setKeyboardH] = useState(0);
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  useAnimatedReaction(
-    () => keyboardHeight.value,
-    (v) => runOnJS(setKeyboardH)(v),
-    [keyboardHeight],
-  );
   const cap = -Dimensions.get('window').height * 0.28;
+  const sheetStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: keyboardHeight.value }],
+  }));
+  const [showFeeHistory, setShowFeeHistory] = useState(false);
   const contentStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: Math.max(keyboardHeight.value, cap) }],
   }));
@@ -872,8 +870,9 @@ export default function ExpenseScreen({
       </View>
       {/* Fee entry bottom sheet */}
       <ModalOverlay visible={showFeeSheet} onClose={() => setShowFeeSheet(false)} animation="slideUpScale"
-          overlayStyle={{ ...bottomSheetOverlay, paddingBottom: keyboardH } as any}
+          overlayStyle={bottomSheetOverlay as any}
           contentStyle={{ alignItems: 'stretch' } as any}>
+          <ReAnimated.View style={sheetStyle}>
           <View style={[st.feeSheet, { width: '100%', maxWidth: 768, alignSelf: 'center' }]}>
             {/* Sheet header: handle on top, title + close button row below */}
             <View style={{ backgroundColor: colors.primary, paddingVertical: 14, paddingHorizontal: 20 }}>
@@ -969,6 +968,7 @@ export default function ExpenseScreen({
             </View>
             </ScrollView>
           </View>
+          </ReAnimated.View>
       </ModalOverlay>
       {/* Fee history bottom sheet */}
       <ModalOverlay visible={showFeeHistory} onClose={() => { setShowFeeHistory(false); setFeeHistoryFilter('all'); }} animation="slideUpScale"
