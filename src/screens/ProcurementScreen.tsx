@@ -607,6 +607,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
           setSuccessIsEdit(true);
           setTimeout(() => openSlideModal(() => setShowSuccess(true)), 250);
           loadStats();
+          refresh();
         } else {
           showToast(t('toastSubmitFailed'));
         }
@@ -627,6 +628,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
         }, 300);
         setTimeout(() => openSlideModal(() => setShowSuccess(true)), 250);
         loadStats();
+        refresh();
       } else {
         showToast(t('toastSubmitFailed'));
       }
