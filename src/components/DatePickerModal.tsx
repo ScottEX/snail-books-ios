@@ -126,6 +126,20 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
   while (cells.length % 7 !== 0) cells.push(null);
 
+  // Target month cells for slide-in animation
+  const targetCells: (number | null)[] = React.useMemo(() => {
+    if (targetYear == null || targetMonth == null) return [];
+    const tfd = new Date(targetYear, targetMonth - 1, 1);
+    const tld = new Date(targetYear, targetMonth, 0);
+    const tsd = tfd.getDay();
+    const tdim = tld.getDate();
+    const tc: (number | null)[] = [];
+    for (let j = 0; j < tsd; j++) tc.push(null);
+    for (let d = 1; d <= tdim; d++) tc.push(d);
+    while (tc.length % 7 !== 0) tc.push(null);
+    return tc;
+  }, [targetYear, targetMonth]);
+
   const monthLabel = (() => {
     const l = getLang();
     if (l.startsWith('en')) return `${MONTHS_EN[month-1]} ${year}`;
@@ -311,16 +325,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
                 </View>
               </Animated.View>
               {/* Target grid — slides in (only during animation) */}
-              {targetYear != null && targetMonth != null && (() => {
-                const tfd = new Date(targetYear, targetMonth - 1, 1);
-                const tld = new Date(targetYear, targetMonth, 0);
-                const tsd = tfd.getDay();
-                const tdim = tld.getDate();
-                const tc: (number | null)[] = [];
-                for (let j = 0; j < tsd; j++) tc.push(null);
-                for (let d = 1; d <= tdim; d++) tc.push(d);
-                while (tc.length % 7 !== 0) tc.push(null);
-                return (
+              {targetYear != null && targetMonth != null && (
                   <Animated.View style={[styles.gridArea, {
                     position: 'absolute' as const, left: 0, right: 0,
                     transform: [{
@@ -329,14 +334,14 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
                         outputRange: slideDirRef.current === 'left' ? [SW, 0] : [-SW, 0],
                       }),
                     }],
-                  })} pointerEvents="none">
+                  } as any]} pointerEvents="none">
                     <View style={styles.weekdayRow}>
                       {(getLang().startsWith('en') ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] : ['日','一','二','三','四','五','六']).map(d2 => (
                         <Text key={d2} style={styles.weekdayText}>{d2}</Text>
                       ))}
                     </View>
                     <View style={styles.daysGrid}>
-                      {tc.map((d2, i2) => {
+                      {targetCells.map((d2, i2) => {
                         if (d2 === null) return <View key={i2} style={styles.dayCell} />;
                         const iso2 = `${targetYear}-${String(targetMonth).padStart(2,'0')}-${String(d2).padStart(2,'0')}`;
                         const ist = iso2 === todayStr();
@@ -352,8 +357,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
                       })}
                     </View>
                   </Animated.View>
-                );
-              })()}
+              )}
               {/* Spacer to maintain height when grids are absolute-positioned */}
               <View style={styles.weekdayRow} pointerEvents="none">
                 {(getLang().startsWith('en') ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] : ['日','一','二','三','四','五','六']).map(d => (
