@@ -87,8 +87,8 @@ const IcnPhone = ({ color }: { color: string }) => (
 
 const IcnAccount = ({ color }: { color: string }) => (
   <Svg width={15} height={15} viewBox="0 0 24 24" stroke={color} strokeWidth={1.8} fill="none">
-    <Rect x="2" y="4" width="20" height="16" rx="2" />
-    <Line x1="2" y1="10" x2="22" y2="10" />
+    <Line x1="12" y1="1" x2="12" y2="23" />
+    <Path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
   </Svg>
 );
 
