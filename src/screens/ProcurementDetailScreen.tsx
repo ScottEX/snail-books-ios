@@ -149,7 +149,8 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
   };
 
   const thumbImgs = (parseImages(cur.thumb_images).length ? parseImages(cur.thumb_images) : parseImages(cur.images));
-  const images: string[] = parseImages(cur.images);
+  const images: string[] = parseImages(cur.images).map(img => resolveAssetUrl(img) || img);
+  const resolvedThumbImgs = thumbImgs.map(img => resolveAssetUrl(img) || img);
   const items = cur.items || [];
 
   const paymentLabel = trPayment(cur.payment_method);
@@ -254,7 +255,7 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
             <Text style={styles.sectionTitle}>{t('procImages')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {thumbImgs.map((img: string, i: number) => (
-                <TouchableOpacity key={i} onPress={() => openPreview(images.length ? images : thumbImgs, i)} activeOpacity={0.8} style={{ marginRight: 8 }}>
+                <TouchableOpacity key={i} onPress={() => openPreview(images.length ? images : resolvedThumbImgs, i)} activeOpacity={0.8} style={{ marginRight: 8 }}>
                   <Image source={{ uri: resolveAssetUrl(img) || img }} style={[styles.thumb, { marginRight: 0 }]} />
                 </TouchableOpacity>
               ))}
