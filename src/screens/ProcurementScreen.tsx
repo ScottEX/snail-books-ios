@@ -1385,7 +1385,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
             <Animated.View style={{
               opacity: anims[2],
               transform: [{ translateY: anims[2].interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
-              paddingBottom: 8,
+              paddingBottom: 6,
             }}>
             {!(itemsModalIsCart && itemsModalView === 'products') ? (
               <>
