@@ -269,6 +269,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const [showProcurementDetail, setShowProcurementDetail] = useState<any | null>(null);
   const [showExpenseDetail, setShowExpenseDetail] = useState<any | null>(null);
   const [showPdfPreview, setShowPdfPreview] = useState<{ id: number; number: number } | null>(null);
+  const [pendingEditBatch, setPendingEditBatch] = useState<any | null>(null);
   const isHome = useMemo(() =>
     !showExpenseHistory && !showDailyHistory && !showReconHistory && !showProfile &&
     !showUserMgmt && !showUserDetail && !showInvoice && !showProcurementDetail &&
@@ -544,7 +545,10 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           <ProcurementDetailScreen
             batch={showProcurementDetail}
             onBack={onBack}
-            onEdit={() => { setShowProcurementDetail(null); }}
+            onEdit={() => {
+              setPendingEditBatch(showProcurementDetail);
+              setShowProcurementDetail(null);
+            }}
             onPreview={(id, num) => { setShowProcurementDetail(null); setShowPdfPreview({ id, number: num }); }}
           />
         ) : null}
@@ -638,6 +642,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         ) : isHome && tab === 'supply' ? (
           <ProcurementScreen
             onProcurementDetail={(batch) => setShowProcurementDetail(batch)}
+            pendingEditBatch={pendingEditBatch}
+            onPendingEditConsumed={() => setPendingEditBatch(null)}
           />
         ) : isHome && (
         <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false}>
