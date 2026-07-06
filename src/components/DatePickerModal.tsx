@@ -1,5 +1,5 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, NativeSyntheticEvent, NativeScrollEvent, Animated, PanResponder } from 'react-native';
+import React, { useState, useRef, useCallback } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, NativeSyntheticEvent, NativeScrollEvent, Animated } from 'react-native';
 import AppTextInput from './AppTextInput';
 import ModalOverlay from './ModalOverlay';
 import { BlurView } from 'expo-blur';
@@ -183,13 +183,15 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
 
   const styles = getStyles(w, wSub, wBg, wBg2);
 
-  const gridPanResponder = useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dx) > 10 && Math.abs(gs.dx) > Math.abs(gs.dy),
-    onPanResponderRelease: (_, gs) => {
-      if (gs.dx > 40) handlePrevMonth();
-      else if (gs.dx < -40) handleNextMonth();
-    },
-  }), [year, month]);
+  const touchStartX = useRef(0);
+  const onGridTouchStart = useCallback((e: any) => {
+    touchStartX.current = e.nativeEvent.pageX;
+  }, []);
+  const onGridTouchEnd = useCallback((e: any) => {
+    const dx = e.nativeEvent.pageX - touchStartX.current;
+    if (dx > 50) handlePrevMonth();
+    else if (dx < -50) handleNextMonth();
+  }, [year, month]);
 
   return (
     <ModalOverlay
@@ -274,7 +276,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
                 inputRange: [0, 1],
                 outputRange: [1, 0],
               }),
-            }]} {...gridPanResponder.panHandlers}>
+            }]} onTouchStart={onGridTouchStart} onTouchEnd={onGridTouchEnd}>
               <View style={styles.weekdayRow}>
                 {(getLang().startsWith('en') ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] : ['日','一','二','三','四','五','六']).map(d => (
                   <Text key={d} style={styles.weekdayText}>{d}</Text>
