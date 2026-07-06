@@ -9,7 +9,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { useToast } from '../hooks/useToast';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
-import { modalClose } from '../sharedStyles';
+import { modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
 import ModalOverlay from '../components/ModalOverlay';
 import { fmtAmtFull } from '../utils/format';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -369,7 +369,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   reconByRow: { alignItems: 'center', paddingBottom: 2 },
   reconByText: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight },
   /* Modal */
-  modal: { backgroundColor: colors.surface, borderRadius: 24, overflow: 'hidden' },
+  modal: { backgroundColor: colors.surface, borderRadius: MODAL_CARD_RADIUS, overflow: 'hidden' },
   modalHeader: { backgroundColor: colors.primary, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 18 },
   modalDate: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.surface },
   modalDateSub: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: withAlpha(colors.surface, 0.75), marginTop: 2 },

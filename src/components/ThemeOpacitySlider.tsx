@@ -1,6 +1,13 @@
-import React, { useRef } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { View, PanResponder } from 'react-native';
-import { ThemeColors, withAlpha } from '../theme';
+import { ThemeColors } from '../theme';
+
+function withAlpha(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
 interface Props {
   value: number;        // 0..1
@@ -8,54 +15,82 @@ interface Props {
   colors: ThemeColors;
 }
 
-/** Web-style opacity slider: track bar + fill bar + draggable/tappable area.
- *  Matches web's <input type="range"> visual: 4px bars, tap to jump, drag to scrub. */
 export default function ThemeOpacitySlider({ value, onChange, colors }: Props) {
   const trackRef = useRef<View>(null);
   const trackWidthRef = useRef(0);
-  const pct = Math.round(value * 100);
 
-  const updateFromX = (pageX: number) => {
-    if (!trackRef.current) return;
-    trackRef.current.measureInWindow((x, _y, width) => {
-      if (width <= 0) return;
-      const clamped = Math.max(0, Math.min(1, (pageX - x) / width));
-      const stepped = Math.round(clamped * 20) / 20; // 0.05 step
-      onChange(stepped);
-    });
-  };
-
-  const pan = useRef(
+  const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (e: any) => {
-        updateFromX(e.nativeEvent.pageX);
+      onPanResponderGrant: (evt) => {
+        updateFromEvent(evt.nativeEvent.locationX);
       },
-      onPanResponderMove: (e: any) => {
-        updateFromX(e.nativeEvent.pageX);
+      onPanResponderMove: (evt) => {
+        updateFromEvent(evt.nativeEvent.locationX);
       },
     })
   ).current;
 
+  const updateFromEvent = useCallback(
+    (x: number) => {
+      if (trackWidthRef.current <= 0) return;
+      const pct = Math.max(0, Math.min(1, x / trackWidthRef.current));
+      onChange(Math.round(pct * 20) / 20); // step 0.05
+    },
+    [onChange],
+  );
+
+  const pct = Math.max(0, Math.min(1, value));
+  const trackColor = withAlpha(colors.primary, 0.18);
+
   return (
-    <View
-      ref={trackRef}
-      onLayout={(e) => { trackWidthRef.current = e.nativeEvent.layout.width; }}
-      style={{ position: 'relative', height: 32, justifyContent: 'center' }}
-      {...pan.panHandlers}
-    >
-      {/* Track */}
-      <View style={{
-        position: 'absolute', left: 0, right: 0, height: 4, borderRadius: 2,
-        backgroundColor: colors.secondary,
-      }} />
-      {/* Fill */}
-      <View style={{
-        position: 'absolute', left: 0, height: 4, borderRadius: 2,
-        width: `${pct}%`,
-        backgroundColor: colors.primary,
-      }} />
+    <View style={{ marginBottom: 8 }}>
+      <View
+        ref={trackRef}
+        onLayout={(e) => { trackWidthRef.current = e.nativeEvent.layout.width; }}
+        style={{
+          height: 6,
+          borderRadius: 3,
+          backgroundColor: trackColor,
+          justifyContent: 'center',
+          position: 'relative',
+        }}
+        pointerEvents="box-only"
+        {...panResponder.panHandlers}
+      >
+        {/* fill bar */}
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: `${pct * 100}%`,
+            backgroundColor: colors.primary,
+            borderRadius: 7,
+          }}
+        />
+        {/* thumb */}
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: `${pct * 100}%`,
+            marginLeft: -10,
+            width: 20,
+            height: 14,
+            borderRadius: 7,
+            backgroundColor: '#FFFFFF',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.15,
+            shadowRadius: 2,
+            elevation: 2,
+          }}
+        />
+      </View>
     </View>
   );
 }

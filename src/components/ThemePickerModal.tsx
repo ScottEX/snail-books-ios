@@ -1,14 +1,16 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
-import { useTheme, ThemeColors, withAlpha, FONTS, DEFAULT_THEME_ID } from '../theme';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useTheme, ThemeColors, FONTS, DEFAULT_THEME_ID } from '../theme';
+import { MODAL_CARD_RADIUS } from '../sharedStyles';
 import { t } from '../i18n';
 import { api } from '../api/client';
 
 import ThemePicker from './ThemePicker';
-import ThemeOpacitySlider from './ThemeOpacitySlider';
+import Slider from '@react-native-community/slider';
 import CloseButton from './CloseButton';
 import BgCropModal from './BgCropModal';
-import { useEffect, useRef, useState } from 'react';
+import ModalOverlay from './ModalOverlay';
+import { useState } from 'react';
 import { pickImages } from '../utils/imagePicker';
 
 interface ThemePickerModalProps {
@@ -28,13 +30,9 @@ interface ThemePickerModalProps {
 
 function getStyles(colors: ThemeColors) {
   return StyleSheet.create({
-    overlay: {
-      position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0,
-      zIndex: 500, backgroundColor: 'rgba(0,0,0,0.3)',
-      justifyContent: 'center', alignItems: 'center',
-    },
     card: {
-      backgroundColor: colors.surface, borderRadius: 16, width: 340, maxWidth: '90%',
+      backgroundColor: colors.surface, borderRadius: MODAL_CARD_RADIUS,
+      width: 340, maxWidth: '90%',
       overflow: 'hidden' as any,
     },
     header: {
@@ -42,15 +40,22 @@ function getStyles(colors: ThemeColors) {
       paddingHorizontal: 20, paddingVertical: 14,
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     },
-    title: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.surface },
-    body: { padding: 24 },
-    hint: { fontSize: FONTS.micro.size, color: colors.textSub, textAlign: 'center' as any },
-    btnRow: { flexDirection: 'row', gap: 12, marginTop: 16 },
-    bgBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' as any },
-    bgBtnOutline: { borderWidth: 1, borderColor: colors.primary },
-    bgBtnOutlineText: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight },
-    bgBtnDanger: { borderWidth: 1, borderColor: withAlpha(colors.primary, 0.2), backgroundColor: withAlpha(colors.primary, 0.06) },
-    bgBtnDangerText: { fontSize: FONTS.micro.size, color: colors.primary, fontWeight: FONTS.micro.weight },
+    title: { fontSize: 14, fontWeight: '700', color: colors.surface },
+    body: { padding: 20, paddingTop: 16, gap: 0 } as any,
+    hint: { fontSize: FONTS.micro.size, color: colors.textSub, lineHeight: 20 },
+    btnRow: { flexDirection: 'row', gap: 10, marginTop: 18 } as any,
+    bgBtn: {
+      flex: 1, paddingVertical: 10, borderRadius: 10,
+      justifyContent: 'center', alignItems: 'center',
+    },
+    bgBtnOutline: {
+      borderWidth: 1, borderColor: colors.primary, backgroundColor: 'transparent',
+    },
+    bgBtnOutlineText: { fontSize: 13, fontWeight: '600', color: colors.primary },
+    bgBtnDanger: {
+      borderWidth: 1, borderColor: colors.danger, backgroundColor: 'transparent',
+    },
+    bgBtnDangerText: { fontSize: 13, fontWeight: '600', color: colors.danger },
   });
 }
 
@@ -61,9 +66,6 @@ export default function ThemePickerModal({
 }: ThemePickerModalProps) {
   const { colors, setTheme } = useTheme();
   const styles = getStyles(colors);
-  const fade = useRef(new Animated.Value(0)).current;
-  const slide = useRef(new Animated.Value(-300)).current;
-  const [show, setShow] = React.useState(false);
   const [showCrop, setShowCrop] = useState(false);
   const [imageSrc, setImageSrc] = useState('');
   const [pickedFile, setPickedFile] = useState<any>(null);
@@ -74,11 +76,8 @@ export default function ThemePickerModal({
     if (resetting) return;
     setResetting(true);
     try {
-      // 1. Reset theme
       setTheme(DEFAULT_THEME_ID);
-      // 2. Reset background image
       await api.resetBackground();
-      // 3. Reset opacity to 0 — both localStorage + API
       try {
         const { getCurrentUserId } = require('../utils/storage');
         const uid = getCurrentUserId();
@@ -86,46 +85,21 @@ export default function ThemePickerModal({
         api.saveBackgroundSettings({ opacity: 0 }).catch(() => {});
       } catch {}
       try { localStorage.removeItem('bg-image'); } catch {}
-      // 4. Set localStorage flag for cross-screen sync
       try { localStorage.setItem('__theme_reset_ts', String(Date.now())); } catch {}
-      // 5. Dispatch events
       if (typeof (window as any).dispatchEvent === 'function') {
         (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: '' } }));
       }
-      // 6. Let caller close its modal
       await onResetCover?.();
     } finally {
       setResetting(false);
     }
   };
-  // the "选择图片" button opens the system picker immediately.
-  // passed to BgCropModal. The image picker lives HERE so that clicking
-
-  useEffect(() => {
-    if (visible) {
-      setShow(true);
-      fade.setValue(0);
-      slide.setValue(-300);
-      Animated.parallel([
-        Animated.spring(slide, { toValue: 0, useNativeDriver: true, bounciness: 4, speed: 14 }),
-        Animated.timing(fade, { toValue: 1, duration: 200, useNativeDriver: true }),
-      ]).start();
-    } else if (show) {
-      Animated.parallel([
-        Animated.timing(slide, { toValue: -300, duration: 180, useNativeDriver: true }),
-        Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: true }),
-      ]).start(() => setShow(false));
-    }
-  }, [visible]);
 
   const handleClose = () => {
     setShowCrop(false);
     setImageSrc('');
     setPickedFile(null);
-    Animated.parallel([
-      Animated.timing(slide, { toValue: -300, duration: 180, useNativeDriver: true }),
-      Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: true }),
-    ]).start(() => { setShow(false); onClose(); });
+    onClose();
   };
 
   const handlePickImage = async () => {
@@ -141,19 +115,18 @@ export default function ThemePickerModal({
     }
   };
 
-  if (!show) return null;
-
   const opacityValue = coverOpacity ?? 1;
   const opacityPct = Math.round(opacityValue * 100);
 
   return (
-    <Animated.View style={[styles.overlay as any, { opacity: fade }]}>
-      <Animated.View style={[styles.card as any, { transform: [{ translateY: slide }] }]}>
-        <View style={styles.header}>
-          <Text style={styles.title}>{showCoverTools ? t('bgSettings') : (t('themeLabel') || '主题')}</Text>
-          <CloseButton onPress={handleClose} />
-        </View>
-        <View style={styles.body}>
+    <>
+      <ModalOverlay visible={visible} onClose={handleClose} animation="springScale">
+        <View style={styles.card}>
+          <View style={styles.header}>
+            <Text style={styles.title}>{showCoverTools ? t('bgSettings') : (t('themeLabel') || '主题')}</Text>
+            <CloseButton onPress={handleClose} />
+          </View>
+          <View style={styles.body}>
 
           {/* ── Cover image tools (ProfileScreen only) ── */}
           {showCoverTools && (
@@ -175,7 +148,17 @@ export default function ThemePickerModal({
                 <Text style={{ fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight }}>{t('opacity')}</Text>
                 <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary }}>{opacityPct}%</Text>
               </View>
-              <ThemeOpacitySlider value={opacityValue} onChange={onCoverOpacityChange || (() => {})} colors={colors} />
+              <Slider
+                style={{ width: '100%', height: 40 }}
+                minimumValue={0}
+                maximumValue={1}
+                step={0.05}
+                value={opacityValue}
+                onValueChange={(v) => onCoverOpacityChange?.(Math.round(v * 20) / 20)}
+                minimumTrackTintColor={colors.primary}
+                maximumTrackTintColor={colors.secondary}
+                thumbTintColor={colors.primary}
+              />
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
                 <Text style={{ fontSize: FONTS.micro.size, color: colors.textSub }}>0</Text>
                 <Text style={{ fontSize: FONTS.micro.size, color: colors.textSub }}>50</Text>
@@ -204,7 +187,8 @@ export default function ThemePickerModal({
             </View>
           )}
         </View>
-      </Animated.View>
+      </View>
+      </ModalOverlay>
 
       {/* Background image crop modal (RN-native). The image picker is
           handled by handlePickImage above; BgCropModal just renders
@@ -223,6 +207,6 @@ export default function ThemePickerModal({
           setPickedFile(null);
         }}
       />
-    </Animated.View>
+    </>
   );
 }

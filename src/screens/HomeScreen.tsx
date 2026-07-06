@@ -559,7 +559,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
               setPendingEditBatch(showProcurementDetail);
               onBack();
             }}
-            onPreview={(id, num, supplier) => { setShowProcurementDetail(null); setShowPdfPreview({ id, number: num, supplier }); }}
+            onPreview={(id, num, supplier) => { setShowPdfPreview({ id, number: num, supplier }); }}
           />
         ) : null}
       </SlideScreen>

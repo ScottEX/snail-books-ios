@@ -1,7 +1,9 @@
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
-  Image, Switch,
+  Image, Switch, StatusBar,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Line } from 'react-native-svg';
 import { t } from '../i18n';
 import { trCategory, trPayment } from '../i18nHelpers';
@@ -9,13 +11,12 @@ import { api, resolveAssetUrl } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 import { FONTS } from '../theme';
-import { historyHeader, MODAL_CARD_RADIUS } from '../sharedStyles';
+import { MODAL_CARD_RADIUS } from '../sharedStyles';
 import ConfirmModal from '../components/ConfirmModal';
 import ModalOverlay from '../components/ModalOverlay';
 import ImagePreview from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
 import { formatDate } from '../utils/format';
-import BackArrow from '../components/icons/BackArrow';
 import TrashIcon from '../components/icons/TrashIcon';
 import { getCurrentUser } from '../utils/storage';
 import { parseImages } from '../utils/parseImages';
@@ -70,6 +71,9 @@ function EditIcon({ color }: { color: string }) {
 
 export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPreview }: { batch: BatchRecord | null; onBack: () => void; onEdit?: () => void; onPreview: (id: number, number: number, supplier?: string) => void }) {
   const { colors: c } = useTheme();
+  const insets = useSafeAreaInsets();
+  const safeTop = insets.top;
+  const headerHeight = safeTop + 42;
   const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(c), [c]);
   const [deleting, setDeleting] = useState(false);
@@ -85,13 +89,22 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
   if (!cur) {
     return (
       <View style={styles.container} {...swipeBack}>
-        <View style={styles.header}>
+        <BlurView
+          intensity={70}
+          tint="regular"
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: headerHeight }}
+        />
+        <StatusBar barStyle="light-content" />
+        <View style={{ position: 'absolute', top: safeTop - 5, left: 0, right: 0, zIndex: 90, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingBottom: 6, backgroundColor: 'transparent', pointerEvents: 'box-none' as const }}>
           <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
             <View style={styles.backBtn}>
-              <BackArrow color="#000" />
+              <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <Path d="M15 18l-6-6 6-6" />
+              </Svg>
             </View>
           </TouchableOpacity>
           <Text style={styles.title}>{t('procOrderItems')}</Text>
+          <View style={{ width: 36 }} />
         </View>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: c.textSub }}>—</Text>
@@ -157,17 +170,48 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
 
   return (
     <View style={styles.container} {...swipeBack}>
-      <View style={styles.header}>
+      <BlurView
+        intensity={70}
+        tint="regular"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: headerHeight,
+        }}
+      />
+      <StatusBar barStyle="light-content" />
+      <View
+        style={{
+          position: 'absolute',
+          top: safeTop - 5,
+          left: 0,
+          right: 0,
+          zIndex: 90,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+          paddingTop: 0,
+          paddingBottom: 6,
+          paddingHorizontal: 16,
+          backgroundColor: 'transparent',
+          pointerEvents: 'box-none' as const,
+        }}
+      >
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
           <View style={styles.backBtn}>
-            <BackArrow color="#000" />
+            <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <Path d="M15 18l-6-6 6-6" />
+            </Svg>
           </View>
         </TouchableOpacity>
         <Text style={styles.title}>{t('procDetail')}</Text>
+        <View style={{ width: 36 }} />
       </View>
 
       <ScrollView
-        style={styles.body}
+        style={[styles.body, { marginTop: headerHeight }]}
         contentContainerStyle={styles.bodyContent}
         showsVerticalScrollIndicator={false}
       >
@@ -370,12 +414,24 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
 }
 
 const getStyles = (c: ThemeColors) => {
-  const hdr = historyHeader(c);
   return StyleSheet.create({
     container: {
       flex: 1,
     },
-    ...hdr,
+    backBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: 'rgba(0,0,0,0.25)',
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+    },
+    title: {
+      flex: 1,
+      fontSize: 15,
+      fontWeight: '600' as const,
+      color: '#fff',
+    },
     actionBtn: {
       width: 36, height: 36, borderRadius: 18,
       backgroundColor: withAlpha(c.bg, 0.30),
@@ -407,7 +463,6 @@ const getStyles = (c: ThemeColors) => {
     },
     body: {
       flex: 1,
-      marginTop: 100,
       backgroundColor: c.bg,
     },
     bodyContent: {

@@ -1,7 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet,
-  Animated,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Line, Circle, Rect, Polyline, Text as SvgText } from 'react-native-svg';
@@ -21,6 +20,10 @@ import TrashIcon from '../components/icons/TrashIcon';
 import ImagePreview from '../components/ImagePreview';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BANK_ICON_MAP, DefaultBankIcon } from '../components/BankIcons';
+import SheetHeader from '../components/SheetHeader';
+import ModalOverlay from '../components/ModalOverlay';
+import { bottomSheetOverlay } from '../sharedStyles';
 
 /* ═══════════════ ICONS ═══════════════ */
 
@@ -100,13 +103,10 @@ const BANK_COLORS: Record<string, string> = {
   bosh: '#005BAC',
 };
 
-function BankIconView({ code, size = 22 }: { code: string; size?: number }) {
-  const bg = BANK_COLORS[code] || '#999';
-  return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: '#fff', fontSize: size * 0.45, fontWeight: '700' }}>{code.charAt(0).toUpperCase()}</Text>
-    </View>
-  );
+/** 银行图标：品牌色圆底 + 首字 */
+function BankIconView({ code, size = 24 }: { code: string; size?: number }) {
+  const IconComponent = BANK_ICON_MAP[code] || DefaultBankIcon;
+  return <IconComponent size={size} />;
 }
 
 /** Stamp seal — active (done: 已开票 / pending: 待开票) */
@@ -278,7 +278,6 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   // Drawer (create/edit)
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerKey, setDrawerKey] = useState(0);
-  const closeGuardRef = useRef(0);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [dType, setDType] = useState<InvType>('general');
   const [dAmount, setDAmount] = useState('');
@@ -294,10 +293,6 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const [batchList, setBatchList] = useState<any[]>([]);
   const [dFiles, setDFiles] = useState<PickedImage[]>([]);
   const [dExistingFilePath, setDExistingFilePath] = useState<string[]>([]);
-
-  // Drawer animation
-  const drawerAnim = useRef(new Animated.Value(0)).current;
-  const overlayAnim = useRef(new Animated.Value(0)).current;
 
   // Delete confirm
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
@@ -359,12 +354,21 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
     (async () => {
       try {
         const inv: any = await api.getInvoice();
+        const perUserEmail: any = await api.getInvoiceEmail().catch(() => ({}));
         if (inv?.status === 'ok' && inv.data) {
-          const d = { ...EMPTY_INV, ...inv.data };
+          const d = { ...EMPTY_INV, ...inv.data, email: perUserEmail.email || inv.data.email || '' };
           setData(d);
           setOrig(d);
-          setDEmail(inv.data.email || '');
+          setDEmail(d.email);
           setInvType(inv.data.inv_type || 'vat');
+          // Re-detect bank on load
+          const acct = (d.bank_account || '').replace(/\s/g, '');
+          if (acct.length >= 6) {
+            try {
+              const r: any = await api.bankLookup(acct.slice(0, 6));
+              if (r.status === 'ok' && r.data) setBankCode(r.data.code);
+            } catch { }
+          }
         }
       } catch { }
       setLoaded(true);
@@ -483,7 +487,6 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
 
   /* ── Drawer open/close ── */
   const openDrawer = (forEdit?: InvoiceRecord, preSelectBatchId?: number | null) => {
-    closeGuardRef.current++;
     setDrawerKey(k => k + 1);
     setEditingId(forEdit ? forEdit.id : null);
     setDType(forEdit ? (forEdit.type as InvType) : 'general');
@@ -496,12 +499,6 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
     setDFiles([]);
     setDExistingFilePath(forEdit ? parseFilePaths(forEdit.file_path) : []);
     setDrawerOpen(true);
-    drawerAnim.setValue(0);
-    overlayAnim.setValue(0);
-    Animated.parallel([
-      Animated.spring(drawerAnim, { toValue: 1, useNativeDriver: true, bounciness: 4, speed: 14 }),
-      Animated.timing(overlayAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
-    ]).start();
 
     // Fetch batch list
     (async () => {
@@ -523,23 +520,15 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   };
 
   const closeDrawer = () => {
-    const guard = ++closeGuardRef.current;
-    Animated.parallel([
-      Animated.timing(drawerAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
-      Animated.timing(overlayAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
-    ]).start(() => {
-      if (guard !== closeGuardRef.current) return;
-      setDrawerOpen(false);
+    setDrawerOpen(false);
+    setTimeout(() => {
       setEditingId(null);
       setDStatus('pending');
       setDInvoiceNo('');
       setDExistingFilePath([]);
       setDFiles([]);
-    });
+    }, 250);
   };
-
-  const drawerTranslateY = drawerAnim.interpolate({ inputRange: [0, 1], outputRange: [400, 0] });
-  const overlayOpacity = overlayAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
 
   /* ── Auto-fill amount when batch selected ── */
   useEffect(() => {
@@ -900,31 +889,22 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
           </>
         }
         confirmLabel={t('confirmDeleteRecord')}
-        headerColor={c.danger}
-        confirmColor={c.danger}
         loading={deleting}
         onConfirm={handleConfirmDelete}
         onCancel={() => !deleting && setConfirmDeleteId(null)}
       />
 
       {/* ═══ DRAWER (create/edit) ═══ */}
-      {drawerOpen && (
-        <>
-          <Animated.View style={[styles.drawerOverlay, { opacity: overlayOpacity }]}>
-            <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={closeDrawer} />
-          </Animated.View>
-          <Animated.View
-            key={drawerKey}
-            style={[styles.drawer, { backgroundColor: c.surface, top: entryCardH || 80, transform: [{ translateY: drawerTranslateY }] }]}
-          >
-            <View style={styles.drawerHandle} />
-            <View style={styles.drawerHead}>
-              <Text style={styles.drawerTitle}>
-                {editingId ? t('invRecEditTitle') : t('invRecAddTitle')}
-              </Text>
-              <TouchableOpacity onPress={closeDrawer} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <IcnClose color={c.textMain} />
-              </TouchableOpacity>
+      <ModalOverlay
+        visible={drawerOpen}
+        onClose={closeDrawer}
+        animation="iosSheet"
+        overlayStyle={bottomSheetOverlay}
+        contentStyle={{ alignItems: 'stretch', justifyContent: 'flex-end' }}
+      >
+        <View key={drawerKey} style={[styles.drawer, { backgroundColor: c.surface, maxHeight: Dimensions.get('window').height * 0.806 }]}>
+            <View style={[styles.drawerHead, { backgroundColor: c.primary, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 14, paddingHorizontal: 20, paddingBottom: 14 }]}>
+              <SheetHeader title={editingId ? t('invRecEditTitle') : t('invRecAddTitle')} onClose={closeDrawer} />
             </View>
 
             <ScrollView style={styles.drawerBody} contentContainerStyle={{ paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
@@ -1128,7 +1108,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 />
               );
             })()}
-          </Animated.View>
+        </View>
 
           {/* Image preview overlay */}
           {previewImages && (
@@ -1139,8 +1119,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
               onClose={closePreview}
             />
           )}
-        </>
-      )}
+      </ModalOverlay>
     </View>
   );
 }
@@ -1295,7 +1274,7 @@ const getStyles = (c: ThemeColors) =>
 
     /* FILTERS */
     filterRow: { maxHeight: 40, marginBottom: 12 },
-    filterRowContent: { gap: 6, alignItems: 'center' },
+    filterRowContent: { gap: 6, alignItems: 'center', paddingHorizontal: 16 },
     filterChip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: c.secondary, backgroundColor: c.surface },
     filterChipText: { fontSize: 12 },
 
@@ -1325,12 +1304,11 @@ const getStyles = (c: ThemeColors) =>
     emptyText: { fontSize: 14, color: c.textSub },
 
     /* DRAWER */
-    drawerOverlay: { position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 200 },
-    drawer: { position: 'absolute' as any, left: 0, right: 0, bottom: 0, borderTopLeftRadius: 24, borderTopRightRadius: 24, zIndex: 201, paddingBottom: 16 },
+    drawer: { width: '100%' as any, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' as any, paddingBottom: 16 },
     drawerHandle: { width: 36, height: 4, borderRadius: 2, marginTop: 12, alignSelf: 'center', backgroundColor: c.secondary },
     drawerHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, paddingBottom: 12 },
     drawerTitle: { fontSize: 15, fontWeight: '600', color: c.textMain },
-    drawerBody: { flex: 1, paddingHorizontal: 20, paddingTop: 8 },
+    drawerBody: { paddingHorizontal: 20, paddingTop: 8 },
 
     dLabel: { fontSize: 13, fontWeight: '500', color: c.textSub, marginBottom: 6, marginTop: 8 },
     dLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, marginTop: 8 },
@@ -1351,6 +1329,6 @@ const getStyles = (c: ThemeColors) =>
     dBatchChip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: c.secondary, backgroundColor: c.surface, marginRight: 6 },
     dBatchChipText: { fontSize: 12 },
 
-    dSubmit: { paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginTop: 8 },
+    dSubmit: { paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginHorizontal: 20, marginBottom: 16, marginTop: 8 },
     dSubmitText: { fontSize: 15, fontWeight: '600', color: '#fff' },
   });

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'react-native';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import SessionKickedModal from './src/components/SessionKickedModal';
@@ -100,7 +101,8 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <LangProvider>
+      <KeyboardProvider>
+        <LangProvider>
         <SessionKickedModal />
         <ErrorBoundary>
           <ThemeProvider key={appKey}>
@@ -110,6 +112,7 @@ export default function App() {
           </ThemeProvider>
         </ErrorBoundary>
       </LangProvider>
-    </SafeAreaProvider>
+      </KeyboardProvider>
+      </SafeAreaProvider>
   );
 }

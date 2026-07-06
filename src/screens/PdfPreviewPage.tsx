@@ -1,13 +1,21 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-// TODO: 装包 react-native-webview 后取消注释
-// import { WebView } from 'react-native-webview';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, StatusBar } from 'react-native';
+import { WebView } from 'react-native-webview';
+import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path, Line } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import { t, getLang } from '../i18n';
-import { useTheme, withAlpha, ThemeColors, ENTER_DURATION, EXIT_DURATION } from '../theme';
+import { useTheme, ThemeColors } from '../theme';
 import { API_BASE } from '../api/client';
 import { useSwipeBack } from '../hooks/useSwipeBack';
+
+function BackArrowSvg() {
+  return (
+    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M15 18l-6-6 6-6" />
+    </Svg>
+  );
+}
 
 interface Props {
   batchId: number;
@@ -19,6 +27,7 @@ interface Props {
 export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack }: Props) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const safeTop = insets.top;
   const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(colors), [colors]);
   const [loading, setLoading] = useState(true);
@@ -30,31 +39,52 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
     : `${API_BASE}/api/procurement-batches/${batchId}/pdf`;
 
   const lang = getLang();
-  // Inject X-Lang via custom headers in source prop — WebView on iOS supports
-  // custom HTTP headers through the `source` object with `headers`.
   const source = { uri: pdfUrl, headers: { 'X-Lang': lang } };
+
+  const headerHeight = safeTop + 42;
 
   return (
     <View style={styles.root} {...swipeBack}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={styles.backBtn}>
-          <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.textMain} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <Path d="M15 18l-6-6 6-6" />
-          </Svg>
+      <BlurView
+        intensity={70}
+        tint="regular"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: headerHeight,
+        }}
+      />
+      <StatusBar barStyle="light-content" />
+      <View
+        style={{
+          position: 'absolute',
+          top: safeTop - 5,
+          left: 0,
+          right: 0,
+          zIndex: 90,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+          paddingTop: 0,
+          paddingBottom: 6,
+          paddingHorizontal: 16,
+          backgroundColor: 'transparent',
+          pointerEvents: 'box-none' as const,
+        }}
+      >
+        <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
+          <View style={styles.backBtn}>
+            <BackArrowSvg />
+          </View>
         </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
-        </View>
+        <Text style={styles.title}>{title}</Text>
+        <View style={{ width: 36 }} />
       </View>
 
-      {/* TODO: 装包 react-native-webview 后取消注释下方 WebView，删除占位 */}
-      <View style={styles.webviewWrap}>
-        <View style={styles.placeholderWrap}>
-          <Text style={styles.placeholderText}>PDF 预览功能待启用</Text>
-          <Text style={styles.placeholderSub}>{pdfUrl}</Text>
-        </View>
-        {/* 装包后启用 ↓
+      {/* WebView PDF preview */}
+      <View style={[styles.webviewWrap, { marginTop: headerHeight }]}>
         {error ? (
           <View style={styles.errorWrap}>
             <Text style={styles.errorTitle}>{t('pdfLoadFailed')}</Text>
@@ -80,36 +110,28 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
             <Text style={styles.loadingText}>{t('pdfGenerating')}</Text>
           </View>
         )}
-        */}
       </View>
     </View>
   );
 }
 
-const getStyles = (colors: ThemeColors) => StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: withAlpha(colors.bg, 0.85),
-    borderBottomWidth: 0.5,
-    borderBottomColor: withAlpha(colors.textSub, 0.12),
-    zIndex: 10,
-  },
+const getStyles = (c: ThemeColors) => StyleSheet.create({
+  root: { flex: 1 },
   backBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: withAlpha(colors.bg, 0.30),
-    borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.10)',
-    alignItems: 'center', justifyContent: 'center',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  title: { fontSize: 15, fontWeight: '600', color: colors.textMain },
-  webviewWrap: { flex: 1, backgroundColor: '#F9F7F4' },
-  placeholderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, gap: 8 },
-  placeholderText: { fontSize: 14, color: colors.textMain },
-  placeholderSub: { fontSize: 11, color: colors.textSub, textAlign: 'center' },
+  title: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: '#fff',
+  },
+  webviewWrap: { flex: 1, backgroundColor: c.bg },
   webview: { flex: 1, backgroundColor: 'transparent' },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -117,16 +139,16 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.08)',
     zIndex: 5,
   },
-  loadingText: { fontSize: 13, color: colors.textSub, marginTop: 10 },
+  loadingText: { fontSize: 13, color: c.textSub, marginTop: 10 },
   errorWrap: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
     padding: 40, gap: 12,
   },
-  errorTitle: { fontSize: 16, fontWeight: '600', color: colors.textMain },
-  errorMsg: { fontSize: 13, color: colors.textSub, textAlign: 'center' },
+  errorTitle: { fontSize: 16, fontWeight: '600', color: c.textMain },
+  errorMsg: { fontSize: 13, color: c.textSub, textAlign: 'center' },
   retryBtn: {
     paddingHorizontal: 28, paddingVertical: 10,
-    borderRadius: 8, backgroundColor: colors.primary,
+    borderRadius: 8, backgroundColor: c.primary,
   },
   retryBtnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
 });

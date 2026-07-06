@@ -19,14 +19,22 @@ interface Props {
   dailyProfitValues?: number[];
 }
 
-const CAT_COLORS: Record<string, string> = {
+const CAT_COLORS_LIGHT: Record<string, string> = {
   daily: '#4A7299', rent: '#7D2329', salary: '#D59A53',
   goods: '#4C7A5D', other: '#8C8583', eleme: '#B34149',
   meituan: '#C5A880', wages: '#9B6B9E',
 };
+const CAT_COLORS_DARK: Record<string, string> = {
+  daily: '#6B9AC7', rent: '#A8454D', salary: '#E8B86D',
+  goods: '#6BA87A', other: '#A8A3A0', eleme: '#D46B73',
+  meituan: '#D9C4A0', wages: '#B88DB8',
+};
 const FALLBACK = ['#4A7299','#7D2329','#D59A53','#4C7A5D','#8C8583','#B34149','#C5A880','#9B6B9E'];
 
-function catColor(key: string, i: number) { return CAT_COLORS[key] || FALLBACK[i % FALLBACK.length]; }
+function catColor(key: string, isLight: boolean, i: number) {
+  const map = isLight ? CAT_COLORS_LIGHT : CAT_COLORS_DARK;
+  return map[key] || FALLBACK[i % FALLBACK.length];
+}
 
 const monthName = (s: string) => {
   const m = parseInt(s.slice(5), 10);
@@ -53,10 +61,13 @@ const DayIcon = ({ size, color }: { size: number; color: string }) => (
   </Svg>
 );
 
-function ToggleBtn({ on, onPress, colors }: { on: boolean; onPress: () => void; colors: ThemeColors }) {
+function ToggleBtn({ on, onPress, colors, isLight }: { on: boolean; onPress: () => void; colors: ThemeColors; isLight: boolean }) {
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.7}
-      style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: withAlpha(colors.textSub, 0.08) }}>
+      style={{
+        paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
+        backgroundColor: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)',
+      }}>
       {on ? <MonthIcon size={15} color={colors.primary} /> : <DayIcon size={15} color={colors.primary} />}
     </TouchableOpacity>
   );
@@ -76,6 +87,12 @@ export default function ChartsPanel({
   const currentMonth = months.length > 0 ? parseInt(months[months.length - 1].slice(5), 10) : new Date().getMonth() + 1;
   const w = Dimensions.get('window').width - 64;
 
+  // ── Theme detection (matching web) ──
+  const isLight = colors.surface?.toLowerCase?.() !== '#141416';
+  const axisColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
+  const tickColor = isLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)';
+  const cardBorder = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
+
   const monthlyLabels = months.map(monthName);
   const dailyLabels = (dailyDates || []).map(d => String(parseInt(d.slice(8), 10)));
 
@@ -86,7 +103,7 @@ export default function ChartsPanel({
 
   const lineData = lineLabels.map((lbl, i) => ({
     value: incomeVals[i] || 0,
-    label: i % Math.max(1, Math.floor(lineLabels.length / 6)) === 0 ? lbl : '',
+    label: i % Math.max(1, Math.floor(lineLabels.length / 3)) === 0 ? lbl : '',
     dataPointText: '',
   }));
 
@@ -103,7 +120,7 @@ export default function ChartsPanel({
 
   const profitData = profitLabels.map((lbl, i) => ({
     value: profitVals[i] || 0,
-    label: i % Math.max(1, Math.floor(profitLabels.length / 6)) === 0 ? lbl : '',
+    label: i % Math.max(1, Math.floor(profitLabels.length / 3)) === 0 ? lbl : '',
     dataPointText: '',
   }));
 
@@ -115,10 +132,10 @@ export default function ChartsPanel({
         key,
         name: (t(key as any) as string) || key,
         value,
-        color: catColor(key, i),
+        color: catColor(key, isLight, i),
       }))
       .sort((a, b) => b.value - a.value),
-  [categories]);
+  [categories, isLight]);
 
   const pieData = catEntries.map(d => ({ value: d.value, color: d.color, text: d.name }));
   const barData = catEntries.map(d => ({
@@ -130,16 +147,22 @@ export default function ChartsPanel({
     ),
   }));
 
+  // ── Axis hints ──
+  const xLabel = t('chartXAxis');
+  const yLabel = t('chartYAxis');
+
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: 12, marginTop: 0 }}>
       {/* ── 收支趋势 ── */}
-      <View style={st.card}>
-        <View style={st.titleRow}>
+      <View style={[st.card, { backgroundColor: colors.surface, borderColor: cardBorder }]}>
+        <View style={[st.titleRow, { alignItems: 'baseline' as any }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={st.title}>{showDaily ? t('dailyTrend') : t('monthlyTrend')}</Text>
-            {hasDaily && <ToggleBtn on={showDaily} onPress={() => setShowDaily(!showDaily)} colors={colors} />}
+            <Text style={[st.title, { color: colors.textSub }]}>{showDaily ? t('dailyTrend') : t('monthlyTrend')}</Text>
+            {hasDaily && <ToggleBtn on={showDaily} onPress={() => setShowDaily(!showDaily)} colors={colors} isLight={isLight} />}
           </View>
-          <Text style={st.hint}>{t('chartXAxis')} · {t('chartYAxis')}</Text>
+          <Text style={[st.hint, { fontSize: 10, fontWeight: '400', color: tickColor }]}>
+            {(showDaily && hasDaily ? t('chartXAxisDay') : xLabel) + ' · ' + yLabel}
+          </Text>
         </View>
         <View style={{ alignItems: 'center' }}>
           <LineChart
@@ -165,12 +188,12 @@ export default function ChartsPanel({
             startFillColor2={withAlpha(colors.warning, 0.08)}
             startOpacity={0.7}
             endOpacity={0}
-            rulesColor={withAlpha(colors.textSub, 0.08)}
+            rulesColor={axisColor}
             dataPointsColor={colors.primary}
             dataPointsColor2={colors.warning}
             textColor={colors.textSub}
             yAxisColor="transparent"
-            xAxisColor={withAlpha(colors.textSub, 0.12)}
+            xAxisColor={axisColor}
           />
           <View style={st.legend}>
             <View style={st.legendItem}><View style={[st.legendDot, { backgroundColor: colors.primary }]} /><Text style={st.legendText}>{t('income')}</Text></View>
@@ -180,13 +203,15 @@ export default function ChartsPanel({
       </View>
 
       {/* ── 月度利润 ── */}
-      <View style={st.card}>
-        <View style={st.titleRow}>
+      <View style={[st.card, { backgroundColor: colors.surface, borderColor: cardBorder }]}>
+        <View style={[st.titleRow, { alignItems: 'baseline' as any }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={st.title}>{showDailyProfit ? t('dailyTrend') : t('monthlyProfit')}</Text>
-            {hasDailyProfit && <ToggleBtn on={showDailyProfit} onPress={() => setShowDailyProfit(!showDailyProfit)} colors={colors} />}
+            <Text style={[st.title, { color: colors.textSub }]}>{showDailyProfit ? (t('dailyProfit') || t('dailyTrend')) : t('monthlyProfit')}</Text>
+            {hasDailyProfit && <ToggleBtn on={showDailyProfit} onPress={() => setShowDailyProfit(!showDailyProfit)} colors={colors} isLight={isLight} />}
           </View>
-          <Text style={st.hint}>{t('chartXAxis')} · {t('chartYAxis')}</Text>
+          <Text style={[st.hint, { fontSize: 10, fontWeight: '400', color: tickColor }]}>
+            {(showDailyProfit ? t('chartXAxisDay') : xLabel) + ' · ' + yLabel}
+          </Text>
         </View>
         <View style={{ alignItems: 'center' }}>
           <LineChart
@@ -208,26 +233,32 @@ export default function ChartsPanel({
             startFillColor={withAlpha(colors.accent, 0.12)}
             startOpacity={0.8}
             endOpacity={0}
-            rulesColor={withAlpha(colors.textSub, 0.08)}
+            rulesColor={axisColor}
             dataPointsColor={colors.accent}
             textColor={colors.textSub}
             yAxisColor="transparent"
-            xAxisColor={withAlpha(colors.textSub, 0.12)}
+            xAxisColor={axisColor}
           />
         </View>
       </View>
 
       {/* ── 分类占比 ── */}
       {catEntries.length > 0 && (
-        <View style={st.card}>
-          <View style={st.titleRow}>
-            <Text style={st.title}>{monthName(months[months.length - 1] || '')}{t('expenseBreakdownOfMonth')}</Text>
-            <TouchableOpacity onPress={() => setShowPie(!showPie)} activeOpacity={0.7}
-              style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: withAlpha(colors.textSub, 0.08) }}>
-              <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '600' }}>
-                {showPie ? (t('chartSwitchBar') as string) : (t('chartSwitchPie') as string)}
-              </Text>
-            </TouchableOpacity>
+        <View style={[st.card, { backgroundColor: colors.surface, borderColor: cardBorder }]}>
+          <View style={[st.titleRow, { alignItems: 'baseline' as any }]}>
+            <Text style={[st.title, { color: colors.textSub }]}>{monthName(months[months.length - 1] || '')}{t('expenseBreakdownOfMonth')}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={{ color: tickColor, fontSize: 10 }}>{t('chartSwitchHint')}</Text>
+              <TouchableOpacity onPress={() => setShowPie(!showPie)} activeOpacity={0.7}
+                style={{
+                  paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8,
+                  backgroundColor: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)',
+                }}>
+                <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '600' }}>
+                  {showPie ? (t('chartSwitchBar') as string) : (t('chartSwitchPie') as string)}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
           <View style={{ alignItems: 'center' }}>
             {showPie ? (
@@ -238,6 +269,8 @@ export default function ChartsPanel({
                 innerRadius={55}
                 innerCircleColor={colors.surface}
                 isAnimated
+                strokeWidth={2}
+                strokeColor={colors.surface}
                 centerLabelComponent={() => (
                   <View style={{ alignItems: 'center' }}>
                     <Text style={{ fontSize: 12, color: colors.textSub }}>{t('total')}</Text>
@@ -262,16 +295,16 @@ export default function ChartsPanel({
                 endSpacing={12}
                 barWidth={Math.min(32, w / catEntries.length - 8)}
                 spacing={8}
-                rulesColor={withAlpha(colors.textSub, 0.08)}
+                rulesColor={axisColor}
                 yAxisColor="transparent"
-                xAxisColor={withAlpha(colors.textSub, 0.12)}
+                xAxisColor={axisColor}
               />
             )}
             <View style={st.colorLegend}>
               {catEntries.map((d, i) => (
                 <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: d.color }} />
-                  <Text style={{ color: colors.textSub, fontSize: 11 }}>{d.name}</Text>
+                  <Text style={{ color: colors.textSub, fontSize: 11, fontWeight: '500' }}>{d.name}</Text>
                 </View>
               ))}
             </View>
@@ -285,16 +318,15 @@ export default function ChartsPanel({
 const st = StyleSheet.create({
   card: {
     borderRadius: 14, padding: 16, borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)', backgroundColor: '#fff',
   },
   titleRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8,
   },
-  title: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: '#666' },
-  hint: { fontSize: 10, color: '#999' },
+  title: { fontSize: 13, fontWeight: '600' },
+  hint: { fontSize: 10, fontWeight: '400' },
   legend: { flexDirection: 'row', gap: 16, marginTop: 4 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   legendDot: { width: 10, height: 3, borderRadius: 1 },
-  legendText: { fontSize: 11, color: '#666' },
+  legendText: { fontSize: 11 },
   colorLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 8 },
 });

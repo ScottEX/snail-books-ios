@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, useReducer } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, Dimensions, Switch, Keyboard, KeyboardAvoidingView, Platform,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, Dimensions, Switch,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
@@ -9,6 +9,8 @@ import { t, getLang } from '../i18n';
 import { api } from '../api/client';
 import { useToast } from '../hooks/useToast';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
+import { useReanimatedKeyboardAnimation, KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
 import DatePickerModal from '../components/DatePickerModal';
 import CategoryChips from '../components/CategoryChips';
 import MonthPicker from '../components/MonthPicker';
@@ -284,11 +286,12 @@ export default function ExpenseScreen({
   useEffect(() => { if (sd.ready && !feeMonthInited.current) { feeMonthInited.current = true; setFeeMonth({ year: sd.year, month: sd.month }); } }, [sd.ready, sd.year, sd.month]);
   const [showFeeSheet, setShowFeeSheet] = useState(false);
   const [keyboardH, setKeyboardH] = useState(0);
-  useEffect(() => {
-    const s1 = Keyboard.addListener('keyboardWillShow', (e) => setKeyboardH(e.endCoordinates.height));
-    const s2 = Keyboard.addListener('keyboardWillHide', () => setKeyboardH(0));
-    return () => { s1.remove(); s2.remove(); };
-  }, []);
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  useAnimatedReaction(
+    () => keyboardHeight.value,
+    (v) => runOnJS(setKeyboardH)(v),
+    [keyboardHeight],
+  );
   const [showFeeHistory, setShowFeeHistory] = useState(false);
   const [feeHistoryFilter, setFeeHistoryFilter] = useState<'all' | { year: number; month: number }>('all');
   const feeDate = useDateField({ sd, initial: '' });
@@ -414,7 +417,7 @@ export default function ExpenseScreen({
   /* ── Render ── */
   return (
     <>
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+    <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
       <View style={st.root}>
       {/* ══════ 卡片式Tab ══════ */}
       <View style={st.tabBar}>
