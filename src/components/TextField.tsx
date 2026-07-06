@@ -50,8 +50,7 @@ export default function TextField({
       <View style={{
         flexDirection: 'row', alignItems: 'center',
         backgroundColor: colors.bg,
-        borderRadius: 10, borderWidth: 1,
-        borderColor: error ? colors.danger : withAlpha(colors.textMain, 0.10),
+        borderRadius: 10,
         paddingHorizontal: 14,
         paddingVertical: multiline ? 10 : 0,
       }}>

@@ -1,7 +1,8 @@
 import React from 'react';
 import {
   View, Text, TextInput, ScrollView, TouchableOpacity,
-  FlatList, Image, ActivityIndicator, StyleSheet, Animated, Dimensions
+  FlatList, Image, ActivityIndicator, StyleSheet, Animated, Dimensions,
+  ActionSheetIOS,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Svg, { Path, Circle, Line, Text as SvgText } from 'react-native-svg';
@@ -242,7 +243,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   modalHeader: { backgroundColor: c.primary, paddingHorizontal: 20, paddingVertical: 14, flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const },
   modalTitle: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.surface },
   modalBody: { padding: 24 },
-  modalInput: { paddingHorizontal: 10, paddingVertical: 9, borderRadius: 8, fontSize: FONTS.sub.size, color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), marginBottom: 10 },
+  modalInput: { paddingHorizontal: 14, paddingVertical: 13, borderRadius: 10, fontSize: FONTS.sub.size, color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), marginBottom: 12 },
   modalDeleteBox: { backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 12, padding: 12, alignItems: 'center' as const },
   modalDeleteText: { fontSize: FONTS.micro.size, color: c.textSub, textAlign: 'center' as const },
 
@@ -1090,25 +1091,22 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
           <View style={styles.modalBody}>
             <TextField placeholder={t('procProductName')} value={prodForm.name} onChangeText={v => setProdForm(p => ({ ...p, name: v }))} />
             <TextField placeholder={t('procProductSpec')} value={prodForm.spec} onChangeText={v => setProdForm(p => ({ ...p, spec: v }))} />
-            <View style={[styles.modalInput, { position: 'relative', justifyContent: 'center' }]}>
-              <Text style={{ fontSize: FONTS.sub.size, color: prodForm.supplier ? c.textMain : c.textSub }}>
-                {prodForm.supplier || t('procProductSupplier')}
-              </Text>
-              <View style={{ position: 'absolute', right: 10, top: 0, bottom: 0, justifyContent: 'center' }}>
+            <TouchableOpacity
+              style={[styles.modalInput, { justifyContent: 'center' }]}
+              onPress={() => {
+                const opts = suppliers.filter((s: string) => s !== '全部');
+                ActionSheetIOS.showActionSheetWithOptions(
+                  { options: [...opts, t('cancel') as string], cancelButtonIndex: opts.length, title: (t('procProductSupplier') as string) },
+                  (i: number) => { if (i < opts.length) setProdForm(p => ({ ...p, supplier: opts[i] })); },
+                );
+              }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontSize: FONTS.sub.size, color: prodForm.supplier ? c.textMain : c.textSub }}>
+                  {prodForm.supplier || t('procProductSupplier')}
+                </Text>
                 <ChevronDownIcon color={c.textSub} />
               </View>
-            </View>
-            <ScrollView horizontal style={{ marginBottom: 10 }} showsHorizontalScrollIndicator={false}>
-              <View style={{ flexDirection: 'row', gap: 6 }}>
-                {suppliers.filter((s: string) => s !== '全部').map((s: string) => (
-                  <TouchableOpacity key={s}
-                    style={[styles.filterChip, prodForm.supplier === s && styles.filterChipOn]}
-                    onPress={() => setProdForm(p => ({ ...p, supplier: s }))}>
-                    <Text style={[styles.filterChipText, prodForm.supplier === s && styles.filterChipTextOn]}>{s}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
+            </TouchableOpacity>
             <TextField placeholder={t('procProductPrice')} value={prodForm.price} onChangeText={v => setProdForm(p => ({ ...p, price: fmtDecInput(v) }))} keyboardType="decimal-pad" />
             <TextField placeholder={t('procProductNote')} value={prodForm.note} onChangeText={v => setProdForm(p => ({ ...p, note: v }))} />
             <ButtonPair

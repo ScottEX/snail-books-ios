@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { WebView } from 'react-native-webview';
+// TODO: 装包 react-native-webview 后取消注释
+// import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Line } from 'react-native-svg';
 import { t, getLang } from '../i18n';
@@ -47,8 +48,13 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
         </View>
       </View>
 
-      {/* WebView PDF — Safari renders PDFs natively on iOS */}
+      {/* TODO: 装包 react-native-webview 后取消注释下方 WebView，删除占位 */}
       <View style={styles.webviewWrap}>
+        <View style={styles.placeholderWrap}>
+          <Text style={styles.placeholderText}>PDF 预览功能待启用</Text>
+          <Text style={styles.placeholderSub}>{pdfUrl}</Text>
+        </View>
+        {/* 装包后启用 ↓
         {error ? (
           <View style={styles.errorWrap}>
             <Text style={styles.errorTitle}>{t('pdfLoadFailed')}</Text>
@@ -74,6 +80,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
             <Text style={styles.loadingText}>{t('pdfGenerating')}</Text>
           </View>
         )}
+        */}
       </View>
     </View>
   );
@@ -100,6 +107,9 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   title: { fontSize: 15, fontWeight: '600', color: colors.textMain },
   webviewWrap: { flex: 1, backgroundColor: '#F9F7F4' },
+  placeholderWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, gap: 8 },
+  placeholderText: { fontSize: 14, color: colors.textMain },
+  placeholderSub: { fontSize: 11, color: colors.textSub, textAlign: 'center' },
   webview: { flex: 1, backgroundColor: 'transparent' },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,

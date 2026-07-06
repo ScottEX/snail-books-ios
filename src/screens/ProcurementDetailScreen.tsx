@@ -225,7 +225,7 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
             <Text style={styles.infoValue}>{getCurrentUser() || '—'}</Text>
           </View>
           {cur.note ? (
-            <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+            <View style={[styles.infoRow, { borderBottomWidth: 0, alignItems: 'flex-start' as const, paddingTop: 12 }]}>
               <Text style={styles.infoLabel}>{t('procNoteLabel')}</Text>
               <Text style={styles.infoValue}>{cur.note}</Text>
             </View>
