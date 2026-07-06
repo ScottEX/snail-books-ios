@@ -249,9 +249,9 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
         ) : null}
 
         {/* Images */}
-        {thumbImgs.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('procImages')}</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('procImages')} ({thumbImgs.length})</Text>
+          {thumbImgs.length > 0 ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {thumbImgs.map((img: string, i: number) => (
                 <TouchableOpacity key={i} onPress={() => openPreview(images.length ? images : thumbImgs, i)} activeOpacity={0.8} style={styles.thumb}>
@@ -259,8 +259,13 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </View>
-        )}
+          ) : (
+            <Text style={{ color: c.textSub, fontSize: FONTS.micro.size }}>
+              cur.thumb_images: {JSON.stringify(cur.thumb_images)?.substring(0, 60)}
+              {'\n'}cur.images: {JSON.stringify(cur.images)?.substring(0, 60)}
+            </Text>
+          )}
+        </View>
 
         {/* Items */}
         <View style={styles.section}>
