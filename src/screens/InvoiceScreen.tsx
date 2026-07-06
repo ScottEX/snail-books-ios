@@ -20,6 +20,7 @@ import SubmitButton from '../components/SubmitButton';
 import TrashIcon from '../components/icons/TrashIcon';
 import ImagePreview from '../components/ImagePreview';
 import { useSwipeBack } from '../hooks/useSwipeBack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /* ═══════════════ ICONS ═══════════════ */
 
@@ -209,6 +210,7 @@ interface Props {
 export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const { colors: c } = useTheme();
   const { width: w } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(c), [c]);
 
@@ -539,10 +541,10 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   };
 
   return (
-    <View style={styles.root} {...swipeBack}>
+    <View style={[styles.root, { width: w, alignSelf: 'center' as const }]} {...swipeBack}>
       {/* ═══ ENTRY CARD ═══ */}
       <View
-        style={[styles.entryCard, { backgroundColor: '#D15F6C' }]}
+        style={[styles.entryCard, { backgroundColor: '#D15F6C', paddingTop: insets.top }]}
         onLayout={(e: any) => { const h = e.nativeEvent?.layout?.height; if (h) setEntryCardH(h); }}
       >
         <View style={styles.ecTop}>
@@ -1174,7 +1176,7 @@ const getStyles = (c: ThemeColors) =>
 
     /* ENTRY CARD */
     entryCard: {
-      borderRadius: 0, paddingTop: 50, paddingRight: 20, paddingBottom: 14, paddingLeft: 20,
+      borderRadius: 0, paddingTop: 0, paddingRight: 20, paddingBottom: 14, paddingLeft: 20,
       position: 'relative' as any, overflow: 'hidden' as any, marginBottom: 14,
     },
     ecTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
