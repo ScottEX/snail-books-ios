@@ -368,6 +368,7 @@ const I18N: Record<string, Record<string, string>> = {
     preferences: '偏好设置',
     procAddProduct: '添加产品',
     procAll: '全部',
+    procSelectSupplier: '选择供应商',
     procBatchCount: '历史批次',
     procBatchLabel: '采购批次',
     procComingSoon: '即将',
@@ -962,6 +963,7 @@ const I18N: Record<string, Record<string, string>> = {
     preferences: '偏好設定',
     procAddProduct: '添加產品',
     procAll: '全部',
+    procSelectSupplier: '選擇供應商',
     procBatchCount: '歷史批次',
     procBatchLabel: '採購批次',
     procCartCount: '已選 {n} 種',
@@ -1567,6 +1569,7 @@ const I18N: Record<string, Record<string, string>> = {
     preferences: 'Preferences',
     procAddProduct: 'Add Product',
     procAll: 'All',
+    procSelectSupplier: 'Select Supplier',
     procBatchCount: 'Past Batches',
     procBatchLabel: 'Batch',
     procComingSoon: 'Coming Soon',
@@ -2165,6 +2168,7 @@ export type I18nKey =
   | 'preferences'
   | 'procAddProduct'
   | 'procAll'
+  | 'procSelectSupplier'
   | 'procBatchCount'
   | 'procBatchLabel'
   | 'procCartCount'
