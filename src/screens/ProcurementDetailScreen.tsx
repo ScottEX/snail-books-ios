@@ -18,6 +18,7 @@ import { formatDate } from '../utils/format';
 import BackArrow from '../components/icons/BackArrow';
 import TrashIcon from '../components/icons/TrashIcon';
 import { getCurrentUser } from '../utils/storage';
+import { parseImages } from '../utils/parseImages';
 import { useEffect, useMemo, useState } from 'react';
 
 interface BatchItem {
@@ -147,8 +148,8 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
     }
   };
 
-  const thumbImgs: string[] = (cur.thumb_images?.length ? cur.thumb_images : cur.images) || [];
-  const images: string[] = cur.images || [];
+  const thumbImgs: string[] = parseImages(cur.thumb_images?.length ? cur.thumb_images : cur.images);
+  const images: string[] = parseImages(cur.images);
   const items = cur.items || [];
 
   const paymentLabel = trPayment(cur.payment_method);
