@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
-  Animated, useWindowDimensions,
+  Animated,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Line, Circle, Rect, Polyline, Text as SvgText } from 'react-native-svg';
@@ -209,7 +209,6 @@ interface Props {
 
 export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const { colors: c } = useTheme();
-  const { width: w } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(c), [c]);
@@ -541,7 +540,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   };
 
   return (
-    <View style={[styles.root, { width: w, alignSelf: 'center' as const }]} {...swipeBack}>
+    <View style={styles.root} {...swipeBack}>
       {/* ═══ ENTRY CARD ═══ */}
       <View
         style={[styles.entryCard, { backgroundColor: '#D15F6C', paddingTop: insets.top }]}
