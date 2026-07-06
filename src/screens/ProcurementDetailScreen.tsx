@@ -331,7 +331,7 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
       <ModalOverlay visible={showSupplierPicker} onClose={() => setShowSupplierPicker(false)} animation="springScale">
         <View style={{ backgroundColor: c.surface, borderRadius: 24, width: 320, maxWidth: '90%', overflow: 'hidden' as const }}>
           <View style={{ backgroundColor: c.primary, borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingVertical: 14, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.surface }}>{t('procSelectSupplier')}</Text>
+              <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.surface, flex: 1 }} numberOfLines={1}>{t('procSelectSupplier')}</Text>
               <TouchableOpacity style={{ padding: 4 }} onPress={() => setShowSupplierPicker(false)}>
                 <Svg width="18" height="18" viewBox="0 0 24 24" stroke={c.surface} strokeWidth="2" fill="none">
                   <Line x1="18" y1="6" x2="6" y2="18" />
