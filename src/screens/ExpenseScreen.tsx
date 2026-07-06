@@ -9,8 +9,8 @@ import { t, getLang } from '../i18n';
 import { api } from '../api/client';
 import { useToast } from '../hooks/useToast';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
-import { useReanimatedKeyboardAnimation, KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
+import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
+import ReAnimated, { useAnimatedReaction, runOnJS, useAnimatedStyle } from 'react-native-reanimated';
 import DatePickerModal from '../components/DatePickerModal';
 import CategoryChips from '../components/CategoryChips';
 import MonthPicker from '../components/MonthPicker';
@@ -292,6 +292,9 @@ export default function ExpenseScreen({
     (v) => runOnJS(setKeyboardH)(v),
     [keyboardHeight],
   );
+  const contentAnimatedStyle = useAnimatedStyle(() => ({
+    paddingBottom: keyboardHeight.value,
+  }));
   const [showFeeHistory, setShowFeeHistory] = useState(false);
   const [feeHistoryFilter, setFeeHistoryFilter] = useState<'all' | { year: number; month: number }>('all');
   const feeDate = useDateField({ sd, initial: '' });
@@ -417,7 +420,7 @@ export default function ExpenseScreen({
   /* ── Render ── */
   return (
     <>
-    <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+    <ReAnimated.View style={[{ flex: 1 }, contentAnimatedStyle]}>
       <View style={st.root}>
       {/* ══════ 卡片式Tab ══════ */}
       <View style={st.tabBar}>
@@ -1029,7 +1032,7 @@ export default function ExpenseScreen({
             </ScrollView>
           </View>
       </ModalOverlay>
-    </KeyboardAvoidingView>
+    </ReAnimated.View>
     </>
   );
 }
