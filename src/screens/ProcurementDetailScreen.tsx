@@ -254,8 +254,8 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
           {thumbImgs.length > 0 ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {thumbImgs.map((img: string, i: number) => (
-                <TouchableOpacity key={i} onPress={() => openPreview(images.length ? images : thumbImgs, i)} activeOpacity={0.8} style={styles.thumb}>
-                  <Image source={{ uri: img }} style={styles.thumb} />
+                <TouchableOpacity key={i} onPress={() => openPreview(images.length ? images : thumbImgs, i)} activeOpacity={0.8} style={{ marginRight: 8 }}>
+                  <Image source={{ uri: img }} style={[styles.thumb, { marginRight: 0 }]} />
                 </TouchableOpacity>
               ))}
             </ScrollView>
