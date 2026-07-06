@@ -224,6 +224,15 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
           </>
         ) : (
           <>
+            <View style={styles.stepperRow}>
+              <TouchableOpacity style={styles.stepBtn} onPress={() => setDraft(shiftDays(draft, -1))}>
+                <Text style={styles.stepBtnText}>-1 {getLang().startsWith('en') ? 'day' : '天'}</Text>
+              </TouchableOpacity>
+              <AppTextInput style={styles.dateInput} value={draft} onChangeText={setDraft} keyboardType="numbers-and-punctuation" maxLength={10} placeholder="YYYY-MM-DD" placeholderTextColor={wSub} />
+              <TouchableOpacity style={styles.stepBtn} onPress={() => setDraft(shiftDays(draft, 1))}>
+                <Text style={styles.stepBtnText}>+1 {getLang().startsWith('en') ? 'day' : '天'}</Text>
+              </TouchableOpacity>
+            </View>
             <View style={styles.quickRow}>
               {quickChips.map(c => (
                 <TouchableOpacity
@@ -234,15 +243,6 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
                   <Text style={[styles.quickChipText, draft === c.d && styles.quickChipTextActive]}>{c.label}</Text>
                 </TouchableOpacity>
               ))}
-            </View>
-            <View style={styles.stepperRow}>
-              <TouchableOpacity style={styles.stepBtn} onPress={() => setDraft(shiftDays(draft, -1))}>
-                <Text style={styles.stepBtnText}>-1 {getLang().startsWith('en') ? 'day' : '天'}</Text>
-              </TouchableOpacity>
-              <AppTextInput style={styles.dateInput} value={draft} onChangeText={setDraft} keyboardType="numbers-and-punctuation" maxLength={10} placeholder="YYYY-MM-DD" placeholderTextColor={wSub} />
-              <TouchableOpacity style={styles.stepBtn} onPress={() => setDraft(shiftDays(draft, 1))}>
-                <Text style={styles.stepBtnText}>+1 {getLang().startsWith('en') ? 'day' : '天'}</Text>
-              </TouchableOpacity>
             </View>
             <View style={styles.calendarHeader}>
               <TouchableOpacity onPress={handlePrevMonth} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }} style={styles.monthBtn}>
