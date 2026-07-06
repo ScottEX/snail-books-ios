@@ -22,6 +22,9 @@ export const modalClose = {
   fontWeight: '300' as const,
 };
 
+/** Modal card border radius — used by PartnerScreen, ThemePicker, etc. */
+export const MODAL_CARD_RADIUS = 24;
+
 /** 底部 sheet 抽屉的 ModalOverlay overlayStyle 共用配置 */
 export const bottomSheetOverlay = {
   justifyContent: 'flex-end' as const,

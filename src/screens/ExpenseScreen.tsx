@@ -20,7 +20,7 @@ import CloseButton from '../components/CloseButton';
 import EmptyState from '../components/EmptyState';
 import SubmitButton from '../components/SubmitButton';
 import { useTheme, withAlpha, ThemeColors, FONTS, SHEET_HANDLE_COLOR } from '../theme';
-import { modalCardAnimation, modalClose, bottomSheetOverlay, uploadReceiptStyles } from '../sharedStyles';
+import { modalCardAnimation, modalClose, MODAL_CARD_RADIUS, bottomSheetOverlay, uploadReceiptStyles } from '../sharedStyles';
 import { fmtAmt as fmt, fmtAmtFull, toDec2Comma } from '../utils/format';
 import { blockNeg, fmtDecInput, toDec2, fmtRefundInput } from '../utils/numbers';
 import NumberTickerExt from '../components/NumberTicker';
@@ -1363,7 +1363,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: withAlpha(colors.textMain, 0.4),
   },
   modalCard: {
-    backgroundColor: colors.surface, borderRadius: 24, width: 320, maxWidth: '100%',
+    backgroundColor: colors.surface, borderRadius: MODAL_CARD_RADIUS, width: 320, maxWidth: '100%',
     overflow: 'hidden',
     // @ts-ignore
     ...modalCardAnimation,
