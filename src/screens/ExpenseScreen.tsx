@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, useReducer } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, Dimensions, Switch,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, Dimensions, Switch, Keyboard,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
@@ -290,11 +290,11 @@ export default function ExpenseScreen({
   const sheetStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: keyboardHeight.value }],
   }));
+  const closeFeeSheet = () => { Keyboard.dismiss(); setTimeout(() => setShowFeeSheet(false), 50); };
   const [showFeeHistory, setShowFeeHistory] = useState(false);
   const contentStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: Math.max(keyboardHeight.value, cap) }],
   }));
-  const [showFeeHistory, setShowFeeHistory] = useState(false);
   const [feeHistoryFilter, setFeeHistoryFilter] = useState<'all' | { year: number; month: number }>('all');
   const feeDate = useDateField({ sd, initial: '' });
   // Default to today's date once server date is ready
@@ -342,7 +342,7 @@ export default function ExpenseScreen({
         setFeeData(r?.data);
         setFeeForm({ feeMc: '', feeMw: '', feeEw: '', feeMt: '' });
         setNegativeMode(false);
-        setShowFeeSheet(false);
+        closeFeeSheet();
         // Reload all months to keep totals accurate
         api.getPlatformFees().then((all: any) => setAllFees(Array.isArray(all) ? all : [])).catch(() => {});
       } else {
@@ -869,7 +869,7 @@ export default function ExpenseScreen({
       />
       </View>
       {/* Fee entry bottom sheet */}
-      <ModalOverlay visible={showFeeSheet} onClose={() => setShowFeeSheet(false)} animation="slideUpScale"
+      <ModalOverlay visible={showFeeSheet} onClose={closeFeeSheet} animation="slideUpScale"
           overlayStyle={bottomSheetOverlay as any}
           contentStyle={{ alignItems: 'stretch' } as any}>
           <ReAnimated.View style={sheetStyle}>
@@ -879,7 +879,7 @@ export default function ExpenseScreen({
               <View style={{ width: 36, height: 4, backgroundColor: SHEET_HANDLE_COLOR, borderRadius: 2, alignSelf: 'center', marginBottom: 12 }} />
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Text style={st.modalTitle}>{t('addFeeEntry')}</Text>
-                <TouchableOpacity style={{ padding: 4 }} onPress={() => setShowFeeSheet(false)}>
+                <TouchableOpacity style={{ padding: 4 }} onPress={closeFeeSheet}>
                   <Svg width="18" height="18" viewBox="0 0 24 24" stroke={colors.surface} strokeWidth="2" fill="none">
                     <Line x1="18" y1="6" x2="6" y2="18" />
                     <Line x1="6" y1="6" x2="18" y2="18" />
