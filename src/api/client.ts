@@ -457,6 +457,9 @@ export const api = {
 
   getInvoice: () => authFetch('/api/admin/invoice'),
   updateInvoice: (data: Record<string, string>) => authFetch('/api/admin/invoice', { method: 'PUT', body: JSON.stringify(data) }),
+  getInvoiceEmail: () => authFetch('/api/invoice-email'),
+  saveInvoiceEmail: (email: string) => authFetch('/api/invoice-email', { method: 'PUT', body: JSON.stringify({ email }) }),
+  bankLookup: (prefix: string) => authFetch(`/api/bank-lookup?prefix=${encodeURIComponent(prefix)}`),
 
   getProcurements: (filters?: Record<string, any>) => {
     const params = new URLSearchParams();

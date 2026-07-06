@@ -87,10 +87,27 @@ const IcnPhone = ({ color }: { color: string }) => (
 
 const IcnAccount = ({ color }: { color: string }) => (
   <Svg width={15} height={15} viewBox="0 0 24 24" stroke={color} strokeWidth={1.8} fill="none">
-    <Line x1="12" y1="1" x2="12" y2="23" />
-    <Path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+    <Rect x="2" y="4" width="20" height="16" rx="2" />
+    <Line x1="2" y1="10" x2="22" y2="10" />
   </Svg>
 );
+
+const BANK_COLORS: Record<string, string> = {
+  icbc: '#C41E2A', ccb: '#005BAC', abc: '#1A8B4A', boc: '#C41E2A',
+  bocom: '#003D83', cmb: '#E61138', psbc: '#00843D', cib: '#003F87',
+  citic: '#D7102A', ceb: '#7B2D8B', cmbc: '#00A950', pab: '#F46300',
+  spdb: '#002C77', hxb: '#C41E2A', gdb: '#C41E2A', bob: '#C41E2A',
+  bosh: '#005BAC',
+};
+
+function BankIconView({ code, size = 22 }: { code: string; size?: number }) {
+  const bg = BANK_COLORS[code] || '#999';
+  return (
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ color: '#fff', fontSize: size * 0.45, fontWeight: '700' }}>{code.charAt(0).toUpperCase()}</Text>
+    </View>
+  );
+}
 
 /** Stamp seal — active (done: 已开票 / pending: 待开票) */
 const IcnSealActive = ({ color, label }: { color: string; label: string }) => (
@@ -188,6 +205,14 @@ function formatAmountForStorage(raw: string): string {
   return num.toFixed(2);
 }
 
+function fmtBankAccount(v: string) {
+  const raw = (v || '').replace(/\s/g, '');
+  if (!raw) return '';
+  if (raw.length <= 4) return raw;
+  const last4 = raw.slice(-4);
+  return '****' + last4;
+}
+
 const formatPhone = (phone: string): string => {
   const d = (phone || '').replace(/\D/g, '');
   if (d.length === 11) return `${d.slice(0, 3)} ${d.slice(3, 7)} ${d.slice(7)}`;
@@ -264,6 +289,8 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const [dDate, setDDate] = useState(todayStr());
   const [dNote, setDNote] = useState('');
   const [dEmail, setDEmail] = useState('');
+  const [bankCode, setBankCode] = useState('');
+  const [bankLookupError, setBankLookupError] = useState('');
   const [dInvoiceNo, setDInvoiceNo] = useState('');
   const [dStatus, setDStatus] = useState<InvStatus>('pending');
   const [dBatchId, setDBatchId] = useState<number | null>(null);
@@ -619,6 +646,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 icon={<IcnCompany color={c.info} />}
                 iconBg={withAlpha(c.info, 0.1)}
                 label={t('companyName')}
+                placeholder={t('invPleaseMaintain')}
                 value={data.company_name}
                 colors={c}
                 onChange={(v) => setData({ ...data, company_name: v })}
@@ -629,9 +657,11 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 icon={<IcnTax color={c.warning} />}
                 iconBg={withAlpha(c.warning, 0.1)}
                 label={t('taxId')}
+                placeholder={t('invPleaseMaintain')}
                 value={data.tax_id}
                 colors={c}
                 mono
+                filter={(v: string) => v.replace(/[^a-zA-Z0-9]/g, '')}
                 onChange={(v) => setData({ ...data, tax_id: v })}
                 editable={isAdmin}
               />
@@ -640,6 +670,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 icon={<IcnAddr color={c.success} />}
                 iconBg={withAlpha(c.success, 0.1)}
                 label={t('addressPhone')}
+                placeholder={t('invPleaseMaintain')}
                 value={data.address}
                 colors={c}
                 onChange={(v) => setData({ ...data, address: v })}
@@ -650,9 +681,13 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 icon={<IcnPhone color="#2E8B4A" />}
                 iconBg="#EAF8EE"
                 label={t('companyPhone')}
+                placeholder={t('invPleaseMaintain')}
                 value={formatPhone(data.phone)}
                 colors={c}
                 mono
+                keyboardType="phone-pad"
+                filter={(v: string) => v.replace(/[^\d]/g, '').slice(0, 11)}
+                validate={(v: string) => v && !/^1[3-9]\d{9}$/.test(v) ? t('errPhoneInvalid') : null}
                 onChange={(v) => setData({ ...data, phone: v })}
                 editable={isAdmin}
               />
@@ -667,25 +702,46 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
             </View>
             <View style={styles.infoCard}>
               <EditableInfoRow
-                icon={<IcnBank color={c.primary} />}
-                iconBg={withAlpha(c.primary, 0.08)}
+                icon={bankCode ? <BankIconView code={bankCode} size={22} /> : <IcnBank color={c.primary} />}
+                iconBg={bankCode ? (BANK_COLORS[bankCode] || c.primary) + '20' : withAlpha(c.primary, 0.08)}
                 label={t('bankName')}
+                placeholder={t('invPleaseMaintain')}
                 value={data.bank_name}
                 colors={c}
                 onChange={(v) => setData({ ...data, bank_name: v })}
-                editable={isAdmin}
+                editable={false}
               />
               <View style={styles.divider} />
               <EditableInfoRow
                 icon={<IcnAccount color={c.primary} />}
                 iconBg={withAlpha(c.primary, 0.08)}
                 label={t('bankAccount')}
-                value={data.bank_account}
+                placeholder={t('invPleaseMaintain')}
+                value={fmtBankAccount(data.bank_account)}
                 colors={c}
                 mono
-                onChange={(v) => setData({ ...data, bank_account: v })}
+                keyboardType="numeric"
+                filter={(v: string) => v.replace(/[^\d]/g, '')}
+                onChange={async (v) => {
+                  setData({ ...data, bank_account: v });
+                  setBankLookupError('');
+                  const clean = v.replace(/\s/g, '');
+                  if (!clean || clean.length < 6) { setBankCode(''); setData(prev => ({ ...prev, bank_name: '' })); return; }
+                  try {
+                    const res = await api.bankLookup(clean.slice(0, 6));
+                    if (res.status === 'ok' && res.data) {
+                      setData(prev => ({ ...prev, bank_name: res.data.name }));
+                      setBankCode(res.data.code);
+                    } else {
+                      setBankLookupError(t('errBankCardInvalid'));
+                    }
+                  } catch { setBankLookupError(t('errBankCardInvalid')); }
+                }}
                 editable={isAdmin}
               />
+              {bankLookupError !== '' && (
+                <Text style={{ fontSize: 11, color: c.danger, textAlign: 'right', paddingHorizontal: 16, paddingBottom: 8, marginTop: -6 }}>{bankLookupError}</Text>
+              )}
             </View>
           </View>
 
@@ -700,9 +756,11 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 icon={<IcnMail color="#7B52AB" />}
                 iconBg="#F0EAF8"
                 label={t('invEmail')}
-                value={userEmail || data.email}
+                placeholder={t('invPleaseMaintain')}
+                value={data.email}
                 colors={c}
-                onChange={(v) => setData({ ...data, email: v })}
+                validate={(v: string) => v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? t('errEmailInvalid') : null}
+                onChange={async (v) => { setData({ ...data, email: v }); await api.saveInvoiceEmail(v).catch(() => {}); if (!v) { const em = await api.getInvoiceEmail().catch(() => ({})); setData(prev => ({ ...prev, email: em.email || '' })); } }}
               />
             </View>
           </View>
@@ -1179,37 +1237,37 @@ const getStyles = (c: ThemeColors) =>
       position: 'relative' as any, overflow: 'hidden' as any, marginBottom: 14,
     },
     ecTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-    ecBackBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    ecBackBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     ecTitle: { flex: 1, color: '#fff', fontSize: 18, fontWeight: '600', letterSpacing: 0.3 },
     ecBtn: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-      backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
-      borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, flexShrink: 0,
+      backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
+      borderRadius: 10, paddingVertical: 10, paddingHorizontal: 16, flexShrink: 0,
     },
     ecBtnText: { color: '#fff', fontSize: 13, fontWeight: '500' },
-    ecStats: { flexDirection: 'row' },
+    ecStats: { flexDirection: 'row', marginBottom: 16 },
     ecStat: { flex: 1, paddingHorizontal: 12, alignItems: 'center', borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.12)' },
     ecStatNum: { color: '#fff', fontSize: 20, fontWeight: '600' },
-    ecStatLbl: { color: 'rgba(255,255,255,0.6)', fontSize: 10, marginTop: 2 },
+    ecStatLbl: { color: 'rgba(255,255,255,0.5)', fontSize: 10, marginTop: 2 },
 
     /* TABS */
-    tabs: { flexDirection: 'row', marginBottom: 14, backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 10, padding: 3 },
+    tabs: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 14, backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 10, padding: 3 },
     tab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },
     tabOn: { backgroundColor: c.primary, shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } },
     tabText: { fontSize: 13, fontWeight: '500' },
 
     /* TIPS */
-    tips: { marginBottom: 14, borderRadius: 12, padding: 12, flexDirection: 'row', gap: 10, alignItems: 'flex-start', backgroundColor: withAlpha(c.warning, 0.08) },
+    tips: { marginHorizontal: 16, marginBottom: 14, borderRadius: 12, padding: 12, flexDirection: 'row', gap: 10, alignItems: 'flex-start', backgroundColor: withAlpha(c.warning, 0.08) },
     tipsIcon: { fontSize: 15, marginTop: 1 },
     tipsText: { fontSize: 12, lineHeight: 19, flex: 1, color: c.warning },
 
     /* SECTIONS */
     section: { paddingHorizontal: 0, marginTop: 12 },
-    sectionTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 8 },
+    sectionTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 8, paddingHorizontal: 16 },
     sectionTitleText: { fontSize: 10, fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase', color: c.textSub },
     sectionTitleLine: { flex: 1, height: 1 },
 
-    infoCard: { backgroundColor: c.surface, borderRadius: 12, overflow: 'hidden' },
+    infoCard: { backgroundColor: c.surface, borderRadius: 0, borderWidth: 1, borderLeftWidth: 0, borderRightWidth: 0, overflow: 'hidden', marginBottom: 14 },
     divider: { height: 0.5, backgroundColor: withAlpha(c.textMain, 0.08), marginLeft: 16 },
 
     typeToggle: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.secondary },
@@ -1227,7 +1285,7 @@ const getStyles = (c: ThemeColors) =>
     filterChipText: { fontSize: 12 },
 
     /* INVOICE CARD */
-    invCard: { marginBottom: 12, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.secondary, overflow: 'hidden', position: 'relative' as any },
+    invCard: { marginHorizontal: 16, marginBottom: 12, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.secondary, overflow: 'hidden', position: 'relative' as any },
     invTorn: { position: 'absolute' as any, top: 0, left: 0, right: 0, height: 4, opacity: 0.4 },
     invTop: { flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14, marginTop: 4, borderBottomWidth: 1, borderStyle: 'dashed' as any, borderBottomColor: c.secondary },
     invBadge: { paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6, borderWidth: 1, flexShrink: 0, marginTop: 2 },
@@ -1253,7 +1311,7 @@ const getStyles = (c: ThemeColors) =>
 
     /* DRAWER */
     drawerOverlay: { position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 200 },
-    drawer: { position: 'absolute' as any, left: 0, right: 0, bottom: 0, borderTopLeftRadius: 20, borderTopRightRadius: 20, zIndex: 201, paddingBottom: 16 },
+    drawer: { position: 'absolute' as any, left: 0, right: 0, bottom: 0, borderTopLeftRadius: 24, borderTopRightRadius: 24, zIndex: 201, paddingBottom: 16 },
     drawerHandle: { width: 36, height: 4, borderRadius: 2, marginTop: 12, alignSelf: 'center', backgroundColor: c.secondary },
     drawerHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, paddingBottom: 12 },
     drawerTitle: { fontSize: 15, fontWeight: '600', color: c.textMain },

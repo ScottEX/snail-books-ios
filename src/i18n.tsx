@@ -138,6 +138,8 @@ const I18N: Record<string, Record<string, string>> = {
     errDateRange: '结束日期必须晚于开始日期',
     errDateRangeTooLong: '日期范围不能超过 24 个月',
     errEmailInvalid: '邮箱格式不正确',
+    errPhoneInvalid: '请输入正确的手机号码',
+    errBankCardInvalid: '卡号有误',
     errEmptyFields: '请填写所有字段',
     errEnterCode: '请输入验证码',
     errFileSize: '图片不能超过10MB',
@@ -201,6 +203,7 @@ const I18N: Record<string, Record<string, string>> = {
     invBankInfo: '银行信息',
     invCenter: '发票管理',
     invContact: '联系开票方',
+    invPleaseMaintain: '请完善信息',
     invDelConfirmPrefix: '此操作将删除「',
     invDelConfirmSuffix: '」开票数据，请谨慎操作。',
     invDownload: '下载',
@@ -734,6 +737,8 @@ const I18N: Record<string, Record<string, string>> = {
     errDateRange: '結束日期必須晚於開始日期',
     errDateRangeTooLong: '日期範圍不能超過 24 個月',
     errEmailInvalid: '郵箱格式不正確',
+    errPhoneInvalid: '請輸入正確的手機號碼',
+    errBankCardInvalid: '卡號有誤',
     errEmptyFields: '請填寫所有字段',
     errEnterCode: '請輸入驗證碼',
     errFileSize: '圖片不能超過10MB',
@@ -797,6 +802,7 @@ const I18N: Record<string, Record<string, string>> = {
     invBankInfo: '銀行信息',
     invCenter: '發票管理',
     invContact: '聯繫開票方',
+    invPleaseMaintain: '請維護信息',
     invDelConfirmPrefix: '此操作將刪除「',
     invDelConfirmSuffix: '」開票數據，請謹慎操作。',
     invDownload: '下載',
@@ -1340,6 +1346,8 @@ const I18N: Record<string, Record<string, string>> = {
     errDateRange: 'End date must be after start date',
     errDateRangeTooLong: 'Date range cannot exceed 24 months',
     errEmailInvalid: 'Invalid email format',
+    errPhoneInvalid: 'Please enter a valid phone number',
+    errBankCardInvalid: 'Invalid card number',
     errEmptyFields: 'Please fill all fields',
     errEnterCode: 'Please enter verification code',
     errFileSize: 'Image must be under 10MB',
@@ -1403,6 +1411,7 @@ const I18N: Record<string, Record<string, string>> = {
     invBankInfo: 'Bank Info',
     invCenter: 'Invoice Management',
     invContact: 'Contact Issuer',
+    invPleaseMaintain: 'Please fill in',
     invDelConfirmPrefix: 'This will delete invoice 「',
     invDelConfirmSuffix: '」. Proceed with caution.',
     invDownload: 'Download',
@@ -1938,6 +1947,8 @@ export type I18nKey =
   | 'errDateRange'
   | 'errDateRangeTooLong'
   | 'errEmailInvalid'
+  | 'errPhoneInvalid'
+  | 'errBankCardInvalid'
   | 'errEmptyFields'
   | 'errEnterCode'
   | 'errFileSize'
@@ -2001,6 +2012,7 @@ export type I18nKey =
   | 'invBankInfo'
   | 'invCenter'
   | 'invContact'
+  | 'invPleaseMaintain'
   | 'invDelConfirmPrefix'
   | 'invDelConfirmSuffix'
   | 'invDownload'
