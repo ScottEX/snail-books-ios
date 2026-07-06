@@ -268,7 +268,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const [showInvoice, setShowInvoice] = useState<{ filterBatchId?: number | null } | null>(null);
   const [showProcurementDetail, setShowProcurementDetail] = useState<any | null>(null);
   const [showExpenseDetail, setShowExpenseDetail] = useState<any | null>(null);
-  const [showPdfPreview, setShowPdfPreview] = useState<{ id: number; number: number } | null>(null);
+  const [showPdfPreview, setShowPdfPreview] = useState<{ id: number; number: number; supplier?: string } | null>(null);
   const [pendingEditBatch, setPendingEditBatch] = useState<any | null>(null);
   const isHome = useMemo(() =>
     !showExpenseHistory && !showDailyHistory && !showReconHistory && !showProfile &&
@@ -549,7 +549,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
               setPendingEditBatch(showProcurementDetail);
               onBack();
             }}
-            onPreview={(id, num) => { setShowProcurementDetail(null); setShowPdfPreview({ id, number: num }); }}
+            onPreview={(id, num, supplier) => { setShowProcurementDetail(null); setShowPdfPreview({ id, number: num, supplier }); }}
           />
         ) : null}
       </SlideScreen>
@@ -567,7 +567,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         {(onBack) => showPdfPreview ? (
           <PdfPreviewPage
             batchId={showPdfPreview.id}
-            invoiceNumber={showPdfPreview.number}
+            batchNumber={showPdfPreview.number}
+            supplier={showPdfPreview.supplier}
             onBack={onBack}
           />
         ) : null}
