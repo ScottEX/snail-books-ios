@@ -1274,7 +1274,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
             }}>
             {itemsModalIsCart && itemsModalView === 'products' ? (
               <View>
-                <View style={{ paddingHorizontal: 18, paddingTop: 12, paddingBottom: 8 }}>
+                <View style={{ paddingHorizontal: 18, paddingTop: 12, paddingBottom: 0 }}>
                   <TextInput
                     value={productPickerSearch}
                     onChangeText={setProductPickerSearch}
