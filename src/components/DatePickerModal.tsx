@@ -315,9 +315,9 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
 const getStyles = (w: string, wSub: string, wBg: string, wBg2: string) => ({
   sheet: { width: '94%' as const, maxWidth: 420, borderRadius: 22, overflow: 'hidden' as const, padding: 16, gap: 0 },
   quickRow: { flexDirection: 'row' as const, gap: 6, marginBottom: 12, marginTop: 8 },
-  quickChip: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: wBg2, alignItems: 'center' as const },
+  quickChip: { flex: 1, paddingVertical: 10, borderRadius: 8, backgroundColor: wBg2, alignItems: 'center' as const, justifyContent: 'center' as const },
   quickChipActive: { backgroundColor: '#0A84FF18' },
-  quickChipText: { fontSize: 12, color: wSub, fontWeight: '500' as const },
+  quickChipText: { fontSize: 13, color: wSub, fontWeight: '500' as const },
   quickChipTextActive: { color: '#0A84FF', fontWeight: '700' as const },
   stepperRow: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 8, marginBottom: 12 },
   stepBtn: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8, backgroundColor: wBg },
