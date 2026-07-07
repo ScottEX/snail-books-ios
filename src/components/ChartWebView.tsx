@@ -90,6 +90,7 @@ export default function ChartWebView(props: Props) {
         setSupportMultipleWindows={false}
         originWhitelist={['*']}
         opaque={false}
+        injectedJavaScript={`document.querySelector('html').style.backgroundColor='transparent';true;`}
         onMessage={onMessage}
         onError={(e) => console.log('[ChartWebView] error:', e.nativeEvent)}
       />
@@ -99,7 +100,7 @@ export default function ChartWebView(props: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    minHeight: 800,
+    backgroundColor: 'transparent',
   },
   webview: {
     backgroundColor: 'transparent',

@@ -102,10 +102,9 @@ export function generateChartHTML(data: ChartData): string {
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  html { background: transparent; }
+  html, body { background: transparent; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: ${theme.surface};
     padding: 0 16px 0;
     -webkit-text-size-adjust: 100%;
   }
