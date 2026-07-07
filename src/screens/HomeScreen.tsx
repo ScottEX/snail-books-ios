@@ -70,6 +70,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     setTabState(t);
     try { localStorage.setItem('active_tab', t); } catch {}
     if (t === 'partner') setPartnerRefreshKey(k => k + 1);
+    sd.refresh();
   };
 
   // ── User / lang ──

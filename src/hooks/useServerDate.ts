@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '../api/client';
 
 interface ServerDate {
@@ -9,6 +9,7 @@ interface ServerDate {
   offset: (days: number) => string;
   isFuture: (d: string) => boolean;
   ready: boolean;
+  refresh: () => void;
 }
 
 export function useServerDate(): ServerDate {
@@ -26,13 +27,12 @@ export function useServerDate(): ServerDate {
     },
     isFuture: (date: string) => date > fb,
     ready: false,
+    refresh: () => {},
   });
 
-  useEffect(() => {
-    let cancelled = false;
+  const fetchDate = useCallback(() => {
     api.getServerDate()
       .then((data: any) => {
-        if (cancelled) return;
         const today: string = data?.date || fallbackToday();
         const [y, m, d] = today.split('-').map(Number);
         const year = y, month = m;
@@ -42,11 +42,10 @@ export function useServerDate(): ServerDate {
         };
         const yesterday = offset(-1);
         const isFuture = (date: string) => date > today;
-        ref.current = { today, yesterday, year, month, offset, isFuture, ready: true };
+        ref.current = { today, yesterday, year, month, offset, isFuture, ready: true, refresh: fetchDate };
         setReady(true);
       })
       .catch(() => {
-        if (cancelled) return;
         const today = fallbackToday();
         const [y, m, day] = today.split('-').map(Number);
         const year = y, month = m;
@@ -56,9 +55,14 @@ export function useServerDate(): ServerDate {
         };
         const yesterday = offset(-1);
         const isFuture = (date: string) => date > today;
-        ref.current = { today, yesterday, year, month, offset, isFuture, ready: true };
+        ref.current = { today, yesterday, year, month, offset, isFuture, ready: true, refresh: fetchDate };
         setReady(true);
       });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchDate();
     return () => { cancelled = true; };
   }, []);
 
