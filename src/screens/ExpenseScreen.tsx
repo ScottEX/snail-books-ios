@@ -882,7 +882,7 @@ export default function ExpenseScreen({
                 leftLabel={t('reconLater')}
                 leftOnPress={() => setShowFeeReminder(false)}
                 rightLabel={t('enterFeeFirst')}
-                rightOnPress={() => { setShowFeeReminder(false); setShowFeeSheet(true); }}
+                rightOnPress={() => { setShowFeeReminder(false); setTimeout(() => setShowFeeSheet(true), 300); }}
               />
             </View>
           </View>
