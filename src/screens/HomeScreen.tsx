@@ -656,6 +656,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             pendingEditBatch={pendingEditBatch}
             onPendingEditConsumed={() => setPendingEditBatch(null)}
           />
+        ) : isHome && (
+        <>
         {/* 收支总览玻璃卡片：固定顶部不滚动 */}
         {isHome && tab === 'chart' && (
           <View style={{ paddingTop: 4, marginBottom: 8, paddingHorizontal: 16 }}>
@@ -696,6 +698,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             />
           ) : null}
         </ScrollView>
+        )}
+        </>
         )}
 
         {isHome && (
