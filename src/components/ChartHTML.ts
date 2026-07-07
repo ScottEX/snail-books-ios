@@ -9,6 +9,7 @@ interface ChartData {
   expense: number[];
   profit: number[];
   categories: Record<string, number>;
+  categoryNames: Record<string, string>;
   dailyDates?: string[];
   dailyIncome?: number[];
   dailyExpense?: number[];
@@ -43,7 +44,7 @@ interface ChartData {
 
 export function generateChartHTML(data: ChartData): string {
   const {
-    months, income, expense, profit, categories,
+    months, income, expense, profit, categories, categoryNames,
     dailyDates, dailyIncome, dailyExpense,
     dailyProfitDates, dailyProfitValues,
     theme, labels,
@@ -77,7 +78,7 @@ export function generateChartHTML(data: ChartData): string {
     : [];
   const donutData = Object.entries(categories)
     .filter(([, v]) => v > 0)
-    .map(([key, value]) => ({ key, name: key, value }))
+    .map(([key, value]) => ({ key, name: categoryNames[key] || key, value }))
     .sort((a, b) => b.value - a.value);
 
   const catColorLight: Record<string, string> = {
@@ -148,7 +149,7 @@ export function generateChartHTML(data: ChartData): string {
     background: ${theme.isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)'};
     border: none;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 11px;
     color: ${theme.primary};
     font-weight: 600;
   }
@@ -186,7 +187,7 @@ export function generateChartHTML(data: ChartData): string {
   <div class="title-row">
     <div class="toggle-row">
       <span class="title" id="line-title">${labels.monthlyTrend}</span>
-      ${hasDaily ? '<button class="toggle-btn" id="toggle-daily" style="font-size:15px;padding:2px 7px;">☀</button>' : ''}
+      ${hasDaily ? '<button class="toggle-btn" id="toggle-daily">☀</button>' : ''}
     </div>
     <span class="axis-hint" id="line-axis-hint">${labels.chartXAxis} · ${labels.chartYAxis}</span>
   </div>
@@ -197,7 +198,7 @@ export function generateChartHTML(data: ChartData): string {
   <div class="title-row">
     <div class="toggle-row">
       <span class="title" id="profit-title">${labels.monthlyProfit}</span>
-      ${hasDailyProfit ? '<button class="toggle-btn" id="toggle-daily-profit" style="font-size:15px;padding:2px 7px;">☀</button>' : ''}
+      ${hasDailyProfit ? '<button class="toggle-btn" id="toggle-daily-profit">☀</button>' : ''}
     </div>
     <span class="axis-hint" id="profit-axis-hint">${labels.chartXAxis} · ${labels.chartYAxis}</span>
   </div>

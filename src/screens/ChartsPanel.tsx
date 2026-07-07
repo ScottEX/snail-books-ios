@@ -38,6 +38,14 @@ export default function ChartsPanel({
     }
   }, [currentMonth]);
 
+  const categoryNames = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const key of Object.keys(categories)) {
+      map[key] = t(key as any) || key;
+    }
+    return map;
+  }, [categories]);
+
   return (
     <ChartWebView
       months={months}
@@ -45,6 +53,7 @@ export default function ChartsPanel({
       expense={expense}
       profit={profit}
       categories={categories}
+      categoryNames={categoryNames}
       dailyDates={dailyDates}
       dailyIncome={dailyIncome}
       dailyExpense={dailyExpense}

@@ -9,6 +9,7 @@ interface Props {
   expense: number[];
   profit: number[];
   categories: Record<string, number>;
+  categoryNames: Record<string, string>;
   dailyDates?: string[];
   dailyIncome?: number[];
   dailyExpense?: number[];
@@ -45,6 +46,7 @@ export default function ChartWebView(props: Props) {
     expense: props.expense,
     profit: props.profit,
     categories: props.categories,
+    categoryNames: props.categoryNames,
     dailyDates: props.dailyDates,
     dailyIncome: props.dailyIncome,
     dailyExpense: props.dailyExpense,
@@ -64,7 +66,7 @@ export default function ChartWebView(props: Props) {
     },
   }), [
     props.months, props.income, props.expense, props.profit,
-    props.categories, props.dailyDates, props.dailyIncome,
+    props.categories, props.categoryNames, props.dailyDates, props.dailyIncome,
     props.dailyExpense, props.dailyProfitDates, props.dailyProfitValues,
     props.isLight, props.primary, props.accent, props.warning,
     props.surface, props.textSub, props.monthName,
