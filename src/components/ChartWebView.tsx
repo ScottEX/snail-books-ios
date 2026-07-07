@@ -21,6 +21,7 @@ interface Props {
   warning: string;
   surface: string;
   textSub: string;
+  monthNames: Record<string, string>;
   monthName: string;
   labels: {
     income: string;
@@ -50,6 +51,7 @@ export default function ChartWebView(props: Props) {
     profit: props.profit,
     categories: props.categories,
     categoryNames: props.categoryNames,
+    monthNames: props.monthNames,
     dailyDates: props.dailyDates,
     dailyIncome: props.dailyIncome,
     dailyExpense: props.dailyExpense,
@@ -82,10 +84,11 @@ export default function ChartWebView(props: Props) {
         type: 'lang',
         labels: props.labels,
         monthName: props.monthName,
+        monthNames: props.monthNames,
         catNames: props.categoryNames,
       }));
     }
-  }, [loaded, props.labels, props.monthName, props.categoryNames]);
+  }, [loaded, props.labels, props.monthName, props.monthNames, props.categoryNames]);
 
   const onMessage = useCallback((event: WebViewMessageEvent) => {
     try {

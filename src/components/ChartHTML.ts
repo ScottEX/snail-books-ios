@@ -10,6 +10,7 @@ interface ChartData {
   profit: number[];
   categories: Record<string, number>;
   categoryNames: Record<string, string>;
+  monthNames: Record<string, string>;
   dailyDates?: string[];
   dailyIncome?: number[];
   dailyExpense?: number[];
@@ -44,7 +45,7 @@ interface ChartData {
 
 export function generateChartHTML(data: ChartData): string {
   const {
-    months, income, expense, profit, categories, categoryNames,
+    months, income, expense, profit, categories, categoryNames, monthNames,
     dailyDates, dailyIncome, dailyExpense,
     dailyProfitDates, dailyProfitValues,
     theme, labels,
@@ -55,7 +56,7 @@ export function generateChartHTML(data: ChartData): string {
 
   // Build data arrays
   const lineData = months.map((m, i) => ({
-    month: String(parseInt(m.slice(5), 10)),
+    month: monthNames[String(parseInt(m.slice(5), 10))] || String(parseInt(m.slice(5), 10)),
     income: income[i],
     expense: expense[i],
   }));
@@ -67,7 +68,7 @@ export function generateChartHTML(data: ChartData): string {
       }))
     : [];
   const profitData = months.map((m, i) => ({
-    month: String(parseInt(m.slice(5), 10)),
+    month: monthNames[String(parseInt(m.slice(5), 10))] || String(parseInt(m.slice(5), 10)),
     profit: profit[i],
   }));
   const dailyProfitData = hasDailyProfit
@@ -109,6 +110,7 @@ export function generateChartHTML(data: ChartData): string {
     hasDailyProfit,
     theme,
     labels,
+    monthNames,
   });
 
   return `<!DOCTYPE html>
@@ -420,6 +422,19 @@ window.addEventListener('message', function(e) {
     DATA.donutData.forEach(function(item) {
       if (d.catNames[item.key]) item.name = d.catNames[item.key];
     });
+  }
+
+  if (d.monthNames) {
+    DATA.monthNames = d.monthNames;
+    function updateMonthLabels(arr) {
+      if (!arr) return;
+      arr.forEach(function(item) {
+        var num = String(item.month).match(/\d+/);
+        if (num && DATA.monthNames[num[0]]) item.month = DATA.monthNames[num[0]];
+      });
+    }
+    updateMonthLabels(DATA.lineData);
+    updateMonthLabels(DATA.profitData);
   }
 
   document.getElementById('line-title').textContent = showDaily ? DATA.labels.dailyTrend : DATA.labels.monthlyTrend;

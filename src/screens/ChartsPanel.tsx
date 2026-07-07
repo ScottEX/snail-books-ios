@@ -46,6 +46,16 @@ export default function ChartsPanel({
     return map;
   })();
 
+  const monthNames = (() => {
+    const map: Record<string, string> = {};
+    for (let n = 1; n <= 12; n++) {
+      const key = 'month' + n;
+      const val = t(key as any);
+      map[String(n)] = typeof val === 'string' ? val : String(n);
+    }
+    return map;
+  })();
+
   return (
     <ChartWebView
       months={months}
@@ -54,6 +64,8 @@ export default function ChartsPanel({
       profit={profit}
       categories={categories}
       categoryNames={categoryNames}
+      monthNames={monthNames}
+      monthName={monthNameLabel}
       dailyDates={dailyDates}
       dailyIncome={dailyIncome}
       dailyExpense={dailyExpense}
