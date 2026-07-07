@@ -10,7 +10,7 @@ import { api } from '../api/client';
 import { useToast } from '../hooks/useToast';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
-import ReAnimated, { useAnimatedStyle } from 'react-native-reanimated';
+import ReAnimated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import DatePickerModal from '../components/DatePickerModal';
 import CategoryChips from '../components/CategoryChips';
 import MonthPicker from '../components/MonthPicker';
@@ -287,14 +287,18 @@ export default function ExpenseScreen({
   const [showFeeSheet, setShowFeeSheet] = useState(false);
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const cap = -Dimensions.get('window').height * 0.28;
+  const activeTabSV = useSharedValue(0);
+  useEffect(() => { activeTabSV.value = activeTab; }, [activeTab]);
+  const contentStyle = useAnimatedStyle(() => ({
+    transform: [{
+      translateY: activeTabSV.value === 1 ? Math.min(keyboardHeight.value, 20) : Math.max(keyboardHeight.value, cap),
+    }],
+  }));
   const sheetStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: keyboardHeight.value }],
   }));
   const closeFeeSheet = () => { Keyboard.dismiss(); setTimeout(() => setShowFeeSheet(false), 50); };
   const [showFeeHistory, setShowFeeHistory] = useState(false);
-  const contentStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: Math.max(keyboardHeight.value, cap) }],
-  }));
   const [feeHistoryFilter, setFeeHistoryFilter] = useState<'all' | { year: number; month: number }>('all');
   const feeDate = useDateField({ sd, initial: '' });
   // Default to today's date once server date is ready
