@@ -207,9 +207,9 @@ export function generateChartHTML(data: ChartData): string {
 
 <div id="cat-chart" class="card">
   <div class="title-row">
-    <span class="title">${labels.monthName}${labels.expenseBreakdown}</span>
+    <span class="title" id="cat-title">${labels.monthName}${labels.expenseBreakdown}</span>
     <div style="display:flex;align-items:center;gap:6px">
-      <span style="font-size:10px;color:${theme.isLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)'}">${labels.chartSwitchHint}</span>
+      <span id="cat-switch-hint" style="font-size:10px;color:${theme.isLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)'}">${labels.chartSwitchHint}</span>
       <button class="toggle-btn" id="toggle-pie-bar">${labels.chartSwitchBar}</button>
     </div>
   </div>
@@ -335,8 +335,8 @@ if (DATA.hasDailyProfit) {
 }
 
 // ── Category donut / bar chart ──
+let showBar = false;
 if (DATA.donutData.length > 0) {
-  let showBar = false;
   const catColorMap = DATA.catColorMap || {};
   const catColorFallback = DATA.catColorFallback || [];
   function getCatColor(key, i) {
@@ -386,6 +386,47 @@ if (DATA.donutData.length > 0) {
     leg.appendChild(div);
   });
 }
+
+// Language update via postMessage
+window.addEventListener('message', function(e) {
+  var d;
+  try { d = JSON.parse(e.data); } catch(ignore) { return; }
+  if (d.type !== 'lang') return;
+
+  if (d.labels) {
+    for (var k in d.labels) {
+      if (d.labels.hasOwnProperty(k)) DATA.labels[k] = d.labels[k];
+    }
+  }
+  if (d.monthName) DATA.labels.monthName = d.monthName;
+
+  if (d.catNames) {
+    DATA.donutData.forEach(function(item) {
+      if (d.catNames[item.key]) item.name = d.catNames[item.key];
+    });
+  }
+
+  document.getElementById('line-title').textContent = showDaily ? DATA.labels.dailyTrend : DATA.labels.monthlyTrend;
+  document.getElementById('profit-title').textContent = showDailyProfit ? DATA.labels.dailyProfit : DATA.labels.monthlyProfit;
+  document.getElementById('line-axis-hint').textContent = (showDaily ? DATA.labels.chartXAxisDay : DATA.labels.chartXAxis) + ' · ' + DATA.labels.chartYAxis;
+  document.getElementById('profit-axis-hint').textContent = (showDailyProfit ? DATA.labels.chartXAxisDay : DATA.labels.chartXAxis) + ' · ' + DATA.labels.chartYAxis;
+  document.getElementById('cat-title').textContent = DATA.labels.monthName + DATA.labels.expenseBreakdown;
+
+  var hint = document.getElementById('cat-switch-hint');
+  if (hint) hint.textContent = DATA.labels.chartSwitchHint;
+  var toggleBtn = document.getElementById('toggle-pie-bar');
+  if (toggleBtn) toggleBtn.textContent = showBar ? DATA.labels.chartSwitchPie : DATA.labels.chartSwitchBar;
+
+  var legendNames = document.querySelectorAll('.legend-name');
+  DATA.donutData.forEach(function(item, i) {
+    if (legendNames[i]) legendNames[i].textContent = item.name;
+  });
+
+  renderLine();
+  renderProfit();
+  renderCat();
+  reportHeight();
+});
 
 </script>
 </body>

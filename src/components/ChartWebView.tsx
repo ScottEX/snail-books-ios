@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { generateChartHTML } from './ChartHTML';
@@ -39,7 +39,10 @@ interface Props {
 
 export default function ChartWebView(props: Props) {
   const [webViewHeight, setWebViewHeight] = useState(400);
+  const [loaded, setLoaded] = useState(false);
+  const webViewRef = useRef<WebView>(null);
 
+  // HTML only rebuilds when data/theme changes, NOT when language changes
   const html = useMemo(() => generateChartHTML({
     months: props.months,
     income: props.income,
@@ -66,11 +69,23 @@ export default function ChartWebView(props: Props) {
     },
   }), [
     props.months, props.income, props.expense, props.profit,
-    props.categories, props.categoryNames, props.dailyDates, props.dailyIncome,
+    props.categories, props.dailyDates, props.dailyIncome,
     props.dailyExpense, props.dailyProfitDates, props.dailyProfitValues,
     props.isLight, props.primary, props.accent, props.warning,
-    props.surface, props.textSub, props.monthName, props.labels,
+    props.surface, props.textSub,
   ]);
+
+  // When language changes (labels/monthName/categoryNames), update via postMessage
+  useEffect(() => {
+    if (loaded && webViewRef.current) {
+      webViewRef.current.postMessage(JSON.stringify({
+        type: 'lang',
+        labels: props.labels,
+        monthName: props.monthName,
+        catNames: props.categoryNames,
+      }));
+    }
+  }, [loaded, props.labels, props.monthName, props.categoryNames]);
 
   const onMessage = useCallback((event: WebViewMessageEvent) => {
     try {
@@ -84,6 +99,7 @@ export default function ChartWebView(props: Props) {
   return (
     <View style={[styles.container, { height: webViewHeight }]}>
       <WebView
+        ref={webViewRef}
         source={{ html }}
         style={styles.webview}
         scrollEnabled={false}
@@ -93,6 +109,7 @@ export default function ChartWebView(props: Props) {
         originWhitelist={['*']}
         opaque={false}
         injectedJavaScript={`document.querySelector('html').style.backgroundColor='transparent';true;`}
+        onLoadEnd={() => setLoaded(true)}
         onMessage={onMessage}
         onError={(e) => console.log('[ChartWebView] error:', e.nativeEvent)}
       />
