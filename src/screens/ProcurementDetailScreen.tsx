@@ -227,9 +227,9 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
             <Switch
               value={!!cur.settled_at}
               onValueChange={(v) => {
-                if (v && !cur.settled_at) setShowSettleConfirm(true);
+                if (!v || !!cur.settled_at || settling) return;
+                setShowSettleConfirm(true);
               }}
-              disabled={settling || !!cur.settled_at}
               trackColor={{ false: withAlpha(c.textMain, 0.18), true: '#3DBC75' }}
               thumbColor="#fff"
               style={{ transform: [{ scale: 0.75 }] }}
