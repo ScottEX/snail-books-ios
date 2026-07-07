@@ -243,7 +243,7 @@ const fmtY = (v) => Math.abs(v) >= 10000 ? (v/10000).toFixed(1)+'w' : String(Mat
 const SUN_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5" stroke="' + DATA.theme.primary + '" stroke-width="1.5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="' + DATA.theme.primary + '" stroke-width="1.5" stroke-linecap="round"/></svg>';
 const CALENDAR_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="' + DATA.theme.primary + '" stroke-width="1.5"/><path d="M3 10h18" stroke="' + DATA.theme.primary + '" stroke-width="1.5"/><path d="M8 2v4M16 2v4" stroke="' + DATA.theme.primary + '" stroke-width="1.5" stroke-linecap="round"/></svg>';
 
-const CustomTooltip = ({ active, payload, label, monthLabel }) => {
+const CustomTooltip = ({ active, payload, label, monthLabel, accentFallback }) => {
   if (!active || !payload?.length) return null;
   const items = [];
   const seen = new Set();
@@ -251,6 +251,13 @@ const CustomTooltip = ({ active, payload, label, monthLabel }) => {
     if (seen.has(p.name)) continue;
     seen.add(p.name);
     items.push(p);
+  }
+  // Web-style dedup: prefer colored entry when first is colorless
+  for (let i = 0; i < items.length; i++) {
+    if (!items[i].color) {
+      const colored = payload.find(function(q) { return q.name === items[i].name && q.color; });
+      if (colored) items[i] = colored;
+    }
   }
   return React.createElement('div', {
     style: {
@@ -261,10 +268,10 @@ const CustomTooltip = ({ active, payload, label, monthLabel }) => {
     }
   }, [
     monthLabel ? React.createElement('div', { key:'ml', style: { color: 'rgba(255,255,255,0.8)', fontSize: 13, fontWeight: 600, marginBottom: 6 } }, monthLabel) : null,
-    React.createElement('div', { key:'l', style: { color: 'rgba(255,255,255,0.55)', fontSize: 11, marginBottom: 4 } }, label),
+    React.createElement('div', { key:'l', style: { color: 'rgba(255,255,255,0.55)', fontSize: 11, marginBottom: 4, fontWeight: '500' } }, label),
     ...items.map((p, i) => React.createElement('div', {
       key: i,
-      style: { color: p.color || DATA.theme.primary, fontSize: 12, fontWeight: 600 }
+      style: { color: accentFallback || p.color || DATA.theme.primary, fontSize: 12, fontWeight: 600 }
     }, p.name + ': ¥' + Number(p.value).toLocaleString('en-US', { minimumFractionDigits: 2 })))
   ]);
 };
@@ -325,7 +332,7 @@ function renderProfit() {
       React.createElement(CartesianGrid, { strokeDasharray: '3 3', stroke: AXIS }),
       React.createElement(XAxis, { dataKey: dk, tick: { fill: TICK, fontSize: 11 }, axisLine: false, tickLine: false, interval: 0 }),
       React.createElement(YAxis, { tick: { fill: TICK, fontSize: 10 }, axisLine: false, tickLine: false, tickFormatter: fmtY, width: 40 }),
-      React.createElement(Tooltip, { content: CustomTooltip }),
+      React.createElement(Tooltip, { content: function(props) { return CustomTooltip({ ...props, accentFallback: DATA.theme.primary }); } }),
       React.createElement(Area, { type: 'monotone', dataKey: 'profit', name: DATA.labels.profit, stroke: 'none', fill: 'url(#profitGrad)' }),
       React.createElement(Line, { type: 'monotone', dataKey: 'profit', name: DATA.labels.profit, stroke: DATA.theme.accent, strokeWidth: 2, dot: false, activeDot: { r: 4, fill: DATA.theme.accent } }),
     )
