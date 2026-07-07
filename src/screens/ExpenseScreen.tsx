@@ -140,6 +140,7 @@ export default function ExpenseScreen({
 
   const [showReconConfirm, setShowReconConfirm] = useState(false);
   const [reconSaving, setReconSaving] = useState(false);
+  const [showFeeReminder, setShowFeeReminder] = useState(false);
   const hideReconConfirm = () => setShowReconConfirm(false);
   const { showToast, ToastHost } = useToast();
 
@@ -243,6 +244,29 @@ export default function ExpenseScreen({
     } catch { showToast(t('toastSubmitFailed')); }
     finally { setReconSaving(false); }
   }, [recDate.value, cardBalance, cashBalance, dineIn, meituan, flashSale, tuan, jd, onReconHistory]);
+
+  // 检查对账当月手续费是否在今天更新过
+  const checkFeeToday = async (): Promise<boolean> => {
+    try {
+      const all = await api.getPlatformFees();
+      const allArr = Array.isArray(all) ? all : [];
+      const [ry, rm] = (recDate.value || '').split('-').map(Number);
+      const match = allArr.find((f: any) => f.year === ry && f.month === rm);
+      if (!match?.updated_at) return false;
+      const updatedDay = String(match.updated_at).split(' ')[0].split('T')[0];
+      return updatedDay === sd.today;
+    } catch { return true; } // 网络失败不拦
+  };
+
+  const handleReconPress = async () => {
+    if (!hasReconChanges) return;
+    const feeToday = await checkFeeToday();
+    if (feeToday) {
+      setShowReconConfirm(true);
+    } else {
+      setShowFeeReminder(true);
+    }
+  };
 
   const toCents = (v: any) => Math.round((parseFloat(String(v ?? '0')) || 0) * 100);
   // Precise arithmetic: convert to cents (integer), compute, convert back
@@ -713,7 +737,7 @@ export default function ExpenseScreen({
               leftLabel={t('reconHistory')}
               leftOnPress={onReconHistory}
               rightLabel={t('reconComplete')}
-              rightOnPress={() => hasReconChanges && setShowReconConfirm(true)}
+              rightOnPress={handleReconPress}
               rightDisabled={!hasReconChanges}
             />
           </View>
@@ -838,6 +862,27 @@ export default function ExpenseScreen({
                 rightLabel={t('confirm')}
                 rightOnPress={submitRecon}
                 rightLoading={reconSaving}
+              />
+            </View>
+          </View>
+        </ModalOverlay>
+
+      {/* 手续费未更新提示弹窗 */}
+        <ModalOverlay visible={showFeeReminder} onClose={() => setShowFeeReminder(false)} animation="springScale">
+          <View style={st.modalCard} onStartShouldSetResponder={() => true}>
+            <View style={st.modalHeader}>
+              <Text style={st.modalTitle}>{t('friendlyReminder')}</Text>
+              <CloseButton onPress={() => setShowFeeReminder(false)} />
+            </View>
+            <View style={{ padding: 20, gap: 16 }}>
+              <Text style={{ fontSize: FONTS.sub.size, color: colors.textSub, textAlign: 'center' }}>
+                {t('feeNotUpdated')}
+              </Text>
+              <ButtonPair
+                leftLabel={t('reconLater')}
+                leftOnPress={() => setShowFeeReminder(false)}
+                rightLabel={t('enterFeeFirst')}
+                rightOnPress={() => { setShowFeeReminder(false); setShowFeeSheet(true); }}
               />
             </View>
           </View>

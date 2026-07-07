@@ -308,6 +308,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   useEffect(() => { try { localStorage.setItem('snail_proc_tab', subTab); } catch {} }, [subTab]);
   useEffect(() => { setSearch(''); }, [subTab]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
   const [cart, setCart] = useState<Record<number, number>>({});
   const [search, setSearch] = useState('');
   const [supplierFilter, setSupplierFilter] = useState('全部');
@@ -434,6 +435,8 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
         openEditBatch(pendingEditRef.current);
         onPendingEditConsumedRef.current?.();
       }
+    }).finally(() => {
+      setProductsLoading(false);
     });
   }, []);
   const loadStats = useCallback(() => {
@@ -830,6 +833,33 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
       {/* ── New Order ── */}
       {subTab === 'new' && (
         <View style={{ flex: 1 }}>
+          {productsLoading ? (
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
+              {[...Array(8)].map((_, i) => (
+                <View key={i} style={{ marginBottom: 12 }}>
+                  <View style={{ width: 56, height: 12, backgroundColor: withAlpha(c.textSub, 0.08), borderRadius: 4, marginLeft: 18, marginBottom: 8 }} />
+                  {[...Array(3)].map((_, j) => (
+                    <View key={j} style={[styles.productCard, { marginHorizontal: 0, pointerEvents: 'none' as any }]}>
+                      <View style={styles.prodRow}>
+                        <View style={styles.prodInfo}>
+                          <View style={{ width: 100, height: 14, backgroundColor: withAlpha(c.textSub, 0.08), borderRadius: 4 }} />
+                          <View style={{ width: 60, height: 11, backgroundColor: withAlpha(c.textSub, 0.05), borderRadius: 4, marginTop: 4 }} />
+                        </View>
+                        <View style={styles.prodPriceWrap}>
+                          <View style={{ width: 52, height: 14, backgroundColor: withAlpha(c.textSub, 0.08), borderRadius: 4 }} />
+                        </View>
+                        <View style={styles.qtyRow}>
+                          <View style={[styles.qtyBtn, styles.qtyBtnMinus]} />
+                          <View style={{ width: 24, height: 14, backgroundColor: withAlpha(c.textSub, 0.06), borderRadius: 4 }} />
+                          <View style={[styles.qtyBtn, styles.qtyBtnPlus, { backgroundColor: withAlpha(c.textSub, 0.08) }]} />
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ))}
+            </ScrollView>
+          ) : (
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
             {groupedProducts.map(([sup, items]) => (
               <View key={sup}>
@@ -884,6 +914,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
               />
             )}
           </ScrollView>
+          )}
 
           {cartCount > 0 && (
             <View style={styles.cartBar}>
@@ -1065,6 +1096,21 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
             <Text style={styles.mgmtAddBtnText}>{t('procAddProduct')}</Text>
           </TouchableOpacity>
           <ScrollView style={styles.contentArea} showsVerticalScrollIndicator={false}>
+          {productsLoading ? (
+            [...Array(6)].map((_, i) => (
+              <View key={i} style={[styles.mgmtRow, { pointerEvents: 'none' as any }]}>
+                <View style={styles.mgmtInfo}>
+                  <View style={{ width: 90, height: 14, backgroundColor: withAlpha(c.textSub, 0.08), borderRadius: 4 }} />
+                  <View style={{ width: 140, height: 11, backgroundColor: withAlpha(c.textSub, 0.05), borderRadius: 4, marginTop: 4 }} />
+                </View>
+                <View style={styles.mgmtActions}>
+                  <View style={[styles.mgmtActionBtn, { backgroundColor: withAlpha(c.textSub, 0.05) }]} />
+                  <View style={[styles.mgmtActionBtn, { backgroundColor: withAlpha(c.textSub, 0.05) }]} />
+                </View>
+              </View>
+            ))
+          ) : (
+          <>
           {filteredMgmtProducts.length === 0 ? (
             <EmptyState
               icon={<EmptyBoxIcon color={c.textSub} />}
@@ -1091,6 +1137,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
           )}
         </ScrollView>
         </>
+       )}
       )}
 
       {/* ── Product Modal (springScale) ── */}

@@ -176,6 +176,9 @@ const I18N: Record<string, Record<string, string>> = {
     feeCurrent: '当前手续费',
     feeDetail: '更新手续费',
     feeEntry: '今日手续费',
+    feeNotUpdated: '请先录入手续费，再发起对账',
+    enterFeeFirst: '先录入手续费',
+    reconLater: '稍后再对',
     feeHistory: '历史明细',
     feePreview: '累计手续费',
     feeViewDetail: '查看明细',
@@ -775,6 +778,9 @@ const I18N: Record<string, Record<string, string>> = {
     feeCurrent: '當期手續費',
     feeDetail: '更新手續費',
     feeEntry: '今日手續費',
+    feeNotUpdated: '請先錄入手續費，再發起對賬',
+    enterFeeFirst: '先錄入手續費',
+    reconLater: '稍後再對',
     feeHistory: '歷史明細',
     feePreview: '累計手續費',
     feeViewDetail: '檢視明細',
@@ -1384,6 +1390,9 @@ const I18N: Record<string, Record<string, string>> = {
     feeCurrent: 'Current Fee',
     feeDetail: 'Update Fees',
     feeEntry: 'Today Fee',
+    feeNotUpdated: 'Please enter platform fees first',
+    enterFeeFirst: 'Enter Fees First',
+    reconLater: 'Later',
     feeHistory: 'History',
     feePreview: 'Cumulative',
     feeViewDetail: 'View Details',
@@ -1985,6 +1994,9 @@ export type I18nKey =
   | 'feeCurrent'
   | 'feeDetail'
   | 'feeEntry'
+  | 'feeNotUpdated'
+  | 'enterFeeFirst'
+  | 'reconLater'
   | 'feeHistory'
   | 'feePreview'
   | 'feeViewDetail'

@@ -7,7 +7,6 @@ import { toDec2 } from '../utils/numbers';
 import { useServerDate } from '../hooks/useServerDate';
 import { usePaginatedList } from '../hooks/usePaginatedList';
 import EmptyState from '../components/EmptyState';
-import LoadingSpinner from '../components/LoadingSpinner';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import DatePickerModal from '../components/DatePickerModal';
@@ -154,7 +153,27 @@ export default function DailyRevenueHistory({ onBack }: Props) {
         onScroll={handleScroll} scrollEventThrottle={50}
         contentContainerStyle={{ paddingTop: showFilter ? 224 : 112, paddingHorizontal: 16, paddingBottom: 20 }}>
         {loading ? (
-          <LoadingSpinner />
+          <View style={{ paddingTop: 112, paddingHorizontal: 16 }}>
+            {[...Array(6)].map((_, i) => (
+              <View key={i} style={[styles.card, { pointerEvents: 'none' as any }]}>
+                <View style={styles.cardTopRow}>
+                  <View style={{ width: 90, height: 16, backgroundColor: withAlpha(colors.textSub, 0.08), borderRadius: 4 }} />
+                  <View style={{ width: 56, height: 20, backgroundColor: withAlpha(colors.textSub, 0.06), borderRadius: 10 }} />
+                </View>
+                <View style={styles.cardAmounts}>
+                  {[...Array(3)].map((_, j) => (
+                    <View key={j} style={styles.cardAmtCol}>
+                      <View style={{ width: 64, height: 20, backgroundColor: withAlpha(colors.textSub, 0.08), borderRadius: 4 }} />
+                      <View style={{ width: 40, height: 11, backgroundColor: withAlpha(colors.textSub, 0.05), borderRadius: 3, marginTop: 4 }} />
+                    </View>
+                  ))}
+                </View>
+                <View style={[styles.cardFooter, { borderTopColor: withAlpha(colors.textSub, 0.04) }]}>
+                  <View style={{ width: 100, height: 11, backgroundColor: withAlpha(colors.textSub, 0.05), borderRadius: 3 }} />
+                </View>
+              </View>
+            ))}
+          </View>
         ) : records.length === 0 ? (
           <EmptyState
             icon={<RevenueEmptyIcon color={colors.textSub} />}
