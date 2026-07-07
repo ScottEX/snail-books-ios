@@ -289,11 +289,13 @@ export default function ExpenseScreen({
   const cap = -Dimensions.get('window').height * 0.28;
   const activeTabSV = useSharedValue(0);
   useEffect(() => { activeTabSV.value = activeTab; }, [activeTab]);
-  const contentStyle = useAnimatedStyle(() => ({
-    transform: [{
-      translateY: activeTabSV.value === 1 ? Math.max(keyboardHeight.value, -200) : Math.max(keyboardHeight.value, cap),
-    }],
-  }));
+  const activeFieldSV = useSharedValue(0); // 0=amount, 1=note
+  const contentStyle = useAnimatedStyle(() => {
+    if (activeTabSV.value !== 1) return { transform: [{ translateY: Math.max(keyboardHeight.value, cap) }] };
+    // tab1 支出：按输入框分支
+    const cap2 = activeFieldSV.value === 0 ? -200 : -150; // amount / note
+    return { transform: [{ translateY: Math.max(keyboardHeight.value, cap2) }] };
+  });
   const sheetStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: keyboardHeight.value }],
   }));
@@ -750,6 +752,7 @@ export default function ExpenseScreen({
                   )}
                   <Text style={st.bigAmtSymbol}>¥</Text>
                   <AppTextInput style={st.bigAmtInput}
+                    onFocus={() => { activeFieldSV.value = 0; }}
                     value={expAmount} onChangeText={(v: string) => setExpAmount(fmtRefundInput(v, isRefund))}
                     onBlur={() => { if (expAmount !== '') setExpAmount(toDec2Comma(expAmount)); }}
                     keyboardType="decimal-pad" placeholder="0.00"
@@ -763,7 +766,7 @@ export default function ExpenseScreen({
               {/* 支付方式 */}
               <PaymentMethodChips selected={payMethod} onSelect={setPayMethod} />
               {/* 支出说明 */}
-              <ExpenseNoteInput value={expNote} onChangeText={setExpNote} />
+              <ExpenseNoteInput value={expNote} onChangeText={setExpNote} onFocus={() => { activeFieldSV.value = 1; }} />
               {/* 凭证上传 */}
               <ReceiptUpload
                 newFiles={expImages}
