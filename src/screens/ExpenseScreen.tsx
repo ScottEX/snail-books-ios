@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, useReducer } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, Dimensions, Switch, Keyboard,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, Dimensions, Switch, Keyboard, InteractionManager,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
@@ -882,7 +882,7 @@ export default function ExpenseScreen({
                 leftLabel={t('reconLater')}
                 leftOnPress={() => setShowFeeReminder(false)}
                 rightLabel={t('enterFeeFirst')}
-                rightOnPress={() => { setShowFeeReminder(false); setTimeout(() => setShowFeeSheet(true), 300); }}
+                rightOnPress={() => { setShowFeeReminder(false); InteractionManager.runAfterInteractions(() => setShowFeeSheet(true)); }}
               />
             </View>
           </View>
