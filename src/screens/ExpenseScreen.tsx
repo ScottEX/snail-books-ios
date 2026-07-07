@@ -291,7 +291,7 @@ export default function ExpenseScreen({
   useEffect(() => { activeTabSV.value = activeTab; }, [activeTab]);
   const contentStyle = useAnimatedStyle(() => ({
     transform: [{
-      translateY: activeTabSV.value === 1 ? Math.max(keyboardHeight.value, -100) : Math.max(keyboardHeight.value, cap),
+      translateY: activeTabSV.value === 1 ? Math.max(keyboardHeight.value, -200) : Math.max(keyboardHeight.value, cap),
     }],
   }));
   const sheetStyle = useAnimatedStyle(() => ({
