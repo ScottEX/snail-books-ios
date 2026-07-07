@@ -154,7 +154,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   statNum: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.textMain },
   statLbl: { fontSize: FONTS.micro.size, color: c.textSub, marginTop: 3 },
 
-  searchSection: { paddingHorizontal: 18, paddingBottom: 8, borderTopWidth: 0.5, borderTopColor: withAlpha(c.textMain, 0.06) },
+  searchSection: { paddingHorizontal: 18, paddingBottom: 8, borderTopWidth: 0 },
   searchRow: { position: 'relative' as const },
   searchInput: { paddingHorizontal: 12, paddingVertical: 9, paddingRight: 36, borderWidth: 0, borderRadius: 10, fontSize: FONTS.sub.size, color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), outline: 'none' as any },
   searchClear: { position: 'absolute' as const, right: 8, top: 0, bottom: 0, justifyContent: 'center' as const, alignItems: 'center' as const },
@@ -164,7 +164,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   filterChipText: { fontSize: FONTS.micro.size, color: c.textSub },
   filterChipTextOn: { color: c.surface },
 
-  subTabRow: { flexDirection: 'row' as const, borderTopWidth: 0.5, borderTopColor: withAlpha(c.textMain, 0.06), marginHorizontal: 4, paddingTop: 2, marginBottom: 6 },
+  subTabRow: { flexDirection: 'row' as const, borderTopWidth: 0, marginHorizontal: 4, paddingTop: 2, marginBottom: 6 },
   subTab: { flex: 1, flexDirection: 'row' as const, gap: 4, paddingVertical: 10, alignItems: 'center' as const, justifyContent: 'center' as const },
   subTabOn: { backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 10 },
   subTabText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: c.textSub },
