@@ -34,6 +34,9 @@ interface ChartData {
     chartSwitchPie: string;
     chartSwitchBar: string;
     chartSwitchHint: string;
+    chartXAxis: string;
+    chartXAxisDay: string;
+    chartYAxis: string;
     monthName: string;
   };
 }
@@ -185,7 +188,7 @@ export function generateChartHTML(data: ChartData): string {
       <span class="title" id="line-title">${labels.monthlyTrend}</span>
       ${hasDaily ? '<button class="toggle-btn" id="toggle-daily" style="font-size:15px;padding:2px 7px;">☀</button>' : ''}
     </div>
-    <span class="axis-hint">${labels.monthlyTrend} · ¥</span>
+    <span class="axis-hint" id="line-axis-hint">${labels.chartXAxis} · ${labels.chartYAxis}</span>
   </div>
   <div class="chart-wrap" id="line-container"></div>
 </div>
@@ -196,7 +199,7 @@ export function generateChartHTML(data: ChartData): string {
       <span class="title" id="profit-title">${labels.monthlyProfit}</span>
       ${hasDailyProfit ? '<button class="toggle-btn" id="toggle-daily-profit" style="font-size:15px;padding:2px 7px;">☀</button>' : ''}
     </div>
-    <span class="axis-hint">${labels.monthlyProfit} · ¥</span>
+    <span class="axis-hint" id="profit-axis-hint">${labels.chartXAxis} · ${labels.chartYAxis}</span>
   </div>
   <div class="chart-wrap" id="profit-container"></div>
 </div>
@@ -290,6 +293,7 @@ if (DATA.hasDaily) {
     showDaily = !showDaily;
     this.textContent = showDaily ? '\u{1F4C5}' : '\u2600';
     document.getElementById('line-title').textContent = showDaily ? DATA.labels.dailyTrend : DATA.labels.monthlyTrend;
+    document.getElementById('line-axis-hint').textContent = showDaily ? DATA.labels.chartXAxisDay + ' · ' + DATA.labels.chartYAxis : DATA.labels.chartXAxis + ' · ' + DATA.labels.chartYAxis;
     renderLine();
     reportHeight();
   };
@@ -323,6 +327,7 @@ if (DATA.hasDailyProfit) {
     showDailyProfit = !showDailyProfit;
     this.textContent = showDailyProfit ? '\u{1F4C5}' : '\u2600';
     document.getElementById('profit-title').textContent = showDailyProfit ? DATA.labels.dailyProfit : DATA.labels.monthlyProfit;
+    document.getElementById('profit-axis-hint').textContent = showDailyProfit ? DATA.labels.chartXAxisDay + ' · ' + DATA.labels.chartYAxis : DATA.labels.chartXAxis + ' · ' + DATA.labels.chartYAxis;
     renderProfit();
     reportHeight();
   };

@@ -69,6 +69,9 @@ export default function ChartsPanel({
         chartSwitchPie: t('chartSwitchPie'),
         chartSwitchBar: t('chartSwitchBar'),
         chartSwitchHint: t('chartSwitchHint'),
+        chartXAxis: t('chartXAxis'),
+        chartXAxisDay: t('chartXAxisDay'),
+        chartYAxis: t('chartYAxis'),
       }}
     />
   );
