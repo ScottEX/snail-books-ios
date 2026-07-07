@@ -4,7 +4,7 @@ import {
   Image, useWindowDimensions,
 } from 'react-native';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
-import ReAnimated, { useAnimatedStyle } from 'react-native-reanimated';
+import ReAnimated, { useAnimatedStyle, useSharedValue, withTiming, cancelAnimation } from 'react-native-reanimated';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path } from 'react-native-svg';
 import { t, getLang } from '../i18n';
@@ -74,8 +74,11 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
   const lang = getLang();
   const { width: w, height: windowHeight } = useWindowDimensions();
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const expenseCapAmount = -windowHeight * 0;
+  const expenseCapNote   = -windowHeight * 0.18;
+  const pushCapSV = useSharedValue(expenseCapAmount);
   const contentStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: Math.max(keyboardHeight.value, -windowHeight * 0.28) }],
+    transform: [{ translateY: Math.max(keyboardHeight.value, pushCapSV.value) }],
   }));
   const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(c), [c]);
@@ -241,7 +244,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
       />
 
       {/* Body */}
-      <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false} keyboardDismissMode="interactive">
         {/* ── View mode ── */}
         {!editMode && (
           <View>
@@ -362,6 +365,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
                     style={{ fontSize: 36, fontWeight: '700', color: isRefundRecord ? c.success : amtColor, borderWidth: 0, backgroundColor: 'transparent', textAlign: 'left', padding: 0, flex: 0, width: 180 } as any}
                     value={amount}
                     onChangeText={(v: string) => setAmount(fmtDecInput(v))}
+                    onFocus={() => { cancelAnimation(pushCapSV); pushCapSV.value = expenseCapAmount; }}
                     onBlur={() => { if (amount !== '') setAmount(toDec2(amount)); }}
                     keyboardType="decimal-pad"
                     placeholder="0.00"
@@ -412,7 +416,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
               </View>
             </View>
 
-            <ExpenseNoteInput value={note} onChangeText={setNote} />
+            <ExpenseNoteInput value={note} onChangeText={setNote} onFocus={() => { pushCapSV.value = withTiming(expenseCapNote, { duration: 200 }); }} onBlur={() => { pushCapSV.value = withTiming(expenseCapAmount, { duration: 200 }); }} />
 
             {/* Images */}
             <ReceiptUpload

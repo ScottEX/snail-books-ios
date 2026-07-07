@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions, useWindowDimensions,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Line, Circle, Rect, Polyline, Text as SvgText } from 'react-native-svg';
@@ -23,6 +23,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BANK_ICON_MAP, DefaultBankIcon } from '../components/BankIcons';
 import SheetHeader from '../components/SheetHeader';
 import ModalOverlay from '../components/ModalOverlay';
+import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
+import ReAnimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { bottomSheetOverlay } from '../sharedStyles';
 
 /* ═══════════════ ICONS ═══════════════ */
@@ -234,6 +236,19 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const insets = useSafeAreaInsets();
   const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(c), [c]);
+
+  // Drawer keyboard push
+  const { height: screenH } = useWindowDimensions();
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const drawerCap = -screenH * 0.4;
+  const drawerPushStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: Math.max(keyboardHeight.value, drawerCap) }],
+  }));
+  const infoPushCap = -screenH * 0.25;
+  const infoPushSV = useSharedValue(0); // default: no push for header info
+  const infoPushStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: Math.max(keyboardHeight.value, infoPushSV.value) }],
+  }));
 
   // Tabs: 0 = info, 1 = records
   const [tab, setTab] = useState<number>(filterBatchId ? 1 : 0);
@@ -615,6 +630,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
 
       {/* ═══ PANEL 0: INFO ═══ */}
       {tab === 0 && (
+        <ReAnimated.View style={[{ flex: 1 }, infoPushStyle]}>
         <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
           <View style={styles.tips}>
             <Text style={styles.tipsIcon}>💡</Text>
@@ -708,6 +724,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 mono
                 keyboardType="numeric"
                 filter={(v: string) => v.replace(/[^\d]/g, '')}
+                onFocus={() => { infoPushSV.value = withTiming(infoPushCap, { duration: 200 }); }}
                 onChange={async (v) => {
                   setData({ ...data, bank_account: v });
                   setBankLookupError('');
@@ -746,6 +763,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 value={data.email}
                 colors={c}
                 validate={(v: string) => v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? t('errEmailInvalid') : null}
+                onFocus={() => { infoPushSV.value = withTiming(infoPushCap, { duration: 200 }); }}
                 onChange={async (v) => { setData({ ...data, email: v }); await api.saveInvoiceEmail(v).catch(() => {}); if (!v) { const em = await api.getInvoiceEmail().catch(() => ({})); setData(prev => ({ ...prev, email: em.email || '' })); } }}
               />
             </View>
@@ -762,6 +780,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
             </TouchableOpacity>
           )}
         </ScrollView>
+        </ReAnimated.View>
       )}
 
       {/* ═══ PANEL 1: RECORDS ═══ */}
@@ -902,7 +921,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
         overlayStyle={bottomSheetOverlay}
         contentStyle={{ alignItems: 'stretch', justifyContent: 'flex-end' }}
       >
-        <View key={drawerKey} style={[styles.drawer, { backgroundColor: c.surface, maxHeight: Dimensions.get('window').height * 0.806 }]}>
+        <ReAnimated.View key={drawerKey} style={[drawerPushStyle, styles.drawer, { backgroundColor: c.surface, maxHeight: Dimensions.get('window').height * 0.806 }]}>
             <View style={[styles.drawerHead, { backgroundColor: c.primary, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 14, paddingHorizontal: 20, paddingBottom: 14 }]}>
               <SheetHeader title={editingId ? t('invRecEditTitle') : t('invRecAddTitle')} onClose={closeDrawer} />
             </View>
@@ -1108,7 +1127,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 />
               );
             })()}
-        </View>
+        </ReAnimated.View>
 
           {/* Image preview overlay */}
           {previewImages && (
@@ -1126,7 +1145,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
 
 /* ═══════════════ EDITABLE INFO ROW ═══════════════ */
 
-function EditableInfoRow({ icon, iconBg, label, value, colors, mono, onChange, editable = true, placeholder, filter, validate, keyboardType }: {
+function EditableInfoRow({ icon, iconBg, label, value, colors, mono, onChange, editable = true, placeholder, filter, validate, keyboardType, onFocus }: {
   icon: React.ReactNode;
   iconBg: string;
   label: string;
@@ -1139,6 +1158,7 @@ function EditableInfoRow({ icon, iconBg, label, value, colors, mono, onChange, e
   filter?: (v: string) => string;
   validate?: (v: string) => string | null;
   keyboardType?: string;
+  onFocus?: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -1172,6 +1192,7 @@ function EditableInfoRow({ icon, iconBg, label, value, colors, mono, onChange, e
             style={[styles.valueInput, { color: colors.textMain }]}
             value={draft}
             onChangeText={handleChange}
+            onFocus={onFocus}
             onBlur={commit}
             autoFocus
             placeholder={placeholder || value || '—'}

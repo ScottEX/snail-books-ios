@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   View, Text, TextInput, ScrollView, TouchableOpacity,
-  FlatList, Image, ActivityIndicator, StyleSheet, Animated, Dimensions,
+  FlatList, Image, ActivityIndicator, StyleSheet, Animated, Dimensions, useWindowDimensions,
   ActionSheetIOS,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
@@ -28,6 +28,8 @@ import TrashIcon from '../components/icons/TrashIcon';
 import ReceiptUpload from '../components/ReceiptUpload';
 import PaymentMethodChips from '../components/PaymentMethodChips';
 import ExpenseNoteInput from '../components/ExpenseNoteInput';
+import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
+import ReAnimated, { useAnimatedStyle } from 'react-native-reanimated';
 import PlusIcon from '../components/icons/PlusIcon';
 import { fmtDecInput } from '../utils/numbers';
 import type { PickedImage } from '../utils/imagePicker';
@@ -288,6 +290,14 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   const { colors: c } = useTheme();
   const sd = useServerDate();
   const styles = useMemo(() => getStyles(c), [c]);
+
+  // Drawer keyboard push
+  const { height: screenH } = useWindowDimensions();
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const drawerCap = -screenH * 0.2;
+  const drawerPushStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: Math.max(keyboardHeight.value, drawerCap) }],
+  }));
 
   const [subTab, setSubTab] = useState<SubTab>(() => {
     try {
@@ -1152,7 +1162,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
         overlayStyle={bottomSheetOverlay as any}
         contentStyle={{ position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'stretch' } as any}
       >
-        <View style={[{ backgroundColor: c.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, height: Dimensions.get('window').height * 0.7, maxHeight: Dimensions.get('window').height * 0.7, width: '100%', maxWidth: 768, alignSelf: 'center', overflow: 'hidden' as any, display: 'flex' as any, flexDirection: 'column' as any }]}>
+        <ReAnimated.View style={[drawerPushStyle, { backgroundColor: c.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, height: Dimensions.get('window').height * 0.7, maxHeight: Dimensions.get('window').height * 0.7, width: '100%', maxWidth: 768, alignSelf: 'center', overflow: 'hidden' as any, display: 'flex' as any, flexDirection: 'column' as any }]}>
           <View style={styles.drawerHead}>
             <SheetHeader
               title={editingBatchId !== null
@@ -1228,7 +1238,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
               />
             </View>
           </View>
-        </View>
+        </ReAnimated.View>
       </ModalOverlay>
 
       {/* ── Items Modal (stagger reveal) ── */}

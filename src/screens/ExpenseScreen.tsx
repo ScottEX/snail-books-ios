@@ -10,7 +10,7 @@ import { api } from '../api/client';
 import { useToast } from '../hooks/useToast';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
-import ReAnimated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import ReAnimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import DatePickerModal from '../components/DatePickerModal';
 import CategoryChips from '../components/CategoryChips';
 import MonthPicker from '../components/MonthPicker';
@@ -287,14 +287,14 @@ export default function ExpenseScreen({
   const [showFeeSheet, setShowFeeSheet] = useState(false);
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const cap = -Dimensions.get('window').height * 0.28;
+  const expenseCapAmount = -Dimensions.get('window').height * 0.12;
+  const expenseCapNote   = -Dimensions.get('window').height * 0.24;
   const activeTabSV = useSharedValue(0);
   useEffect(() => { activeTabSV.value = activeTab; }, [activeTab]);
-  const activeFieldSV = useSharedValue(0); // 0=amount, 1=note
+  const pushCapSV = useSharedValue(expenseCapAmount); // default: amount cap, animated for smooth field switching
   const contentStyle = useAnimatedStyle(() => {
     if (activeTabSV.value !== 1) return { transform: [{ translateY: Math.max(keyboardHeight.value, cap) }] };
-    // tab1 支出：按输入框分支
-    const cap2 = activeFieldSV.value === 0 ? -200 : -150; // amount / note
-    return { transform: [{ translateY: Math.max(keyboardHeight.value, cap2) }] };
+    return { transform: [{ translateY: Math.max(keyboardHeight.value, pushCapSV.value) }] };
   });
   const sheetStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: keyboardHeight.value }],
@@ -752,7 +752,7 @@ export default function ExpenseScreen({
                   )}
                   <Text style={st.bigAmtSymbol}>¥</Text>
                   <AppTextInput style={st.bigAmtInput}
-                    onFocus={() => { activeFieldSV.value = 0; }}
+                    onFocus={() => { pushCapSV.value = withTiming(expenseCapAmount, { duration: 200 }); }}
                     value={expAmount} onChangeText={(v: string) => setExpAmount(fmtRefundInput(v, isRefund))}
                     onBlur={() => { if (expAmount !== '') setExpAmount(toDec2Comma(expAmount)); }}
                     keyboardType="decimal-pad" placeholder="0.00"
@@ -766,7 +766,7 @@ export default function ExpenseScreen({
               {/* 支付方式 */}
               <PaymentMethodChips selected={payMethod} onSelect={setPayMethod} />
               {/* 支出说明 */}
-              <ExpenseNoteInput value={expNote} onChangeText={setExpNote} onFocus={() => { activeFieldSV.value = 1; }} />
+              <ExpenseNoteInput value={expNote} onChangeText={setExpNote} onFocus={() => { pushCapSV.value = withTiming(expenseCapNote, { duration: 200 }); }} />
               {/* 凭证上传 */}
               <ReceiptUpload
                 newFiles={expImages}

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
-  Image, Switch, Modal, ActivityIndicator,
+  Image, Switch, Modal, ActivityIndicator, useWindowDimensions,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Defs, LinearGradient as SVGGradient, Stop, Rect } from 'react-native-svg';
@@ -24,6 +24,8 @@ import { pickImages } from '../utils/imagePicker';
 import { modalClose } from '../sharedStyles';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 import { isBiometricAvailable, hasStoredCredential, clearCredential, saveCredential, promptBiometric, getCredential } from '../utils/biometric';
+import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
+import ReAnimated, { useAnimatedStyle } from 'react-native-reanimated';
 
 interface Props {
   onBack: () => void;
@@ -231,6 +233,18 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const blurIntensity = scrollY > 0
     ? Math.min(scrollY / 2, 10)   // scroll-up: progressive blur, max 10 at freeze point
     : Math.min(pullDown / 3, 18);  // pull-down: stretch blur
+
+  // Modal keyboard push
+  const { height: screenH } = useWindowDimensions();
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const modalCap = -screenH * 0.1;
+  const modalCapEmail = -screenH * 0.05;
+  const modalPushStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: Math.max(keyboardHeight.value, modalCap) }],
+  }));
+  const modalPushStyleEmail = useAnimatedStyle(() => ({
+    transform: [{ translateY: Math.max(keyboardHeight.value, modalCapEmail) }],
+  }));
 
   const username = useMemo(() => {
     try { return getCurrentUser(); } catch { return ''; }
@@ -1078,6 +1092,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
       {/* ══════ Change password modal ══════ */}
       <ModalOverlay visible={showPwModal} onClose={() => setShowPwModal(false)} animation="springScale">
+        <ReAnimated.View style={modalPushStyle}>
           <View style={mo.card}>
             <View style={mo.header}>
               <Text style={mo.title}>{t('changePassword')}</Text>
@@ -1099,10 +1114,12 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               />
             </View>
           </View>
+        </ReAnimated.View>
       </ModalOverlay>
 
       {/* ══════ Change email modal ══════ */}
       <ModalOverlay visible={showEmailModal} onClose={() => setShowEmailModal(false)} animation="springScale">
+        <ReAnimated.View style={modalPushStyleEmail}>
           <View style={mo.card}>
             <View style={mo.header}>
               <Text style={mo.title}>{t('changeEmail')}</Text>
@@ -1157,6 +1174,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               )}
             </View>
           </View>
+        </ReAnimated.View>
       </ModalOverlay>
 
       {/* ══════ Theme picker — shared component ══════ */}
