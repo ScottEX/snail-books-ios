@@ -77,10 +77,17 @@ export function generateChartHTML(data: ChartData): string {
     .map(([key, value]) => ({ key, name: key, value }))
     .sort((a, b) => b.value - a.value);
 
-  const catColors = [
-    '#4A7299','#7D2329','#D59A53','#4C7A5D','#8C8583','#B34149','#C5A880','#9B6B9E',
-    '#6B9AC7','#A8454D','#E8B86D','#6BA87A','#A8A3A0','#D46B73','#D9C4A0','#B88DB8',
-  ];
+  const catColorLight: Record<string, string> = {
+    daily: '#4A7299', rent: '#7D2329', salary: '#D59A53',
+    goods: '#4C7A5D', other: '#8C8583', eleme: '#B34149',
+    meituan: '#C5A880', wages: '#9B6B9E',
+  };
+  const catColorDark: Record<string, string> = {
+    daily: '#6B9AC7', rent: '#A8454D', salary: '#E8B86D',
+    goods: '#6BA87A', other: '#A8A3A0', eleme: '#D46B73',
+    meituan: '#D9C4A0', wages: '#B88DB8',
+  };
+  const catColorFallback = ['#4A7299','#7D2329','#D59A53','#4C7A5D','#8C8583','#B34149','#C5A880','#9B6B9E'];
 
   const json = JSON.stringify({
     lineData,
@@ -88,7 +95,8 @@ export function generateChartHTML(data: ChartData): string {
     profitData,
     dailyProfitData,
     donutData,
-    catColors,
+    catColorMap: theme.isLight ? catColorLight : catColorDark,
+    catColorFallback,
     hasDaily,
     hasDailyProfit,
     theme,
@@ -323,7 +331,11 @@ if (DATA.hasDailyProfit) {
 // ── Category donut / bar chart ──
 if (DATA.donutData.length > 0) {
   let showBar = false;
-  const colors = DATA.catColors;
+  const catColorMap = DATA.catColorMap || {};
+  const catColorFallback = DATA.catColorFallback || [];
+  function getCatColor(key, i) {
+    return catColorMap[key] || catColorFallback[i % catColorFallback.length] || '#888';
+  }
   const catRoot = ReactDOM.createRoot(document.getElementById('cat-container'));
   function renderCat() {
     const src = DATA.donutData;
@@ -335,7 +347,7 @@ if (DATA.donutData.length > 0) {
           React.createElement(YAxis, { tick: { fill: TICK, fontSize: 10 }, axisLine: false, tickLine: false, tickFormatter: fmtY, width: 40 }),
           React.createElement(Tooltip, { content: CustomTooltip }),
           React.createElement(Bar, { dataKey: 'value', radius: [6,6,0,0], maxBarSize: 48 },
-            src.map(function(d, i) { return React.createElement(Cell, { key: i, fill: colors[i % colors.length] }); })
+            src.map(function(d, i) { return React.createElement(Cell, { key: i, fill: getCatColor(d.key, i) }); })
           ),
         )
       ));
@@ -343,7 +355,7 @@ if (DATA.donutData.length > 0) {
       catRoot.render(React.createElement(ResponsiveContainer, { width: '100%', height: 240 },
         React.createElement(PieChart, null,
           React.createElement(Pie, { data: src, cx: '50%', cy: '50%', innerRadius: 55, outerRadius: 85, paddingAngle: 2, dataKey: 'value', stroke: 'none' },
-            src.map(function(d, i) { return React.createElement(Cell, { key: i, fill: colors[i % colors.length] }); })
+            src.map(function(d, i) { return React.createElement(Cell, { key: i, fill: getCatColor(d.key, i) }); })
           ),
           React.createElement(Tooltip, { content: CustomTooltip }),
         )
@@ -364,7 +376,7 @@ if (DATA.donutData.length > 0) {
   DATA.donutData.forEach(function(d, i) {
     var div = document.createElement('div');
     div.className = 'legend-item';
-    div.innerHTML = '<div class="legend-dot" style="background:' + colors[i % colors.length] + '"></div><span class="legend-name">' + d.name + '</span>';
+    div.innerHTML = '<div class="legend-dot" style="background:' + getCatColor(d.key, i) + '"></div><span class="legend-name">' + d.name + '</span>';
     leg.appendChild(div);
   });
 }
