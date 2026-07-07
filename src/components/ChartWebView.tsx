@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Animated } from 'react-native';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { generateChartHTML } from './ChartHTML';
 
@@ -38,10 +38,26 @@ interface Props {
   };
 }
 
+const SKELETON_HEIGHT = 400;
+
 export default function ChartWebView(props: Props) {
-  const [webViewHeight, setWebViewHeight] = useState(400);
+  const [webViewHeight, setWebViewHeight] = useState(SKELETON_HEIGHT);
   const [loaded, setLoaded] = useState(false);
   const webViewRef = useRef<WebView>(null);
+
+  // ── skeleton pulse animation ──
+  const pulse = useRef(new Animated.Value(0.4)).current;
+  useEffect(() => {
+    if (loaded) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.7, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.4, duration: 800, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [loaded, pulse]);
 
   // HTML only rebuilds when data/theme changes, NOT when language changes
   const html = useMemo(() => generateChartHTML({
@@ -101,10 +117,21 @@ export default function ChartWebView(props: Props) {
 
   return (
     <View style={[styles.container, { height: webViewHeight }]}>
+      {/* skeleton overlay — shown until WebView finishes loading */}
+      {!loaded && (
+        <Animated.View style={[styles.skeleton, { opacity: pulse }]}>
+          {/* line chart placeholder */}
+          <View style={styles.skLine} />
+          <View style={styles.skLine2} />
+          <View style={styles.skLine} />
+          {/* pie chart placeholder */}
+          <View style={styles.skPie} />
+        </Animated.View>
+      )}
       <WebView
         ref={webViewRef}
         source={{ html }}
-        style={styles.webview}
+        style={[styles.webview, loaded ? {} : styles.webviewHidden]}
         scrollEnabled={false}
         javaScriptEnabled
         domStorageEnabled
@@ -126,5 +153,39 @@ const styles = StyleSheet.create({
   },
   webview: {
     backgroundColor: 'transparent',
+  },
+  webviewHidden: {
+    opacity: 0,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  // ── skeleton ──
+  skeleton: {
+    height: SKELETON_HEIGHT,
+    padding: 16,
+    gap: 14,
+  },
+  skLine: {
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: 'rgba(128,128,128,0.12)',
+    width: '100%',
+  },
+  skLine2: {
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: 'rgba(128,128,128,0.08)',
+    width: '70%',
+  },
+  skPie: {
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(128,128,128,0.10)',
+    alignSelf: 'center',
+    marginTop: 24,
   },
 });
