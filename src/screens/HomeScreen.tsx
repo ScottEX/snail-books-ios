@@ -656,7 +656,18 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             pendingEditBatch={pendingEditBatch}
             onPendingEditConsumed={() => setPendingEditBatch(null)}
           />
-        ) : isHome && (
+        {/* 收支总览玻璃卡片：固定顶部不滚动 */}
+        {isHome && tab === 'chart' && (
+          <View style={{ paddingTop: 4, marginBottom: 8, paddingHorizontal: 16 }}>
+            <ChartGlassCard
+              colors={colors}
+              bgOpacity={bgOpacity}
+              businessSummary={businessSummary}
+            />
+          </View>
+        )}
+
+        {isHome && (
         <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false}>
 
           {tab === 'list' ? (
@@ -676,9 +687,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
               onShowDailyHistory={() => setShowDailyHistory(true)}
             />
           ) : tab === 'chart' ? (
-            <ChartGlassView
+            <ChartTabContent
               colors={colors}
-              bgOpacity={bgOpacity}
               weekRev={weekRev}
               monthRevRecords={monthRevRecords}
               businessSummary={businessSummary}
@@ -905,23 +915,41 @@ function ExpenseSummaryCardsInline({
   );
 }
 
-function ChartGlassView({ colors, bgOpacity, weekRev, monthRevRecords, businessSummary, chartMonthly }: ChartGlassProps) {
-  // ── Match web's gradient glass card (dark gradient + white text) ──
+function ChartGlassCard({ colors, bgOpacity, businessSummary }: { colors: ThemeColors; bgOpacity: number; businessSummary: any }) {
   const gradientAlpha = bgOpacity === 1 ? 0.30 : 0.48;
-  const cardStyle: any = {
-    borderRadius: 14, paddingVertical: 14, paddingHorizontal: 18, gap: 12, marginBottom: 8,
-  };
-  const cardLabelStyle = { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.70)' };
-  const symbolStyle = { fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.expenseAmountColor, marginRight: 2 };
-  const valueStyle = { fontSize: FONTS.h1.size + 4, fontWeight: FONTS.h1.weight, color: colors.expenseAmountColor };
-  const subCardStyle: any = {
-    flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: 14, gap: 6,
-    borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.20)',
-  };
-  const subLabelStyle = { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.70)' };
-  const subValueStyle = { fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: 'rgba(255,255,255,0.95)' };
+  return (
+    <LinearGradient
+      colors={[withAlpha(colors.expenseGradientStart, gradientAlpha), withAlpha(colors.expenseGradientEnd, gradientAlpha)]}
+      start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+      style={{ borderRadius: 14, paddingVertical: 14, paddingHorizontal: 18, gap: 12 } as any}
+    >
+      <Text style={{ fontSize: FONTS.amount.size, fontWeight: FONTS.amount.weight, color: 'rgba(255,255,255,0.95)' }}>
+        {t('summary')}
+      </Text>
+      <View style={{ flex: 1, justifyContent: 'space-between' } as any}>
+      <View style={{ alignItems: 'flex-start', gap: 2 }}>
+        <Text style={{ fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.70)' }}>{t('cashOnHand')}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+          <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.expenseAmountColor, marginRight: 2 }}>¥</Text>
+          <Text style={{ fontSize: FONTS.h1.size + 4, fontWeight: FONTS.h1.weight, color: colors.expenseAmountColor }}>{toDec2Comma(businessSummary.cash_on_hand || 0)}</Text>
+        </View>
+      </View>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: 14, gap: 6, borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.20)' } as any}>
+          <Text style={{ fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.70)' }}>{t('cumulativeRevenue')}</Text>
+          <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: 'rgba(255,255,255,0.95)' }}>{'¥' + toDec2Comma(businessSummary.cumulative_revenue || 0)}</Text>
+        </View>
+        <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: 14, gap: 6, borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.20)' } as any}>
+          <Text style={{ fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.70)' }}>{t('cumulativeExpense')}</Text>
+          <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: 'rgba(255,255,255,0.95)' }}>{'¥' + toDec2Comma(businessSummary.cumulative_expense || 0)}</Text>
+        </View>
+      </View>
+      </View>
+    </LinearGradient>
+  );
+}
 
-  // ── KPI card (web: colors.surface + secondary border) ──
+function ChartTabContent({ colors, weekRev, monthRevRecords, businessSummary, chartMonthly }: Omit<ChartGlassProps, 'bgOpacity'>) {
   const kpiCardStyle: any = {
     borderRadius: 14, paddingTop: 18, paddingHorizontal: 18, paddingBottom: 12,
     backgroundColor: colors.surface, borderWidth: 0.5, borderColor: colors.secondary, marginBottom: 12,
@@ -937,37 +965,6 @@ function ChartGlassView({ colors, bgOpacity, weekRev, monthRevRecords, businessS
 
   return (
     <View style={{ paddingBottom: 110, paddingTop: 4, paddingHorizontal: 16 }}>
-      {/* ── Glass card: 在手资金 (gradient + white text, matching web) ── */}
-      <LinearGradient
-        colors={[withAlpha(colors.expenseGradientStart, gradientAlpha), withAlpha(colors.expenseGradientEnd, gradientAlpha)]}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-        style={cardStyle}
-      >
-        {/* @ts-ignore — 收支总览大标题 */}
-        <Text style={{ fontSize: FONTS.amount.size, fontWeight: FONTS.amount.weight, color: 'rgba(255,255,255,0.95)' }}>
-          {t('summary')}
-        </Text>
-        <View style={{ flex: 1, justifyContent: 'space-between' } as any}>
-        <View style={{ alignItems: 'flex-start', gap: 2 }}>
-          <Text style={cardLabelStyle}>{t('cashOnHand')}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-            <Text style={symbolStyle}>¥</Text>
-            <Text style={valueStyle}>{toDec2Comma(businessSummary.cash_on_hand || 0)}</Text>
-          </View>
-        </View>
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <View style={subCardStyle}>
-            <Text style={subLabelStyle}>{t('cumulativeRevenue')}</Text>
-            <Text style={subValueStyle}>{'¥' + toDec2Comma(businessSummary.cumulative_revenue || 0)}</Text>
-          </View>
-          <View style={subCardStyle}>
-            <Text style={subLabelStyle}>{t('cumulativeExpense')}</Text>
-            <Text style={subValueStyle}>{'¥' + toDec2Comma(businessSummary.cumulative_expense || 0)}</Text>
-          </View>
-        </View>
-        </View>
-      </LinearGradient>
-
       {/* ── KPI 三行：实收 / 应收 / 优惠减免 (web: surface card + secondary border) ── */}
       <View style={kpiCardStyle}>
         {[

@@ -77,7 +77,6 @@ export default function ChartsPanel({
       warning={colors.warning}
       surface={colors.surface}
       textSub={colors.textSub}
-      monthName={monthNameLabel}
       labels={{
         income: t('income'),
         expense: t('expense'),
