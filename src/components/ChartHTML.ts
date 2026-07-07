@@ -93,6 +93,10 @@ export function generateChartHTML(data: ChartData): string {
   };
   const catColorFallback = ['#4A7299','#7D2329','#D59A53','#4C7A5D','#8C8583','#B34149','#C5A880','#9B6B9E'];
 
+  // SVG icons for day/month toggle buttons
+  const sunSVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5" stroke="${theme.primary}" stroke-width="1.5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="${theme.primary}" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+  const calendarSVG = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="${theme.primary}" stroke-width="1.5"/><path d="M3 10h18" stroke="${theme.primary}" stroke-width="1.5"/><path d="M8 2v4M16 2v4" stroke="${theme.primary}" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+
   const json = JSON.stringify({
     lineData,
     dailyLineData,
@@ -187,7 +191,7 @@ export function generateChartHTML(data: ChartData): string {
   <div class="title-row">
     <div class="toggle-row">
       <span class="title" id="line-title">${labels.monthlyTrend}</span>
-      ${hasDaily ? '<button class="toggle-btn" id="toggle-daily">☀</button>' : ''}
+      ${hasDaily ? '<button class="toggle-btn" id="toggle-daily">' + sunSVG + '</button>' : ''}
     </div>
     <span class="axis-hint" id="line-axis-hint">${labels.chartXAxis} · ${labels.chartYAxis}</span>
   </div>
@@ -198,7 +202,7 @@ export function generateChartHTML(data: ChartData): string {
   <div class="title-row">
     <div class="toggle-row">
       <span class="title" id="profit-title">${labels.monthlyProfit}</span>
-      ${hasDailyProfit ? '<button class="toggle-btn" id="toggle-daily-profit">☀</button>' : ''}
+      ${hasDailyProfit ? '<button class="toggle-btn" id="toggle-daily-profit">' + sunSVG + '</button>' : ''}
     </div>
     <span class="axis-hint" id="profit-axis-hint">${labels.chartXAxis} · ${labels.chartYAxis}</span>
   </div>
@@ -234,6 +238,9 @@ const AXIS = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
 const TICK = isLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)';
 
 const fmtY = (v) => Math.abs(v) >= 10000 ? (v/10000).toFixed(1)+'w' : String(Math.round(v));
+
+const SUN_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5" stroke="' + DATA.theme.primary + '" stroke-width="1.5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="' + DATA.theme.primary + '" stroke-width="1.5" stroke-linecap="round"/></svg>';
+const CALENDAR_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="' + DATA.theme.primary + '" stroke-width="1.5"/><path d="M3 10h18" stroke="' + DATA.theme.primary + '" stroke-width="1.5"/><path d="M8 2v4M16 2v4" stroke="' + DATA.theme.primary + '" stroke-width="1.5" stroke-linecap="round"/></svg>';
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -292,7 +299,7 @@ renderLine();
 if (DATA.hasDaily) {
   document.getElementById('toggle-daily').onclick = function() {
     showDaily = !showDaily;
-    this.textContent = showDaily ? '\u{1F4C5}' : '\u2600';
+    this.innerHTML = showDaily ? CALENDAR_SVG : SUN_SVG;
     document.getElementById('line-title').textContent = showDaily ? DATA.labels.dailyTrend : DATA.labels.monthlyTrend;
     document.getElementById('line-axis-hint').textContent = showDaily ? DATA.labels.chartXAxisDay + ' · ' + DATA.labels.chartYAxis : DATA.labels.chartXAxis + ' · ' + DATA.labels.chartYAxis;
     renderLine();
@@ -326,7 +333,7 @@ renderProfit();
 if (DATA.hasDailyProfit) {
   document.getElementById('toggle-daily-profit').onclick = function() {
     showDailyProfit = !showDailyProfit;
-    this.textContent = showDailyProfit ? '\u{1F4C5}' : '\u2600';
+    this.innerHTML = showDailyProfit ? CALENDAR_SVG : SUN_SVG;
     document.getElementById('profit-title').textContent = showDailyProfit ? DATA.labels.dailyProfit : DATA.labels.monthlyProfit;
     document.getElementById('profit-axis-hint').textContent = showDailyProfit ? DATA.labels.chartXAxisDay + ' · ' + DATA.labels.chartYAxis : DATA.labels.chartXAxis + ' · ' + DATA.labels.chartYAxis;
     renderProfit();
