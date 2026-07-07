@@ -1135,9 +1135,10 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
               </View>
             ))
           )}
-        </ScrollView>
         </>
-       )}
+      )}
+      </ScrollView>
+      </>
       )}
 
       {/* ── Product Modal (springScale) ── */}
