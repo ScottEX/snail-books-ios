@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { t } from '../i18n';
 import { useTheme } from '../theme';
 import ChartWebView from '../components/ChartWebView';
@@ -29,22 +29,22 @@ export default function ChartsPanel({
     ? parseInt(months[months.length - 1].slice(5), 10)
     : new Date().getMonth() + 1;
 
-  const monthNameLabel = useMemo(() => {
+  const monthNameLabel = (() => {
     try {
       const r = t(('month' + currentMonth) as any);
       return typeof r === 'string' ? r : String(currentMonth);
     } catch {
       return String(currentMonth);
     }
-  }, [currentMonth]);
+  })();
 
-  const categoryNames = useMemo(() => {
+  const categoryNames = (() => {
     const map: Record<string, string> = {};
     for (const key of Object.keys(categories)) {
       map[key] = t(key as any) || key;
     }
     return map;
-  }, [categories]);
+  })();
 
   return (
     <ChartWebView

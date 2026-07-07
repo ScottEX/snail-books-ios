@@ -69,7 +69,7 @@ export default function ChartWebView(props: Props) {
     props.categories, props.categoryNames, props.dailyDates, props.dailyIncome,
     props.dailyExpense, props.dailyProfitDates, props.dailyProfitValues,
     props.isLight, props.primary, props.accent, props.warning,
-    props.surface, props.textSub, props.monthName,
+    props.surface, props.textSub, props.monthName, props.labels,
   ]);
 
   const onMessage = useCallback((event: WebViewMessageEvent) => {
