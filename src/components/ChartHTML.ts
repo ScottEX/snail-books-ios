@@ -109,6 +109,7 @@ export function generateChartHTML(data: ChartData): string {
     -webkit-text-size-adjust: 100%;
   }
   .card {
+    background: ${theme.surface};
     border-radius: 14px;
     padding: 16px;
     margin-top: 12px;
