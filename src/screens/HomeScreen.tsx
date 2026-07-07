@@ -930,7 +930,7 @@ function ChartGlassCard({ colors, bgOpacity, businessSummary }: { colors: ThemeC
       <Text style={{ fontSize: FONTS.amount.size, fontWeight: FONTS.amount.weight, color: 'rgba(255,255,255,0.95)' }}>
         {t('summary')}
       </Text>
-      <View style={{ flex: 1, justifyContent: 'space-between' } as any}>
+      <View style={{ justifyContent: 'space-between' } as any}>
       <View style={{ alignItems: 'flex-start', gap: 2 }}>
         <Text style={{ fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.70)' }}>{t('cashOnHand')}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
