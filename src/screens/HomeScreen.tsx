@@ -936,7 +936,7 @@ function ChartGlassView({ colors, bgOpacity, weekRev, monthRevRecords, businessS
   const monthIncomeVal = monthRevRecords.reduce((s: number, r: any) => s + (r.revenue || 0) + (r.jd_revenue || 0), 0);
 
   return (
-    <View style={{ paddingBottom: 100, paddingTop: 4, paddingHorizontal: 16 }}>
+    <View style={{ paddingBottom: 24, paddingTop: 4, paddingHorizontal: 16 }}>
       {/* ── Glass card: 在手资金 (gradient + white text, matching web) ── */}
       <LinearGradient
         colors={[withAlpha(colors.expenseGradientStart, gradientAlpha), withAlpha(colors.expenseGradientEnd, gradientAlpha)]}
