@@ -115,6 +115,7 @@ export function generateChartHTML(data: ChartData): string {
     margin-top: 12px;
     border: 1px solid ${theme.isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)'};
   }
+  .card:first-child { margin-top: 0; }
   .title-row {
     display: flex;
     justify-content: space-between;
@@ -192,7 +193,7 @@ export function generateChartHTML(data: ChartData): string {
   <div class="chart-wrap" id="profit-container"></div>
 </div>
 
-<div id="cat-chart" class="card" style="margin-bottom:8px">
+<div id="cat-chart" class="card">
   <div class="title-row">
     <span class="title">${labels.monthName}${labels.expenseBreakdown}</span>
     <div style="display:flex;align-items:center;gap:6px">
