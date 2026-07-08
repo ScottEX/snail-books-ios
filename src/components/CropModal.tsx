@@ -255,7 +255,7 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
       {/* Toolbar: slider + 旋转 + 翻转 */}
       <View style={styles.toolbar}>
         <View style={styles.zoomRow}>
-          <Text style={styles.zoomEdge}>A</Text>
+          <Text style={styles.zoomEdgeSmall}>A</Text>
           <Slider
             style={{ flex: 1, height: 40 }}
             minimumValue={0}
@@ -346,6 +346,7 @@ const styles = StyleSheet.create({
   },
   zoomRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   zoomEdge: { fontSize: 14, color: 'rgba(255,255,255,0.5)' },
+  zoomEdgeSmall: { fontSize: 11, color: 'rgba(255,255,255,0.5)' },
   divider: { width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 10 },
   toolBtn: {
     paddingVertical: 6, paddingHorizontal: 8,
