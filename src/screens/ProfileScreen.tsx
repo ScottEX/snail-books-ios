@@ -208,6 +208,10 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [showAvatarPreview, setShowAvatarPreview] = useState(false);
   const [coverCropResult, setCoverCropResult] = useState('');
   const [showCoverPreview, setShowCoverPreview] = useState(false);
+  const [showBgCrop, setShowBgCrop] = useState(false);
+  const [bgCropSrc, setBgCropSrc] = useState('');
+  const [bgCropResult, setBgCropResult] = useState('');
+  const [showBgPreview, setShowBgPreview] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -540,17 +544,30 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     }
   };
 
-  // ── Background image picked (from ThemePickerModal) ──
-  // ThemePickerModal is shared between HomeScreen and ProfileScreen for
-  // background image settings. This handler uploads to the BACKGROUND
-  // endpoint (not cover), matching HomeScreen's behaviour.
-  const handleBackgroundImagePicked = async (file: any) => {
+  // ── Background image: crop → preview → upload (mirrors cover pattern) ──
+  const handleBgCropStart = async (file: any) => {
+    setShowThemeModal(false);
+    setBgCropSrc(file?.uri || file);
+    setShowBgCrop(true);
+  };
+
+  const handleBgCropConfirm = (dataUri: string) => {
+    setBgCropResult(dataUri);
+    setShowBgCrop(false);
+    setShowBgPreview(true);
+  };
+
+  const handleBgUpload = async () => {
+    if (!bgCropResult) return;
     setUploadingCover(true);
     try {
-      const r: any = await api.uploadBackground(file);
+      const tempFile = FileSystem.cacheDirectory + 'bg-crop.jpg';
+      await FileSystem.writeAsStringAsync(tempFile, bgCropResult.split(',')[1], {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const r: any = await api.uploadBackground({ uri: tempFile, type: 'image/jpeg', name: 'bg.jpg' });
       if (r?.url) {
         const resolved = resolveAssetUrl(r.url) || r.url;
-        // Cache as local file so LoginScreen loads instantly (no network fetch)
         try {
           const cachePath = FileSystem.cacheDirectory + 'bg-profile-' + Date.now() + '.jpg';
           const dl = await FileSystem.downloadAsync(resolved, cachePath);
@@ -566,6 +583,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         if (typeof window !== 'undefined' && typeof (window as any).dispatchEvent === 'function') {
           (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: resolved } }));
         }
+        setToast(t('bgUpdated') || '背景已更新');
       } else {
         setToast(t('toastSubmitFailed'));
       }
@@ -573,6 +591,9 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       setToast(t('toastSubmitFailed'));
     } finally {
       setUploadingCover(false);
+      setShowBgPreview(false);
+      setBgCropSrc('');
+      setBgCropResult('');
     }
   };
 
@@ -1223,7 +1244,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         showCoverTools
         coverOpacity={bgOpacity}
         onCoverOpacityChange={handleBgOpacityChange}
-        onCoverImagePicked={handleBackgroundImagePicked}
+        onCoverImagePicked={handleBgCropStart}
         onResetCover={() => setShowThemeModal(false)}
         coverUploading={uploadingCover}
       />
@@ -1234,6 +1255,14 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         mode="cover"
         onCancel={() => { setShowCoverCrop(false); setCoverCropSrc(''); }}
         onConfirm={handleCoverCropConfirm}
+      />
+      {/* BG crop modal */}
+      <BgCropModal
+        visible={showBgCrop}
+        src={bgCropSrc}
+        mode="bg"
+        onCancel={() => { setShowBgCrop(false); setBgCropSrc(''); }}
+        onConfirm={handleBgCropConfirm}
       />
       {/* Avatar crop modal */}
       <CropModal
@@ -1306,6 +1335,38 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                 onPress={handleCoverUpload}
                 loading={uploadingCover}
                 label={t('confirmUse')}
+                style={{ flex: 2, padding: 12, borderRadius: 10, backgroundColor: '#5B5BD6', alignItems: 'center' }}
+                textStyle={{ fontSize: 13, fontWeight: '600', color: '#fff' }}
+              />
+            </View>
+          </View>
+        </View>
+      )}
+      {/* BG preview modal — same pattern as cover preview */}
+      {showBgPreview && bgCropResult !== '' && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, backgroundColor: 'rgba(8,8,12,0.92)', justifyContent: 'center', alignItems: 'center' }}>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            onPress={() => { setShowBgPreview(false); setBgCropSrc(''); setBgCropResult(''); }}
+          />
+          <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: 20, padding: 24, width: 360, alignItems: 'center', gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
+            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(27,122,74,0.2)', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 20, color: '#1B7A4A' }}>✓</Text>
+            </View>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>{t('bgUpdated') || '背景已更新'}</Text>
+            <Image source={{ uri: bgCropResult }} style={{ width: 130, height: 280, borderRadius: 4, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' }} resizeMode="cover" />
+            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{t('bgResultHint') || '点击确认后将从照片中直接选取'}</Text>
+            <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+              <TouchableOpacity
+                style={{ flex: 1, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center' }}
+                onPress={() => { setShowBgPreview(false); setShowBgCrop(true); }}>
+                <Text style={{ fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.7)' }}>{t('recrop') || '再编辑'}</Text>
+              </TouchableOpacity>
+              <SubmitButton
+                onPress={handleBgUpload}
+                loading={uploadingCover}
+                label={t('confirmUse') || '确认使用'}
                 style={{ flex: 2, padding: 12, borderRadius: 10, backgroundColor: '#5B5BD6', alignItems: 'center' }}
                 textStyle={{ fontSize: 13, fontWeight: '600', color: '#fff' }}
               />

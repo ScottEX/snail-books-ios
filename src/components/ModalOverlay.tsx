@@ -15,9 +15,11 @@ interface ModalOverlayProps {
   contentStyle?: any;
   animation?: 'slide' | 'springScale' | 'blurMorph' | 'slideUpScale' | 'stagger' | 'iosSheet';
   staggerCount?: number;
+  /** Override dismiss animation duration for springScale (ms). Omit for default. */
+  outDuration?: number;
 }
 
-export default function ModalOverlay({ visible = true, onClose, onClosed, children, overlayStyle, contentStyle, animation = 'slide', staggerCount = 4 }: ModalOverlayProps) {
+export default function ModalOverlay({ visible = true, onClose, onClosed, children, overlayStyle, contentStyle, animation = 'slide', staggerCount = 4, outDuration }: ModalOverlayProps) {
   const [show, setShow] = useState(false);
   const initialSlide = animation === 'springScale' ? 12 : animation === 'slideUpScale' ? 500 : animation === 'stagger' ? 40 : animation === 'iosSheet' ? 500 : -300;
   const initialScale = animation === 'springScale' ? 0.85 : animation === 'blurMorph' ? 1.04 : animation === 'slideUpScale' ? 0.96 : animation === 'stagger' ? 0.94 : 1;
@@ -106,11 +108,12 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, childr
         Animated.timing(back, { toValue: 0, duration: 200, useNativeDriver: false }),
       ]);
       if (animation === 'springScale') {
+        const d = outDuration;
         Animated.parallel([
-          backOut,
-          Animated.timing(scale, { toValue: 0.92, duration: 220, useNativeDriver: false }),
-          Animated.timing(slide, { toValue: 8, duration: 220, useNativeDriver: false }),
-          Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: false }),
+          d != null ? Animated.timing(back, { toValue: 0, duration: d, useNativeDriver: false }) : backOut,
+          Animated.timing(scale, { toValue: 0.92, duration: d ?? 220, useNativeDriver: false }),
+          Animated.timing(slide, { toValue: 8, duration: d ?? 220, useNativeDriver: false }),
+          Animated.timing(fade, { toValue: 0, duration: d ?? 180, useNativeDriver: false }),
         ]).start(() => { setShow(false); onClosed?.(); });
       } else if (animation === 'blurMorph') {
         Animated.parallel([

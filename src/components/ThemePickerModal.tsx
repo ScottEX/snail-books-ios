@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme, ThemeColors, FONTS, DEFAULT_THEME_ID } from '../theme';
 import { MODAL_CARD_RADIUS } from '../sharedStyles';
@@ -8,9 +8,7 @@ import { api } from '../api/client';
 import ThemePicker from './ThemePicker';
 import Slider from '@react-native-community/slider';
 import CloseButton from './CloseButton';
-import BgCropModal from './BgCropModal';
 import ModalOverlay from './ModalOverlay';
-import { useState } from 'react';
 import { pickImages } from '../utils/imagePicker';
 
 interface ThemePickerModalProps {
@@ -66,10 +64,8 @@ export default function ThemePickerModal({
 }: ThemePickerModalProps) {
   const { colors, setTheme } = useTheme();
   const styles = getStyles(colors);
-  const [showCrop, setShowCrop] = useState(false);
-  const [imageSrc, setImageSrc] = useState('');
-  const [pickedFile, setPickedFile] = useState<any>(null);
   const [resetting, setResetting] = useState(false);
+  const fastClose = useRef(false);  // 10ms dismiss when opening crop after pick
 
   // ── Shared "reset to default" logic ──
   const handleResetDefault = async () => {
@@ -96,9 +92,7 @@ export default function ThemePickerModal({
   };
 
   const handleClose = () => {
-    setShowCrop(false);
-    setImageSrc('');
-    setPickedFile(null);
+    fastClose.current = false;
     onClose();
   };
 
@@ -106,10 +100,9 @@ export default function ThemePickerModal({
     try {
       const picked = await pickImages({ multiple: false });
       if (!picked || picked.length === 0) return;
-      const file = picked[0];
-      setPickedFile(file);
-      setImageSrc(file.uri);
-      setShowCrop(true);
+      fastClose.current = true;
+      await onCoverImagePicked?.(picked[0]);
+      onClose();
     } catch {
       // Permission denied / cancelled
     }
@@ -120,7 +113,7 @@ export default function ThemePickerModal({
 
   return (
     <>
-      <ModalOverlay visible={visible && !showCrop} onClose={handleClose} animation="springScale">
+      <ModalOverlay visible={visible} onClose={handleClose} animation="springScale" outDuration={fastClose.current ? 10 : undefined}>
         <View style={styles.card}>
           <View style={styles.header}>
             <Text style={styles.title}>{showCoverTools ? t('bgSettings') : (t('themeLabel') || '主题')}</Text>
@@ -189,24 +182,6 @@ export default function ThemePickerModal({
         </View>
       </View>
       </ModalOverlay>
-
-      {/* Background image crop modal (RN-native). The image picker is
-          handled by handlePickImage above; BgCropModal just renders
-          whatever imageSrc it's given. */}
-      <BgCropModal
-        visible={showCrop}
-        src={imageSrc}
-        onCancel={() => { setShowCrop(false); setImageSrc(''); setPickedFile(null); }}
-        onConfirm={async (dataUri: string) => {
-          if (!onCoverImagePicked) return;
-          const file = { uri: dataUri, type: 'image/jpeg', name: 'background.jpg' };
-          await onCoverImagePicked(file);
-          setShowCrop(false);
-          setImageSrc('');
-          setPickedFile(null);
-          onClose();
-        }}
-      />
     </>
   );
 }

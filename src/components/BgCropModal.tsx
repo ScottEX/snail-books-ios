@@ -1,11 +1,8 @@
 // ═══════════════════════════════════════════════════════════════
-// BgCropModal — 封面裁剪 modal (RN 版)
-// ═══════════════════════════════════════════════════════════════
-//
-// 手势: PanResponder (JS 线程识别 touch → 写入 Animated.Value)
-// 动画: Animated.Value + useNativeDriver (UI 线程执行)
-// 旋转/翻转: React state (非连续动画,不适用 native driver)
-// 裁剪框: 长方形 (web 封面比例 260:375)
+// BgCropModal — 封面/背景裁剪 modal (RN 版)
+// ───────────────────────────────────────────────────────────────
+// mode='cover' = 横向封面比例; mode='bg' = 竖向背景比例
+// 只负责裁剪，无内部预览。裁剪完直接 onConfirm(dataUri) 回传父组件。
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, useWindowDimensions, PanResponder, Animated } from 'react-native';
@@ -32,6 +29,7 @@ export default function BgCropModal({ visible, src, onConfirm, onCancel, mode }:
 
   const [imgNatural, setImgNatural] = useState({ w: 0, h: 0 });
   const imgNaturalRef = useRef({ w: 0, h: 0 });
+  const hasFit = useRef(false);  // prevent refit on layout changes during confirm
   const [zoomPct, setZoomPct] = useState(0);
   const [confirming, setConfirming] = useState(false);
   const [errMsg, setErrMsg] = useState('');
@@ -127,7 +125,13 @@ export default function BgCropModal({ visible, src, onConfirm, onCancel, mode }:
     if (stageDim.w > 0 && guideW > 0) {
       stateRef.current.cropW = guideW;
       stateRef.current.cropH = guideH;
-      if (imgNatural.w > 0) fitImage();
+      // Only fit on initial layout (first non-zero stage dims).
+      // Skip subsequent fits — e.g. during confirm the actions bar
+      // height changes slightly, which would otherwise reset the image.
+      if (imgNatural.w > 0 && !hasFit.current) {
+        fitImage();
+        hasFit.current = true;
+      }
     }
   }, [stageDim.w, stageDim.h]);
 
@@ -136,6 +140,7 @@ export default function BgCropModal({ visible, src, onConfirm, onCancel, mode }:
     if (!visible || !src) return;
     setImgNatural({ w: 0, h: 0 });
     imgNaturalRef.current = { w: 0, h: 0 };
+    hasFit.current = false;  // reset for new image
     setErrMsg('');
     Image.getSize(src, (w, h) => {
       imgNaturalRef.current = { w, h };
@@ -198,7 +203,7 @@ export default function BgCropModal({ visible, src, onConfirm, onCancel, mode }:
     });
   }, []);
 
-  // ── Confirm (crop → data URI) ──
+  // ── Confirm: crop → fire onConfirm with base64 dataUri ──
   const handleConfirm = async () => {
     if (confirming || imgNatural.w === 0) return;
     setConfirming(true);
@@ -227,8 +232,12 @@ export default function BgCropModal({ visible, src, onConfirm, onCancel, mode }:
       const result = await ImageManipulator.manipulateAsync(src, ops, {
         compress: 0.92, format: ImageManipulator.SaveFormat.JPEG, base64: true,
       });
-      if (result.base64) onConfirm(`data:image/jpeg;base64,${result.base64}`);
-      else setErrMsg(t('cropFailed'));
+      if (result.base64) {
+        const dataUri = `data:image/jpeg;base64,${result.base64}`;
+        onConfirm(dataUri);
+      } else {
+        setErrMsg(t('cropFailed'));
+      }
     } catch (e) {
       setErrMsg(t('cropFailed'));
     } finally { setConfirming(false); }
@@ -247,6 +256,21 @@ export default function BgCropModal({ visible, src, onConfirm, onCancel, mode }:
     setFlipX(s.flipX);
   };
 
+  // ── springScale entry (matches ThemePickerModal) ──
+  const entryFade = useRef(new Animated.Value(0)).current;
+  const entryScale = useRef(new Animated.Value(0.85)).current;
+  const entrySlide = useRef(new Animated.Value(12)).current;
+  useEffect(() => {
+    entryFade.setValue(0);
+    entryScale.setValue(0.85);
+    entrySlide.setValue(12);
+    Animated.parallel([
+      Animated.spring(entryScale, { toValue: 1, bounciness: 8, speed: 14, useNativeDriver: true }),
+      Animated.spring(entrySlide, { toValue: 0, bounciness: 8, speed: 14, useNativeDriver: true }),
+      Animated.timing(entryFade, { toValue: 1, duration: 250, useNativeDriver: true }),
+    ]).start();
+  }, [visible]);
+
   if (!visible) return null;
 
   // ── Mode-dependent labels ──
@@ -256,7 +280,7 @@ export default function BgCropModal({ visible, src, onConfirm, onCancel, mode }:
   const cornerPath = `M 0,${armLen} L 0,0 L ${armLen},0 M ${guideW - armLen},0 L ${guideW},0 L ${guideW},${armLen} M 0,${guideH - armLen} L 0,${guideH} L ${armLen},${guideH} M ${guideW},${guideH - armLen} L ${guideW},${guideH} L ${guideW - armLen},${guideH}`;
 
   return (
-    <View style={styles.overlay}>
+    <Animated.View style={[styles.overlay, { opacity: entryFade, transform: [{ scale: entryScale }, { translateY: entrySlide }] }]}>
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Text style={styles.title}>{cropTitle}</Text>
         <TouchableOpacity onPress={onCancel} style={styles.closeBtn}>
@@ -264,6 +288,7 @@ export default function BgCropModal({ visible, src, onConfirm, onCancel, mode }:
         </TouchableOpacity>
       </View>
 
+      {/* ── Cropping area ── */}
       <View
         style={styles.stageArea}
         onLayout={(e) => setStageDim({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
@@ -349,7 +374,7 @@ export default function BgCropModal({ visible, src, onConfirm, onCancel, mode }:
       </View>
 
       {errMsg !== '' && <Text style={styles.errText}>{errMsg}</Text>}
-    </View>
+    </Animated.View>
   );
 }
 

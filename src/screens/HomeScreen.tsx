@@ -21,6 +21,7 @@ import SubmitButton from '../components/SubmitButton';
 import DatePickerModal from '../components/DatePickerModal';
 import ModalOverlay from '../components/ModalOverlay';
 import ThemePickerModal from '../components/ThemePickerModal';
+import BgCropModal from '../components/BgCropModal';
 import SlideScreen from '../components/SlideScreen';
 import PartnerScreen from './PartnerScreen';
 import ProcurementScreen from './ProcurementScreen';
@@ -122,6 +123,10 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   });
   const [bgVersion, setBgVersion] = useState(0);
   const [bgUploading, setBgUploading] = useState(false);
+  const [showBgCrop, setShowBgCrop] = useState(false);
+  const [bgCropSrc, setBgCropSrc] = useState('');
+  const [bgCropResult, setBgCropResult] = useState('');
+  const [showBgPreview, setShowBgPreview] = useState(false);
   const opacityKey = useMemo(() => {
     const uid = getCurrentUserId();
     return uid ? `bg-opacity-${uid}` : 'bg-opacity';
@@ -249,6 +254,54 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     setBgOpacity(v);
     try { localStorage.setItem(opacityKey, String(v)); } catch {}
     api.saveBackgroundSettings({ opacity: v }).catch(() => {});
+  };
+
+  // ── Background crop / preview / upload flow (mirrors cover pattern) ──
+  const handleBgCropConfirm = (dataUri: string) => {
+    setBgCropResult(dataUri);
+    setShowBgCrop(false);
+    setShowBgPreview(true);
+  };
+
+  const handleBgUpload = async () => {
+    if (!bgCropResult || bgUploading) return;
+    setBgUploading(true);
+    try {
+      const tempFile = FileSystem.cacheDirectory + 'bg-crop.jpg';
+      await FileSystem.writeAsStringAsync(tempFile, bgCropResult.split(',')[1], {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const r: any = await api.uploadBackground({ uri: tempFile, type: 'image/jpeg', name: 'bg.jpg' });
+      if (r?.url) {
+        const resolved = resolveAssetUrl(r.url) || DEFAULT_BG;
+        setBgImageUri(resolved);
+        setBgVersion((v) => v + 1);
+        try {
+          const cachePath = FileSystem.cacheDirectory + 'bg-home-' + Date.now() + '.jpg';
+          const dl = await FileSystem.downloadAsync(resolved, cachePath);
+          if (dl.status === 200) {
+            localStorage.setItem('bg-image', dl.uri);
+          } else {
+            localStorage.setItem('bg-image', resolved);
+          }
+        } catch {
+          try { localStorage.setItem('bg-image', resolved); } catch {}
+        }
+        try { localStorage.setItem('__bg_changed_ts', String(Date.now())); } catch {}
+        if (typeof window !== 'undefined' && typeof (window as any).dispatchEvent === 'function') {
+          (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: resolved } }));
+        }
+      } else {
+        setToast(t('toastSubmitFailed'));
+      }
+    } catch {
+      setToast(t('toastSubmitFailed'));
+    } finally {
+      setBgUploading(false);
+      setShowBgPreview(false);
+      setBgCropSrc('');
+      setBgCropResult('');
+    }
   };
 
   // ── Modal state ──
@@ -760,40 +813,54 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         coverOpacity={bgOpacity}
         onCoverOpacityChange={setBgOpacityPersist}
         onCoverImagePicked={async (file: any) => {
-          setBgUploading(true);
-          try {
-            const r: any = await api.uploadBackground(file);
-            if (r?.url) {
-              const resolved = resolveAssetUrl(r.url) || DEFAULT_BG;
-              setBgImageUri(resolved);
-              setBgVersion((v) => v + 1);
-              // Cache as local file so LoginScreen loads instantly (no network fetch)
-              try {
-                const cachePath = FileSystem.cacheDirectory + 'bg-home-' + Date.now() + '.jpg';
-                const dl = await FileSystem.downloadAsync(resolved, cachePath);
-                if (dl.status === 200) {
-                  localStorage.setItem('bg-image', dl.uri);
-                } else {
-                  localStorage.setItem('bg-image', resolved);
-                }
-              } catch {
-                try { localStorage.setItem('bg-image', resolved); } catch {}
-              }
-              try { localStorage.setItem('__bg_changed_ts', String(Date.now())); } catch {}
-              if (typeof window !== 'undefined' && typeof (window as any).dispatchEvent === 'function') {
-                (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: resolved } }));
-              }
-            } else {
-              setToast(t('toastSubmitFailed'));
-            }
-          } catch {
-            setToast(t('toastSubmitFailed'));
-          }
-          setBgUploading(false);
+          setShowBgModal(false);
+          setBgCropSrc(file?.uri || file);
+          setShowBgCrop(true);
         }}
         onResetCover={() => setShowBgModal(false)}
         coverUploading={bgUploading}
       />
+
+      {/* BG crop modal */}
+      <BgCropModal
+        visible={showBgCrop}
+        src={bgCropSrc}
+        mode="bg"
+        onCancel={() => { setShowBgCrop(false); setBgCropSrc(''); }}
+        onConfirm={handleBgCropConfirm}
+      />
+      {/* BG preview modal — same pattern as ProfileScreen cover preview */}
+      {showBgPreview && bgCropResult !== '' && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, backgroundColor: 'rgba(8,8,12,0.92)', justifyContent: 'center', alignItems: 'center' }}>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            onPress={() => { setShowBgPreview(false); setBgCropSrc(''); setBgCropResult(''); }}
+          />
+          <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: 20, padding: 24, width: 360, alignItems: 'center', gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
+            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(27,122,74,0.2)', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 20, color: '#1B7A4A' }}>✓</Text>
+            </View>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>{t('bgUpdated') || '背景已更新'}</Text>
+            <Image source={{ uri: bgCropResult }} style={{ width: 130, height: 280, borderRadius: 4, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' }} resizeMode="cover" />
+            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{t('bgResultHint') || '点击确认后将从照片中直接选取'}</Text>
+            <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+              <TouchableOpacity
+                style={{ flex: 1, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center' }}
+                onPress={() => { setShowBgPreview(false); setShowBgCrop(true); }}>
+                <Text style={{ fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.7)' }}>{t('recrop') || '再编辑'}</Text>
+              </TouchableOpacity>
+              <SubmitButton
+                onPress={handleBgUpload}
+                loading={bgUploading}
+                label={t('confirmUse') || '确认使用'}
+                style={{ flex: 2, padding: 12, borderRadius: 10, backgroundColor: '#5B5BD6', alignItems: 'center' }}
+                textStyle={{ fontSize: 13, fontWeight: '600', color: '#fff' }}
+              />
+            </View>
+          </View>
+        </View>
+      )}
 
       {/* Logout modal */}
       <ModalOverlay visible={showLogoutModal} onClose={() => setShowLogoutModal(false)}>
