@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import ModalOverlay from './ModalOverlay';
@@ -31,18 +31,6 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
   }
   prevVisible.current = visible;
 
-  // On iOS, RCT_EXPORT_VIEW_PROPERTY order means maximumDate is set BEFORE
-  // preferredDatePickerStyle (.inline). Style switch rebuilds the internal
-  // calendar and drops maximumDate. Delay 50ms so the style settles first.
-  const [effectiveMaxDate, setEffectiveMaxDate] = useState<string | undefined>();
-  useEffect(() => {
-    if (visible) {
-      const t = setTimeout(() => setEffectiveMaxDate(maxDate), 50);
-      return () => clearTimeout(t);
-    }
-    setEffectiveMaxDate(undefined);
-  }, [visible, maxDate]);
-
   const pickerDate = parseDate(draft || todayStr());
   const locale = (() => {
     const l = getLang();
@@ -73,7 +61,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
           locale={locale}
           minimumDate={minDate ? parseDate(minDate) : undefined}
-          maximumDate={effectiveMaxDate ? parseDate(effectiveMaxDate) : undefined}
+          maximumDate={maxDate ? parseDate(maxDate) : undefined}
           onChange={handlePickerChange}
           themeVariant="light"
         />

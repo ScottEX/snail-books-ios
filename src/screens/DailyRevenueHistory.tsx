@@ -63,7 +63,6 @@ export default function DailyRevenueHistory({ onBack }: Props) {
   const [appliedTo, setAppliedTo] = useState(initTo);
   const [filterDateError, setFilterDateError] = useState(0);
   const [datePickTarget, setDatePickTarget] = useState<'from' | 'to' | null>(null);
-  const [pickerKey, setPickerKey] = useState(0);
 
   useEffect(() => { if (showFilter) setFilterDateError(0); }, [showFilter]);
 
@@ -227,10 +226,9 @@ export default function DailyRevenueHistory({ onBack }: Props) {
       </ScrollView>
 
       <DatePickerModal
-        key={pickerKey}
         visible={datePickTarget !== null}
         value={datePickTarget === 'from' ? dateFrom : dateTo}
-        onClose={() => { setDatePickTarget(null); setPickerKey(k => k + 1); }}
+        onClose={() => setDatePickTarget(null)}
         onSelect={(d: string) => {
           if (d > todayISO) { setFilterDateError(c => c + 1); return; }
           if (datePickTarget === 'from') setDateFrom(d);
