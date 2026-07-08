@@ -36,19 +36,31 @@ const STAGE_PAD_H = 16;
 export default function CropModal({ visible, src, onConfirm, onCancel }: CropModalProps) {
   const { width: WIN_W } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const stageW = WIN_W - STAGE_PAD_H * 2;
 
   const [imgNatural, setImgNatural] = useState({ w: 0, h: 0 });
   const [zoomPct, setZoomPct] = useState(0);
   const [confirming, setConfirming] = useState(false);
   const [errMsg, setErrMsg] = useState('');
   const [stageDim, setStageDim] = useState({ w: 0, h: 0 });
+  // guideSize = 圆形引导框直径,对齐 web: min(stageW,stageH) * 0.76
+  const guideSize = !stageDim.w ? WIN_W - STAGE_PAD_H * 2 : Math.round(Math.min(stageDim.w, stageDim.h) * 0.76);
 
   const crop = useAvatarCrop({
-    stageSize: stageW,
+    stageSize: guideSize,
     imgWidth: imgNatural.w,
     imgHeight: imgNatural.h,
   });
+
+  // ── stage 布局后,更新 hook 内的 cropSize(对齐 web 动态 cropSize)──
+  useEffect(() => {
+    if (stageDim.w > 0 && guideSize > 0) {
+      crop.stateRef.cropSize = guideSize;
+      if (imgNatural.w > 0) {
+        crop.fitImage();
+        setZoomPct(crop.getScalePct());
+      }
+    }
+  }, [stageDim.w, stageDim.h]);
 
   // ── 加载图片自然尺寸 ──
   useEffect(() => {
@@ -214,22 +226,22 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
         {/* Guide circle overlay — visual indicator, no clip */}
         <View style={styles.guideOverlay} pointerEvents="none">
           <Svg
-            width={stageW}
-            height={stageW}
+            width={guideSize}
+            height={guideSize}
           >
             {/* 外圆 */}
-            <Circle cx={stageW / 2} cy={stageW / 2} r={stageW / 2 - 1} stroke="rgba(255,255,255,0.8)" strokeWidth={2} fill="transparent" />
+            <Circle cx={guideSize / 2} cy={guideSize / 2} r={guideSize / 2 - 1} stroke="rgba(255,255,255,0.8)" strokeWidth={2} fill="transparent" />
             {/* 三分线 */}
-            <Line x1={0} y1={stageW / 3} x2={stageW} y2={stageW / 3} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
-            <Line x1={0} y1={(stageW * 2) / 3} x2={stageW} y2={(stageW * 2) / 3} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
-            <Line x1={stageW / 3} y1={0} x2={stageW / 3} y2={stageW} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
-            <Line x1={(stageW * 2) / 3} y1={0} x2={(stageW * 2) / 3} y2={stageW} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
+            <Line x1={0} y1={guideSize / 3} x2={guideSize} y2={guideSize / 3} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
+            <Line x1={0} y1={(guideSize * 2) / 3} x2={guideSize} y2={(guideSize * 2) / 3} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
+            <Line x1={guideSize / 3} y1={0} x2={guideSize / 3} y2={guideSize} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
+            <Line x1={(guideSize * 2) / 3} y1={0} x2={(guideSize * 2) / 3} y2={guideSize} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
             {/* 四角把手 */}
             {[
               { x: 1, y: 1, rx: 0 },
-              { x: stageW - 1, y: 1, rx: 1 },
-              { x: 1, y: stageW - 1, rx: 2 },
-              { x: stageW - 1, y: stageW - 1, rx: 3 },
+              { x: guideSize - 1, y: 1, rx: 1 },
+              { x: 1, y: guideSize - 1, rx: 2 },
+              { x: guideSize - 1, y: guideSize - 1, rx: 3 },
             ].map((c) => (
               <Circle key={c.rx} cx={c.x} cy={c.y} r={9} stroke="#fff" strokeWidth={2} fill="transparent" />
             ))}
