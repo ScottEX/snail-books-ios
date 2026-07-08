@@ -77,7 +77,11 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   // link in the password form).
   const [hasFaceID, setHasFaceID] = useState(() => getWebAuthnBound().bound);
   const [pwdHasFaceID, setPwdHasFaceID] = useState(false);
-  const [faceMode, setFaceMode] = useState(false);
+  const [faceMode, setFaceMode] = useState(() => {
+    if (!getWebAuthnBound().bound) return false;
+    const u = localStorage.getItem('webauthn_user') || localStorage.getItem('saved_login') || '';
+    return !!u;
+  });
   const [faceAvailable, setFaceAvailable] = useState(false);
   const [faceEnrolling, setFaceEnrolling] = useState(false);
   const breatheAnim = useRef(new Animated.Value(1)).current;
