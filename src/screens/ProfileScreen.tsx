@@ -1231,6 +1231,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       <BgCropModal
         visible={showCoverCrop}
         src={coverCropSrc}
+        mode="cover"
         onCancel={() => { setShowCoverCrop(false); setCoverCropSrc(''); }}
         onConfirm={handleCoverCropConfirm}
       />

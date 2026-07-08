@@ -22,10 +22,12 @@ interface BgCropModalProps {
   src: string;
   onConfirm: (dataUri: string) => void;
   onCancel: () => void;
+  /** 'cover' = horizontal banner ratio 260/stageW; default 'bg' = viewport ratio */
+  mode?: 'cover' | 'bg';
 }
 
-export default function BgCropModal({ visible, src, onConfirm, onCancel }: BgCropModalProps) {
-  const { width: WIN_W } = useWindowDimensions();
+export default function BgCropModal({ visible, src, onConfirm, onCancel, mode }: BgCropModalProps) {
+  const { width: WIN_W, height: WIN_H } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
   const [imgNatural, setImgNatural] = useState({ w: 0, h: 0 });
@@ -35,12 +37,19 @@ export default function BgCropModal({ visible, src, onConfirm, onCancel }: BgCro
   const [errMsg, setErrMsg] = useState('');
   const [stageDim, setStageDim] = useState({ w: 0, h: 0 });
 
-  // ── Guide: 80% stage width, height matches cover display ratio (260 / stageW)
-  //     Mirrors web: cropRatio = 260 / stageWidth, so crop frame = display area
+  // ── Guide: 80% stage width, height by mode
+  //     cover: 260/stageW (banner); bg: stageH/stageW (viewport fill)
   const stageW = stageDim.w > 0 ? stageDim.w : WIN_W;
-  const coverAspect = stageW > 0 ? 260 / stageW : 260 / 375;
-  const guideW = !stageDim.w ? Math.round(WIN_W * 0.76) : Math.round(stageDim.w * 0.8);
-  const guideH = Math.round(guideW * coverAspect);
+  const stageH = stageDim.h > 0 ? stageDim.h : WIN_H;
+  const cropAspect = mode === 'cover'
+    ? (stageW > 0 ? 260 / stageW : 260 / 375)
+    : (stageW > 0 ? stageH / stageW : WIN_H / WIN_W);
+  const guideW = !stageDim.w
+    ? Math.round(WIN_W * 0.76)
+    : mode === 'cover'
+      ? Math.round(stageDim.w * 0.8)
+      : Math.min(stageDim.w, Math.round(stageDim.h / cropAspect));
+  const guideH = Math.round(guideW * cropAspect);
 
   // ── Rotation / flip (React state, non-continuous) ──
   const [rotation, setRotation] = useState(0);
@@ -195,8 +204,8 @@ export default function BgCropModal({ visible, src, onConfirm, onCancel }: BgCro
     setErrMsg('');
     try {
       const s = stateRef.current;
-      const outW = 720;
-      const outH = Math.round(outW * coverAspect);
+      const outW = mode === 'cover' ? 720 : 1280;
+      const outH = Math.max(mode === 'cover' ? 200 : 320, Math.round(outW * cropAspect));
       const cropWOrig = s.cropW / s.scale;
       const cropHOrig = s.cropH / s.scale;
       const rotatedW = s.rotation % 180 === 0 ? imgNatural.w : imgNatural.h;
@@ -239,14 +248,16 @@ export default function BgCropModal({ visible, src, onConfirm, onCancel }: BgCro
 
   if (!visible) return null;
 
-  // ── Build corner handle path for rectangle ──
+  // ── Mode-dependent labels ──
+  const cropTitle = mode === 'cover' ? t('coverCropTitle') : t('editBg');
+  const confirmLabel = mode === 'cover' ? t('useThisCover') : t('useThisBg');
   const armLen = 18;
   const cornerPath = `M 0,${armLen} L 0,0 L ${armLen},0 M ${guideW - armLen},0 L ${guideW},0 L ${guideW},${armLen} M 0,${guideH - armLen} L 0,${guideH} L ${armLen},${guideH} M ${guideW},${guideH - armLen} L ${guideW},${guideH} L ${guideW - armLen},${guideH}`;
 
   return (
     <View style={styles.overlay}>
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <Text style={styles.title}>{t('coverCropTitle')}</Text>
+        <Text style={styles.title}>{cropTitle}</Text>
         <TouchableOpacity onPress={onCancel} style={styles.closeBtn}>
           <Text style={styles.closeBtnText}>✕</Text>
         </TouchableOpacity>
@@ -332,7 +343,7 @@ export default function BgCropModal({ visible, src, onConfirm, onCancel }: BgCro
           style={styles.confirmBtn}
         >
           <View style={styles.checkBadge}><Text style={styles.checkBadgeText}>✓</Text></View>
-          <Text style={styles.confirmBtnText}>{t('useThisCover')}</Text>
+          <Text style={styles.confirmBtnText}>{confirmLabel}</Text>
         </SubmitButton>
       </View>
 
