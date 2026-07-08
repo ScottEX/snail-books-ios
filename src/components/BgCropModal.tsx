@@ -1,416 +1,369 @@
-import { View, Text, TouchableOpacity, Image, StyleSheet, useWindowDimensions, PanResponder } from 'react-native';
+// ═══════════════════════════════════════════════════════════════
+// BgCropModal — 封面裁剪 modal (RN 版)
+// ═══════════════════════════════════════════════════════════════
+//
+// 手势: PanResponder (JS 线程识别 touch → 写入 Animated.Value)
+// 动画: Animated.Value + useNativeDriver (UI 线程执行)
+// 旋转/翻转: React state (非连续动画,不适用 native driver)
+// 裁剪框: 长方形 (web 封面比例 260:375)
+
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, useWindowDimensions, PanResponder, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import LoadingSpinner from './LoadingSpinner';
-import Svg, { Path } from 'react-native-svg';
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import Svg, { Rect, Line, Path } from 'react-native-svg';
+import * as ImageManipulator from 'expo-image-manipulator';
+const { FlipType } = ImageManipulator;
 import { t } from '../i18n';
-import { useEffect, useRef, useState, useMemo } from 'react';
+import Slider from '@react-native-community/slider';
+import SubmitButton from './SubmitButton';
 
 interface BgCropModalProps {
   visible: boolean;
-  onClose: () => void;
-  imageSrc: string;
-  onClearImage: () => void;
-  onConfirm: (file: any) => void | Promise<void>;
-  onUploaded?: () => void;
-  aspectRatio?: number;
-  title?: string;
-  confirmLabel?: string;
-  mode?: 'cover';
+  src: string;
+  onConfirm: (dataUri: string) => void;
+  onCancel: () => void;
 }
 
-export default function BgCropModal({
-  visible, onClose, imageSrc, onClearImage,
-  onConfirm, onUploaded, aspectRatio, title, confirmLabel, mode,
-}: BgCropModalProps) {
-  const { width: WIN_W, height: WIN_H } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
-  const isCover = mode === 'cover';
+const COVER_ASPECT = 260 / 375;
 
-  const [src, setSrc] = useState('');
-  const [msg, setMsg] = useState('');
-  const [phase, setPhase] = useState<'cropping' | 'preview' | 'uploading'>('cropping');
-  const [scale, setScale] = useState(1);
+export default function BgCropModal({ visible, src, onConfirm, onCancel }: BgCropModalProps) {
+  const { width: WIN_W } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+
+  const [imgNatural, setImgNatural] = useState({ w: 0, h: 0 });
+  const imgNaturalRef = useRef({ w: 0, h: 0 });
+  const [zoomPct, setZoomPct] = useState(0);
+  const [confirming, setConfirming] = useState(false);
+  const [errMsg, setErrMsg] = useState('');
+  const [stageDim, setStageDim] = useState({ w: 0, h: 0 });
+
+  // ── Guide: 80% stage width, height by cover aspect ──
+  const guideW = !stageDim.w ? Math.round(WIN_W * 0.76) : Math.round(stageDim.w * 0.8);
+  const guideH = Math.round(guideW * COVER_ASPECT);
+
+  // ── Rotation / flip (React state, non-continuous) ──
   const [rotation, setRotation] = useState(0);
   const [flipX, setFlipX] = useState(false);
-  const [tx, setTx] = useState(0);
-  const [ty, setTy] = useState(0);
-  const [previewUri, setPreviewUri] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
 
+  // ── Animated values (UI thread via native driver) ──
+  const translateX = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  // ── Crop math state (ref, no re-render) ──
   const stateRef = useRef({
-    scale: 1, minScale: 1, maxScale: 3,
-    rotation: 0, flipX: false,
-    tx: 0, ty: 0,
-    imgW: 0, imgH: 0,
-    // Drag
-    startTx: 0, startTy: 0,
-    // Pinch
-    pinchStartDist: 0, startScale: 1,
-    pinchCX: 0, pinchCY: 0, startTxP: 0, startTyP: 0,
-    trackW: 0,
-  } as any);
+    x: 0, y: 0, scale: 1, rotation: 0, flipX: false,
+    minScale: 1, maxScale: 8,
+    cropW: guideW, cropH: guideH,
+  });
 
-  // Guide dimensions (match web: cropW ≈ 80% stage width, cropH = cropW * ratio)
-  const aspect = aspectRatio != null
-    ? Math.max(0.5, Math.min(2.4, aspectRatio))
-    : isCover ? 260 / 375 : WIN_H / WIN_W;
-  
-  // Stage is full width minus padding
-  const stagePad = 16;
-  const stageW = WIN_W - stagePad * 2;
-  const cropW = Math.round(stageW * 0.8);
-  const cropH = Math.round(cropW * aspect);
+  const clampCrop = () => {
+    const s = stateRef.current;
+    const { w, h } = imgNaturalRef.current;
+    if (w <= 0) return;
+    const halfW = (w * s.scale) / 2;
+    const halfH = (h * s.scale) / 2;
+    const hw = s.cropW / 2;
+    const hh = s.cropH / 2;
+    const maxX = halfW - hw;
+    const maxY = halfH - hh;
+    s.x = maxX > 0 ? Math.max(-maxX, Math.min(maxX, s.x)) : 0;
+    s.y = maxY > 0 ? Math.max(-maxY, Math.min(maxY, s.y)) : 0;
+    translateX.setValue(s.x);
+    translateY.setValue(s.y);
+  };
+
+  const getScalePct = () => {
+    const s = stateRef.current;
+    const range = (s.maxScale - s.minScale) * 0.5;
+    if (range <= 0) return 0;
+    return Math.max(0, Math.min(100, Math.round(100 * (s.scale - s.minScale) / range)));
+  };
+
+  const updateZoom = () => {
+    setZoomPct(getScalePct());
+  };
+
+  const fitImage = () => {
+    if (imgNatural.w <= 0 || imgNatural.h <= 0) return;
+    const s = stateRef.current;
+    const effW = (s.rotation % 180 === 0) ? imgNatural.w : imgNatural.h;
+    const effH = (s.rotation % 180 === 0) ? imgNatural.h : imgNatural.w;
+    const sw = s.cropW / effW;
+    const sh = s.cropH / effH;
+    s.scale = Math.max(sw, sh) * 1.05;
+    s.minScale = Math.max(sw, sh);
+    s.x = 0; s.y = 0;
+    translateX.setValue(0);
+    translateY.setValue(0);
+    scaleAnim.setValue(s.scale);
+    updateZoom();
+  };
+
+  // ── Slider → scale ──
+  const setScaleFromSlider = (pct: number) => {
+    const s = stateRef.current;
+    const t = pct / 100;
+    s.scale = s.minScale + (s.maxScale - s.minScale) * t * 0.5;
+    s.scale = Math.max(s.minScale, s.scale);
+    scaleAnim.setValue(s.scale);
+    clampCrop();
+    updateZoom();
+  };
+
+  // ── stage 布局后更新 cropW/cropH ──
+  useEffect(() => {
+    if (stageDim.w > 0 && guideW > 0) {
+      stateRef.current.cropW = guideW;
+      stateRef.current.cropH = guideH;
+      if (imgNatural.w > 0) fitImage();
+    }
+  }, [stageDim.w, stageDim.h]);
+
+  // ── 加载图片 ──
+  useEffect(() => {
+    if (!visible || !src) return;
+    setImgNatural({ w: 0, h: 0 });
+    imgNaturalRef.current = { w: 0, h: 0 };
+    setErrMsg('');
+    Image.getSize(src, (w, h) => {
+      imgNaturalRef.current = { w, h };
+      setImgNatural({ w, h });
+    }, () => setErrMsg(t('cropFailed')));
+  }, [visible, src]);
 
   useEffect(() => {
-    if (!imageSrc) {
-      setSrc(''); setIsProcessing(false);
-      return;
-    }
-    setSrc(imageSrc);
-    setRotation(0); setFlipX(false);
-    setTx(0); setTy(0); setScale(1);
-    const s = stateRef.current;
-    s.rotation = 0; s.flipX = false;
-    s.tx = 0; s.ty = 0;
-    
-    Image.getSize(imageSrc, (w, h) => {
-      s.imgW = w; s.imgH = h;
-      // Web: minScale = Math.max(cropW / imgW, cropH / imgH)
-      s.minScale = Math.max(cropW / w, cropH / h);
-      s.maxScale = 3;
-      // Web: initial scale = minScale * 1.05
-      s.scale = Math.min(s.maxScale, s.minScale * 1.05);
-      setScale(s.scale);
-      clampDrag();
-      setTx(s.tx); setTy(s.ty);
-    }, () => {});
-  }, [imageSrc]);
+    if (visible && imgNatural.w > 0) fitImage();
+  }, [visible, imgNatural.w]);
 
-  useEffect(() => {
-    if (!visible) {
-      setSrc(''); setMsg(''); setPhase('cropping'); setPreviewUri(''); setIsProcessing(false);
-    }
-  }, [visible]);
+  // ── PanResponder ──
+  const panResponder = useMemo(() => {
+    let dragOrigX = 0, dragOrigY = 0, dragStartX = 0, dragStartY = 0, dragActive = false;
+    let pinchStartDist = 0, pinchStartScale = 1, pinchActive = false;
 
-  const close = () => {
-    setSrc(''); setMsg(''); setPhase('cropping'); setPreviewUri(''); setIsProcessing(false);
-    onClearImage(); onClose();
-  };
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e) => {
+        const touches = e.nativeEvent.touches;
+        const s = stateRef.current;
+        if (touches.length >= 2) {
+          pinchActive = true;
+          pinchStartDist = Math.hypot(touches[0].pageX - touches[1].pageX, touches[0].pageY - touches[1].pageY);
+          pinchStartScale = s.scale;
+        } else {
+          dragActive = true;
+          dragStartX = touches[0].pageX;
+          dragStartY = touches[0].pageY;
+          dragOrigX = s.x;
+          dragOrigY = s.y;
+        }
+      },
+      onPanResponderMove: (e) => {
+        const touches = e.nativeEvent.touches;
+        const s = stateRef.current;
 
-  // Web clamp: maxX = hw - hrw, maxY = hh - hrh
-  const clampDrag = () => {
-    const s = stateRef.current;
-    if (!s.imgW) return;
-    const hw = (s.imgW * s.scale) / 2;
-    const hh = (s.imgH * s.scale) / 2;
-    const maxX = hw - cropW / 2;
-    const maxY = hh - cropH / 2;
-    s.tx = maxX > 0 ? Math.max(-maxX, Math.min(maxX, s.tx)) : 0;
-    s.ty = maxY > 0 ? Math.max(-maxY, Math.min(maxY, s.ty)) : 0;
-  };
+        if (touches.length >= 2) {
+          if (!pinchActive) {
+            pinchActive = true;
+            dragActive = false;
+            pinchStartDist = Math.hypot(touches[0].pageX - touches[1].pageX, touches[0].pageY - touches[1].pageY);
+            pinchStartScale = s.scale;
+          }
+          const d = Math.hypot(touches[0].pageX - touches[1].pageX, touches[0].pageY - touches[1].pageY);
+          s.scale = Math.max(s.minScale, Math.min(s.maxScale, pinchStartScale * (d / pinchStartDist)));
+          scaleAnim.setValue(s.scale);
+          clampCrop();
+          updateZoom();
+        } else if (touches.length === 1 && dragActive) {
+          s.x = dragOrigX + (touches[0].pageX - dragStartX);
+          s.y = dragOrigY + (touches[0].pageY - dragStartY);
+          clampCrop();
+          updateZoom();
+        }
+      },
+      onPanResponderRelease: () => { dragActive = false; pinchActive = false; },
+      onPanResponderTerminate: () => { dragActive = false; pinchActive = false; },
+    });
+  }, []);
 
-  const updateScale = (newScale: number) => {
-    const s = stateRef.current;
-    s.scale = Math.max(s.minScale, Math.min(s.maxScale, newScale));
-    clampDrag();
-    setScale(s.scale);
-    setTx(s.tx); setTy(s.ty);
-  };
-
-  const touchDist = (touches: any[]) => {
-    if (touches.length < 2) return 0;
-    const dx = touches[0].pageX - touches[1].pageX;
-    const dy = touches[0].pageY - touches[1].pageY;
-    return Math.sqrt(dx * dx + dy * dy);
-  };
-
-  // Web zoom: s.x = cx + (s.x - cx) * sd
-  const zoomAt = (cx: number, cy: number, sd: number) => {
-    const s = stateRef.current;
-    s.tx = cx + (s.tx - cx) * sd;
-    s.ty = cy + (s.ty - cy) * sd;
-  };
-
-  const panResponder = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => phase === 'cropping',
-    onMoveShouldSetPanResponder: (_, gs) =>
-      phase === 'cropping' && (Math.abs(gs.dx) > 4 || Math.abs(gs.dy) > 4 || (gs as any).numberActiveTouches >= 2),
-    onPanResponderGrant: (evt) => {
+  // ── Confirm (crop → data URI) ──
+  const handleConfirm = async () => {
+    if (confirming || imgNatural.w === 0) return;
+    setConfirming(true);
+    setErrMsg('');
+    try {
       const s = stateRef.current;
-      const touches = evt.nativeEvent.touches;
-      if (touches && touches.length >= 2) {
-        s.pinchStartDist = touchDist([touches[0], touches[1]]);
-        s.startScale = s.scale;
-        s.startTxP = s.tx;
-        s.startTyP = s.ty;
-        s.pinchCX = (touches[0].pageX + touches[1].pageX) / 2;
-        s.pinchCY = (touches[0].pageY + touches[1].pageY) / 2;
-      } else {
-        s.startTx = s.tx;
-        s.startTy = s.ty;
-      }
-    },
-    onPanResponderMove: (evt, gs) => {
-      const s = stateRef.current;
-      const touches = evt.nativeEvent.touches;
-      
-      if (touches && touches.length >= 2 && s.pinchStartDist > 0) {
-        const dist = touchDist([touches[0], touches[1]]);
-        const ratio = dist / s.pinchStartDist;
-        const newScale = Math.max(s.minScale, Math.min(s.maxScale, s.startScale * ratio));
-        const sd = newScale / s.scale;
-        s.scale = newScale;
-        // Web zoom: x = cx + (x - cx) * sd
-        const stageCenterX = WIN_W / 2;
-        const stageCenterY = WIN_H / 2;
-        // Convert page coords to stage coords (approximate)
-        const cx = s.pinchCX - (WIN_W - stageW) / 2 - stagePad;
-        const cy = s.pinchCY - (WIN_H - stageW) / 2 - insets.top - 60;
-        s.tx = s.startTxP + (s.pinchCX - stageCenterX) * (1 - sd) * 0.1;
-        s.ty = s.startTyP + (s.pinchCY - stageCenterY) * (1 - sd) * 0.1;
-        clampDrag();
-      } else {
-        s.tx = s.startTx + gs.dx;
-        s.ty = s.startTy + gs.dy;
-        clampDrag();
-      }
-      
-      setScale(s.scale);
-      setTx(s.tx); setTy(s.ty);
-    },
-    onPanResponderRelease: () => {},
-  }), [phase, cropW, cropH, WIN_W, WIN_H]);
+      const outW = 720;
+      const outH = Math.round(outW * COVER_ASPECT);
+      const cropWOrig = s.cropW / s.scale;
+      const cropHOrig = s.cropH / s.scale;
+      const rotatedW = s.rotation % 180 === 0 ? imgNatural.w : imgNatural.h;
+      const rotatedH = s.rotation % 180 === 0 ? imgNatural.h : imgNatural.w;
+      const originX = rotatedW / 2 - s.x / s.scale - cropWOrig / 2;
+      const originY = rotatedH / 2 - s.y / s.scale - cropHOrig / 2;
+      const cx = Math.max(0, Math.min(originX, rotatedW - cropWOrig));
+      const cy = Math.max(0, Math.min(originY, rotatedH - cropHOrig));
+      const cw = Math.min(cropWOrig, rotatedW - cx);
+      const ch = Math.min(cropHOrig, rotatedH - cy);
 
-  const cycleRotation = () => {
+      const ops: ImageManipulator.Action[] = [];
+      if (s.flipX) ops.push({ flip: FlipType.Horizontal });
+      if (s.rotation !== 0) ops.push({ rotate: s.rotation as any });
+      ops.push({ crop: { originX: cx, originY: cy, width: cw, height: ch } });
+      ops.push({ resize: { width: outW, height: outH } });
+
+      const result = await ImageManipulator.manipulateAsync(src, ops, {
+        compress: 0.92, format: ImageManipulator.SaveFormat.JPEG, base64: true,
+      });
+      if (result.base64) onConfirm(`data:image/jpeg;base64,${result.base64}`);
+      else setErrMsg(t('cropFailed'));
+    } catch (e) {
+      setErrMsg(t('cropFailed'));
+    } finally { setConfirming(false); }
+  };
+
+  const rotate90 = () => {
     const s = stateRef.current;
     s.rotation = (s.rotation + 90) % 360;
     setRotation(s.rotation);
+    fitImage();
   };
 
   const toggleFlip = () => {
-    setFlipX(!flipX);
-    stateRef.current.flipX = !stateRef.current.flipX;
-  };
-
-  // Slider: maps 0-100 to scale range (same as web: minScale + (maxScale-minScale) * t * 0.5)
-
-  // Crop using expo-image-manipulator
-  const handleConfirm = async () => {
-    if (isProcessing || !src) return;
     const s = stateRef.current;
-    if (!s.imgW) return;
-    setIsProcessing(true);
-    try {
-      const outW = 720;
-      const outH = Math.round(outW * aspect);
-      const outScale = outW / cropW;
-      
-      const cropOriginW = s.imgW / s.scale * outScale;
-      const cropOriginH = s.imgH / s.scale * outScale;
-      const originX = Math.max(0, (s.imgW * outScale - cropOriginW) / 2 - s.tx * outScale);
-      const originY = Math.max(0, (s.imgH * outScale - cropOriginH) / 2 - s.ty * outScale);
-      
-      const actions: any[] = [{
-        crop: {
-          originX: Math.round(Math.max(0, originX)),
-          originY: Math.round(Math.max(0, originY)),
-          width: Math.round(Math.min(cropOriginW, s.imgW * outScale - originX)),
-          height: Math.round(Math.min(cropOriginH, s.imgH * outScale - originY)),
-        }
-      }];
-      
-      if (flipX) actions.push({ flip: 'horizontal' as any });
-      
-      const result = await manipulateAsync(src, actions, { format: SaveFormat.JPEG, compress: 0.92 });
-      setPreviewUri(result.uri);
-      setPhase('preview');
-    } catch (e: any) {
-      setMsg(e?.message || 'Crop failed');
-    }
-    setIsProcessing(false);
+    s.flipX = !s.flipX;
+    setFlipX(s.flipX);
   };
 
-  const handlePreviewConfirm = async () => {
-    if (!previewUri || isProcessing) return;
-    setIsProcessing(true);
-    try {
-      const file: any = { uri: previewUri, type: 'image/jpeg', name: isCover ? 'cover.jpg' : 'background.jpg' };
-      await onConfirm(file);
-      setSrc(''); setMsg(''); setPhase('cropping'); setPreviewUri('');
-      onUploaded?.();
-    } catch (e: any) {
-      setMsg(e?.message || 'Upload failed');
-    }
-    setIsProcessing(false);
-  };
+  if (!visible) return null;
 
-  if (!visible || !imageSrc) return null;
+  // ── Build corner handle path for rectangle ──
+  const armLen = 18;
+  const cornerPath = `M 0,${armLen} L 0,0 L ${armLen},0 M ${guideW - armLen},0 L ${guideW},0 L ${guideW},${armLen} M 0,${guideH - armLen} L 0,${guideH} L ${armLen},${guideH} M ${guideW},${guideH - armLen} L ${guideW},${guideH} L ${guideW - armLen},${guideH}`;
 
   return (
     <View style={styles.overlay}>
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <Text style={styles.headerTitle}>{title || (isCover ? t('coverCropTitle') : t('editBg'))}</Text>
-        <TouchableOpacity onPress={close} style={styles.closeBtn}>
-          <Svg width="14" height="14" viewBox="0 0 1088 1024">
-            <Path d="M843.712 191.936l-6.08-5.568-5.184-3.84-5.696-3.328a67.712 67.712 0 0 0-80.448 11.264L520.768 416.064l-224.64-224.64-2.688-2.56c-27.968-24.32-68.224-24.256-92.672 0.128l-4.8 5.12-4.608 6.144-3.392 5.632a67.84 67.84 0 0 0 11.328 80.512L424.96 512l-227.2 227.328c-24.32 28.16-24.32 68.48 0 92.864l5.12 4.8 6.208 4.608 5.632 3.392c26.816 14.336 59.136 9.984 80.448-11.328l225.6-225.728 227.072 227.2c28.608 24.832 68.928 24 94.336-1.472l4.544-5.056 4.096-5.568a67.84 67.84 0 0 0-8.64-85.312L616.64 512.064l224.512-224.64 4.16-4.352c23.04-26.752 22.4-67.008-1.6-91.136z" fill="rgba(255,255,255,0.7)" />
-          </Svg>
+        <Text style={styles.title}>{t('coverCropTitle')}</Text>
+        <TouchableOpacity onPress={onCancel} style={styles.closeBtn}>
+          <Text style={styles.closeBtnText}>✕</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.stage}>
-        {src !== '' && phase === 'cropping' && (
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' }} {...panResponder.panHandlers}>
-            <Image
-              source={{ uri: src }}
-              style={{
-                width: stateRef.current.imgW * scale,
-                height: stateRef.current.imgH * scale,
-                transform: [
-                  { translateX: tx },
-                  { translateY: ty },
-                  { rotate: `${rotation}deg` },
-                ],
-              }}
-              resizeMode="contain"
-            />
-            <View pointerEvents="none" style={[styles.guide, { width: cropW, height: cropH }]}>
-              <View style={[styles.gridLine, { top: '33.3%' }]} />
-              <View style={[styles.gridLine, { top: '66.6%' }]} />
-              <View style={[styles.gridLineV, { left: '33.3%' }]} />
-              <View style={[styles.gridLineV, { left: '66.6%' }]} />
-            </View>
-          </View>
+      <View
+        style={styles.stageArea}
+        onLayout={(e) => setStageDim({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
+        {...panResponder.panHandlers}
+      >
+        {imgNatural.w > 0 && stageDim.w > 0 && (
+          <Animated.Image
+            source={{ uri: src }}
+            style={{
+              position: 'absolute',
+              width: imgNatural.w,
+              height: imgNatural.h,
+              left: stageDim.w / 2 - imgNatural.w / 2,
+              top: stageDim.h / 2 - imgNatural.h / 2,
+              transform: [
+                { translateX },
+                { translateY },
+                { scale: scaleAnim },
+                { rotate: `${rotation}deg` },
+                { scaleX: flipX ? -1 : 1 },
+              ],
+            }}
+          />
         )}
 
-        {phase === 'preview' && previewUri !== '' && (
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}>
-            <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: 20, padding: 24, alignItems: 'center', width: '100%', maxWidth: 320 }}>
-              <Text style={{ fontSize: 20, color: '#1B7A4A', marginBottom: 8 }}>✓</Text>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff', marginBottom: 12 }}>{isCover ? t('coverUpdated') : t('bgUpdated')}</Text>
-              <Image source={{ uri: previewUri }}
-                style={[{ borderRadius: 4, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' },
-                  isCover ? { width: 240, height: Math.round(240 * aspect) } : { width: 180, height: 180 / aspect * cropW / cropH }
-                ]}
-                resizeMode="cover"
-              />
-              <View style={{ flexDirection: 'row', gap: 10, marginTop: 14, width: '100%' }}>
-                <TouchableOpacity style={{ flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center' }}
-                  onPress={() => { setPhase('cropping'); setPreviewUri(''); }}>
-                  <Text style={{ fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.7)' }}>{t('recrop') || '重新裁剪'}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={{ flex: 2, paddingVertical: 10, borderRadius: 10, backgroundColor: '#5B5BD6', alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
-                  onPress={handlePreviewConfirm}>
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#fff' }}>{t('confirmUse') || '确认使用'}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        )}
+        <View style={styles.guideOverlay} pointerEvents="none">
+          <Svg width={guideW} height={guideH}>
+            <Rect x={0} y={0} width={guideW} height={guideH} stroke="rgba(255,255,255,0.8)" strokeWidth={2} fill="transparent" />
+            <Line x1={0} y1={guideH / 3} x2={guideW} y2={guideH / 3} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
+            <Line x1={0} y1={(guideH * 2) / 3} x2={guideW} y2={(guideH * 2) / 3} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
+            <Line x1={guideW / 3} y1={0} x2={guideW / 3} y2={guideH} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
+            <Line x1={(guideW * 2) / 3} y1={0} x2={(guideW * 2) / 3} y2={guideH} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
+            <Path
+              d={cornerPath}
+              stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
+              fill="transparent" opacity={0.9}
+            />
+          </Svg>
+        </View>
+
+        <View style={styles.pill} pointerEvents="none">
+          <Text style={styles.pillText}>{t('cropPill')}</Text>
+        </View>
       </View>
 
-      {phase === 'cropping' && (
-        <View style={styles.toolbar}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-            <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>A</Text>
-            <View
-              style={{ flex: 1, height: 40, justifyContent: 'center', position: 'relative' }}
-              onLayout={(e) => { (stateRef.current as any).trackW = e.nativeEvent.layout.width; }}
-              onStartShouldSetResponder={() => true}
-              onMoveShouldSetResponder={() => true}
-              onResponderGrant={(evt) => {
-                const ratio = Math.max(0, Math.min(1, evt.nativeEvent.locationX / ((stateRef.current as any).trackW || 1)));
-                const s = stateRef.current;
-                s.scale = s.minScale + (s.maxScale - s.minScale) * ratio * 0.5;
-                s.scale = Math.max(s.minScale, s.scale);
-                clampDrag();
-                setScale(s.scale);
-                setTx(s.tx); setTy(s.ty);
-              }}
-              onResponderMove={(evt) => {
-                const ratio = Math.max(0, Math.min(1, evt.nativeEvent.locationX / ((stateRef.current as any).trackW || 1)));
-                const s = stateRef.current;
-                s.scale = s.minScale + (s.maxScale - s.minScale) * ratio * 0.5;
-                s.scale = Math.max(s.minScale, s.scale);
-                clampDrag();
-                setScale(s.scale);
-                setTx(s.tx); setTy(s.ty);
-              }}
-            >
-              <View style={{ height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)' }}>
-                <View style={{
-                  height: 3, borderRadius: 2,
-                  width: `${((scale - stateRef.current.minScale) / ((stateRef.current.maxScale - stateRef.current.minScale) * 0.5 || 0.01)) * 100}%`,
-                  backgroundColor: '#5B5BD6',
-                }} />
-              </View>
-              <View style={{
-                position: 'absolute',
-                left: `${((scale - stateRef.current.minScale) / ((stateRef.current.maxScale - stateRef.current.minScale) * 0.5 || 0.01)) * 100}%`,
-                marginLeft: -12, top: 9,
-                width: 24, height: 18, borderRadius: 9,
-                backgroundColor: '#fff',
-                shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.15, shadowRadius: 3,
-                elevation: 2,
-              }} />
-            </View>
-            <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>A</Text>
-          </View>
-          <View style={styles.dividerV} />
-          <TouchableOpacity style={styles.toolBtn} onPress={cycleRotation}>
-            <Svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <Path d="M3 12a9 9 0 109-9H9m0 0l3 3m-3-3l3-3" stroke="rgba(255,255,255,0.75)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </Svg>
-            <Text style={styles.toolBtnText}>{t('cropRotate') || '旋转'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.toolBtn} onPress={toggleFlip}>
-            <Svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <Path d="M12 3v18M3 8l9-5 9 5M3 16l9 5 9-5" stroke="rgba(255,255,255,0.75)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </Svg>
-            <Text style={styles.toolBtnText}>{t('cropFlip') || '翻转'}</Text>
-          </TouchableOpacity>
+      <View style={styles.toolbar}>
+        <View style={styles.zoomRow}>
+          <Text style={styles.zoomEdgeSmall}>A</Text>
+          <Slider
+            style={{ flex: 1, height: 40 }}
+            minimumValue={0} maximumValue={100} step={1}
+            value={zoomPct}
+            onValueChange={(v) => setScaleFromSlider(v)}
+            minimumTrackTintColor="#5B5BD6"
+            maximumTrackTintColor="rgba(255,255,255,0.2)"
+            thumbTintColor="#fff"
+          />
+          <Text style={styles.zoomEdge}>A</Text>
         </View>
-      )}
+        <View style={styles.divider} />
+        <TouchableOpacity style={styles.toolBtn} onPress={rotate90}>
+          <Text style={styles.toolIcon}>↻</Text>
+          <Text style={styles.toolLabel}>{t('cropRotate')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.toolBtn, { marginLeft: 8 }]} onPress={toggleFlip}>
+          <Text style={styles.toolIcon}>⇋</Text>
+          <Text style={styles.toolLabel}>{t('cropFlip')}</Text>
+        </TouchableOpacity>
+      </View>
 
-      {phase === 'cropping' && (
-        <View style={styles.actions}>
-          <TouchableOpacity style={[styles.actionBtn, styles.cancelBtn]} onPress={close}>
-            <Text style={styles.cancelText}>{t('cancel')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionBtn, styles.confirmBtn]} onPress={handleConfirm}>
-            <View style={styles.checkmark}><Text style={styles.checkmarkText}>✓</Text></View>
-            <Text style={styles.confirmText}>{confirmLabel || (isCover ? t('useThisCover') : t('useThisBg'))}</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      <View style={styles.actions}>
+        <TouchableOpacity style={styles.cancelBtn} onPress={onCancel}>
+          <Text style={styles.cancelBtnText}>{t('cancel')}</Text>
+        </TouchableOpacity>
+        <SubmitButton
+          onPress={handleConfirm}
+          loading={confirming}
+          style={styles.confirmBtn}
+        >
+          <View style={styles.checkBadge}><Text style={styles.checkBadgeText}>✓</Text></View>
+          <Text style={styles.confirmBtnText}>{t('useThisCover')}</Text>
+        </SubmitButton>
+      </View>
 
-      {msg !== '' && <Text style={styles.errMsg}>{msg}</Text>}
+      {errMsg !== '' && <Text style={styles.errText}>{errMsg}</Text>}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, backgroundColor: 'rgba(8,8,12,0.92)' },
+  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, backgroundColor: 'rgba(8,8,12,0.92)', justifyContent: 'flex-start', alignItems: 'stretch' },
   header: { paddingHorizontal: 16, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { fontSize: 14, fontWeight: '600', color: '#fff', letterSpacing: -0.2 },
+  title: { fontSize: 14, fontWeight: '600', color: '#fff', letterSpacing: -0.2 },
   closeBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
-  stage: { flex: 1, position: 'relative', overflow: 'hidden', backgroundColor: '#000' },
-  guide: { position: 'absolute', borderRadius: 4, borderWidth: 2, borderColor: 'rgba(255,255,255,0.8)' },
-  gridLine: { position: 'absolute', width: '100%', height: 1, backgroundColor: 'rgba(255,255,255,0.18)' },
-  gridLineV: { position: 'absolute', width: 1, height: '100%', backgroundColor: 'rgba(255,255,255,0.18)' },
+  closeBtnText: { color: 'rgba(255,255,255,0.7)', fontSize: 16, lineHeight: 20 },
+  stageArea: { flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', position: 'relative' },
+  guideOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
+  pill: { position: 'absolute', bottom: 8, alignSelf: 'center', left: '50%', transform: [{ translateX: -75 }], backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, paddingVertical: 4, paddingHorizontal: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
+  pillText: { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
   toolbar: { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: 'rgba(0,0,0,0.6)', flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
-  dividerV: { width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 10 },
+  zoomRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  zoomEdge: { fontSize: 14, color: 'rgba(255,255,255,0.5)' },
+  zoomEdgeSmall: { fontSize: 11, color: 'rgba(255,255,255,0.5)' },
+  divider: { width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 10 },
   toolBtn: { paddingVertical: 6, paddingHorizontal: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 5 },
-  scaleBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
-  scaleBtnText: { color: 'rgba(255,255,255,0.85)', fontSize: 16, fontWeight: '600' },
-  toolBtnText: { fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: '500' },
+  toolIcon: { fontSize: 14, color: 'rgba(255,255,255,0.75)', fontWeight: '500' },
+  toolLabel: { fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: '500' },
   actions: { paddingTop: 10, paddingHorizontal: 16, paddingBottom: 12, backgroundColor: 'rgba(0,0,0,0.6)', flexDirection: 'row', gap: 10 },
-  actionBtn: { padding: 11, borderRadius: 12, justifyContent: 'center', alignItems: 'center', flexDirection: 'row' },
-  cancelBtn: { flex: 1, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', backgroundColor: 'transparent' },
-  cancelText: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.7)' },
-  confirmBtn: { flex: 2, backgroundColor: '#5B5BD6' },
-  confirmText: { fontSize: 14, fontWeight: '600', color: '#fff' },
-  checkmark: { width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', marginRight: 6 },
-  checkmarkText: { fontSize: 10, color: '#fff' },
-  errMsg: { fontSize: 12, color: '#ef4444', textAlign: 'center', paddingBottom: 8, fontWeight: '500' },
+  cancelBtn: { flex: 1, padding: 11, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
+  cancelBtnText: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.7)' },
+  confirmBtn: { flex: 2, padding: 11, borderRadius: 12, backgroundColor: '#5B5BD6', justifyContent: 'center', alignItems: 'center', flexDirection: 'row' },
+  confirmBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
+  checkBadge: { width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', marginRight: 6 },
+  checkBadgeText: { fontSize: 10, color: '#fff' },
+  errText: { fontSize: 12, color: '#ef4444', textAlign: 'center', paddingBottom: 8, fontWeight: '500' },
 });

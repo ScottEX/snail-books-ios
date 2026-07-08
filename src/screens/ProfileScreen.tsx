@@ -202,11 +202,12 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [showCoverCrop, setShowCoverCrop] = useState(false);
   const [coverCropSrc, setCoverCropSrc] = useState('');
-  const [coverCropFile, setCoverCropFile] = useState<any>(null);
   const [showAvatarCrop, setShowAvatarCrop] = useState(false);
   const [avatarCropSrc, setAvatarCropSrc] = useState('');
   const [avatarCropResult, setAvatarCropResult] = useState('');
   const [showAvatarPreview, setShowAvatarPreview] = useState(false);
+  const [coverCropResult, setCoverCropResult] = useState('');
+  const [showCoverPreview, setShowCoverPreview] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -493,9 +494,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     try {
       const imgs = await pickImages({ multiple: false }).catch(() => []);
       if (imgs.length === 0) return;
-      const file = imgs[0];
-      setCoverCropFile(file);
-      setCoverCropSrc(file.uri);
+      setCoverCropSrc(imgs[0].uri);
       setShowCoverCrop(true);
     } catch {}
   };
@@ -510,20 +509,36 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     api.saveBackgroundSettings({ opacity: v }).catch(() => {});
   };
 
-  // ── Cover image picked (from standalone BgCropModal mode="cover") ──
-  const handleCoverImagePicked = async (file: any) => {
+  const handleCoverCropConfirm = (dataUri: string) => {
+    setCoverCropResult(dataUri);
+    setShowCoverCrop(false);
+    setShowCoverPreview(true);
+  };
+
+  const handleCoverUpload = async () => {
+    if (!coverCropResult) return;
     setUploadingCover(true);
     try {
-      const r: any = await api.uploadProfileCover(file);
+      const tempFile = FileSystem.cacheDirectory + 'cover-crop.jpg';
+      await FileSystem.writeAsStringAsync(tempFile, coverCropResult.split(',')[1], {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const form = new FormData();
+      form.append('file', { uri: tempFile, type: 'image/jpeg', name: 'cover.jpg' } as any);
+      const r: any = await api.uploadProfileCover(form);
       if (r?.url) {
         const resolved = resolveAssetUrl(r.url) || r.url;
         const sep = resolved.includes('?') ? '&' : '?';
         setCoverUrl(resolved + sep + 'v=' + Date.now());
+        setToast('封面已更新');
       }
     } catch (err: any) {
       setToast(err?.message || t('uploadFailedShort'));
     } finally {
       setUploadingCover(false);
+      setShowCoverPreview(false);
+      setCoverCropSrc('');
+      setCoverCropResult('');
     }
   };
 
@@ -1214,19 +1229,12 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         onResetCover={() => setShowThemeModal(false)}
         coverUploading={uploadingCover}
       />
-      {/* Cover crop modal — opened directly from cover press, not via theme modal */}
+      {/* Cover crop modal */}
       <BgCropModal
         visible={showCoverCrop}
-        onClose={() => { setShowCoverCrop(false); setCoverCropSrc(''); setCoverCropFile(null); }}
-        imageSrc={coverCropSrc}
-        onClearImage={() => { setCoverCropSrc(''); setCoverCropFile(null); }}
-        mode="cover"
-        onConfirm={async (file: any) => {
-          await handleCoverImagePicked(file);
-          setShowCoverCrop(false);
-          setCoverCropSrc('');
-          setCoverCropFile(null);
-        }}
+        src={coverCropSrc}
+        onCancel={() => { setShowCoverCrop(false); setCoverCropSrc(''); }}
+        onConfirm={handleCoverCropConfirm}
       />
       {/* Avatar crop modal */}
       <CropModal
@@ -1266,6 +1274,37 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               <SubmitButton
                 onPress={handleAvatarUpload}
                 loading={uploadingAvatar}
+                label={t('confirmUse')}
+                style={{ flex: 2, padding: 12, borderRadius: 10, backgroundColor: '#5B5BD6', alignItems: 'center' }}
+                textStyle={{ fontSize: 13, fontWeight: '600', color: '#fff' }}
+              />
+            </View>
+          </View>
+        </View>
+      )}
+      {/* Cover preview modal */}
+      {showCoverPreview && coverCropResult !== '' && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, backgroundColor: 'rgba(8,8,12,0.92)', justifyContent: 'center', alignItems: 'center' }}>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            onPress={() => { setShowCoverPreview(false); setCoverCropSrc(''); setCoverCropResult(''); }}
+          />
+          <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: 20, padding: 24, width: Math.min(screenW * 0.85, 360), alignItems: 'center', gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
+            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(27,122,74,0.2)', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 20, color: '#1B7A4A' }}>✓</Text>
+            </View>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>{t('coverUpdated')}</Text>
+            <Image source={{ uri: coverCropResult }} style={{ width: Math.min(screenW * 0.7, 300), height: Math.round(Math.min(screenW * 0.7, 300) * (260 / 375)), borderRadius: 4, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' }} resizeMode="cover" />
+            <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+              <TouchableOpacity
+                style={{ flex: 1, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center' }}
+                onPress={() => { setShowCoverPreview(false); setShowCoverCrop(true); }}>
+                <Text style={{ fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.7)' }}>{t('recrop')}</Text>
+              </TouchableOpacity>
+              <SubmitButton
+                onPress={handleCoverUpload}
+                loading={uploadingCover}
                 label={t('confirmUse')}
                 style={{ flex: 2, padding: 12, borderRadius: 10, backgroundColor: '#5B5BD6', alignItems: 'center' }}
                 textStyle={{ fontSize: 13, fontWeight: '600', color: '#fff' }}

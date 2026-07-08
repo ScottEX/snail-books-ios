@@ -195,12 +195,11 @@ export default function ThemePickerModal({
           whatever imageSrc it's given. */}
       <BgCropModal
         visible={showCrop}
-        onClose={() => { setShowCrop(false); setImageSrc(''); setPickedFile(null); }}
-        imageSrc={imageSrc}
-        onClearImage={() => { setImageSrc(''); setPickedFile(null); }}
-        onUploaded={handleClose}
-        onConfirm={async (file) => {
+        src={imageSrc}
+        onCancel={() => { setShowCrop(false); setImageSrc(''); setPickedFile(null); }}
+        onConfirm={async (dataUri: string) => {
           if (!onCoverImagePicked) return;
+          const file = { uri: dataUri, type: 'image/jpeg', name: 'background.jpg' };
           await onCoverImagePicked(file);
           setShowCrop(false);
           setImageSrc('');
