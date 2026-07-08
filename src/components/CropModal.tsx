@@ -276,23 +276,20 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
         }}
       >
         <GestureDetector gesture={composedGesture}>
-          <Animated.View style={StyleSheet.absoluteFill}>
-            {imgNatural.w > 0 && stageDim.w > 0 && (
-              <Animated.View style={[{
-                position: 'absolute',
-                width: imgNatural.w,
-                height: imgNatural.h,
-                left: stageDim.w / 2 - imgNatural.w / 2,
-                top: stageDim.h / 2 - imgNatural.h / 2,
-              }, transformStyle]}>
-                <Image
-                  source={{ uri: src }}
-                  style={{ width: '100%', height: '100%' }}
-                  resizeMode="cover"
-                />
-              </Animated.View>
-            )}
-          </Animated.View>
+          {imgNatural.w > 0 && stageDim.w > 0 && (
+            <Animated.View style={[{
+              position: 'absolute',
+              width: imgNatural.w,
+              height: imgNatural.h,
+              left: stageDim.w / 2 - imgNatural.w / 2,
+              top: stageDim.h / 2 - imgNatural.h / 2,
+            }, transformStyle]}>
+              <Image
+                source={{ uri: src }}
+                style={{ width: '100%', height: '100%' }}
+              />
+            </Animated.View>
+          )}
         </GestureDetector>
 
         {/* Guide circle overlay — visual indicator, no clip */}
