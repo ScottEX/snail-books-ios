@@ -238,7 +238,7 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
             <Line x1={(guideSize * 2) / 3} y1={0} x2={(guideSize * 2) / 3} y2={guideSize} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
             {/* 四角把手(L 形,对齐 web border 拼法) */}
             <Path
-              d={`M 0,16 L 0,0 L 16,0 M ${guideSize-16},0 L ${guideSize},0 L ${guideSize},16 M 0,${guideSize-16} L 0,${guideSize} L 16,${guideSize} M ${guideSize},${guideSize-16} L ${guideSize},${guideSize} L ${guideSize-16},${guideSize}`}
+              d={`M 0,18 L 0,0 L 18,0 M ${guideSize-18},0 L ${guideSize},0 L ${guideSize},18 M 0,${guideSize-18} L 0,${guideSize} L 18,${guideSize} M ${guideSize},${guideSize-18} L ${guideSize},${guideSize} L ${guideSize-18},${guideSize}`}
               stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
               fill="transparent" opacity={0.9}
             />
