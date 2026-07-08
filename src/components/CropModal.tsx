@@ -23,6 +23,7 @@ import Svg, { Circle, Line, Path } from 'react-native-svg';
 import * as ImageManipulator from 'expo-image-manipulator';
 const { FlipType } = ImageManipulator;
 import { useAvatarCrop } from '../hooks/useAvatarCrop';
+import { t } from '../i18n';
 
 interface CropModalProps {
   visible: boolean;
@@ -68,7 +69,7 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
     setImgNatural({ w: 0, h: 0 });
     setErrMsg('');
     Image.getSize(src, (w, h) => setImgNatural({ w, h }), () => {
-      setErrMsg('图片加载失败');
+      setErrMsg(t('cropFailed'));
     });
   }, [visible, src]);
 
@@ -176,11 +177,11 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
       if (result.base64) {
         onConfirm(`data:image/jpeg;base64,${result.base64}`);
       } else {
-        setErrMsg('裁切失败,请重试');
+        setErrMsg(t('cropFailed'));
       }
     } catch (e) {
       console.error('crop failed', e);
-      setErrMsg('裁切失败,请重试');
+      setErrMsg(t('cropFailed'));
     } finally {
       setConfirming(false);
     }
@@ -192,7 +193,7 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
     <View style={styles.overlay}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <Text style={styles.title}>调整头像</Text>
+        <Text style={styles.title}>{t('avatarCropTitle')}</Text>
         <TouchableOpacity onPress={onCancel} style={styles.closeBtn}>
           <Text style={styles.closeBtnText}>✕</Text>
         </TouchableOpacity>
@@ -246,7 +247,7 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
         </View>
         {/* Hint pill */}
         <View style={styles.pill} pointerEvents="none">
-          <Text style={styles.pillText}>拖动移动 · 双指缩放</Text>
+          <Text style={styles.pillText}>{t('cropPill')}</Text>
         </View>
       </View>
 
@@ -273,24 +274,24 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
         <View style={styles.divider} />
         <TouchableOpacity style={styles.toolBtn} onPress={() => { crop.rotate90(); setZoomPct(crop.getScalePct()); }}>
           <Text style={styles.toolIcon}>↻</Text>
-          <Text style={styles.toolLabel}>旋转</Text>
+          <Text style={styles.toolLabel}>{t('cropRotate')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.toolBtn, { marginLeft: 8 }]} onPress={crop.toggleFlip}>
           <Text style={styles.toolIcon}>⇋</Text>
-          <Text style={styles.toolLabel}>翻转</Text>
+          <Text style={styles.toolLabel}>{t('cropFlip')}</Text>
         </TouchableOpacity>
       </View>
 
       {/* Actions */}
       <View style={styles.actions}>
         <TouchableOpacity style={styles.cancelBtn} onPress={onCancel}>
-          <Text style={styles.cancelBtnText}>取消</Text>
+          <Text style={styles.cancelBtnText}>{t('cancel')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm} disabled={confirming}>
           <View style={styles.checkBadge}>
             <Text style={styles.checkBadgeText}>✓</Text>
           </View>
-          <Text style={styles.confirmBtnText}>{confirming ? '处理中…' : '使用此头像'}</Text>
+          <Text style={styles.confirmBtnText}>{confirming ? '处理中…' : t('useThisAvatar')}</Text>
         </TouchableOpacity>
       </View>
 
