@@ -24,6 +24,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 const { FlipType } = ImageManipulator;
 import { useAvatarCrop } from '../hooks/useAvatarCrop';
 import { t } from '../i18n';
+import Slider from '@react-native-community/slider';
 
 interface CropModalProps {
   visible: boolean;
@@ -251,24 +252,24 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
         </View>
       </View>
 
-      {/* Toolbar:slider + 旋转 + 翻转 */}
+      {/* Toolbar: slider + 旋转 + 翻转 */}
       <View style={styles.toolbar}>
         <View style={styles.zoomRow}>
           <Text style={styles.zoomEdge}>A</Text>
-          {/* 用 RN View 模拟滑块,避免 react-native-community/slider 新依赖 */}
-          <View style={styles.sliderTrack}>
-            <View style={[styles.sliderFill, { width: `${zoomPct}%` }]} />
-            <View style={[styles.sliderThumb, { left: `${zoomPct}%` }]} />
-            <View
-              style={StyleSheet.absoluteFill}
-              {...{
-                onStartShouldSetResponder: () => true,
-                onMoveShouldSetResponder: () => true,
-                onResponderGrant: (e: any) => updateZoomFromX(e.nativeEvent.locationX),
-                onResponderMove: (e: any) => updateZoomFromX(e.nativeEvent.locationX),
-              }}
-            />
-          </View>
+          <Slider
+            style={{ flex: 1, height: 40 }}
+            minimumValue={0}
+            maximumValue={100}
+            step={1}
+            value={zoomPct}
+            onValueChange={(v) => {
+              crop.setScale(v);
+              setZoomPct(crop.getScalePct());
+            }}
+            minimumTrackTintColor="#5B5BD6"
+            maximumTrackTintColor="rgba(255,255,255,0.2)"
+            thumbTintColor="#fff"
+          />
           <Text style={styles.zoomEdge}>A</Text>
         </View>
         <View style={styles.divider} />
@@ -300,13 +301,6 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
       )}
     </View>
   );
-
-  // 滑块点击/拖动更新缩放
-  function updateZoomFromX(localX: number) {
-    const pct = Math.max(0, Math.min(100, (localX / 200) * 100));
-    crop.setScale(pct);
-    setZoomPct(crop.getScalePct());
-  }
 }
 
 const styles = StyleSheet.create({
@@ -352,19 +346,6 @@ const styles = StyleSheet.create({
   },
   zoomRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   zoomEdge: { fontSize: 14, color: 'rgba(255,255,255,0.5)' },
-  sliderTrack: {
-    flex: 1, height: 3, backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 2, position: 'relative',
-  },
-  sliderFill: {
-    position: 'absolute', top: 0, left: 0, height: '100%',
-    backgroundColor: '#5B5BD6', borderRadius: 2,
-  },
-  sliderThumb: {
-    position: 'absolute', top: -5, width: 13, height: 13,
-    marginLeft: -6.5, borderRadius: 6.5,
-    backgroundColor: '#fff',
-  },
   divider: { width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 10 },
   toolBtn: {
     paddingVertical: 6, paddingHorizontal: 8,
