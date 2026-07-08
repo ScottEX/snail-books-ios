@@ -1,14 +1,10 @@
 // ═══════════════════════════════════════════════════════════════
-// CropModal — 头像裁剪 modal (RN 版,对应 web PartnerScreen 的 inline crop modal)
+// CropModal — 头像裁剪 modal (RN 版)
+// v2.1: 回退 PanResponder，修复双指缩放 bug（grant 时检测 touch 数量而非依赖 drag/pinch flag）
 // ═══════════════════════════════════════════════════════════════
-//
-// v2: react-native-gesture-handler + reanimated (UI thread)
-//    替换 PanResponder,解决双指缩放不生效/跳动/不跟手问题
 
-import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, useWindowDimensions } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle, runOnJS } from 'react-native-reanimated';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, useWindowDimensions, PanResponder } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -30,34 +26,36 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
   const insets = useSafeAreaInsets();
 
   const [imgNatural, setImgNatural] = useState({ w: 0, h: 0 });
-  const imgNaturalRef = useRef({ w: 0, h: 0 }); // UI-thread accessible mirror
+  const imgNaturalRef = useRef({ w: 0, h: 0 });
   const [zoomPct, setZoomPct] = useState(0);
   const [confirming, setConfirming] = useState(false);
   const [errMsg, setErrMsg] = useState('');
   const [stageDim, setStageDim] = useState({ w: 0, h: 0 });
   const guideSize = !stageDim.w ? WIN_W - STAGE_PAD_H * 2 : Math.round(Math.min(stageDim.w, stageDim.h) * 0.76);
 
-  // ── Rotation / flip (React state + shared values for UI-thread animated style) ──
+  // ── Image display transform (plain numbers + forceUpdate for re-render)
+  const [dispX, setDispX] = useState(0);
+  const [dispY, setDispY] = useState(0);
+  const [dispScale, setDispScale] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [flipX, setFlipX] = useState(false);
-  const rotationSV = useSharedValue(0);
-  const flipXSV = useSharedValue(false);
 
-  // ── Shared values for gesture-driven transforms (UI thread) ──
-  const translateX = useSharedValue(0);
-  const translateY = useSharedValue(0);
-  const scaleSV = useSharedValue(1);
+  // ── Drag/pinch session state (non-rendering)
+  const sessionRef = useRef({
+    dragActive: false,
+    dragStartX: 0, dragStartY: 0, dragOrigX: 0, dragOrigY: 0,
+    pinchActive: false,
+    pinchStartDist: 0, pinchStartScale: 1,
+  });
 
-  // ── Crop math state (ref, high-freq updates, no re-render) ──
+  // ── Crop math state (non-rendering)
   const stateRef = useRef({
     x: 0, y: 0, scale: 1, rotation: 0, flipX: false,
     minScale: 1, maxScale: 8,
-    cropSize: Math.round(guideSize * 0.76),
+    cropSize: 272,
   });
 
-  // ── Clamp: keep image covering the crop circle (worklet — called from UI-thread gestures)
   const clampCrop = () => {
-    'worklet';
     const s = stateRef.current;
     const { w, h } = imgNaturalRef.current;
     if (w <= 0) return;
@@ -68,11 +66,18 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
     const maxY = halfH - r;
     s.x = maxX > 0 ? Math.max(-maxX, Math.min(maxX, s.x)) : 0;
     s.y = maxY > 0 ? Math.max(-maxY, Math.min(maxY, s.y)) : 0;
-    translateX.value = s.x;
-    translateY.value = s.y;
   };
 
-  // ── Fit image to fill crop circle ──
+  const syncDisplay = () => {
+    const s = stateRef.current;
+    setDispX(s.x);
+    setDispY(s.y);
+    setDispScale(s.scale);
+    const range = (s.maxScale - s.minScale) * 0.5;
+    const pct = range > 0 ? Math.round(100 * (s.scale - s.minScale) / range) : 0;
+    setZoomPct(Math.max(0, Math.min(100, pct)));
+  };
+
   const fitImage = () => {
     if (imgNatural.w <= 0 || imgNatural.h <= 0) return;
     const s = stateRef.current;
@@ -83,120 +88,105 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
     s.scale = Math.max(sw, sh) * 1.05;
     s.minScale = Math.max(sw, sh);
     s.x = 0; s.y = 0;
-    translateX.value = 0;
-    translateY.value = 0;
-    scaleSV.value = s.scale;
+    syncDisplay();
   };
 
-  // ── Slider → scale (pct 0-100) ──
   const setScaleFromSlider = (pct: number) => {
     const s = stateRef.current;
     const t = pct / 100;
     s.scale = s.minScale + (s.maxScale - s.minScale) * t * 0.5;
     s.scale = Math.max(s.minScale, s.scale);
-    scaleSV.value = s.scale;
     clampCrop();
-    return getScalePct();
+    syncDisplay();
   };
 
-  const getScalePct = (): number => {
-    'worklet';
-    const s = stateRef.current;
-    const range = (s.maxScale - s.minScale) * 0.5;
-    if (range <= 0) return 0;
-    const t = (s.scale - s.minScale) / range;
-    return Math.max(0, Math.min(100, t * 100));
-  };
-
-  // ── stage 布局后更新 cropSize ──
+  // ── stage 布局后更新 cropSize
   useEffect(() => {
     if (stageDim.w > 0 && guideSize > 0) {
       stateRef.current.cropSize = guideSize;
-      if (imgNatural.w > 0) {
-        fitImage();
-        setZoomPct(getScalePct());
-      }
+      if (imgNatural.w > 0) { fitImage(); }
     }
   }, [stageDim.w, stageDim.h]);
 
-  // ── 加载图片 ──
+  // ── 加载图片
   useEffect(() => {
     if (!visible || !src) return;
     setImgNatural({ w: 0, h: 0 });
+    imgNaturalRef.current = { w: 0, h: 0 };
     setErrMsg('');
     Image.getSize(src, (w, h) => {
       imgNaturalRef.current = { w, h };
       setImgNatural({ w, h });
-    }, () => {
-      setErrMsg(t('cropFailed'));
-    });
+    }, () => setErrMsg(t('cropFailed')));
   }, [visible, src]);
 
-  // ── 图片加载后初始化 ──
   useEffect(() => {
-    if (visible && imgNatural.w > 0) {
-      fitImage();
-      setZoomPct(getScalePct());
-    }
+    if (visible && imgNatural.w > 0) { fitImage(); }
   }, [visible, imgNatural.w]);
 
-  // ── Gestures (UI thread) ──
+  // ── PanResponder (修复: grant 时按 touch 数分支，不依赖之前 flag)
+  const panResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: (e) => {
+      const touches = e.nativeEvent.touches;
+      const s = stateRef.current;
+      if (touches.length >= 2) {
+        // ── 双指缩放 ──
+        sessionRef.current.pinchActive = true;
+        sessionRef.current.pinchStartDist = Math.hypot(
+          touches[0].pageX - touches[1].pageX,
+          touches[0].pageY - touches[1].pageY,
+        );
+        sessionRef.current.pinchStartScale = s.scale;
+      } else {
+        // ── 单指拖动 ──
+        sessionRef.current.dragActive = true;
+        sessionRef.current.dragStartX = touches[0].pageX;
+        sessionRef.current.dragStartY = touches[0].pageY;
+        sessionRef.current.dragOrigX = s.x;
+        sessionRef.current.dragOrigY = s.y;
+      }
+    },
+    onPanResponderMove: (e) => {
+      const touches = e.nativeEvent.touches;
+      const s = stateRef.current;
+      if (touches.length >= 2) {
+        // 加入第二指后激活 pinch
+        if (!sessionRef.current.pinchActive) {
+          sessionRef.current.pinchActive = true;
+          sessionRef.current.pinchStartDist = Math.hypot(
+            touches[0].pageX - touches[1].pageX,
+            touches[0].pageY - touches[1].pageY,
+          );
+          sessionRef.current.pinchStartScale = s.scale;
+        }
+        const d = Math.hypot(
+          touches[0].pageX - touches[1].pageX,
+          touches[0].pageY - touches[1].pageY,
+        );
+        s.scale = Math.max(s.minScale, Math.min(s.maxScale,
+          sessionRef.current.pinchStartScale * (d / sessionRef.current.pinchStartDist)));
+        clampCrop();
+        syncDisplay();
+      } else if (touches.length === 1 && sessionRef.current.dragActive) {
+        s.x = sessionRef.current.dragOrigX + (touches[0].pageX - sessionRef.current.dragStartX);
+        s.y = sessionRef.current.dragOrigY + (touches[0].pageY - sessionRef.current.dragStartY);
+        clampCrop();
+        syncDisplay();
+      }
+    },
+    onPanResponderRelease: () => {
+      sessionRef.current.dragActive = false;
+      sessionRef.current.pinchActive = false;
+    },
+    onPanResponderTerminate: () => {
+      sessionRef.current.dragActive = false;
+      sessionRef.current.pinchActive = false;
+    },
+  }), []);
 
-  // Pan: single finger drag
-  const panStartX = useSharedValue(0);
-  const panStartY = useSharedValue(0);
-
-  const panGesture = Gesture.Pan()
-    .maxPointers(1)
-    .onBegin(() => {
-      panStartX.value = stateRef.current.x;
-      panStartY.value = stateRef.current.y;
-    })
-    .onUpdate((e) => {
-      if (imgNaturalRef.current.w === 0) return;
-      stateRef.current.x = panStartX.value + e.translationX;
-      stateRef.current.y = panStartY.value + e.translationY;
-      clampCrop();
-    })
-    .onEnd(() => {
-      runOnJS(setZoomPct)(getScalePct());
-    });
-
-  // Pinch: two-finger zoom
-  const pinchBaseScale = useSharedValue(1);
-
-  const pinchGesture = Gesture.Pinch()
-    .onBegin(() => {
-      pinchBaseScale.value = stateRef.current.scale;
-    })
-    .onUpdate((e) => {
-      if (imgNaturalRef.current.w === 0) return;
-      const ns = Math.max(
-        stateRef.current.minScale,
-        Math.min(stateRef.current.maxScale, pinchBaseScale.value * e.scale),
-      );
-      stateRef.current.scale = ns;
-      scaleSV.value = ns;
-      clampCrop();
-    })
-    .onEnd(() => {
-      runOnJS(setZoomPct)(getScalePct());
-    });
-
-  const composedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
-
-  // ── Animated transform only (layout via React state, transform on UI thread)
-  const transformStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-      { scale: scaleSV.value },
-      { rotate: `${rotationSV.value}deg` },
-      { scaleX: flipXSV.value ? -1 : 1 },
-    ],
-  }));
-
-  // ── Confirm: crop + resize ──
+  // ── Confirm
   const handleConfirm = async () => {
     if (confirming || imgNatural.w === 0) return;
     setConfirming(true);
@@ -221,45 +211,34 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
       ops.push({ resize: { width: outSize, height: outSize } });
 
       const result = await ImageManipulator.manipulateAsync(src, ops, {
-        compress: 0.92,
-        format: ImageManipulator.SaveFormat.JPEG,
-        base64: true,
+        compress: 0.92, format: ImageManipulator.SaveFormat.JPEG, base64: true,
       });
-      if (result.base64) {
-        onConfirm(`data:image/jpeg;base64,${result.base64}`);
-      } else {
-        setErrMsg(t('cropFailed'));
-      }
+      if (result.base64) onConfirm(`data:image/jpeg;base64,${result.base64}`);
+      else setErrMsg(t('cropFailed'));
     } catch (e) {
       console.error('crop failed', e);
       setErrMsg(t('cropFailed'));
-    } finally {
-      setConfirming(false);
-    }
+    } finally { setConfirming(false); }
   };
 
-  // ── Rotate / flip ──
+  // ── Rotate / flip
   const rotate90 = () => {
     const s = stateRef.current;
     s.rotation = (s.rotation + 90) % 360;
     setRotation(s.rotation);
-    rotationSV.value = s.rotation;
     fitImage();
-    setZoomPct(getScalePct());
   };
 
   const toggleFlip = () => {
     const s = stateRef.current;
     s.flipX = !s.flipX;
     setFlipX(s.flipX);
-    flipXSV.value = s.flipX;
   };
 
   if (!visible) return null;
 
   return (
     <View style={styles.overlay}>
-      {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Text style={styles.title}>{t('avatarCropTitle')}</Text>
         <TouchableOpacity onPress={onCancel} style={styles.closeBtn}>
@@ -267,32 +246,29 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
         </TouchableOpacity>
       </View>
 
-      {/* Stage area — gestures on UI thread */}
       <View
         style={styles.stageArea}
-        onLayout={(e) => {
-          const dim = { w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height };
-          setStageDim(dim);
-        }}
+        onLayout={(e) => setStageDim({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
+        {...panResponder.panHandlers}
       >
-        <GestureDetector gesture={composedGesture}>
-          <Animated.View style={[{
-            position: 'absolute',
-            width: imgNatural.w || 1,
-            height: imgNatural.h || 1,
-            left: stageDim.w > 0 ? stageDim.w / 2 - (imgNatural.w || 1) / 2 : 0,
-            top: stageDim.h > 0 ? stageDim.h / 2 - (imgNatural.h || 1) / 2 : 0,
-          }, transformStyle]}>
-            {imgNatural.w > 0 && stageDim.w > 0 && (
-              <Image
-                source={{ uri: src }}
-                style={{ width: '100%', height: '100%' }}
-              />
-            )}
-          </Animated.View>
-        </GestureDetector>
+        {imgNatural.w > 0 && stageDim.w > 0 && (
+          <Image
+            source={{ uri: src }}
+            style={{
+              position: 'absolute',
+              width: imgNatural.w,
+              height: imgNatural.h,
+              left: stageDim.w / 2 - imgNatural.w / 2 + dispX,
+              top: stageDim.h / 2 - imgNatural.h / 2 + dispY,
+              transform: [
+                { scale: dispScale },
+                { rotate: `${rotation}deg` },
+                { scaleX: flipX ? -1 : 1 },
+              ],
+            }}
+          />
+        )}
 
-        {/* Guide circle overlay — visual indicator, no clip */}
         <View style={styles.guideOverlay} pointerEvents="none">
           <Svg width={guideSize} height={guideSize}>
             <Circle cx={guideSize / 2} cy={guideSize / 2} r={guideSize / 2 - 1} stroke="rgba(255,255,255,0.8)" strokeWidth={2} fill="transparent" />
@@ -308,26 +284,19 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
           </Svg>
         </View>
 
-        {/* Hint pill */}
         <View style={styles.pill} pointerEvents="none">
           <Text style={styles.pillText}>{t('cropPill')}</Text>
         </View>
       </View>
 
-      {/* Toolbar */}
       <View style={styles.toolbar}>
         <View style={styles.zoomRow}>
           <Text style={styles.zoomEdgeSmall}>A</Text>
           <Slider
             style={{ flex: 1, height: 40 }}
-            minimumValue={0}
-            maximumValue={100}
-            step={1}
+            minimumValue={0} maximumValue={100} step={1}
             value={zoomPct}
-            onValueChange={(v) => {
-              const pct = setScaleFromSlider(v);
-              setZoomPct(pct);
-            }}
+            onValueChange={(v) => setScaleFromSlider(v)}
             minimumTrackTintColor="#5B5BD6"
             maximumTrackTintColor="rgba(255,255,255,0.2)"
             thumbTintColor="#fff"
@@ -345,103 +314,45 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
         </TouchableOpacity>
       </View>
 
-      {/* Actions */}
       <View style={styles.actions}>
         <TouchableOpacity style={styles.cancelBtn} onPress={onCancel}>
           <Text style={styles.cancelBtnText}>{t('cancel')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm} disabled={confirming}>
-          <View style={styles.checkBadge}>
-            <Text style={styles.checkBadgeText}>✓</Text>
-          </View>
+          <View style={styles.checkBadge}><Text style={styles.checkBadgeText}>✓</Text></View>
           <Text style={styles.confirmBtnText}>{confirming ? '处理中…' : t('useThisAvatar')}</Text>
         </TouchableOpacity>
       </View>
 
-      {errMsg !== '' && (
-        <Text style={styles.errText}>{errMsg}</Text>
-      )}
+      {errMsg !== '' && <Text style={styles.errText}>{errMsg}</Text>}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
-    backgroundColor: 'rgba(8,8,12,0.92)', justifyContent: 'flex-start', alignItems: 'stretch',
-  },
-  header: {
-    paddingHorizontal: 16, paddingBottom: 8,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-  },
+  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, backgroundColor: 'rgba(8,8,12,0.92)', justifyContent: 'flex-start', alignItems: 'stretch' },
+  header: { paddingHorizontal: 16, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontSize: 14, fontWeight: '600', color: '#fff', letterSpacing: -0.2 },
-  closeBtn: {
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center', alignItems: 'center',
-  },
+  closeBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
   closeBtnText: { color: 'rgba(255,255,255,0.7)', fontSize: 16, lineHeight: 20 },
-
-  stageArea: {
-    flex: 1, backgroundColor: '#000',
-    justifyContent: 'center', alignItems: 'center',
-    overflow: 'hidden', position: 'relative',
-  },
-  guideOverlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  pill: {
-    position: 'absolute', bottom: 8, alignSelf: 'center',
-    left: '50%', transform: [{ translateX: -75 }],
-    backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20,
-    paddingVertical: 4, paddingHorizontal: 12,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
-  },
+  stageArea: { flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', position: 'relative' },
+  guideOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
+  pill: { position: 'absolute', bottom: 8, alignSelf: 'center', left: '50%', transform: [{ translateX: -75 }], backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, paddingVertical: 4, paddingHorizontal: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
   pillText: { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
-
-  toolbar: {
-    paddingVertical: 8, paddingHorizontal: 16,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    flexDirection: 'row', alignItems: 'center',
-    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)',
-  },
+  toolbar: { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: 'rgba(0,0,0,0.6)', flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
   zoomRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   zoomEdge: { fontSize: 14, color: 'rgba(255,255,255,0.5)' },
   zoomEdgeSmall: { fontSize: 11, color: 'rgba(255,255,255,0.5)' },
   divider: { width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 10 },
-  toolBtn: {
-    paddingVertical: 6, paddingHorizontal: 8,
-    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8,
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-  },
+  toolBtn: { paddingVertical: 6, paddingHorizontal: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 5 },
   toolIcon: { fontSize: 14, color: 'rgba(255,255,255,0.75)', fontWeight: '500' },
   toolLabel: { fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: '500' },
-
-  actions: {
-    paddingTop: 10, paddingHorizontal: 16, paddingBottom: 12,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    flexDirection: 'row', gap: 10,
-  },
-  cancelBtn: {
-    flex: 1, padding: 11, borderRadius: 12,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
-    backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center',
-  },
+  actions: { paddingTop: 10, paddingHorizontal: 16, paddingBottom: 12, backgroundColor: 'rgba(0,0,0,0.6)', flexDirection: 'row', gap: 10 },
+  cancelBtn: { flex: 1, padding: 11, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
   cancelBtnText: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.7)' },
-  confirmBtn: {
-    flex: 2, padding: 11, borderRadius: 12, backgroundColor: '#5B5BD6',
-    justifyContent: 'center', alignItems: 'center', flexDirection: 'row',
-  },
+  confirmBtn: { flex: 2, padding: 11, borderRadius: 12, backgroundColor: '#5B5BD6', justifyContent: 'center', alignItems: 'center', flexDirection: 'row' },
   confirmBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
-  checkBadge: {
-    width: 18, height: 18, borderRadius: 9,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center', alignItems: 'center', marginRight: 6,
-  },
+  checkBadge: { width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', marginRight: 6 },
   checkBadgeText: { fontSize: 10, color: '#fff' },
-  errText: {
-    fontSize: 12, color: '#ef4444', textAlign: 'center',
-    paddingBottom: 8, fontWeight: '500',
-  },
+  errText: { fontSize: 12, color: '#ef4444', textAlign: 'center', paddingBottom: 8, fontWeight: '500' },
 });
