@@ -31,22 +31,17 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
   }
   prevVisible.current = visible;
 
-  // On iOS inline mode, UIDatePicker ignores maximumDate on first layout.
-  // Force a remount after layout completes so the second mount reads it correctly.
-  const pickerLayoutCount = useRef(0);
-  const [pickerRemountKey, setPickerRemountKey] = useState(0);
-  const handlePickerLayout = () => {
-    if (pickerLayoutCount.current === 0) {
-      pickerLayoutCount.current += 1;
-      setPickerRemountKey(1);
-    }
-  };
+  // On iOS, RCT_EXPORT_VIEW_PROPERTY order means maximumDate is set BEFORE
+  // preferredDatePickerStyle (.inline). Style switch rebuilds the internal
+  // calendar and drops maximumDate. Delay 50ms so the style settles first.
+  const [effectiveMaxDate, setEffectiveMaxDate] = useState<string | undefined>();
   useEffect(() => {
-    if (!visible) {
-      pickerLayoutCount.current = 0;
-      setPickerRemountKey(0);
+    if (visible) {
+      const t = setTimeout(() => setEffectiveMaxDate(maxDate), 50);
+      return () => clearTimeout(t);
     }
-  }, [visible]);
+    setEffectiveMaxDate(undefined);
+  }, [visible, maxDate]);
 
   const pickerDate = parseDate(draft || todayStr());
   const locale = (() => {
@@ -73,15 +68,13 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
     >
       <View style={styles.sheet}>
         <DateTimePicker
-          key={`picker-${pickerRemountKey}`}
           value={pickerDate}
           mode="date"
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
           locale={locale}
           minimumDate={minDate ? parseDate(minDate) : undefined}
-          maximumDate={maxDate ? parseDate(maxDate) : undefined}
+          maximumDate={effectiveMaxDate ? parseDate(effectiveMaxDate) : undefined}
           onChange={handlePickerChange}
-          onLayout={handlePickerLayout}
           themeVariant="light"
         />
         <View style={styles.footer}>
