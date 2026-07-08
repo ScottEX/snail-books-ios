@@ -35,11 +35,14 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
   const [confirming, setConfirming] = useState(false);
   const [errMsg, setErrMsg] = useState('');
   const [stageDim, setStageDim] = useState({ w: 0, h: 0 });
+  const stageDimRef = useRef({ w: 0, h: 0 }); // UI-thread mirror
   const guideSize = !stageDim.w ? WIN_W - STAGE_PAD_H * 2 : Math.round(Math.min(stageDim.w, stageDim.h) * 0.76);
 
-  // ── Rotation / flip (React state, triggers re-render for tool buttons) ──
+  // ── Rotation / flip (React state + shared values for UI-thread animated style) ──
   const [rotation, setRotation] = useState(0);
   const [flipX, setFlipX] = useState(false);
+  const rotationSV = useSharedValue(0);
+  const flipXSV = useSharedValue(false);
 
   // ── Shared values for gesture-driven transforms (UI thread) ──
   const translateX = useSharedValue(0);
@@ -183,21 +186,26 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
 
   const composedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
 
-  // ── Animated image style ──
-  const imageStyle = useAnimatedStyle(() => ({
-    position: 'absolute' as const,
-    width: imgNatural.w || 1,
-    height: imgNatural.h || 1,
-    left: stageDim.w > 0 ? stageDim.w / 2 - (imgNatural.w || 1) / 2 : 0,
-    top: stageDim.h > 0 ? stageDim.h / 2 - (imgNatural.h || 1) / 2 : 0,
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-      { scale: scaleSV.value },
-      { rotate: `${rotation}deg` },
-      { scaleX: flipX ? -1 : 1 },
-    ],
-  }));
+  // ── Animated image style (worklet — all values from refs/shared values, no React state)
+  const imageStyle = useAnimatedStyle(() => {
+    'worklet';
+    const { w, h } = imgNaturalRef.current;
+    const { w: sw, h: sh } = stageDimRef.current;
+    return {
+      position: 'absolute' as const,
+      width: w || 1,
+      height: h || 1,
+      left: sw > 0 ? sw / 2 - (w || 1) / 2 : 0,
+      top: sh > 0 ? sh / 2 - (h || 1) / 2 : 0,
+      transform: [
+        { translateX: translateX.value },
+        { translateY: translateY.value },
+        { scale: scaleSV.value },
+        { rotate: `${rotationSV.value}deg` },
+        { scaleX: flipXSV.value ? -1 : 1 },
+      ],
+    };
+  });
 
   // ── Confirm: crop + resize ──
   const handleConfirm = async () => {
@@ -246,6 +254,7 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
     const s = stateRef.current;
     s.rotation = (s.rotation + 90) % 360;
     setRotation(s.rotation);
+    rotationSV.value = s.rotation;
     fitImage();
     setZoomPct(getScalePct());
   };
@@ -254,6 +263,7 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
     const s = stateRef.current;
     s.flipX = !s.flipX;
     setFlipX(s.flipX);
+    flipXSV.value = s.flipX;
   };
 
   if (!visible) return null;
@@ -271,7 +281,11 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
       {/* Stage area — gestures on UI thread */}
       <View
         style={styles.stageArea}
-        onLayout={(e) => setStageDim({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
+        onLayout={(e) => {
+          const dim = { w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height };
+          stageDimRef.current = dim;
+          setStageDim(dim);
+        }}
       >
         <GestureDetector gesture={composedGesture}>
           <Animated.View style={StyleSheet.absoluteFill}>
