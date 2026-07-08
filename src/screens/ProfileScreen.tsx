@@ -19,6 +19,7 @@ import BgCropModal from '../components/BgCropModal';
 import CropModal from '../components/CropModal';
 import CloseButton from '../components/CloseButton';
 import ButtonPair from '../components/ButtonPair';
+import SubmitButton from '../components/SubmitButton';
 import ModalOverlay from '../components/ModalOverlay';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { pickImages } from '../utils/imagePicker';
@@ -1262,16 +1263,13 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                 onPress={() => { setShowAvatarPreview(false); setShowAvatarCrop(true); }}>
                 <Text style={{ fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.7)' }}>{t('recrop')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={{ flex: 2, padding: 12, borderRadius: 10, backgroundColor: '#5B5BD6', alignItems: 'center', opacity: uploadingAvatar ? 0.5 : 1 }}
-                disabled={uploadingAvatar}
-                onPress={handleAvatarUpload}>
-                {uploadingAvatar ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#fff' }}>{t('confirmUse')}</Text>
-                )}
-              </TouchableOpacity>
+              <SubmitButton
+                onPress={handleAvatarUpload}
+                loading={uploadingAvatar}
+                label={t('confirmUse')}
+                style={{ flex: 2, padding: 12, borderRadius: 10, backgroundColor: '#5B5BD6', alignItems: 'center' }}
+                textStyle={{ fontSize: 13, fontWeight: '600', color: '#fff' }}
+              />
             </View>
           </View>
         </View>

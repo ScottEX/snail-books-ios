@@ -14,6 +14,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 const { FlipType } = ImageManipulator;
 import { t } from '../i18n';
 import Slider from '@react-native-community/slider';
+import SubmitButton from './SubmitButton';
 
 interface CropModalProps {
   visible: boolean;
@@ -314,10 +315,14 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
         <TouchableOpacity style={styles.cancelBtn} onPress={onCancel}>
           <Text style={styles.cancelBtnText}>{t('cancel')}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm} disabled={confirming}>
+        <SubmitButton
+          onPress={handleConfirm}
+          loading={confirming}
+          style={styles.confirmBtn}
+        >
           <View style={styles.checkBadge}><Text style={styles.checkBadgeText}>✓</Text></View>
-          <Text style={styles.confirmBtnText}>{confirming ? '处理中…' : t('useThisAvatar')}</Text>
-        </TouchableOpacity>
+          <Text style={styles.confirmBtnText}>{t('useThisAvatar')}</Text>
+        </SubmitButton>
       </View>
 
       {errMsg !== '' && <Text style={styles.errText}>{errMsg}</Text>}
