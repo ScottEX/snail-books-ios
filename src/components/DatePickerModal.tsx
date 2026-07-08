@@ -31,15 +31,21 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
   }
   prevVisible.current = visible;
 
-  // Delay picker render until sheet animation settles, so iOS native
-  // UIDatePicker reads maximumDate reliably on first mount.
-  const [showPicker, setShowPicker] = useState(false);
-  useEffect(() => {
-    if (visible) {
-      const t = setTimeout(() => setShowPicker(true), 100);
-      return () => clearTimeout(t);
+  // On iOS inline mode, UIDatePicker ignores maximumDate on first layout.
+  // Force a remount after layout completes so the second mount reads it correctly.
+  const pickerLayoutCount = useRef(0);
+  const [pickerRemountKey, setPickerRemountKey] = useState(0);
+  const handlePickerLayout = () => {
+    if (pickerLayoutCount.current === 0) {
+      pickerLayoutCount.current += 1;
+      setPickerRemountKey(1);
     }
-    setShowPicker(false);
+  };
+  useEffect(() => {
+    if (!visible) {
+      pickerLayoutCount.current = 0;
+      setPickerRemountKey(0);
+    }
   }, [visible]);
 
   const pickerDate = parseDate(draft || todayStr());
@@ -66,8 +72,8 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
       contentStyle={{ width: '100%', alignItems: 'center' }}
     >
       <View style={styles.sheet}>
-        {showPicker && (
         <DateTimePicker
+          key={`picker-${pickerRemountKey}`}
           value={pickerDate}
           mode="date"
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
@@ -75,9 +81,9 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
           minimumDate={minDate ? parseDate(minDate) : undefined}
           maximumDate={maxDate ? parseDate(maxDate) : undefined}
           onChange={handlePickerChange}
+          onLayout={handlePickerLayout}
           themeVariant="light"
         />
-        )}
         <View style={styles.footer}>
           <TouchableOpacity style={styles.footerBtn} onPress={() => setDraft(value)}>
             <Text style={{ color: 'rgba(0,0,0,0.88)', fontSize: 16, fontWeight: '500' }}>{getLang().startsWith('en') ? 'Reset' : '重置'}</Text>
