@@ -75,6 +75,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
   const [filterDateError, setFilterDateError] = useState(0);
   const [users, setUsers] = useState<{ id: number; username: string }[]>([]);
   const [datePickTarget, setDatePickTarget] = useState<'from' | 'to' | null>(null);
+  const [pickerKey, setPickerKey] = useState(0);
   const [showUserPick, setShowUserPick] = useState(false);
   const userDropAnim = useRef(new Animated.Value(0)).current;
 
@@ -329,9 +330,10 @@ export default function ReconHistoryScreen({ onBack }: Props) {
 
       {/* Date Picker */}
       <DatePickerModal
+        key={pickerKey}
         visible={datePickTarget !== null}
         value={datePickTarget === 'from' ? filDateFrom : filDateTo}
-        onClose={() => setDatePickTarget(null)}
+        onClose={() => { setDatePickTarget(null); setPickerKey(k => k + 1); }}
         onSelect={(d: string) => {
           if (d > todayISO) { setFilterDateError(c => c + 1); return; }
           if (datePickTarget === 'from') setFilDateFrom(d);

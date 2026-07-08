@@ -97,6 +97,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
     }
   }, [sd.ready, appliedFrom, appliedTo, sd.today, sd.offset]);
   const [datePickTarget, setDatePickTarget] = useState<'from' | 'to' | null>(null);
+  const [pickerKey, setPickerKey] = useState(0);
   const { preview, openPreview, closePreview } = useImagePreview();
 
   const toggleCat = (cat: string) => {
@@ -312,9 +313,10 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
 
       {/* Date picker modal */}
       <DatePickerModal
+        key={pickerKey}
         visible={datePickTarget !== null}
         value={datePickTarget === 'from' ? filDateFrom : filDateTo}
-        onClose={() => setDatePickTarget(null)}
+        onClose={() => { setDatePickTarget(null); setPickerKey(k => k + 1); }}
         onSelect={(d: string) => {
           if (datePickTarget === 'from') setFilDateFrom(d);
           else setFilDateTo(d);
