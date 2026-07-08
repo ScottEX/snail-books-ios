@@ -16,9 +16,9 @@
 //   - web 的三分线/把手用 SVG;RN 用 react-native-svg
 //   - web 用 createPortal;RN 用 ModalOverlay
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, TouchableOpacity, PanResponder, Animated, Image, StyleSheet, Modal,
+  View, Text, TouchableOpacity, PanResponder, Animated, Image, StyleSheet,
 } from 'react-native';
 import Svg, { Circle, Line } from 'react-native-svg';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -65,9 +65,9 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
     }
   }, [visible, imgNatural.w]);
 
-  // ── PanResponder:单指拖动 + 双指缩放 ──
-  const panResponder = useRef(
-    PanResponder.create({
+  // ── PanResponder:单指拖动 + 双指缩放 ── (rebuild when image dimensions load)
+  const panResponder = useMemo(
+    () => PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: (e) => {
@@ -123,7 +123,8 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
         crop.stateRef.pinch.active = false;
       },
     }),
-  ).current;
+    [imgNatural.w],
+  );
 
   // ── 确认:实际裁剪 ──
   const handleConfirm = async () => {
@@ -176,7 +177,6 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
   const stageW = stageSize - STAGE_PADDING * 2;
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onCancel}>
     <View style={styles.overlay} onLayout={(e) => setStageSize(Math.min(e.nativeEvent.layout.width, 600))}>
       {/* Header */}
       <View style={styles.header}>
@@ -292,7 +292,6 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
         <Text style={styles.errText}>{errMsg}</Text>
       )}
     </View>
-    </Modal>
   );
 
   // 滑块点击/拖动更新缩放
