@@ -257,7 +257,7 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
         <View style={styles.zoomRow}>
           <Text style={styles.zoomEdge}>A</Text>
           <Slider
-            style={{ flex: 1, height: 40 }}
+            style={{ flex: 1, height: 30 }}
             minimumValue={0}
             maximumValue={100}
             step={1}
