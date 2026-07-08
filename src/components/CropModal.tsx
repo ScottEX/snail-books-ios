@@ -19,7 +19,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, PanResponder, Animated, Image, StyleSheet, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Line } from 'react-native-svg';
+import Svg, { Circle, Line, Path } from 'react-native-svg';
 import * as ImageManipulator from 'expo-image-manipulator';
 const { FlipType } = ImageManipulator;
 import { useAvatarCrop } from '../hooks/useAvatarCrop';
@@ -236,15 +236,12 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
             <Line x1={0} y1={(guideSize * 2) / 3} x2={guideSize} y2={(guideSize * 2) / 3} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
             <Line x1={guideSize / 3} y1={0} x2={guideSize / 3} y2={guideSize} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
             <Line x1={(guideSize * 2) / 3} y1={0} x2={(guideSize * 2) / 3} y2={guideSize} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
-            {/* 四角把手 */}
-            {[
-              { x: 1, y: 1, rx: 0 },
-              { x: guideSize - 1, y: 1, rx: 1 },
-              { x: 1, y: guideSize - 1, rx: 2 },
-              { x: guideSize - 1, y: guideSize - 1, rx: 3 },
-            ].map((c) => (
-              <Circle key={c.rx} cx={c.x} cy={c.y} r={9} stroke="#fff" strokeWidth={2} fill="transparent" />
-            ))}
+            {/* 四角把手(L 形,对齐 web border 拼法) */}
+            <Path
+              d={`M 0,16 L 0,0 L 16,0 M ${guideSize-16},0 L ${guideSize},0 L ${guideSize},16 M 0,${guideSize-16} L 0,${guideSize} L 16,${guideSize} M ${guideSize},${guideSize-16} L ${guideSize},${guideSize} L ${guideSize-16},${guideSize}`}
+              stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
+              fill="transparent" opacity={0.9}
+            />
           </Svg>
         </View>
         {/* Hint pill */}
