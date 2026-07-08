@@ -1,10 +1,13 @@
 // ═══════════════════════════════════════════════════════════════
 // CropModal — 头像裁剪 modal (RN 版)
-// v2.1: 回退 PanResponder，修复双指缩放 bug（grant 时检测 touch 数量而非依赖 drag/pinch flag）
 // ═══════════════════════════════════════════════════════════════
+//
+// 手势: PanResponder (JS 线程识别 touch → 写入 Animated.Value)
+// 动画: Animated.Value + useNativeDriver (UI 线程执行)
+// 旋转/翻转: React state (非连续动画,不适用 native driver)
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, useWindowDimensions, PanResponder } from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet, useWindowDimensions, PanResponder, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -33,22 +36,16 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
   const [stageDim, setStageDim] = useState({ w: 0, h: 0 });
   const guideSize = !stageDim.w ? WIN_W - STAGE_PAD_H * 2 : Math.round(Math.min(stageDim.w, stageDim.h) * 0.76);
 
-  // ── Image display transform (plain numbers + forceUpdate for re-render)
-  const [dispX, setDispX] = useState(0);
-  const [dispY, setDispY] = useState(0);
-  const [dispScale, setDispScale] = useState(1);
+  // ── Rotation / flip (React state, non-continuous) ──
   const [rotation, setRotation] = useState(0);
   const [flipX, setFlipX] = useState(false);
 
-  // ── Drag/pinch session state (non-rendering)
-  const sessionRef = useRef({
-    dragActive: false,
-    dragStartX: 0, dragStartY: 0, dragOrigX: 0, dragOrigY: 0,
-    pinchActive: false,
-    pinchStartDist: 0, pinchStartScale: 1,
-  });
+  // ── Animated values (UI thread via native driver) ──
+  const translateX = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  // ── Crop math state (non-rendering)
+  // ── Crop math state (ref, no re-render) ──
   const stateRef = useRef({
     x: 0, y: 0, scale: 1, rotation: 0, flipX: false,
     minScale: 1, maxScale: 8,
@@ -66,16 +63,20 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
     const maxY = halfH - r;
     s.x = maxX > 0 ? Math.max(-maxX, Math.min(maxX, s.x)) : 0;
     s.y = maxY > 0 ? Math.max(-maxY, Math.min(maxY, s.y)) : 0;
+    translateX.setValue(s.x);
+    translateY.setValue(s.y);
   };
 
-  const syncDisplay = () => {
+  const getScalePct = () => {
     const s = stateRef.current;
-    setDispX(s.x);
-    setDispY(s.y);
-    setDispScale(s.scale);
     const range = (s.maxScale - s.minScale) * 0.5;
-    const pct = range > 0 ? Math.round(100 * (s.scale - s.minScale) / range) : 0;
-    setZoomPct(Math.max(0, Math.min(100, pct)));
+    if (range <= 0) return 0;
+    return Math.max(0, Math.min(100, Math.round(100 * (s.scale - s.minScale) / range)));
+  };
+
+  const updateZoom = () => {
+    const pct = getScalePct();
+    setZoomPct(pct);
   };
 
   const fitImage = () => {
@@ -88,27 +89,32 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
     s.scale = Math.max(sw, sh) * 1.05;
     s.minScale = Math.max(sw, sh);
     s.x = 0; s.y = 0;
-    syncDisplay();
+    translateX.setValue(0);
+    translateY.setValue(0);
+    scaleAnim.setValue(s.scale);
+    updateZoom();
   };
 
+  // ── Slider → scale ──
   const setScaleFromSlider = (pct: number) => {
     const s = stateRef.current;
     const t = pct / 100;
     s.scale = s.minScale + (s.maxScale - s.minScale) * t * 0.5;
     s.scale = Math.max(s.minScale, s.scale);
+    scaleAnim.setValue(s.scale);
     clampCrop();
-    syncDisplay();
+    updateZoom();
   };
 
-  // ── stage 布局后更新 cropSize
+  // ── stage 布局后更新 cropSize ──
   useEffect(() => {
     if (stageDim.w > 0 && guideSize > 0) {
       stateRef.current.cropSize = guideSize;
-      if (imgNatural.w > 0) { fitImage(); }
+      if (imgNatural.w > 0) fitImage();
     }
   }, [stageDim.w, stageDim.h]);
 
-  // ── 加载图片
+  // ── 加载图片 ──
   useEffect(() => {
     if (!visible || !src) return;
     setImgNatural({ w: 0, h: 0 });
@@ -121,72 +127,62 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
   }, [visible, src]);
 
   useEffect(() => {
-    if (visible && imgNatural.w > 0) { fitImage(); }
+    if (visible && imgNatural.w > 0) fitImage();
   }, [visible, imgNatural.w]);
 
-  // ── PanResponder (修复: grant 时按 touch 数分支，不依赖之前 flag)
-  const panResponder = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
-    onPanResponderGrant: (e) => {
-      const touches = e.nativeEvent.touches;
-      const s = stateRef.current;
-      if (touches.length >= 2) {
-        // ── 双指缩放 ──
-        sessionRef.current.pinchActive = true;
-        sessionRef.current.pinchStartDist = Math.hypot(
-          touches[0].pageX - touches[1].pageX,
-          touches[0].pageY - touches[1].pageY,
-        );
-        sessionRef.current.pinchStartScale = s.scale;
-      } else {
-        // ── 单指拖动 ──
-        sessionRef.current.dragActive = true;
-        sessionRef.current.dragStartX = touches[0].pageX;
-        sessionRef.current.dragStartY = touches[0].pageY;
-        sessionRef.current.dragOrigX = s.x;
-        sessionRef.current.dragOrigY = s.y;
-      }
-    },
-    onPanResponderMove: (e) => {
-      const touches = e.nativeEvent.touches;
-      const s = stateRef.current;
-      if (touches.length >= 2) {
-        // 加入第二指后激活 pinch
-        if (!sessionRef.current.pinchActive) {
-          sessionRef.current.pinchActive = true;
-          sessionRef.current.pinchStartDist = Math.hypot(
-            touches[0].pageX - touches[1].pageX,
-            touches[0].pageY - touches[1].pageY,
-          );
-          sessionRef.current.pinchStartScale = s.scale;
-        }
-        const d = Math.hypot(
-          touches[0].pageX - touches[1].pageX,
-          touches[0].pageY - touches[1].pageY,
-        );
-        s.scale = Math.max(s.minScale, Math.min(s.maxScale,
-          sessionRef.current.pinchStartScale * (d / sessionRef.current.pinchStartDist)));
-        clampCrop();
-        syncDisplay();
-      } else if (touches.length === 1 && sessionRef.current.dragActive) {
-        s.x = sessionRef.current.dragOrigX + (touches[0].pageX - sessionRef.current.dragStartX);
-        s.y = sessionRef.current.dragOrigY + (touches[0].pageY - sessionRef.current.dragStartY);
-        clampCrop();
-        syncDisplay();
-      }
-    },
-    onPanResponderRelease: () => {
-      sessionRef.current.dragActive = false;
-      sessionRef.current.pinchActive = false;
-    },
-    onPanResponderTerminate: () => {
-      sessionRef.current.dragActive = false;
-      sessionRef.current.pinchActive = false;
-    },
-  }), []);
+  // ── PanResponder (手势逻辑在 JS 线程,动画值写入 Animated.Value → UI 线程执行) ──
+  const panResponder = useMemo(() => {
+    let dragOrigX = 0, dragOrigY = 0, dragStartX = 0, dragStartY = 0, dragActive = false;
+    let pinchStartDist = 0, pinchStartScale = 1, pinchActive = false;
 
-  // ── Confirm
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e) => {
+        const touches = e.nativeEvent.touches;
+        const s = stateRef.current;
+        if (touches.length >= 2) {
+          pinchActive = true;
+          pinchStartDist = Math.hypot(touches[0].pageX - touches[1].pageX, touches[0].pageY - touches[1].pageY);
+          pinchStartScale = s.scale;
+        } else {
+          dragActive = true;
+          dragStartX = touches[0].pageX;
+          dragStartY = touches[0].pageY;
+          dragOrigX = s.x;
+          dragOrigY = s.y;
+        }
+      },
+      onPanResponderMove: (e) => {
+        const touches = e.nativeEvent.touches;
+        const s = stateRef.current;
+
+        if (touches.length >= 2) {
+          // 中途加第二指: 激活 pinch
+          if (!pinchActive) {
+            pinchActive = true;
+            dragActive = false;
+            pinchStartDist = Math.hypot(touches[0].pageX - touches[1].pageX, touches[0].pageY - touches[1].pageY);
+            pinchStartScale = s.scale;
+          }
+          const d = Math.hypot(touches[0].pageX - touches[1].pageX, touches[0].pageY - touches[1].pageY);
+          s.scale = Math.max(s.minScale, Math.min(s.maxScale, pinchStartScale * (d / pinchStartDist)));
+          scaleAnim.setValue(s.scale);
+          clampCrop();
+          updateZoom();
+        } else if (touches.length === 1 && dragActive) {
+          s.x = dragOrigX + (touches[0].pageX - dragStartX);
+          s.y = dragOrigY + (touches[0].pageY - dragStartY);
+          clampCrop();
+          updateZoom();
+        }
+      },
+      onPanResponderRelease: () => { dragActive = false; pinchActive = false; },
+      onPanResponderTerminate: () => { dragActive = false; pinchActive = false; },
+    });
+  }, []);
+
+  // ── Confirm ──
   const handleConfirm = async () => {
     if (confirming || imgNatural.w === 0) return;
     setConfirming(true);
@@ -216,12 +212,10 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
       if (result.base64) onConfirm(`data:image/jpeg;base64,${result.base64}`);
       else setErrMsg(t('cropFailed'));
     } catch (e) {
-      console.error('crop failed', e);
       setErrMsg(t('cropFailed'));
     } finally { setConfirming(false); }
   };
 
-  // ── Rotate / flip
   const rotate90 = () => {
     const s = stateRef.current;
     s.rotation = (s.rotation + 90) % 360;
@@ -252,16 +246,18 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
         {...panResponder.panHandlers}
       >
         {imgNatural.w > 0 && stageDim.w > 0 && (
-          <Image
+          <Animated.Image
             source={{ uri: src }}
             style={{
               position: 'absolute',
               width: imgNatural.w,
               height: imgNatural.h,
-              left: stageDim.w / 2 - imgNatural.w / 2 + dispX,
-              top: stageDim.h / 2 - imgNatural.h / 2 + dispY,
+              left: stageDim.w / 2 - imgNatural.w / 2,
+              top: stageDim.h / 2 - imgNatural.h / 2,
               transform: [
-                { scale: dispScale },
+                { translateX },
+                { translateY },
+                { scale: scaleAnim },
                 { rotate: `${rotation}deg` },
                 { scaleX: flipX ? -1 : 1 },
               ],
