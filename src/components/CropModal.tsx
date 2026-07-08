@@ -17,10 +17,8 @@
 //   - web 用 createPortal;RN 用 ModalOverlay
 
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  View, Text, TouchableOpacity, PanResponder, Animated, Image, StyleSheet,
-  useWindowDimensions,
-} from 'react-native';
+import { View, Text, TouchableOpacity, PanResponder, Animated, Image, StyleSheet, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line } from 'react-native-svg';
 import * as ImageManipulator from 'expo-image-manipulator';
 const { FlipType } = ImageManipulator;
@@ -37,6 +35,7 @@ const STAGE_PAD_H = 16;
 
 export default function CropModal({ visible, src, onConfirm, onCancel }: CropModalProps) {
   const { width: WIN_W } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const stageW = WIN_W - STAGE_PAD_H * 2;
 
   const [imgNatural, setImgNatural] = useState({ w: 0, h: 0 });
@@ -179,7 +178,7 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
   return (
     <View style={styles.overlay}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Text style={styles.title}>调整头像</Text>
         <TouchableOpacity onPress={onCancel} style={styles.closeBtn}>
           <Text style={styles.closeBtnText}>✕</Text>
@@ -305,7 +304,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(8,8,12,0.92)', justifyContent: 'flex-start', alignItems: 'stretch',
   },
   header: {
-    paddingTop: 10, paddingHorizontal: 16, paddingBottom: 8,
+    paddingHorizontal: 16, paddingBottom: 8,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
   title: { fontSize: 14, fontWeight: '600', color: '#fff', letterSpacing: -0.2 },
