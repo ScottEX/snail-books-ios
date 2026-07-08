@@ -1294,6 +1294,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
             </View>
             <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>{t('coverUpdated')}</Text>
             <Image source={{ uri: coverCropResult }} style={{ width: Math.min(screenW * 0.7, 300), height: Math.round(Math.min(screenW * 0.7, 300) * (260 / screenW)), borderRadius: 4, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' }} resizeMode="cover" />
+            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{t('coverHint')}</Text>
             <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
               <TouchableOpacity
                 style={{ flex: 1, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center' }}
