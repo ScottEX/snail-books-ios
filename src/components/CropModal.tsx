@@ -1,35 +1,25 @@
 // ═══════════════════════════════════════════════════════════════
-// CropModal — 头像裁剪 modal(RN 版,对应 web PartnerScreen 的 inline crop modal)
+// CropModal — 头像裁剪 modal (RN 版,对应 web PartnerScreen 的 inline crop modal)
 // ═══════════════════════════════════════════════════════════════
 //
-// 功能对齐 web 的 createPortal crop modal:
-//   - 圆形裁剪框(stageSize * 0.76)
-//   - 单指拖动 / 双指缩放(PanResponder)
-//   - 旋转 +90° / 水平翻转(按钮触发)
-//   - 滑块控制缩放
-//   - 确认时调 expo-image-manipulator 做旋转 + flip + crop + resize,
-//     输出 400x400 jpeg base64
-//
-// 实现差异 vs web:
-//   - web 用 HTMLCanvas + mouse/touch/wheel event;RN 用 PanResponder + Animated
-//   - web 的引导圆圈用 div+borderRadius overlay;RN 用 react-native-svg overlay
-//   - web 用 createPortal;RN 用绝对定位 overlay
-//   - 图片全尺寸渲染在 stage 区域,引导圆圈只是视觉 overlay(不对齐 web 的 canvas clip)
+// v2: react-native-gesture-handler + reanimated (UI thread)
+//    替换 PanResponder,解决双指缩放不生效/跳动/不跟手问题
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, PanResponder, Animated, Image, StyleSheet, useWindowDimensions } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, useWindowDimensions } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 import * as ImageManipulator from 'expo-image-manipulator';
 const { FlipType } = ImageManipulator;
-import { useAvatarCrop } from '../hooks/useAvatarCrop';
 import { t } from '../i18n';
 import Slider from '@react-native-community/slider';
 
 interface CropModalProps {
   visible: boolean;
-  src: string;                  // 本地 URI
-  onConfirm: (dataUri: string) => void;  // data:image/jpeg;base64,...
+  src: string;
+  onConfirm: (dataUri: string) => void;
   onCancel: () => void;
 }
 
@@ -44,27 +34,86 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
   const [confirming, setConfirming] = useState(false);
   const [errMsg, setErrMsg] = useState('');
   const [stageDim, setStageDim] = useState({ w: 0, h: 0 });
-  // guideSize = 圆形引导框直径,对齐 web: min(stageW,stageH) * 0.76
   const guideSize = !stageDim.w ? WIN_W - STAGE_PAD_H * 2 : Math.round(Math.min(stageDim.w, stageDim.h) * 0.76);
 
-  const crop = useAvatarCrop({
-    stageSize: guideSize,
-    imgWidth: imgNatural.w,
-    imgHeight: imgNatural.h,
+  // ── Rotation / flip (React state, triggers re-render for tool buttons) ──
+  const [rotation, setRotation] = useState(0);
+  const [flipX, setFlipX] = useState(false);
+
+  // ── Shared values for gesture-driven transforms (UI thread) ──
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const scaleSV = useSharedValue(1);
+
+  // ── Crop math state (ref, high-freq updates, no re-render) ──
+  const stateRef = useRef({
+    x: 0, y: 0, scale: 1, rotation: 0, flipX: false,
+    minScale: 1, maxScale: 8,
+    cropSize: Math.round(guideSize * 0.76),
   });
 
-  // ── stage 布局后,更新 hook 内的 cropSize(对齐 web 动态 cropSize)──
+  // ── Clamp: keep image covering the crop circle ──
+  const clampCrop = () => {
+    const s = stateRef.current;
+    if (imgNatural.w <= 0) return;
+    const halfW = (imgNatural.w * s.scale) / 2;
+    const halfH = (imgNatural.h * s.scale) / 2;
+    const r = s.cropSize / 2;
+    const maxX = halfW - r;
+    const maxY = halfH - r;
+    s.x = maxX > 0 ? Math.max(-maxX, Math.min(maxX, s.x)) : 0;
+    s.y = maxY > 0 ? Math.max(-maxY, Math.min(maxY, s.y)) : 0;
+    translateX.value = s.x;
+    translateY.value = s.y;
+  };
+
+  // ── Fit image to fill crop circle ──
+  const fitImage = () => {
+    if (imgNatural.w <= 0 || imgNatural.h <= 0) return;
+    const s = stateRef.current;
+    const effW = (s.rotation % 180 === 0) ? imgNatural.w : imgNatural.h;
+    const effH = (s.rotation % 180 === 0) ? imgNatural.h : imgNatural.w;
+    const sw = s.cropSize / effW;
+    const sh = s.cropSize / effH;
+    s.scale = Math.max(sw, sh) * 1.05;
+    s.minScale = Math.max(sw, sh);
+    s.x = 0; s.y = 0;
+    translateX.value = 0;
+    translateY.value = 0;
+    scaleSV.value = s.scale;
+  };
+
+  // ── Slider → scale (pct 0-100) ──
+  const setScaleFromSlider = (pct: number) => {
+    const s = stateRef.current;
+    const t = pct / 100;
+    s.scale = s.minScale + (s.maxScale - s.minScale) * t * 0.5;
+    s.scale = Math.max(s.minScale, s.scale);
+    scaleSV.value = s.scale;
+    clampCrop();
+    return getScalePct();
+  };
+
+  const getScalePct = (): number => {
+    const s = stateRef.current;
+    const range = (s.maxScale - s.minScale) * 0.5;
+    if (range <= 0) return 0;
+    const t = (s.scale - s.minScale) / range;
+    return Math.max(0, Math.min(100, t * 100));
+  };
+
+  // ── stage 布局后更新 cropSize ──
   useEffect(() => {
     if (stageDim.w > 0 && guideSize > 0) {
-      crop.stateRef.cropSize = guideSize;
+      stateRef.current.cropSize = guideSize;
       if (imgNatural.w > 0) {
-        crop.fitImage();
-        setZoomPct(crop.getScalePct());
+        fitImage();
+        setZoomPct(getScalePct());
       }
     }
   }, [stageDim.w, stageDim.h]);
 
-  // ── 加载图片自然尺寸 ──
+  // ── 加载图片 ──
   useEffect(() => {
     if (!visible || !src) return;
     setImgNatural({ w: 0, h: 0 });
@@ -74,91 +123,88 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
     });
   }, [visible, src]);
 
-  // ── 图片尺寸拿到后,初始化 fit ──
+  // ── 图片加载后初始化 ──
   useEffect(() => {
     if (visible && imgNatural.w > 0) {
-      crop.fitImage();
-      setZoomPct(crop.getScalePct());
+      fitImage();
+      setZoomPct(getScalePct());
     }
   }, [visible, imgNatural.w]);
 
-  // ── PanResponder:单指拖动 + 双指缩放 ── (rebuild when image dimensions load)
-  const panResponder = useMemo(
-    () => PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (e) => {
-        if (imgNatural.w === 0) return;
-        const touches = e.nativeEvent.touches;
-        if (touches.length === 1) {
-          crop.stateRef.drag.active = true;
-          crop.stateRef.drag.sx = touches[0].pageX;
-          crop.stateRef.drag.sy = touches[0].pageY;
-          crop.stateRef.drag.ox = crop.stateRef.x;
-          crop.stateRef.drag.oy = crop.stateRef.y;
-        } else if (touches.length === 2) {
-          crop.stateRef.pinch.active = true;
-          crop.stateRef.pinch.startDist = Math.hypot(
-            touches[0].pageX - touches[1].pageX,
-            touches[0].pageY - touches[1].pageY,
-          );
-          crop.stateRef.pinch.startScale = crop.stateRef.scale;
-          crop.stateRef.pinch.midX = (touches[0].pageX + touches[1].pageX) / 2;
-          crop.stateRef.pinch.midY = (touches[0].pageY + touches[1].pageY) / 2;
-        }
-      },
-      onPanResponderMove: (e) => {
-        if (imgNatural.w === 0) return;
-        const touches = e.nativeEvent.touches;
-        if (touches.length === 1 && crop.stateRef.drag.active) {
-          crop.stateRef.x = crop.stateRef.drag.ox + (touches[0].pageX - crop.stateRef.drag.sx);
-          crop.stateRef.y = crop.stateRef.drag.oy + (touches[0].pageY - crop.stateRef.drag.sy);
-          crop.translateX.setValue(crop.stateRef.x);
-          crop.translateY.setValue(crop.stateRef.y);
-          crop.clampCrop();
-        } else if (touches.length === 2 && crop.stateRef.pinch.active) {
-          const d = Math.hypot(
-            touches[0].pageX - touches[1].pageX,
-            touches[0].pageY - touches[1].pageY,
-          );
-          const ns = Math.max(
-            crop.stateRef.minScale,
-            Math.min(crop.stateRef.maxScale, crop.stateRef.pinch.startScale * (d / crop.stateRef.pinch.startDist)),
-          );
-          crop.stateRef.scale = ns;
-          crop.scaleAnim.setValue(ns);
-          crop.clampCrop();
-          setZoomPct(crop.getScalePct());
-        }
-      },
-      onPanResponderRelease: () => {
-        crop.stateRef.drag.active = false;
-        crop.stateRef.pinch.active = false;
-      },
-      onPanResponderTerminate: () => {
-        crop.stateRef.drag.active = false;
-        crop.stateRef.pinch.active = false;
-      },
-    }),
-    [imgNatural.w],
-  );
+  // ── Gestures (UI thread) ──
 
-  // ── 确认:实际裁剪 ──
+  // Pan: single finger drag
+  const panStartX = useSharedValue(0);
+  const panStartY = useSharedValue(0);
+
+  const panGesture = Gesture.Pan()
+    .maxPointers(1)
+    .onBegin(() => {
+      panStartX.value = stateRef.current.x;
+      panStartY.value = stateRef.current.y;
+    })
+    .onUpdate((e) => {
+      if (imgNatural.w === 0) return;
+      stateRef.current.x = panStartX.value + e.translationX;
+      stateRef.current.y = panStartY.value + e.translationY;
+      clampCrop();
+    })
+    .onEnd(() => {
+      setZoomPct(getScalePct());
+    });
+
+  // Pinch: two-finger zoom
+  const pinchBaseScale = useSharedValue(1);
+
+  const pinchGesture = Gesture.Pinch()
+    .onBegin(() => {
+      pinchBaseScale.value = stateRef.current.scale;
+    })
+    .onUpdate((e) => {
+      if (imgNatural.w === 0) return;
+      const ns = Math.max(
+        stateRef.current.minScale,
+        Math.min(stateRef.current.maxScale, pinchBaseScale.value * e.scale),
+      );
+      stateRef.current.scale = ns;
+      scaleSV.value = ns;
+      clampCrop();
+    })
+    .onEnd(() => {
+      setZoomPct(getScalePct());
+    });
+
+  const composedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
+
+  // ── Animated image style ──
+  const imageStyle = useAnimatedStyle(() => ({
+    position: 'absolute' as const,
+    width: imgNatural.w || 1,
+    height: imgNatural.h || 1,
+    left: stageDim.w > 0 ? stageDim.w / 2 - (imgNatural.w || 1) / 2 : 0,
+    top: stageDim.h > 0 ? stageDim.h / 2 - (imgNatural.h || 1) / 2 : 0,
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: scaleSV.value },
+      { rotate: `${rotation}deg` },
+      { scaleX: flipX ? -1 : 1 },
+    ],
+  }));
+
+  // ── Confirm: crop + resize ──
   const handleConfirm = async () => {
     if (confirming || imgNatural.w === 0) return;
     setConfirming(true);
     setErrMsg('');
     try {
-      const s = crop.stateRef;
+      const s = stateRef.current;
       const outSize = 400;
-      const cropSide = s.cropSize / s.scale; // 原图坐标下裁剪边长
+      const cropSide = s.cropSize / s.scale;
       const rotatedW = s.rotation % 180 === 0 ? imgNatural.w : imgNatural.h;
       const rotatedH = s.rotation % 180 === 0 ? imgNatural.h : imgNatural.w;
-      // 裁剪框中心在旋转后图片坐标系 = 图片中心 + (-translateX/scale, -translateY/scale)
-      // 图片中心在原图坐标 = (rotatedW/2, rotatedH/2)
       const originX = rotatedW / 2 - s.x / s.scale - cropSide / 2;
       const originY = rotatedH / 2 - s.y / s.scale - cropSide / 2;
-      // clamp 到合法范围
       const cx = Math.max(0, Math.min(originX, rotatedW - cropSide));
       const cy = Math.max(0, Math.min(originY, rotatedH - cropSide));
       const cw = Math.min(cropSide, rotatedW - cx);
@@ -166,7 +212,7 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
 
       const ops: ImageManipulator.Action[] = [];
       if (s.flipX) ops.push({ flip: FlipType.Horizontal });
-      if (s.rotation !== 0) ops.push({ rotate: s.rotation });
+      if (s.rotation !== 0) ops.push({ rotate: s.rotation as any });
       ops.push({ crop: { originX: cx, originY: cy, width: cw, height: ch } });
       ops.push({ resize: { width: outSize, height: outSize } });
 
@@ -188,6 +234,21 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
     }
   };
 
+  // ── Rotate / flip ──
+  const rotate90 = () => {
+    const s = stateRef.current;
+    s.rotation = (s.rotation + 90) % 360;
+    setRotation(s.rotation);
+    fitImage();
+    setZoomPct(getScalePct());
+  };
+
+  const toggleFlip = () => {
+    const s = stateRef.current;
+    s.flipX = !s.flipX;
+    setFlipX(s.flipX);
+  };
+
   if (!visible) return null;
 
   return (
@@ -200,59 +261,45 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
         </TouchableOpacity>
       </View>
 
-      {/* Stage area — image fills the space, guide circle is an overlay (aligns web approach) */}
+      {/* Stage area — gestures on UI thread */}
       <View
         style={styles.stageArea}
         onLayout={(e) => setStageDim({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
-        {...panResponder.panHandlers}
       >
-        {imgNatural.w > 0 && stageDim.w > 0 && (
-          <Animated.Image
-            source={{ uri: src }}
-            style={{
-              position: 'absolute',
-              width: imgNatural.w,
-              height: imgNatural.h,
-              left: stageDim.w / 2 - imgNatural.w / 2,
-              top: stageDim.h / 2 - imgNatural.h / 2,
-              transform: [
-                { translateX: crop.translateX },
-                { translateY: crop.translateY },
-                { scale: crop.scaleAnim },
-                { rotate: `${crop.rotation}deg` },
-                { scaleX: crop.flipX ? -1 : 1 },
-              ],
-            }}
-          />
-        )}
+        <GestureDetector gesture={composedGesture}>
+          <Animated.View style={StyleSheet.absoluteFill}>
+            {imgNatural.w > 0 && stageDim.w > 0 && (
+              <Animated.Image
+                source={{ uri: src }}
+                style={imageStyle}
+              />
+            )}
+          </Animated.View>
+        </GestureDetector>
+
         {/* Guide circle overlay — visual indicator, no clip */}
         <View style={styles.guideOverlay} pointerEvents="none">
-          <Svg
-            width={guideSize}
-            height={guideSize}
-          >
-            {/* 外圆 */}
+          <Svg width={guideSize} height={guideSize}>
             <Circle cx={guideSize / 2} cy={guideSize / 2} r={guideSize / 2 - 1} stroke="rgba(255,255,255,0.8)" strokeWidth={2} fill="transparent" />
-            {/* 三分线 */}
             <Line x1={0} y1={guideSize / 3} x2={guideSize} y2={guideSize / 3} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
             <Line x1={0} y1={(guideSize * 2) / 3} x2={guideSize} y2={(guideSize * 2) / 3} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
             <Line x1={guideSize / 3} y1={0} x2={guideSize / 3} y2={guideSize} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
             <Line x1={(guideSize * 2) / 3} y1={0} x2={(guideSize * 2) / 3} y2={guideSize} stroke="rgba(255,255,255,0.18)" strokeWidth={1} />
-            {/* 四角把手(L 形,对齐 web border 拼法) */}
             <Path
-              d={`M 0,18 L 0,0 L 18,0 M ${guideSize-18},0 L ${guideSize},0 L ${guideSize},18 M 0,${guideSize-18} L 0,${guideSize} L 18,${guideSize} M ${guideSize},${guideSize-18} L ${guideSize},${guideSize} L ${guideSize-18},${guideSize}`}
+              d={`M 0,18 L 0,0 L 18,0 M ${guideSize - 18},0 L ${guideSize},0 L ${guideSize},18 M 0,${guideSize - 18} L 0,${guideSize} L 18,${guideSize} M ${guideSize},${guideSize - 18} L ${guideSize},${guideSize} L ${guideSize - 18},${guideSize}`}
               stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
               fill="transparent" opacity={0.9}
             />
           </Svg>
         </View>
+
         {/* Hint pill */}
         <View style={styles.pill} pointerEvents="none">
           <Text style={styles.pillText}>{t('cropPill')}</Text>
         </View>
       </View>
 
-      {/* Toolbar: slider + 旋转 + 翻转 */}
+      {/* Toolbar */}
       <View style={styles.toolbar}>
         <View style={styles.zoomRow}>
           <Text style={styles.zoomEdgeSmall}>A</Text>
@@ -263,8 +310,8 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
             step={1}
             value={zoomPct}
             onValueChange={(v) => {
-              crop.setScale(v);
-              setZoomPct(crop.getScalePct());
+              const pct = setScaleFromSlider(v);
+              setZoomPct(pct);
             }}
             minimumTrackTintColor="#5B5BD6"
             maximumTrackTintColor="rgba(255,255,255,0.2)"
@@ -273,11 +320,11 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
           <Text style={styles.zoomEdge}>A</Text>
         </View>
         <View style={styles.divider} />
-        <TouchableOpacity style={styles.toolBtn} onPress={() => { crop.rotate90(); setZoomPct(crop.getScalePct()); }}>
+        <TouchableOpacity style={styles.toolBtn} onPress={rotate90}>
           <Text style={styles.toolIcon}>↻</Text>
           <Text style={styles.toolLabel}>{t('cropRotate')}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.toolBtn, { marginLeft: 8 }]} onPress={crop.toggleFlip}>
+        <TouchableOpacity style={[styles.toolBtn, { marginLeft: 8 }]} onPress={toggleFlip}>
           <Text style={styles.toolIcon}>⇋</Text>
           <Text style={styles.toolLabel}>{t('cropFlip')}</Text>
         </TouchableOpacity>
