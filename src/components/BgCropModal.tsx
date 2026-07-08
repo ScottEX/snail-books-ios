@@ -37,18 +37,19 @@ export default function BgCropModal({ visible, src, onConfirm, onCancel, mode }:
   const [errMsg, setErrMsg] = useState('');
   const [stageDim, setStageDim] = useState({ w: 0, h: 0 });
 
-  // ── Guide: 80% stage width, height by mode
-  //     cover: 260/stageW (banner); bg: stageH/stageW (viewport fill)
+  // ── Guide: aspect ratio from viewport, width capped to fit stage
+  //     Matches web: cropRatio = window.innerHeight / window.innerWidth
+  const bgAspect = WIN_W > 0 ? WIN_H / WIN_W : 812 / 375;
   const stageW = stageDim.w > 0 ? stageDim.w : WIN_W;
-  const stageH = stageDim.h > 0 ? stageDim.h : WIN_H;
+  const stageH2 = stageDim.h > 0 ? stageDim.h : WIN_H;
   const cropAspect = mode === 'cover'
     ? (stageW > 0 ? 260 / stageW : 260 / 375)
-    : (stageW > 0 ? stageH / stageW : WIN_H / WIN_W);
+    : bgAspect;
   const guideW = !stageDim.w
     ? Math.round(WIN_W * 0.76)
     : mode === 'cover'
       ? Math.round(stageDim.w * 0.8)
-      : Math.min(stageDim.w, Math.round(stageDim.h / cropAspect));
+      : Math.min(stageDim.w, Math.round(stageH2 / cropAspect));
   const guideH = Math.round(guideW * cropAspect);
 
   // ── Rotation / flip (React state, non-continuous) ──
