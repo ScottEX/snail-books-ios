@@ -570,7 +570,6 @@ export default function ExpenseScreen({
 
         {/* ── 模块一：每日对账 ── */}
         {activeTab === 0 && (
-          {/* Platform fees card */}
           <View style={[st.card]}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
