@@ -523,9 +523,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       await FileSystem.writeAsStringAsync(tempFile, coverCropResult.split(',')[1], {
         encoding: FileSystem.EncodingType.Base64,
       });
-      const form = new FormData();
-      form.append('file', { uri: tempFile, type: 'image/jpeg', name: 'cover.jpg' } as any);
-      const r: any = await api.uploadProfileCover(form);
+      const r: any = await api.uploadProfileCover({ uri: tempFile, type: 'image/jpeg', name: 'cover.jpg' });
       if (r?.url) {
         const resolved = resolveAssetUrl(r.url) || r.url;
         const sep = resolved.includes('?') ? '&' : '?';
