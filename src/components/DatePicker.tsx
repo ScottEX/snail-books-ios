@@ -77,7 +77,7 @@ export default function DatePicker({
       <DatePickerModal
         visible={open}
         value={date}
-        minDate={max}
+        maxDate={max}
         onClose={() => setOpen(false)}
         onSelect={handleSelect}
       />

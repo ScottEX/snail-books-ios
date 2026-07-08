@@ -901,7 +901,7 @@ export default function ExpenseScreen({
         value={recDate.value}
         onClose={() => setShowRecDatePicker(false)}
         onSelect={(d) => { recDate.setValue(d); recDate.setError(0); }}
-        minDate={sd.today}
+        maxDate={sd.today}
         title={t('billDate')}
       />
       {/* Exp date picker */}
@@ -919,7 +919,7 @@ export default function ExpenseScreen({
         value={feeDate.value}
         onClose={() => setShowFeeDatePicker(false)}
         onSelect={(d) => { if (d <= sd.today) { feeDate.setValue(d); feeDate.setError(0); } else { feeDate.setError(Date.now()); } }}
-        minDate={undefined}
+        maxDate={sd.today}
         title={t('entryDate')}
       />
       </View>

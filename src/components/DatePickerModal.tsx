@@ -10,6 +10,7 @@ interface Props {
   onClose: () => void;
   onSelect: (date: string) => void;
   minDate?: string;
+  maxDate?: string;
   title?: string;
 }
 
@@ -21,7 +22,7 @@ const parseDate = (s: string): Date => {
   return new Date(y, m-1, d);
 };
 
-export default function DatePickerModal({ visible, value, onClose, onSelect, minDate }: Props) {
+export default function DatePickerModal({ visible, value, onClose, onSelect, minDate, maxDate }: Props) {
   const [draft, setDraft] = useState(value);
 
   const prevVisible = useRef(visible);
@@ -39,7 +40,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
   })();
 
   const isValid = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
-  const isFuture = (s: string) => !!minDate && s > minDate;
+  const isFuture = (s: string) => !!maxDate && s > maxDate;
 
   const handlePickerChange = (_e: DateTimePickerEvent, date?: Date) => {
     if (date) setDraft(fmtDate(date));
@@ -59,7 +60,8 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
           mode="date"
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
           locale={locale}
-          maximumDate={minDate ? parseDate(minDate) : undefined}
+          minimumDate={minDate ? parseDate(minDate) : undefined}
+          maximumDate={maxDate ? parseDate(maxDate) : undefined}
           onChange={handlePickerChange}
           themeVariant="light"
         />
