@@ -1261,7 +1261,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         visible={showBgCrop}
         src={bgCropSrc}
         mode="bg"
-        onCancel={() => { setShowBgCrop(false); setBgCropSrc(''); }}
+        onCancel={() => { setShowBgCrop(false); setBgCropSrc(''); setShowThemeModal(true); }}
         onConfirm={handleBgCropConfirm}
       />
       {/* Avatar crop modal */}

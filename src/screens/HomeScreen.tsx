@@ -826,7 +826,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         visible={showBgCrop}
         src={bgCropSrc}
         mode="bg"
-        onCancel={() => { setShowBgCrop(false); setBgCropSrc(''); }}
+        onCancel={() => { setShowBgCrop(false); setBgCropSrc(''); setShowBgModal(true); }}
         onConfirm={handleBgCropConfirm}
       />
       {/* BG preview modal — same pattern as ProfileScreen cover preview */}
