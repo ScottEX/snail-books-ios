@@ -275,7 +275,7 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
           <Text style={styles.toolIcon}>↻</Text>
           <Text style={styles.toolLabel}>旋转</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.toolBtn} onPress={crop.toggleFlip}>
+        <TouchableOpacity style={[styles.toolBtn, { marginLeft: 8 }]} onPress={crop.toggleFlip}>
           <Text style={styles.toolIcon}>⇋</Text>
           <Text style={styles.toolLabel}>翻转</Text>
         </TouchableOpacity>
