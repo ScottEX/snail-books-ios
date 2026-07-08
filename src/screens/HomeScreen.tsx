@@ -1421,7 +1421,7 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
     backgroundColor: 'rgba(255,255,255,0.20)',
   },
   navItem: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  navIconWrap: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  navIconWrap: { width: 48, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   navIconWrapActive: { backgroundColor: withAlpha(colors.textMain, 0.1) },
 
   // BG settings modal extras
