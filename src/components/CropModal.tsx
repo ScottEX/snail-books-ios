@@ -12,9 +12,9 @@
 //
 // 实现差异 vs web:
 //   - web 用 HTMLCanvas + mouse/touch/wheel event;RN 用 PanResponder + Animated
-//   - web 的圆形遮罩用 SVG <circle> + ctx.arc clip;RN 用 View borderRadius + overflow:hidden
-//   - web 的三分线/把手用 SVG;RN 用 react-native-svg
-//   - web 用 createPortal;RN 用 ModalOverlay
+//   - web 的引导圆圈用 div+borderRadius overlay;RN 用 react-native-svg overlay
+//   - web 用 createPortal;RN 用绝对定位 overlay
+//   - 图片全尺寸渲染在 stage 区域,引导圆圈只是视觉 overlay(不对齐 web 的 canvas clip)
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, PanResponder, Animated, Image, StyleSheet, useWindowDimensions } from 'react-native';
@@ -42,6 +42,7 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
   const [zoomPct, setZoomPct] = useState(0);
   const [confirming, setConfirming] = useState(false);
   const [errMsg, setErrMsg] = useState('');
+  const [stageDim, setStageDim] = useState({ w: 0, h: 0 });
 
   const crop = useAvatarCrop({
     stageSize: stageW,
@@ -185,36 +186,36 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
         </TouchableOpacity>
       </View>
 
-      {/* Stage area — fills space between header and toolbar, centers the circular crop */}
-      <View style={styles.stageArea} {...panResponder.panHandlers}>
-        <View style={[styles.cropCircle, {
-          width: stageW, height: stageW, borderRadius: stageW / 2,
-        }]}>
-          {imgNatural.w > 0 && (
-            <Animated.Image
-              source={{ uri: src }}
-              style={{
-                position: 'absolute',
-                width: imgNatural.w,
-                height: imgNatural.h,
-                left: stageW / 2 - imgNatural.w / 2,
-                top: stageW / 2 - imgNatural.h / 2,
-                transform: [
-                  { translateX: crop.translateX },
-                  { translateY: crop.translateY },
-                  { scale: crop.scaleAnim },
-                  { rotate: `${crop.rotation}deg` },
-                  { scaleX: crop.flipX ? -1 : 1 },
-                ],
-              }}
-            />
-          )}
-          {/* 圆形描边 + 三分线 + 四角把手 */}
+      {/* Stage area — image fills the space, guide circle is an overlay (aligns web approach) */}
+      <View
+        style={styles.stageArea}
+        onLayout={(e) => setStageDim({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
+        {...panResponder.panHandlers}
+      >
+        {imgNatural.w > 0 && stageDim.w > 0 && (
+          <Animated.Image
+            source={{ uri: src }}
+            style={{
+              position: 'absolute',
+              width: imgNatural.w,
+              height: imgNatural.h,
+              left: stageDim.w / 2 - imgNatural.w / 2,
+              top: stageDim.h / 2 - imgNatural.h / 2,
+              transform: [
+                { translateX: crop.translateX },
+                { translateY: crop.translateY },
+                { scale: crop.scaleAnim },
+                { rotate: `${crop.rotation}deg` },
+                { scaleX: crop.flipX ? -1 : 1 },
+              ],
+            }}
+          />
+        )}
+        {/* Guide circle overlay — visual indicator, no clip */}
+        <View style={styles.guideOverlay} pointerEvents="none">
           <Svg
             width={stageW}
             height={stageW}
-            style={{ position: 'absolute', top: 0, left: 0 }}
-            pointerEvents="none"
           >
             {/* 外圆 */}
             <Circle cx={stageW / 2} cy={stageW / 2} r={stageW / 2 - 1} stroke="rgba(255,255,255,0.8)" strokeWidth={2} fill="transparent" />
@@ -318,11 +319,11 @@ const styles = StyleSheet.create({
   stageArea: {
     flex: 1, backgroundColor: '#000',
     justifyContent: 'center', alignItems: 'center',
+    overflow: 'hidden', position: 'relative',
   },
-  cropCircle: {
-    backgroundColor: '#111',
-    overflow: 'hidden',
-    position: 'relative',
+  guideOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    alignItems: 'center', justifyContent: 'center',
   },
   pill: {
     position: 'absolute', bottom: 8, alignSelf: 'center',
