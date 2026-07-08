@@ -16,9 +16,10 @@
 //   - web 的三分线/把手用 SVG;RN 用 react-native-svg
 //   - web 用 createPortal;RN 用 ModalOverlay
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, TouchableOpacity, PanResponder, Animated, Image, StyleSheet,
+  useWindowDimensions,
 } from 'react-native';
 import Svg, { Circle, Line } from 'react-native-svg';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -32,17 +33,19 @@ interface CropModalProps {
   onCancel: () => void;
 }
 
-const STAGE_PADDING = 16;
+const STAGE_PAD_H = 16;
 
 export default function CropModal({ visible, src, onConfirm, onCancel }: CropModalProps) {
-  const [stageSize, setStageSize] = useState(360);
+  const { width: WIN_W } = useWindowDimensions();
+  const stageW = WIN_W - STAGE_PAD_H * 2;
+
   const [imgNatural, setImgNatural] = useState({ w: 0, h: 0 });
   const [zoomPct, setZoomPct] = useState(0);
   const [confirming, setConfirming] = useState(false);
   const [errMsg, setErrMsg] = useState('');
 
   const crop = useAvatarCrop({
-    stageSize: stageSize - STAGE_PADDING * 2,
+    stageSize: stageW,
     imgWidth: imgNatural.w,
     imgHeight: imgNatural.h,
   });
@@ -173,11 +176,8 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
 
   if (!visible) return null;
 
-  const cropR = crop.stateRef.cropSize / 2;
-  const stageW = stageSize - STAGE_PADDING * 2;
-
   return (
-    <View style={styles.overlay} onLayout={(e) => setStageSize(Math.min(e.nativeEvent.layout.width, 600))}>
+    <View style={styles.overlay}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>调整头像</Text>
@@ -186,11 +186,8 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
         </TouchableOpacity>
       </View>
 
-      {/* Stage */}
-      <View
-        style={[styles.stage, { width: stageSize, height: stageSize, padding: STAGE_PADDING }]}
-        {...panResponder.panHandlers}
-      >
+      {/* Stage area — fills space between header and toolbar, centers the circular crop */}
+      <View style={styles.stageArea} {...panResponder.panHandlers}>
         <View style={[styles.cropCircle, {
           width: stageW, height: stageW, borderRadius: stageW / 2,
         }]}>
@@ -319,9 +316,9 @@ const styles = StyleSheet.create({
   },
   closeBtnText: { color: 'rgba(255,255,255,0.7)', fontSize: 16, lineHeight: 20 },
 
-  stage: {
-    backgroundColor: '#000', justifyContent: 'center', alignItems: 'center',
-    overflow: 'hidden',
+  stageArea: {
+    flex: 1, backgroundColor: '#000',
+    justifyContent: 'center', alignItems: 'center',
   },
   cropCircle: {
     backgroundColor: '#111',
