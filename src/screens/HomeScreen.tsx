@@ -373,12 +373,12 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   }, []);
   const loadMonthRevenues = useCallback(async () => {
     try {
-      const todayStr = new Date().toISOString().slice(0, 10);
+      const todayStr = sd.today || new Date().toISOString().slice(0, 10);
       const monthStart = todayStr.slice(0, 7) + '-01';
       const r: any = await api.getDailyRevenue(1, 31, undefined, undefined, undefined, undefined, monthStart, todayStr);
       setMonthRevRecords(r?.records || []);
-    } catch {}
-  }, []);
+    } catch { /* non-fatal */ }
+  }, [sd.today]);
 
   // ── Lazy load on tab change (chart / supply) ──
   const loadChartMonthly = useCallback(async () => {
@@ -388,7 +388,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     try {
       const r: any = await api.getBusinessSummary();
       setBusinessSummary(r || {});
-    } catch { /* non-fatal: chart tab still works without summary */ }
+    } catch { setToast(t('toastLoadFailed')); }
   }, []);
   const loadProducts = useCallback(async () => {
     try { const p: any = await api.getProducts(); setProducts(p || []); } catch { setToast(t('toastLoadFailed')); }
