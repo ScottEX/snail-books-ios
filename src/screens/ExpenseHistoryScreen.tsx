@@ -18,6 +18,7 @@ import HistoryHeader from '../components/HistoryHeader';
 import { parseImages } from '../utils/parseImages';
 import ImagePreview from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
+import LoadingSpinner from '../components/LoadingSpinner';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 import FilterPanel from '../components/FilterPanel';
 
@@ -346,22 +347,10 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         ) : null}
       />
 
-      {/* Initial loading skeleton */}
       {loading && records.length === 0 && (
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 112, paddingHorizontal: 16, paddingBottom: 20 }}>
-          {[...Array(8)].map((_, i) => (
-            <View key={i} style={[st.row, { pointerEvents: 'none' as any }]}>
-              <View style={st.rowTop}>
-                <View style={{ width: 60, height: 18, backgroundColor: withAlpha(colors.textSub, 0.08), borderRadius: 4 }} />
-                <View style={{ width: 80, height: 22, backgroundColor: withAlpha(colors.danger, 0.08), borderRadius: 4 }} />
-              </View>
-              <View style={st.rowBottom}>
-                <View style={{ width: 80, height: 13, backgroundColor: withAlpha(colors.textSub, 0.05), borderRadius: 4 }} />
-                <View style={{ flex: 1 }} />
-              </View>
-            </View>
-          ))}
-        </ScrollView>
+        <View style={{ position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', paddingTop: 112 }}>
+          <LoadingSpinner label={false} />
+        </View>
       )}
 
       <ImagePreview
