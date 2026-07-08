@@ -30,6 +30,7 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
   const insets = useSafeAreaInsets();
 
   const [imgNatural, setImgNatural] = useState({ w: 0, h: 0 });
+  const imgNaturalRef = useRef({ w: 0, h: 0 }); // UI-thread accessible mirror
   const [zoomPct, setZoomPct] = useState(0);
   const [confirming, setConfirming] = useState(false);
   const [errMsg, setErrMsg] = useState('');
@@ -52,12 +53,14 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
     cropSize: Math.round(guideSize * 0.76),
   });
 
-  // ── Clamp: keep image covering the crop circle ──
+  // ── Clamp: keep image covering the crop circle (worklet — called from UI-thread gestures)
   const clampCrop = () => {
+    'worklet';
     const s = stateRef.current;
-    if (imgNatural.w <= 0) return;
-    const halfW = (imgNatural.w * s.scale) / 2;
-    const halfH = (imgNatural.h * s.scale) / 2;
+    const { w, h } = imgNaturalRef.current;
+    if (w <= 0) return;
+    const halfW = (w * s.scale) / 2;
+    const halfH = (h * s.scale) / 2;
     const r = s.cropSize / 2;
     const maxX = halfW - r;
     const maxY = halfH - r;
@@ -118,7 +121,10 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
     if (!visible || !src) return;
     setImgNatural({ w: 0, h: 0 });
     setErrMsg('');
-    Image.getSize(src, (w, h) => setImgNatural({ w, h }), () => {
+    Image.getSize(src, (w, h) => {
+      imgNaturalRef.current = { w, h };
+      setImgNatural({ w, h });
+    }, () => {
       setErrMsg(t('cropFailed'));
     });
   }, [visible, src]);
@@ -144,7 +150,7 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
       panStartY.value = stateRef.current.y;
     })
     .onUpdate((e) => {
-      if (imgNatural.w === 0) return;
+      if (imgNaturalRef.current.w === 0) return;
       stateRef.current.x = panStartX.value + e.translationX;
       stateRef.current.y = panStartY.value + e.translationY;
       clampCrop();
@@ -161,7 +167,7 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
       pinchBaseScale.value = stateRef.current.scale;
     })
     .onUpdate((e) => {
-      if (imgNatural.w === 0) return;
+      if (imgNaturalRef.current.w === 0) return;
       const ns = Math.max(
         stateRef.current.minScale,
         Math.min(stateRef.current.maxScale, pinchBaseScale.value * e.scale),
