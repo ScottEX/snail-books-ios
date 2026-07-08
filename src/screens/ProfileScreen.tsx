@@ -16,6 +16,7 @@ import BackArrow from '../components/icons/BackArrow';
 import CameraIcon from '../components/icons/CameraIcon';
 import ThemePickerModal from '../components/ThemePickerModal';
 import BgCropModal from '../components/BgCropModal';
+import CropModal from '../components/CropModal';
 import CloseButton from '../components/CloseButton';
 import ButtonPair from '../components/ButtonPair';
 import ModalOverlay from '../components/ModalOverlay';
@@ -201,6 +202,10 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [showCoverCrop, setShowCoverCrop] = useState(false);
   const [coverCropSrc, setCoverCropSrc] = useState('');
   const [coverCropFile, setCoverCropFile] = useState<any>(null);
+  const [showAvatarCrop, setShowAvatarCrop] = useState(false);
+  const [avatarCropSrc, setAvatarCropSrc] = useState('');
+  const [avatarCropResult, setAvatarCropResult] = useState('');
+  const [showAvatarPreview, setShowAvatarPreview] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -235,7 +240,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     : Math.min(pullDown / 3, 18);  // pull-down: stretch blur
 
   // Modal keyboard push
-  const { height: screenH } = useWindowDimensions();
+  const { height: screenH, width: screenW } = useWindowDimensions();
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const modalCap = -screenH * 0.1;
   const modalCapEmail = -screenH * 0.05;
@@ -439,16 +444,33 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     persistAuthPrefs({ session_timeout_hours: h });
   };
 
-  // ── Avatar / Cover handlers (skip crop — upload directly via pickImages) ──
+  // ── Avatar / Cover handlers ──
   const handleAvatarPress = async () => {
     if (uploadingAvatar) return;
     try {
       const imgs = await pickImages({ multiple: false }).catch(() => []);
       if (imgs.length === 0) return;
-      const file = imgs[0];
-      setUploadingAvatar(true);
+      setAvatarCropSrc(imgs[0].uri);
+      setShowAvatarCrop(true);
+    } catch {}
+  };
+
+  const handleAvatarCropConfirm = (dataUri: string) => {
+    setAvatarCropResult(dataUri);
+    setShowAvatarCrop(false);
+    setShowAvatarPreview(true);
+  };
+
+  const handleAvatarUpload = async () => {
+    if (!avatarCropResult) return;
+    setUploadingAvatar(true);
+    try {
+      const tempFile = FileSystem.cacheDirectory + 'avatar-crop.jpg';
+      await FileSystem.writeAsStringAsync(tempFile, avatarCropResult.split(',')[1], {
+        encoding: FileSystem.EncodingType.Base64,
+      });
       const form = new FormData();
-      form.append('file', { uri: file.uri, type: file.type || 'image/jpeg', name: file.name || 'avatar.jpg' } as any);
+      form.append('file', { uri: tempFile, type: 'image/jpeg', name: 'avatar.jpg' } as any);
       const r: any = await api.uploadAvatar(form);
       if (r?.ok !== false) {
         await loadAvatar();
@@ -459,6 +481,9 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       setToast(err?.message || t('uploadFailedShort'));
     } finally {
       setUploadingAvatar(false);
+      setShowAvatarPreview(false);
+      setAvatarCropSrc('');
+      setAvatarCropResult('');
     }
   };
 
@@ -1202,6 +1227,50 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
           setCoverCropFile(null);
         }}
       />
+      {/* Avatar crop modal */}
+      <CropModal
+        visible={showAvatarCrop}
+        src={avatarCropSrc}
+        onCancel={() => { setShowAvatarCrop(false); setAvatarCropSrc(''); }}
+        onConfirm={handleAvatarCropConfirm}
+      />
+      {/* Avatar preview modal — matches web pattern */}
+      <ModalOverlay visible={showAvatarPreview} onClose={() => { setShowAvatarPreview(false); setAvatarCropSrc(''); setAvatarCropResult(''); }}>
+        <View style={{ backgroundColor: colors.surface, borderRadius: 20, padding: 24, width: Math.min(screenW * 0.85, 340), alignItems: 'center', gap: 16 }}>
+          <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: withAlpha(colors.success, 0.12), alignItems: 'center', justifyContent: 'center' }}>
+            <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={colors.success} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+              <Path d="M20 6L9 17l-5-5" />
+            </Svg>
+          </View>
+          <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.textMain }}>{t('avatarUpdated')}</Text>
+          <View style={{ flexDirection: 'row', gap: 20 }}>
+            {[80, 48, 32].map(size => (
+              <View key={size} style={{ alignItems: 'center', gap: 6 }}>
+                <Image source={{ uri: avatarCropResult }} style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 2, borderColor: colors.secondary }} />
+                <Text style={{ fontSize: 10, color: colors.textSub, fontWeight: '500' }}>{size}px</Text>
+              </View>
+            ))}
+          </View>
+          <Text style={{ fontSize: FONTS.micro.size, color: colors.textSub }}>{t('avatarSizeHint')}</Text>
+          <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+            <TouchableOpacity
+              style={{ flex: 1, padding: 11, borderRadius: 12, borderWidth: 1, borderColor: colors.secondary, alignItems: 'center' }}
+              onPress={() => { setShowAvatarPreview(false); setShowAvatarCrop(true); }}>
+              <Text style={{ fontSize: 13, fontWeight: '500', color: colors.textSub }}>{t('recrop')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ flex: 2, padding: 11, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center', opacity: uploadingAvatar ? 0.5 : 1 }}
+              disabled={uploadingAvatar}
+              onPress={handleAvatarUpload}>
+              {uploadingAvatar ? (
+                <ActivityIndicator size="small" color={colors.surface} />
+              ) : (
+                <Text style={{ fontSize: 13, fontWeight: '600', color: colors.surface }}>{t('confirmUse')}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ModalOverlay>
       {/* Face ID setup modal */}
       <ModalOverlay visible={showFaceIDSetup} onClose={() => { setShowFaceIDSetup(false); setFaceIDPassword(''); setFaceIDError(''); }}>
           <View style={mo.card}>
