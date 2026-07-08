@@ -395,7 +395,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   }, []);
   const loadProcurements = useCallback(async () => {}, []);
 
-  useEffect(() => { loadLast7(); loadYesterday(); loadWeekTotals(); loadBusinessSummary(); }, [loadLast7, loadYesterday, loadWeekTotals, loadBusinessSummary]);
+  useEffect(() => { loadLast7(); loadYesterday(); loadWeekTotals(); loadBusinessSummary(); loadChartMonthly(); loadMonthRevenues(); }, [loadLast7, loadYesterday, loadWeekTotals, loadBusinessSummary, loadChartMonthly, loadMonthRevenues]);
 
   useEffect(() => {
     if (tab === 'list') { loadLast7(); loadYesterday(); loadWeekTotals(); }
