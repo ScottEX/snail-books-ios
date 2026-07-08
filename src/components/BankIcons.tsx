@@ -1,9 +1,11 @@
-import React from 'react';
-import { Image, Platform } from 'react-native';
-import { SvgUri } from 'react-native-svg';
+import React, { useState, useEffect } from 'react';
+import { Image, Platform, View } from 'react-native';
+import { SvgXml } from 'react-native-svg';
 
 /**
  * Bank icon components — official SVG logos.
+ * Uses SvgXml on native (iOS/Android) for better compatibility with
+ * complex Inkscape-generated SVGs; falls back to <img> on web.
  */
 
 type IconProps = { size?: number };
@@ -31,19 +33,57 @@ const iconModules: Record<string, any> = {
 
 function getUri(mod: any): string {
   if (!mod) return '';
-  // On web: require() returns string URL
   if (typeof mod === 'string') return mod;
-  // On native: require() returns { uri: string, ... }
   if (mod && typeof mod === 'object' && mod.uri) return mod.uri;
-  // Expo Asset returns { localUri, uri }
   if (mod && typeof mod === 'object' && mod.localUri) return mod.localUri;
-  // Try Image.resolveAssetSource
   try {
     const r = Image.resolveAssetSource(mod);
     if (r && r.uri) return r.uri;
   } catch {}
   return String(mod);
 }
+
+// ── SVG content cache (fetch once per URI) ──────────────────────────
+const svgCache: Record<string, string> = {};
+const pendingFetches: Record<string, Promise<string>> = {};
+
+function useSvgContent(uri: string): string | null {
+  const [content, setContent] = useState<string | null>(
+    () => svgCache[uri] || null,
+  );
+
+  useEffect(() => {
+    if (!uri || svgCache[uri]) return;
+    // Deduplicate concurrent fetches for the same URI
+    if (pendingFetches[uri]) {
+      let cancelled = false;
+      pendingFetches[uri].then((text) => {
+        if (!cancelled) setContent(text);
+      });
+      return () => { cancelled = true; };
+    }
+
+    let cancelled = false;
+    const promise = fetch(uri)
+      .then((r) => r.text())
+      .then((text) => {
+        svgCache[uri] = text;
+        delete pendingFetches[uri];
+        if (!cancelled) setContent(text);
+        return text;
+      })
+      .catch(() => {
+        delete pendingFetches[uri];
+      });
+
+    pendingFetches[uri] = promise;
+    return () => { cancelled = true; };
+  }, [uri]);
+
+  return content;
+}
+
+// ── Bank icon component ─────────────────────────────────────────────
 
 function BankSvgIcon({ code, size = 24 }: { code: string; size?: number }) {
   const mod = iconModules[code];
@@ -62,7 +102,13 @@ function BankSvgIcon({ code, size = 24 }: { code: string; size?: number }) {
     );
   }
 
-  return <SvgUri width={size} height={size} uri={uri} />;
+  // Native: fetch SVG text → SvgXml (handles complex SVGs better than SvgUri)
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const svgContent = useSvgContent(uri);
+  if (!svgContent) {
+    return <View style={{ width: size, height: size }} />;
+  }
+  return <SvgXml xml={svgContent} width={size} height={size} />;
 }
 
 export function DefaultBankIcon({ size = 24 }: IconProps) {
@@ -77,12 +123,17 @@ export function DefaultBankIcon({ size = 24 }: IconProps) {
       />
     );
   }
-  return <SvgUri width={size} height={size} uri={uri} opacity={0.3} />;
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const svgContent = useSvgContent(uri);
+  if (!svgContent) {
+    return <View style={{ width: size, height: size }} />;
+  }
+  return <SvgXml xml={svgContent} width={size} height={size} opacity={0.3} />;
 }
 
 export const BANK_ICON_MAP: Record<string, React.FC<IconProps>> = Object.fromEntries(
-  Object.keys(iconModules).map(code => [
+  Object.keys(iconModules).map((code) => [
     code,
     ({ size = 24 }: IconProps) => <BankSvgIcon code={code} size={size} />,
-  ])
+  ]),
 );
