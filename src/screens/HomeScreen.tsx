@@ -836,6 +836,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         value={revDate}
         onClose={() => setShowDatePicker(false)}
         onSelect={(d) => { if (d > td) { setRevDateErr(c => c + 1); } else { setRevDate(d); setRevDateErr(0); } }}
+        maxDate={td}
         title={t('billDate') || '选择日期'}
       />
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />

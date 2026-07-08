@@ -19,6 +19,7 @@ import SubmitButton from '../components/SubmitButton';
 import TrashIcon from '../components/icons/TrashIcon';
 import ImagePreview from '../components/ImagePreview';
 import { useSwipeBack } from '../hooks/useSwipeBack';
+import { useServerDate } from '../hooks/useServerDate';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BANK_ICON_MAP, DefaultBankIcon } from '../components/BankIcons';
 import SheetHeader from '../components/SheetHeader';
@@ -233,6 +234,7 @@ interface Props {
 
 export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const { colors: c } = useTheme();
+  const sd = useServerDate();
   const insets = useSafeAreaInsets();
   const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(c), [c]);
@@ -1029,6 +1031,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                     <DatePicker
                       date={dDate}
                       onChange={setDDate}
+                      max={sd.today}
                       fontSize={FONTS.sub.size}
                       showChevron
                       showCalendarIcon
