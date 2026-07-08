@@ -101,7 +101,7 @@ export default function ThemePickerModal({
       const picked = await pickImages({ multiple: false });
       if (!picked || picked.length === 0) return;
       fastClose.current = true;
-      onCoverImagePicked?.(picked[0]);
+      await onCoverImagePicked?.(picked[0]);
       onClose();
     } catch {
       // Permission denied / cancelled
