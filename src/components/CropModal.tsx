@@ -18,7 +18,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, TouchableOpacity, PanResponder, Animated, Image, StyleSheet,
+  View, Text, TouchableOpacity, PanResponder, Animated, Image, StyleSheet, Modal,
 } from 'react-native';
 import Svg, { Circle, Line } from 'react-native-svg';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -176,6 +176,7 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
   const stageW = stageSize - STAGE_PADDING * 2;
 
   return (
+    <Modal visible transparent animationType="fade" onRequestClose={onCancel}>
     <View style={styles.overlay} onLayout={(e) => setStageSize(Math.min(e.nativeEvent.layout.width, 600))}>
       {/* Header */}
       <View style={styles.header}>
@@ -291,6 +292,7 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
         <Text style={styles.errText}>{errMsg}</Text>
       )}
     </View>
+    </Modal>
   );
 
   // 滑块点击/拖动更新缩放
