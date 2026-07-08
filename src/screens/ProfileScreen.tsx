@@ -1234,43 +1234,48 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         onCancel={() => { setShowAvatarCrop(false); setAvatarCropSrc(''); }}
         onConfirm={handleAvatarCropConfirm}
       />
-      {/* Avatar preview modal — matches web pattern */}
-      <ModalOverlay visible={showAvatarPreview} onClose={() => { setShowAvatarPreview(false); setAvatarCropSrc(''); setAvatarCropResult(''); }}>
-        <View style={{ backgroundColor: colors.surface, borderRadius: 20, padding: 24, width: Math.min(screenW * 0.85, 340), alignItems: 'center', gap: 16 }}>
-          <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: withAlpha(colors.success, 0.12), alignItems: 'center', justifyContent: 'center' }}>
-            <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={colors.success} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-              <Path d="M20 6L9 17l-5-5" />
-            </Svg>
-          </View>
-          <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.textMain }}>{t('avatarUpdated')}</Text>
-          <View style={{ flexDirection: 'row', gap: 20 }}>
-            {[80, 48, 32].map(size => (
-              <View key={size} style={{ alignItems: 'center', gap: 6 }}>
-                <Image source={{ uri: avatarCropResult }} style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 2, borderColor: colors.secondary }} />
-                <Text style={{ fontSize: 10, color: colors.textSub, fontWeight: '500' }}>{size}px</Text>
-              </View>
-            ))}
-          </View>
-          <Text style={{ fontSize: FONTS.micro.size, color: colors.textSub }}>{t('avatarSizeHint')}</Text>
-          <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
-            <TouchableOpacity
-              style={{ flex: 1, padding: 11, borderRadius: 12, borderWidth: 1, borderColor: colors.secondary, alignItems: 'center' }}
-              onPress={() => { setShowAvatarPreview(false); setShowAvatarCrop(true); }}>
-              <Text style={{ fontSize: 13, fontWeight: '500', color: colors.textSub }}>{t('recrop')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={{ flex: 2, padding: 11, borderRadius: 12, backgroundColor: colors.primary, alignItems: 'center', opacity: uploadingAvatar ? 0.5 : 1 }}
-              disabled={uploadingAvatar}
-              onPress={handleAvatarUpload}>
-              {uploadingAvatar ? (
-                <ActivityIndicator size="small" color={colors.surface} />
-              ) : (
-                <Text style={{ fontSize: 13, fontWeight: '600', color: colors.surface }}>{t('confirmUse')}</Text>
-              )}
-            </TouchableOpacity>
+      {/* Avatar preview modal — matches web pattern (full-screen dark overlay) */}
+      {showAvatarPreview && avatarCropResult !== '' && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, backgroundColor: 'rgba(8,8,12,0.92)', justifyContent: 'center', alignItems: 'center' }}>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            onPress={() => { setShowAvatarPreview(false); setAvatarCropSrc(''); setAvatarCropResult(''); }}
+          />
+          <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: 20, padding: 24, width: Math.min(screenW * 0.85, 320), alignItems: 'center', gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
+            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(27,122,74,0.2)', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 20, color: '#1B7A4A' }}>✓</Text>
+            </View>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>{t('avatarUpdated')}</Text>
+            <View style={{ flexDirection: 'row', gap: 16, alignItems: 'flex-end' }}>
+              {[80, 48, 32].map(size => (
+                <View key={size} style={{ alignItems: 'center', gap: 6 }}>
+                  <Image source={{ uri: avatarCropResult }} style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' }} />
+                  <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: '500' }}>{size}px</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{t('avatarSizeHint')}</Text>
+            <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+              <TouchableOpacity
+                style={{ flex: 1, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center' }}
+                onPress={() => { setShowAvatarPreview(false); setShowAvatarCrop(true); }}>
+                <Text style={{ fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.7)' }}>{t('recrop')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 2, padding: 12, borderRadius: 10, backgroundColor: '#5B5BD6', alignItems: 'center', opacity: uploadingAvatar ? 0.5 : 1 }}
+                disabled={uploadingAvatar}
+                onPress={handleAvatarUpload}>
+                {uploadingAvatar ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#fff' }}>{t('confirmUse')}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </ModalOverlay>
+      )}
       {/* Face ID setup modal */}
       <ModalOverlay visible={showFaceIDSetup} onClose={() => { setShowFaceIDSetup(false); setFaceIDPassword(''); setFaceIDError(''); }}>
           <View style={mo.card}>
