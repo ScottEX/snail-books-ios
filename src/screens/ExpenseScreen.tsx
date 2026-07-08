@@ -141,6 +141,7 @@ export default function ExpenseScreen({
   const [showReconConfirm, setShowReconConfirm] = useState(false);
   const [reconSaving, setReconSaving] = useState(false);
   const [showFeeReminder, setShowFeeReminder] = useState(false);
+  const wantsFeeSheet = useRef(false);
   const hideReconConfirm = () => setShowReconConfirm(false);
   const { showToast, ToastHost } = useToast();
 
@@ -870,7 +871,7 @@ export default function ExpenseScreen({
         </ModalOverlay>
 
       {/* 手续费未更新提示弹窗 */}
-        <ModalOverlay visible={showFeeReminder} onClose={() => setShowFeeReminder(false)} onClosed={() => setShowFeeSheet(true)} animation="springScale">
+        <ModalOverlay visible={showFeeReminder} onClose={() => setShowFeeReminder(false)} onClosed={() => { if (wantsFeeSheet.current) { wantsFeeSheet.current = false; setShowFeeSheet(true); } }} animation="springScale">
           <View style={st.modalCard} onStartShouldSetResponder={() => true}>
             <View style={st.modalHeader}>
               <Text style={st.modalTitle}>{t('friendlyReminder')}</Text>
@@ -884,7 +885,7 @@ export default function ExpenseScreen({
                 leftLabel={t('reconLater')}
                 leftOnPress={() => setShowFeeReminder(false)}
                 rightLabel={t('enterFeeFirst')}
-                rightOnPress={() => setShowFeeReminder(false)}
+                rightOnPress={() => { wantsFeeSheet.current = true; setShowFeeReminder(false); }}
               />
             </View>
           </View>
