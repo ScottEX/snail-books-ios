@@ -120,7 +120,7 @@ export default function ThemePickerModal({
 
   return (
     <>
-      <ModalOverlay visible={visible} onClose={handleClose} animation="springScale">
+      <ModalOverlay visible={visible && !showCrop} onClose={handleClose} animation="springScale">
         <View style={styles.card}>
           <View style={styles.header}>
             <Text style={styles.title}>{showCoverTools ? t('bgSettings') : (t('themeLabel') || '主题')}</Text>
