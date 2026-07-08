@@ -8,7 +8,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -98,6 +98,7 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
   };
 
   const getScalePct = (): number => {
+    'worklet';
     const s = stateRef.current;
     const range = (s.maxScale - s.minScale) * 0.5;
     if (range <= 0) return 0;
@@ -156,7 +157,7 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
       clampCrop();
     })
     .onEnd(() => {
-      setZoomPct(getScalePct());
+      runOnJS(setZoomPct)(getScalePct());
     });
 
   // Pinch: two-finger zoom
@@ -177,7 +178,7 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
       clampCrop();
     })
     .onEnd(() => {
-      setZoomPct(getScalePct());
+      runOnJS(setZoomPct)(getScalePct());
     });
 
   const composedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
