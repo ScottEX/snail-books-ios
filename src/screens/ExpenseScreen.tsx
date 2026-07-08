@@ -911,6 +911,7 @@ export default function ExpenseScreen({
         onClose={() => setShowExpDatePicker(false)}
         onSelect={(d) => { if (d <= sd.today) { setExpDate(d); setExpDateErr(0); } else { setExpDateErr(c => c + 1); } }}
         minDate={undefined}
+        maxDate={sd.today}
         title={t('billDate')}
       />
       {/* Fee date picker */}

@@ -320,6 +320,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
           else setFilDateTo(d);
           setDatePickTarget(null);
         }}
+        maxDate={sd.today}
       />
 
       {/* List */}

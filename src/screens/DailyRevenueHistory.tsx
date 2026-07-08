@@ -235,6 +235,7 @@ export default function DailyRevenueHistory({ onBack }: Props) {
           else setDateTo(d);
           setDatePickTarget(null);
         }}
+        maxDate={todayISO}
         title={datePickTarget === 'from' ? t('startDate') : t('endDate')}
       />
     </View>

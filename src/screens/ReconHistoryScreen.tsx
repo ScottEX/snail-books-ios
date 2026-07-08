@@ -338,6 +338,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
           else setFilDateTo(d);
           setDatePickTarget(null);
         }}
+        maxDate={todayISO}
       />
 
     </View>
