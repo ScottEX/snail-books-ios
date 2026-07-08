@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import ModalOverlay from './ModalOverlay';
@@ -31,6 +31,17 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
   }
   prevVisible.current = visible;
 
+  // Delay picker render until sheet animation settles, so iOS native
+  // UIDatePicker reads maximumDate reliably on first mount.
+  const [showPicker, setShowPicker] = useState(false);
+  useEffect(() => {
+    if (visible) {
+      const t = setTimeout(() => setShowPicker(true), 100);
+      return () => clearTimeout(t);
+    }
+    setShowPicker(false);
+  }, [visible]);
+
   const pickerDate = parseDate(draft || todayStr());
   const locale = (() => {
     const l = getLang();
@@ -55,6 +66,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
       contentStyle={{ width: '100%', alignItems: 'center' }}
     >
       <View style={styles.sheet}>
+        {showPicker && (
         <DateTimePicker
           value={pickerDate}
           mode="date"
@@ -65,6 +77,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
           onChange={handlePickerChange}
           themeVariant="light"
         />
+        )}
         <View style={styles.footer}>
           <TouchableOpacity style={styles.footerBtn} onPress={() => setDraft(value)}>
             <Text style={{ color: 'rgba(0,0,0,0.88)', fontSize: 16, fontWeight: '500' }}>{getLang().startsWith('en') ? 'Reset' : '重置'}</Text>
