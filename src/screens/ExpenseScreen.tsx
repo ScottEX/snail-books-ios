@@ -588,7 +588,7 @@ export default function ExpenseScreen({
                   } else {
                     setFeeForm({ feeMc: '', feeMw: '', feeEw: '', feeMt: '' });
                     setNegativeMode(false);
-                    feeDate.setError(0); loadFeeData(); setShowFeeSheet(true);
+                    feeDate.setError(0); setShowFeeSheet(true);
                   }
                 }}
                 activeOpacity={0.7}
