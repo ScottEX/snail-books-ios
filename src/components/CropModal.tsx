@@ -230,10 +230,26 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
     setFlipX(s.flipX);
   };
 
+  // ── springScale entry (matches BgCropModal) ──
+  const entryFade = useRef(new Animated.Value(0)).current;
+  const entryScale = useRef(new Animated.Value(0.85)).current;
+  const entrySlide = useRef(new Animated.Value(12)).current;
+  useEffect(() => {
+    if (!visible) return;
+    entryFade.setValue(0);
+    entryScale.setValue(0.85);
+    entrySlide.setValue(12);
+    Animated.parallel([
+      Animated.spring(entryScale, { toValue: 1, bounciness: 8, speed: 14, useNativeDriver: true }),
+      Animated.spring(entrySlide, { toValue: 0, bounciness: 8, speed: 14, useNativeDriver: true }),
+      Animated.timing(entryFade, { toValue: 1, duration: 250, useNativeDriver: true }),
+    ]).start();
+  }, [visible]);
+
   if (!visible) return null;
 
   return (
-    <View style={styles.overlay}>
+    <Animated.View style={[styles.overlay, { opacity: entryFade, transform: [{ scale: entryScale }, { translateY: entrySlide }] }]}>
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Text style={styles.title}>{t('avatarCropTitle')}</Text>
         <TouchableOpacity onPress={onCancel} style={styles.closeBtn}>
@@ -326,7 +342,7 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
       </View>
 
       {errMsg !== '' && <Text style={styles.errText}>{errMsg}</Text>}
-    </View>
+    </Animated.View>
   );
 }
 
