@@ -271,7 +271,19 @@ export default function BgCropModal({ visible, src, onConfirm, onCancel, mode }:
     ]).start();
   }, [visible]);
 
-  if (!visible) return null;
+  // ── springScale dismiss (matches ThemePickerModal close) ──
+  const [closing, setClosing] = useState(false);
+  const handleClose = () => {
+    if (closing) return;
+    setClosing(true);
+    Animated.parallel([
+      Animated.timing(entryScale, { toValue: 0.92, duration: 220, useNativeDriver: true }),
+      Animated.timing(entrySlide, { toValue: 8, duration: 220, useNativeDriver: true }),
+      Animated.timing(entryFade, { toValue: 0, duration: 180, useNativeDriver: true }),
+    ]).start(() => { setClosing(false); onCancel(); });
+  };
+
+  if (!visible && !closing) return null;
 
   // ── Mode-dependent labels ──
   const cropTitle = mode === 'cover' ? t('coverCropTitle') : t('editBg');
@@ -283,7 +295,7 @@ export default function BgCropModal({ visible, src, onConfirm, onCancel, mode }:
     <Animated.View style={[styles.overlay, { opacity: entryFade, transform: [{ scale: entryScale }, { translateY: entrySlide }] }]}>
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <Text style={styles.title}>{cropTitle}</Text>
-        <TouchableOpacity onPress={onCancel} style={styles.closeBtn}>
+        <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
           <Text style={styles.closeBtnText}>✕</Text>
         </TouchableOpacity>
       </View>
@@ -360,7 +372,7 @@ export default function BgCropModal({ visible, src, onConfirm, onCancel, mode }:
       </View>
 
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.cancelBtn} onPress={onCancel}>
+        <TouchableOpacity style={styles.cancelBtn} onPress={handleClose}>
           <Text style={styles.cancelBtnText}>{t('cancel')}</Text>
         </TouchableOpacity>
         <SubmitButton
