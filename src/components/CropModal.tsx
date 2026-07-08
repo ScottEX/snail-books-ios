@@ -48,12 +48,6 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
   const translateY = useSharedValue(0);
   const scaleSV = useSharedValue(1);
 
-  // ── Shared values for image / stage dimensions (trigger useAnimatedStyle re-eval) ──
-  const imgWSV = useSharedValue(0);
-  const imgHSV = useSharedValue(0);
-  const stageWSV = useSharedValue(0);
-  const stageHSV = useSharedValue(0);
-
   // ── Crop math state (ref, high-freq updates, no re-render) ──
   const stateRef = useRef({
     x: 0, y: 0, scale: 1, rotation: 0, flipX: false,
@@ -132,8 +126,6 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
     setErrMsg('');
     Image.getSize(src, (w, h) => {
       imgNaturalRef.current = { w, h };
-      imgWSV.value = w;
-      imgHSV.value = h;
       setImgNatural({ w, h });
     }, () => {
       setErrMsg(t('cropFailed'));
@@ -193,13 +185,8 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
 
   const composedGesture = Gesture.Simultaneous(pinchGesture, panGesture);
 
-  // ── Animated image style (shared-value driven — auto re-evaluates)
-  const imageStyle = useAnimatedStyle(() => ({
-    position: 'absolute' as const,
-    width: imgWSV.value || 1,
-    height: imgHSV.value || 1,
-    left: stageWSV.value > 0 ? stageWSV.value / 2 - (imgWSV.value || 1) / 2 : 0,
-    top: stageHSV.value > 0 ? stageHSV.value / 2 - (imgHSV.value || 1) / 2 : 0,
+  // ── Animated transform only (layout via React state, transform on UI thread)
+  const transformStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: translateX.value },
       { translateY: translateY.value },
@@ -285,18 +272,25 @@ export default function CropModal({ visible, src, onConfirm, onCancel }: CropMod
         style={styles.stageArea}
         onLayout={(e) => {
           const dim = { w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height };
-          stageWSV.value = dim.w;
-          stageHSV.value = dim.h;
           setStageDim(dim);
         }}
       >
         <GestureDetector gesture={composedGesture}>
           <Animated.View style={StyleSheet.absoluteFill}>
             {imgNatural.w > 0 && stageDim.w > 0 && (
-              <Animated.Image
-                source={{ uri: src }}
-                style={imageStyle}
-              />
+              <Animated.View style={[{
+                position: 'absolute',
+                width: imgNatural.w,
+                height: imgNatural.h,
+                left: stageDim.w / 2 - imgNatural.w / 2,
+                top: stageDim.h / 2 - imgNatural.h / 2,
+              }, transformStyle]}>
+                <Image
+                  source={{ uri: src }}
+                  style={{ width: '100%', height: '100%' }}
+                  resizeMode="cover"
+                />
+              </Animated.View>
             )}
           </Animated.View>
         </GestureDetector>
