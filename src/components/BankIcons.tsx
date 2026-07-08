@@ -1,49 +1,58 @@
 import React from 'react';
 import { Image, Platform } from 'react-native';
+import { SvgUri } from 'react-native-svg';
 
 /**
- * Bank icon components — official bank logo images.
- * Web: native <img> with SVG. Native (iOS/Android): React Native Image with PNG.
+ * Bank icon components — official SVG logos.
  */
 
 type IconProps = { size?: number };
 
+// require() on Expo web returns the URL string; on native returns { uri }
 const iconModules: Record<string, any> = {
-  icbc:  require('../../assets/bank-icons-png/icbc.png'),
-  ccb:   require('../../assets/bank-icons-png/ccb.png'),
-  abc:   require('../../assets/bank-icons-png/abc.png'),
-  boc:   require('../../assets/bank-icons-png/boc.png'),
-  bocom: require('../../assets/bank-icons-png/bocom.png'),
-  cmb:   require('../../assets/bank-icons-png/cmb.png'),
-  cib:   require('../../assets/bank-icons-png/cib.png'),
-  citic: require('../../assets/bank-icons-png/citic.png'),
-  ceb:   require('../../assets/bank-icons-png/ceb.png'),
-  cmbc:  require('../../assets/bank-icons-png/cmbc.png'),
-  pab:   require('../../assets/bank-icons-png/pab.png'),
-  spdb:  require('../../assets/bank-icons-png/spdb.png'),
-  hxb:   require('../../assets/bank-icons-png/hxb.png'),
-  gdb:   require('../../assets/bank-icons-png/gdb.png'),
-  bob:   require('../../assets/bank-icons-png/bob.png'),
-  bosh:  require('../../assets/bank-icons-png/bosh.png'),
-  psbc:  require('../../assets/bank-icons-png/psbc.png'),
+  icbc:  require('../../assets/bank-icons/icbc.svg'),
+  ccb:   require('../../assets/bank-icons/ccb.svg'),
+  abc:   require('../../assets/bank-icons/abc.svg'),
+  boc:   require('../../assets/bank-icons/boc.svg'),
+  bocom: require('../../assets/bank-icons/bocom.svg'),
+  cmb:   require('../../assets/bank-icons/cmb.svg'),
+  cib:   require('../../assets/bank-icons/cib.svg'),
+  citic: require('../../assets/bank-icons/citic.svg'),
+  ceb:   require('../../assets/bank-icons/ceb.svg'),
+  cmbc:  require('../../assets/bank-icons/cmbc.svg'),
+  pab:   require('../../assets/bank-icons/pab.svg'),
+  spdb:  require('../../assets/bank-icons/spdb.svg'),
+  hxb:   require('../../assets/bank-icons/hxb.svg'),
+  gdb:   require('../../assets/bank-icons/gdb.svg'),
+  bob:   require('../../assets/bank-icons/bob.svg'),
+  bosh:  require('../../assets/bank-icons/bosh.svg'),
+  psbc:  require('../../assets/bank-icons/psbc.svg'),
 };
 
 function getUri(mod: any): string {
   if (!mod) return '';
+  // On web: require() returns string URL
   if (typeof mod === 'string') return mod;
+  // On native: require() returns { uri: string, ... }
   if (mod && typeof mod === 'object' && mod.uri) return mod.uri;
+  // Expo Asset returns { localUri, uri }
   if (mod && typeof mod === 'object' && mod.localUri) return mod.localUri;
+  // Try Image.resolveAssetSource
+  try {
+    const r = Image.resolveAssetSource(mod);
+    if (r && r.uri) return r.uri;
+  } catch {}
   return String(mod);
 }
 
 function BankSvgIcon({ code, size = 24 }: { code: string; size?: number }) {
   const mod = iconModules[code];
   if (!mod) return null;
+  const uri = getUri(mod);
+  if (!uri) return null;
 
   // Web: browsers natively support SVG in <img>
   if (Platform.OS === 'web') {
-    const uri = getUri(mod);
-    if (!uri) return null;
     return (
       <img
         src={uri}
@@ -53,22 +62,13 @@ function BankSvgIcon({ code, size = 24 }: { code: string; size?: number }) {
     );
   }
 
-  // Native: React Native Image with PNG
-  return (
-    <Image
-      source={mod}
-      style={{ width: size, height: size }}
-      resizeMode="contain"
-    />
-  );
+  return <SvgUri width={size} height={size} uri={uri} />;
 }
 
 export function DefaultBankIcon({ size = 24 }: IconProps) {
-  const mod = iconModules.icbc;
-  if (!mod) return null;
+  const uri = getUri(iconModules.icbc);
+  if (!uri) return null;
   if (Platform.OS === 'web') {
-    const uri = getUri(mod);
-    if (!uri) return null;
     return (
       <img
         src={uri}
@@ -77,13 +77,7 @@ export function DefaultBankIcon({ size = 24 }: IconProps) {
       />
     );
   }
-  return (
-    <Image
-      source={mod}
-      style={{ width: size, height: size, opacity: 0.3 }}
-      resizeMode="contain"
-    />
-  );
+  return <SvgUri width={size} height={size} uri={uri} opacity={0.3} />;
 }
 
 export const BANK_ICON_MAP: Record<string, React.FC<IconProps>> = Object.fromEntries(
