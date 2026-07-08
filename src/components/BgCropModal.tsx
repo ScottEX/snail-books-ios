@@ -24,8 +24,6 @@ interface BgCropModalProps {
   onCancel: () => void;
 }
 
-const COVER_ASPECT = 260 / 375;
-
 export default function BgCropModal({ visible, src, onConfirm, onCancel }: BgCropModalProps) {
   const { width: WIN_W } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -37,9 +35,12 @@ export default function BgCropModal({ visible, src, onConfirm, onCancel }: BgCro
   const [errMsg, setErrMsg] = useState('');
   const [stageDim, setStageDim] = useState({ w: 0, h: 0 });
 
-  // ── Guide: 80% stage width, height by cover aspect ──
+  // ── Guide: 80% stage width, height matches cover display ratio (260 / stageW)
+  //     Mirrors web: cropRatio = 260 / stageWidth, so crop frame = display area
+  const stageW = stageDim.w > 0 ? stageDim.w : WIN_W;
+  const coverAspect = stageW > 0 ? 260 / stageW : 260 / 375;
   const guideW = !stageDim.w ? Math.round(WIN_W * 0.76) : Math.round(stageDim.w * 0.8);
-  const guideH = Math.round(guideW * COVER_ASPECT);
+  const guideH = Math.round(guideW * coverAspect);
 
   // ── Rotation / flip (React state, non-continuous) ──
   const [rotation, setRotation] = useState(0);
@@ -195,7 +196,7 @@ export default function BgCropModal({ visible, src, onConfirm, onCancel }: BgCro
     try {
       const s = stateRef.current;
       const outW = 720;
-      const outH = Math.round(outW * COVER_ASPECT);
+      const outH = Math.round(outW * coverAspect);
       const cropWOrig = s.cropW / s.scale;
       const cropHOrig = s.cropH / s.scale;
       const rotatedW = s.rotation % 180 === 0 ? imgNatural.w : imgNatural.h;
