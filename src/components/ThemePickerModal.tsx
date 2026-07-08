@@ -204,6 +204,7 @@ export default function ThemePickerModal({
           setShowCrop(false);
           setImageSrc('');
           setPickedFile(null);
+          onClose();
         }}
       />
     </>
