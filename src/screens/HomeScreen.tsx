@@ -63,7 +63,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
 
   // ── Tab state (persisted) ──
   const [tab, setTabState] = useState<Tab>(() => {
-    try { return (localStorage.getItem('active_tab') as Tab) || 'expense'; } catch { return 'expense'; }
+    try { return (localStorage.getItem('active_tab') as Tab) || 'chart'; } catch { return 'chart'; }
   });
   const [partnerRefreshKey, setPartnerRefreshKey] = useState(0);
   const setTab = (t: Tab) => {
