@@ -23,6 +23,7 @@ import SubmitButton from '../components/SubmitButton';
 import ModalOverlay from '../components/ModalOverlay';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { pickImages } from '../utils/imagePicker';
+import { cacheBackground } from '../utils/backgroundCache';
 import { modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 import { isBiometricAvailable, hasStoredCredential, clearCredential, saveCredential, promptBiometric, getCredential } from '../utils/biometric';
@@ -605,17 +606,8 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       const r: any = await api.uploadBackground({ uri: tempFile, type: 'image/jpeg', name: 'bg.jpg' });
       if (r?.url) {
         const resolved = resolveAssetUrl(r.url) || r.url;
-        try {
-          const cachePath = FileSystem.cacheDirectory + 'bg-profile-' + Date.now() + '.jpg';
-          const dl = await FileSystem.downloadAsync(resolved, cachePath);
-          if (dl.status === 200) {
-            localStorage.setItem('bg-image', dl.uri);
-          } else {
-            localStorage.setItem('bg-image', resolved);
-          }
-        } catch {
-          try { localStorage.setItem('bg-image', resolved); } catch {}
-        }
+        // Download to local FileSystem for instant next-load
+        try { await cacheBackground(resolved); } catch {}
         try { localStorage.setItem('__bg_changed_ts', String(Date.now())); } catch {}
         if (typeof window !== 'undefined' && typeof (window as any).dispatchEvent === 'function') {
           (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: resolved } }));

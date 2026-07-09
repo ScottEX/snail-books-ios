@@ -22,6 +22,7 @@ import DatePickerModal from '../components/DatePickerModal';
 import ModalOverlay from '../components/ModalOverlay';
 import ThemePickerModal from '../components/ThemePickerModal';
 import BgCropModal from '../components/BgCropModal';
+import { cacheBackground, getCachedLocalPath, getOrDownloadBackground, clearBackgroundCache } from '../utils/backgroundCache';
 import SlideScreen from '../components/SlideScreen';
 import PartnerScreen from './PartnerScreen';
 import ProcurementScreen from './ProcurementScreen';
@@ -109,15 +110,11 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   // the same device don't trample each other's preference.
   const DEFAULT_BG = BG_IMAGE; // web uses '/img/bg.jpg?v=2'; iOS uses the bundled asset
   const [bgImageUri, setBgImageUri] = useState<string>(() => {
-    // Read cached bg URL synchronously so the custom background
-    // shows on the first frame — avoids the flash of default bg
-    // that happens when useEffect runs after mount. Mirrors web.
+    // Read cached LOCAL file path so the first frame uses the
+    // already-downloaded image — no network flash.
     try {
-      const cached = localStorage.getItem('bg-image');
-      if (cached) {
-        const resolved = resolveAssetUrl(cached);
-        if (resolved) return resolved;
-      }
+      const localPath = localStorage.getItem('bg-local-path');
+      if (localPath) return localPath;
     } catch {}
     return DEFAULT_BG;
   });
@@ -133,26 +130,17 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     return uid ? `bg-opacity-${uid}` : 'bg-opacity';
   }, []);
   useEffect(() => {
-    // Fetch the persisted custom background URL from the backend.
-    // Falls back to localStorage cache (instant) → default asset.
-    try {
-      const cached = localStorage.getItem('bg-image');
-      if (cached) {
-        const resolved = resolveAssetUrl(cached);
-        if (resolved) setBgImageUri(resolved);
-      }
-    } catch {}
+    // Fetch the persisted custom background URL from the backend,
+    // download to local FileSystem, and use the local path for instant rendering.
     api.getBackground()
-      .then((r: any) => {
+      .then(async (r: any) => {
         if (r?.url) {
-          // Server returns paths like '/uploads/abc.jpg' which RN
-          // can't load as-is. resolveAssetUrl prepends the API base.
           const resolved = resolveAssetUrl(r.url) || DEFAULT_BG;
-          setBgImageUri(resolved);
-          try { localStorage.setItem('bg-image', resolved); } catch {}
+          const localPath = await getOrDownloadBackground(resolved);
+          setBgImageUri(localPath || resolved); // fallback to remote if download fails
         } else {
           setBgImageUri(DEFAULT_BG);
-          try { localStorage.removeItem('bg-image'); } catch {}
+          try { clearBackgroundCache(); } catch {}
         }
         // Server opacity wins (per-user)
         if (r?.opacity !== null && r?.opacity !== undefined) {
@@ -168,11 +156,12 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   // addEventListener, so we have to feature-test it explicitly —
   // just `typeof window !== 'undefined'` isn't enough.
   useEffect(() => {
-    const onBgChanged = (e: any) => {
+    const onBgChanged = async (e: any) => {
       const url = e?.detail?.url;
       if (typeof url === 'string') {
         const resolved = resolveAssetUrl(url) || DEFAULT_BG;
-        setBgImageUri(resolved);
+        const localPath = await getOrDownloadBackground(resolved);
+        setBgImageUri(localPath || resolved);
         setBgVersion((v) => v + 1);
       }
     };
@@ -205,6 +194,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             setBgImageUri(DEFAULT_BG);
             setBgVersion((v) => v + 1);
             setBgOpacity(1);
+            clearBackgroundCache().catch(() => {});
             try {
               const uid = getCurrentUserId();
               localStorage.setItem(uid ? `bg-opacity-${uid}` : 'bg-opacity', '1');
@@ -219,10 +209,9 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           const bt = parseInt(bgTs, 10);
           if (bt !== lastBgTs && (Date.now() - bt < 30000)) {
             lastBgTs = bt;
-            const cached = localStorage.getItem('bg-image');
-            if (cached) {
-              const resolved = resolveAssetUrl(cached) || DEFAULT_BG;
-              setBgImageUri(resolved);
+            const localPath = localStorage.getItem('bg-local-path');
+            if (localPath) {
+              setBgImageUri(localPath);
               setBgVersion((v) => v + 1);
             }
             localStorage.removeItem('__bg_changed_ts');
@@ -275,19 +264,14 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
       const r: any = await api.uploadBackground({ uri: tempFile, type: 'image/jpeg', name: 'bg.jpg' });
       if (r?.url) {
         const resolved = resolveAssetUrl(r.url) || DEFAULT_BG;
-        setBgImageUri(resolved);
-        setBgVersion((v) => v + 1);
+        // Download to local FileSystem for instant next-load, then set state
         try {
-          const cachePath = FileSystem.cacheDirectory + 'bg-home-' + Date.now() + '.jpg';
-          const dl = await FileSystem.downloadAsync(resolved, cachePath);
-          if (dl.status === 200) {
-            localStorage.setItem('bg-image', dl.uri);
-          } else {
-            localStorage.setItem('bg-image', resolved);
-          }
+          const localPath = await cacheBackground(resolved);
+          setBgImageUri(localPath);
         } catch {
-          try { localStorage.setItem('bg-image', resolved); } catch {}
+          setBgImageUri(resolved); // fallback to remote
         }
+        setBgVersion((v) => v + 1);
         try { localStorage.setItem('__bg_changed_ts', String(Date.now())); } catch {}
         if (typeof window !== 'undefined' && typeof (window as any).dispatchEvent === 'function') {
           (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: resolved } }));
