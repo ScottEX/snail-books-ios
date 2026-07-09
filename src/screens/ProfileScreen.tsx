@@ -270,8 +270,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   // Updated via Animated.event listener, throttled via RAF
   // ═══════════════════════════════════════════════════════════════
   const [blurIntensity, setBlurInt] = useState(0);
-  const blurRaf = useRef<number | null>(null);
-  const blurPending = useRef(0);
   const computeBlur = (y: number) =>
     y > 0 ? Math.min(y / 2, 10) : Math.min(Math.max(0, -y) / 3, 18);
 
@@ -846,21 +844,10 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       <ScrollView style={st.scroll} showsVerticalScrollIndicator={false}
         bounces={true} alwaysBounceVertical={true}
         onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollYAnim } } }],
-          {
-            useNativeDriver: true,
-            listener: (e: any) => {
-              // Blur only — throttled via RAF, ~30fps
-              blurPending.current = e.nativeEvent.contentOffset.y;
-              if (blurRaf.current === null) {
-                blurRaf.current = requestAnimationFrame(() => {
-                  blurRaf.current = null;
-                  setBlurInt(computeBlur(blurPending.current));
-                });
-              }
-            },
-          }
+          [{ nativeEvent: { contentOffset: { y: scrollYAnim } } }]
         )}
+        onScrollEndDrag={(e: any) => setBlurInt(computeBlur(e.nativeEvent.contentOffset.y))}
+        onMomentumScrollEnd={(e: any) => setBlurInt(computeBlur(e.nativeEvent.contentOffset.y))}
         scrollEventThrottle={16}>
         {/* Spacer — keeps content below the absolutely-positioned cover */}
         <View style={{ height: 260 }} />
