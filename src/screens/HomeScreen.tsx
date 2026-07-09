@@ -829,7 +829,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         onConfirm={handleBgCropConfirm}
       />
       {/* BG preview modal — springScale, matches ThemePickerModal */}
-      <ModalOverlay visible={showBgPreview && bgCropResult !== ''} onClose={() => { bgRecropRef.current = false; setShowBgPreview(false); }} onClosed={() => { setBgCropSrc(''); setBgCropResult(''); if (bgRecropRef.current) { bgRecropRef.current = false; setShowBgCrop(true); } }} animation="springScale">
+      <ModalOverlay visible={showBgPreview && bgCropResult !== ''} onClose={() => { bgRecropRef.current = false; setShowBgPreview(false); }} onClosed={() => { if (bgRecropRef.current) { bgRecropRef.current = false; setShowBgCrop(true); setBgCropResult(''); } else { setBgCropSrc(''); setBgCropResult(''); } }} animation="springScale" backdropColor="rgba(8,8,12,0.92)">
         <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: MODAL_CARD_RADIUS, padding: 24, width: 360, alignItems: 'center', gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' as any }}>
             <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(27,122,74,0.2)', alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ fontSize: 20, color: '#1B7A4A' }}>✓</Text>

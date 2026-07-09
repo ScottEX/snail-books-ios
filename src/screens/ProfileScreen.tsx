@@ -1270,7 +1270,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         onConfirm={handleAvatarCropConfirm}
       />
       {/* Avatar preview modal — springScale, matches ThemePickerModal */}
-      <ModalOverlay visible={showAvatarPreview && avatarCropResult !== ''} onClose={() => { avatarRecropRef.current = false; setShowAvatarPreview(false); }} onClosed={() => { setAvatarCropSrc(''); setAvatarCropResult(''); if (avatarRecropRef.current) { avatarRecropRef.current = false; setShowAvatarCrop(true); } }} animation="springScale">
+      <ModalOverlay visible={showAvatarPreview && avatarCropResult !== ''} onClose={() => { avatarRecropRef.current = false; setShowAvatarPreview(false); }} onClosed={() => { if (avatarRecropRef.current) { avatarRecropRef.current = false; setShowAvatarCrop(true); setAvatarCropResult(''); } else { setAvatarCropSrc(''); setAvatarCropResult(''); } }} animation="springScale" backdropColor="rgba(8,8,12,0.92)">
         <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: MODAL_CARD_RADIUS, padding: 24, width: Math.min(screenW * 0.85, 320), alignItems: 'center', gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' as any }}>
             <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(27,122,74,0.2)', alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ fontSize: 20, color: '#1B7A4A' }}>✓</Text>
@@ -1302,7 +1302,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
           </View>
       </ModalOverlay>
       {/* Cover preview modal — springScale, matches ThemePickerModal */}
-      <ModalOverlay visible={showCoverPreview && coverCropResult !== ''} onClose={() => { coverRecropRef.current = false; setShowCoverPreview(false); }} onClosed={() => { setCoverCropSrc(''); setCoverCropResult(''); if (coverRecropRef.current) { coverRecropRef.current = false; setShowCoverCrop(true); } }} animation="springScale">
+      <ModalOverlay visible={showCoverPreview && coverCropResult !== ''} onClose={() => { coverRecropRef.current = false; setShowCoverPreview(false); }} onClosed={() => { if (coverRecropRef.current) { coverRecropRef.current = false; setShowCoverCrop(true); setCoverCropResult(''); } else { setCoverCropSrc(''); setCoverCropResult(''); } }} animation="springScale" backdropColor="rgba(8,8,12,0.92)">
         <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: MODAL_CARD_RADIUS, padding: 24, width: Math.min(screenW * 0.85, 360), alignItems: 'center', gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' as any }}>
             <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(27,122,74,0.2)', alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ fontSize: 20, color: '#1B7A4A' }}>✓</Text>
@@ -1327,7 +1327,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
           </View>
       </ModalOverlay>
       {/* BG preview modal — springScale, matches ThemePickerModal */}
-      <ModalOverlay visible={showBgPreview && bgCropResult !== ''} onClose={() => { bgRecropRef.current = false; setShowBgPreview(false); }} onClosed={() => { setBgCropSrc(''); setBgCropResult(''); if (bgRecropRef.current) { bgRecropRef.current = false; setShowBgCrop(true); } }} animation="springScale">
+      <ModalOverlay visible={showBgPreview && bgCropResult !== ''} onClose={() => { bgRecropRef.current = false; setShowBgPreview(false); }} onClosed={() => { if (bgRecropRef.current) { bgRecropRef.current = false; setShowBgCrop(true); setBgCropResult(''); } else { setBgCropSrc(''); setBgCropResult(''); } }} animation="springScale" backdropColor="rgba(8,8,12,0.92)">
         <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: MODAL_CARD_RADIUS, padding: 24, width: 360, alignItems: 'center', gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' as any }}>
             <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(27,122,74,0.2)', alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ fontSize: 20, color: '#1B7A4A' }}>✓</Text>

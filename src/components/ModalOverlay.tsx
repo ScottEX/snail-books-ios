@@ -17,9 +17,11 @@ interface ModalOverlayProps {
   staggerCount?: number;
   /** Override dismiss animation duration for springScale (ms). Omit for default. */
   outDuration?: number;
+  /** Override backdrop color. Defaults to BACKDROP_COLOR. */
+  backdropColor?: string;
 }
 
-export default function ModalOverlay({ visible = true, onClose, onClosed, children, overlayStyle, contentStyle, animation = 'slide', staggerCount = 4, outDuration }: ModalOverlayProps) {
+export default function ModalOverlay({ visible = true, onClose, onClosed, children, overlayStyle, contentStyle, animation = 'slide', staggerCount = 4, outDuration, backdropColor }: ModalOverlayProps) {
   const [show, setShow] = useState(false);
   const initialSlide = animation === 'springScale' ? 12 : animation === 'slideUpScale' ? 500 : animation === 'stagger' ? 40 : animation === 'iosSheet' ? 500 : -300;
   const initialScale = animation === 'springScale' ? 0.85 : animation === 'blurMorph' ? 1.04 : animation === 'slideUpScale' ? 0.96 : animation === 'stagger' ? 0.94 : 1;
@@ -174,7 +176,7 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, childr
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
           onPress={onClose}
         >
-          <Animated.View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: BACKDROP_COLOR, opacity: back }} />
+          <Animated.View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: backdropColor ?? BACKDROP_COLOR, opacity: back }} />
         </TouchableOpacity>
         <Animated.View style={[{ alignItems: 'center', justifyContent: 'center' }, contentStyle, { opacity: fade, transform: getTrans() }]}>
           {animation === 'stagger' && typeof children === 'function' ? children(staggerAnims) : (children as React.ReactNode)}
