@@ -23,7 +23,7 @@ import SubmitButton from '../components/SubmitButton';
 import ModalOverlay from '../components/ModalOverlay';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { pickImages } from '../utils/imagePicker';
-import { modalClose } from '../sharedStyles';
+import { modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 import { isBiometricAvailable, hasStoredCredential, clearCredential, saveCredential, promptBiometric, getCredential } from '../utils/biometric';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
@@ -212,6 +212,10 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [bgCropSrc, setBgCropSrc] = useState('');
   const [bgCropResult, setBgCropResult] = useState('');
   const [showBgPreview, setShowBgPreview] = useState(false);
+  // ── Recrop intent refs (set before closing preview, checked in onClosed) ──
+  const avatarRecropRef = useRef(false);
+  const coverRecropRef = useRef(false);
+  const bgRecropRef = useRef(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -488,8 +492,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     } finally {
       setUploadingAvatar(false);
       setShowAvatarPreview(false);
-      setAvatarCropSrc('');
-      setAvatarCropResult('');
     }
   };
 
@@ -539,8 +541,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     } finally {
       setUploadingCover(false);
       setShowCoverPreview(false);
-      setCoverCropSrc('');
-      setCoverCropResult('');
     }
   };
 
@@ -592,8 +592,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     } finally {
       setUploadingCover(false);
       setShowBgPreview(false);
-      setBgCropSrc('');
-      setBgCropResult('');
     }
   };
 
@@ -1271,15 +1269,9 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         onCancel={() => { setShowAvatarCrop(false); setAvatarCropSrc(''); }}
         onConfirm={handleAvatarCropConfirm}
       />
-      {/* Avatar preview modal — matches web pattern (full-screen dark overlay) */}
-      {showAvatarPreview && avatarCropResult !== '' && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, backgroundColor: 'rgba(8,8,12,0.92)', justifyContent: 'center', alignItems: 'center' }}>
-          <TouchableOpacity
-            activeOpacity={1}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-            onPress={() => { setShowAvatarPreview(false); setAvatarCropSrc(''); setAvatarCropResult(''); }}
-          />
-          <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: 20, padding: 24, width: Math.min(screenW * 0.85, 320), alignItems: 'center', gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
+      {/* Avatar preview modal — springScale, matches ThemePickerModal */}
+      <ModalOverlay visible={showAvatarPreview && avatarCropResult !== ''} onClose={() => { avatarRecropRef.current = false; setShowAvatarPreview(false); }} onClosed={() => { setAvatarCropSrc(''); setAvatarCropResult(''); if (avatarRecropRef.current) { avatarRecropRef.current = false; setShowAvatarCrop(true); } }} animation="springScale">
+        <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: MODAL_CARD_RADIUS, padding: 24, width: Math.min(screenW * 0.85, 320), alignItems: 'center', gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' as any }}>
             <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(27,122,74,0.2)', alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ fontSize: 20, color: '#1B7A4A' }}>✓</Text>
             </View>
@@ -1296,7 +1288,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
             <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
               <TouchableOpacity
                 style={{ flex: 1, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center' }}
-                onPress={() => { setShowAvatarPreview(false); setShowAvatarCrop(true); }}>
+                onPress={() => { avatarRecropRef.current = true; setShowAvatarPreview(false); }}>
                 <Text style={{ fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.7)' }}>{t('recrop')}</Text>
               </TouchableOpacity>
               <SubmitButton
@@ -1308,17 +1300,10 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               />
             </View>
           </View>
-        </View>
-      )}
-      {/* Cover preview modal */}
-      {showCoverPreview && coverCropResult !== '' && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, backgroundColor: 'rgba(8,8,12,0.92)', justifyContent: 'center', alignItems: 'center' }}>
-          <TouchableOpacity
-            activeOpacity={1}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-            onPress={() => { setShowCoverPreview(false); setCoverCropSrc(''); setCoverCropResult(''); }}
-          />
-          <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: 20, padding: 24, width: Math.min(screenW * 0.85, 360), alignItems: 'center', gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
+      </ModalOverlay>
+      {/* Cover preview modal — springScale, matches ThemePickerModal */}
+      <ModalOverlay visible={showCoverPreview && coverCropResult !== ''} onClose={() => { coverRecropRef.current = false; setShowCoverPreview(false); }} onClosed={() => { setCoverCropSrc(''); setCoverCropResult(''); if (coverRecropRef.current) { coverRecropRef.current = false; setShowCoverCrop(true); } }} animation="springScale">
+        <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: MODAL_CARD_RADIUS, padding: 24, width: Math.min(screenW * 0.85, 360), alignItems: 'center', gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' as any }}>
             <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(27,122,74,0.2)', alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ fontSize: 20, color: '#1B7A4A' }}>✓</Text>
             </View>
@@ -1328,7 +1313,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
             <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
               <TouchableOpacity
                 style={{ flex: 1, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center' }}
-                onPress={() => { setShowCoverPreview(false); setShowCoverCrop(true); }}>
+                onPress={() => { coverRecropRef.current = true; setShowCoverPreview(false); }}>
                 <Text style={{ fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.7)' }}>{t('recrop')}</Text>
               </TouchableOpacity>
               <SubmitButton
@@ -1340,17 +1325,10 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               />
             </View>
           </View>
-        </View>
-      )}
-      {/* BG preview modal — same pattern as cover preview */}
-      {showBgPreview && bgCropResult !== '' && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, backgroundColor: 'rgba(8,8,12,0.92)', justifyContent: 'center', alignItems: 'center' }}>
-          <TouchableOpacity
-            activeOpacity={1}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-            onPress={() => { setShowBgPreview(false); setBgCropSrc(''); setBgCropResult(''); }}
-          />
-          <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: 20, padding: 24, width: 360, alignItems: 'center', gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
+      </ModalOverlay>
+      {/* BG preview modal — springScale, matches ThemePickerModal */}
+      <ModalOverlay visible={showBgPreview && bgCropResult !== ''} onClose={() => { bgRecropRef.current = false; setShowBgPreview(false); }} onClosed={() => { setBgCropSrc(''); setBgCropResult(''); if (bgRecropRef.current) { bgRecropRef.current = false; setShowBgCrop(true); } }} animation="springScale">
+        <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: MODAL_CARD_RADIUS, padding: 24, width: 360, alignItems: 'center', gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' as any }}>
             <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(27,122,74,0.2)', alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ fontSize: 20, color: '#1B7A4A' }}>✓</Text>
             </View>
@@ -1360,7 +1338,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
             <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
               <TouchableOpacity
                 style={{ flex: 1, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center' }}
-                onPress={() => { setShowBgPreview(false); setShowBgCrop(true); }}>
+                onPress={() => { bgRecropRef.current = true; setShowBgPreview(false); }}>
                 <Text style={{ fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.7)' }}>{t('recrop') || '再编辑'}</Text>
               </TouchableOpacity>
               <SubmitButton
@@ -1372,8 +1350,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               />
             </View>
           </View>
-        </View>
-      )}
+      </ModalOverlay>
       {/* Face ID setup modal */}
       <ModalOverlay visible={showFaceIDSetup} onClose={() => { setShowFaceIDSetup(false); setFaceIDPassword(''); setFaceIDError(''); }}>
           <View style={mo.card}>
