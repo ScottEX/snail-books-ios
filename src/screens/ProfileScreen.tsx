@@ -1509,7 +1509,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   avatar: {
     width: 80, height: 80, borderRadius: 40,
-    borderWidth: 3, borderColor: colors.surface,
   },
   camBadge: {
     position: 'absolute', bottom: 0, right: -2,
