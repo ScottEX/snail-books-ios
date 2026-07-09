@@ -270,6 +270,12 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   // Updated via Animated.event listener, throttled via RAF
   // ═══════════════════════════════════════════════════════════════
   const [blurIntensity, setBlurInt] = useState(0);
+  const blurRaf = useRef<number | null>(null);
+  const blurPending = useRef(0);
+  // Memoize Animated.event handler — scrollYAnim ref is stable
+  const scrollAnimatedHandler = useRef(
+    Animated.event([{ nativeEvent: { contentOffset: { y: scrollYAnim } } }])
+  ).current;
   const computeBlur = (y: number) =>
     y > 0 ? Math.min(y / 2, 10) : Math.min(Math.max(0, -y) / 3, 18);
 
@@ -843,9 +849,16 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       </Animated.View>
       <ScrollView style={st.scroll} showsVerticalScrollIndicator={false}
         bounces={true} alwaysBounceVertical={true}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollYAnim } } }]
-        )}
+        onScroll={(e: any) => {
+          scrollAnimatedHandler(e);
+          blurPending.current = e.nativeEvent.contentOffset.y;
+          if (blurRaf.current === null) {
+            blurRaf.current = requestAnimationFrame(() => {
+              blurRaf.current = null;
+              setBlurInt(computeBlur(blurPending.current));
+            });
+          }
+        }}
         onScrollEndDrag={(e: any) => setBlurInt(computeBlur(e.nativeEvent.contentOffset.y))}
         onMomentumScrollEnd={(e: any) => setBlurInt(computeBlur(e.nativeEvent.contentOffset.y))}
         scrollEventThrottle={16}>
