@@ -240,19 +240,42 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteConfirmUsername, setDeleteConfirmUsername] = useState('');
   // Sticky header on scroll (matches web)
-  const [scrollY, setScrollY] = useState(0);
-  const scrollYRaf = useRef<number | null>(null);
-  const scrollYPending = useRef(0);
-  const FREEZE_POINT = 92; // cover freezes after scrolling 76px
-  const coverOffset = scrollY > 0 ? Math.min(scrollY, FREEZE_POINT) : 0; // how far cover has scrolled up
-  // Pull-down stretch + blur (scrollY < 0 = pull-down, scrollY > 0 = scroll-up blur)
-  const pullDown = Math.max(0, -scrollY);
-  // Rubber-band damping: sqrt reduces pull effect as it increases (iOS-style)
-  const dampedPull = Math.sqrt(pullDown * 80);
-  const blurIntensity = scrollY > 0
-    ? Math.min(scrollY / 2, 10)   // scroll-up: progressive blur, max 10 at freeze point
-    : Math.min(pullDown / 3, 18);  // pull-down: stretch blur
-    // ── Cover image fade-in ──
+  // ═══════════════════════════════════════════════════════════════
+  // Native-driver scroll animation — transforms on UI thread, zero JS cost
+  // ═══════════════════════════════════════════════════════════════
+  const FREEZE_POINT = 92;
+  const scrollYAnim = useRef(new Animated.Value(0)).current;
+  // Cover slides up 0→-FREEZE_POINT, clamped
+  const coverTranslateY = scrollYAnim.interpolate({
+    inputRange: [0, FREEZE_POINT],
+    outputRange: [0, -FREEZE_POINT],
+    extrapolate: 'clamp',
+  });
+  // Pull-down stretch: sqrt-damped translateY (approximated piecewise)
+  const pullDownTY = scrollYAnim.interpolate({
+    inputRange: [-400, -200, -100, -50, -20, 0],
+    outputRange: [89.4, 63.2, 44.7, 31.6, 20, 0],
+    extrapolateLeft: 'extend',
+    extrapolateRight: 'clamp',
+  });
+  // Pull-down stretch: sqrt-damped scaleY
+  const pullDownScale = scrollYAnim.interpolate({
+    inputRange: [-400, -200, -100, -50, -20, 0],
+    outputRange: [1.813, 1.575, 1.406, 1.287, 1.182, 1],
+    extrapolateLeft: 'extend',
+    extrapolateRight: 'clamp',
+  });
+  // ═══════════════════════════════════════════════════════════════
+  // Blur intensity — still needs JS state (expo-blur doesn't support Animated)
+  // Updated via Animated.event listener, throttled via RAF
+  // ═══════════════════════════════════════════════════════════════
+  const [blurIntensity, setBlurInt] = useState(0);
+  const blurRaf = useRef<number | null>(null);
+  const blurPending = useRef(0);
+  const computeBlur = (y: number) =>
+    y > 0 ? Math.min(y / 2, 10) : Math.min(Math.max(0, -y) / 3, 18);
+
+  // ── Cover image fade-in ──
     const coverFade = useRef(new Animated.Value(0)).current;
     const coverLoaded = useRef(false);
     useEffect(() => {
@@ -741,14 +764,14 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         <Text style={[st.navTitle, { color: '#fff' }]}>{t('editProfile')}</Text>
       </View>
       {/* ── Cover — absolutely positioned, slides up 92px then freezes ── */}
-      <TouchableOpacity
-        style={[
-          st.coverWrap,
-          {
-            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5,
-            transform: [{ translateY: -coverOffset }],
-          },
-        ]}
+      <Animated.View
+        style={{
+          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5,
+          transform: [{ translateY: coverTranslateY }],
+        }}
+      >
+        <TouchableOpacity
+        style={st.coverWrap}
         onPress={handleCoverPress} activeOpacity={0.9} disabled={uploadingCover}>
         {/* Gradient — always rendered as base; cover image fades in on top */}
         <View style={st.coverGradient}>
@@ -780,32 +803,25 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               {
                 position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
                 opacity: coverFade,
-              },
-              pullDown > 0 && {
-                transform: [
-                  { translateY: dampedPull / 2 },
-                  { scaleY: 1 + dampedPull / 220 },
-                ],
+                // Pull-down stretch: native driver, no JS cost
+                transform: [{ translateY: pullDownTY }, { scaleY: pullDownScale }],
               },
             ]}
           />
         ) : null}
 
-        {/* Pull-down blur overlay — mirrors image transform for full coverage */}
+        {/* Pull-down blur overlay */}
         {blurIntensity > 0 && (
-          <BlurView
-            intensity={blurIntensity}
-            tint="dark"
-            style={[
-              { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-              scrollY < 0 && {
-                transform: [
-                  { translateY: dampedPull / 2 },
-                  { scaleY: 1 + dampedPull / 220 },
-                ],
-              },
-            ]}
-          />
+          <Animated.View style={{
+            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+            transform: [{ translateY: pullDownTY }, { scaleY: pullDownScale }],
+          }}>
+            <BlurView
+              intensity={blurIntensity}
+              tint="dark"
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            />
+          </Animated.View>
         )}
 
         {/* "更换封面" button */}
@@ -826,20 +842,25 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
           </View>
         </TouchableOpacity>
       </TouchableOpacity>
+      </Animated.View>
       <ScrollView style={st.scroll} showsVerticalScrollIndicator={false}
         bounces={true} alwaysBounceVertical={true}
-        onScroll={(e) => {
-          // Throttle state updates via RAF — reduces re-renders from 60→~30fps
-          scrollYPending.current = e.nativeEvent.contentOffset.y;
-          if (scrollYRaf.current === null) {
-            scrollYRaf.current = requestAnimationFrame(() => {
-              scrollYRaf.current = null;
-              setScrollY(scrollYPending.current);
-            });
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollYAnim } } }],
+          {
+            useNativeDriver: true,
+            listener: (e: any) => {
+              // Blur only — throttled via RAF, ~30fps
+              blurPending.current = e.nativeEvent.contentOffset.y;
+              if (blurRaf.current === null) {
+                blurRaf.current = requestAnimationFrame(() => {
+                  blurRaf.current = null;
+                  setBlurInt(computeBlur(blurPending.current));
+                });
+              }
+            },
           }
-        }}
-        onScrollEndDrag={() => setScrollY(scrollYPending.current)}
-        onMomentumScrollEnd={() => setScrollY(scrollYPending.current)}
+        )}
         scrollEventThrottle={16}>
         {/* Spacer — keeps content below the absolutely-positioned cover */}
         <View style={{ height: 260 }} />
