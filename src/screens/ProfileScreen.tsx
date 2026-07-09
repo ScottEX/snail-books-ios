@@ -840,9 +840,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
           ) : (
             <Image source={{ uri: resolveAssetUrl('/img/logo.jpg') || '/img/logo.jpg' }} style={st.avatar} />
           )}
-          <View style={st.camBadge}>
-            <CameraIcon color="#fff" size={11} strokeWidth={2} />
-          </View>
         </TouchableOpacity>
       </TouchableOpacity>
       </Animated.View>
@@ -1509,13 +1506,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   avatar: {
     width: 80, height: 80, borderRadius: 40,
-  },
-  camBadge: {
-    position: 'absolute', bottom: 0, right: -2,
-    width: 26, height: 26, borderRadius: 13,
-    backgroundColor: colors.primary,
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 2, borderColor: colors.surface,
   },
   // Profile head
   profileHead: { paddingHorizontal: 20, paddingTop: 44, paddingBottom: 12 },
