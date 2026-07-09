@@ -241,6 +241,8 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [deleteConfirmUsername, setDeleteConfirmUsername] = useState('');
   // Sticky header on scroll (matches web)
   const [scrollY, setScrollY] = useState(0);
+  const scrollYRaf = useRef<number | null>(null);
+  const scrollYPending = useRef(0);
   const FREEZE_POINT = 92; // cover freezes after scrolling 76px
   const coverOffset = scrollY > 0 ? Math.min(scrollY, FREEZE_POINT) : 0; // how far cover has scrolled up
   // Pull-down stretch + blur (scrollY < 0 = pull-down, scrollY > 0 = scroll-up blur)
@@ -826,7 +828,18 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       </TouchableOpacity>
       <ScrollView style={st.scroll} showsVerticalScrollIndicator={false}
         bounces={true} alwaysBounceVertical={true}
-        onScroll={(e) => setScrollY(e.nativeEvent.contentOffset.y)}
+        onScroll={(e) => {
+          // Throttle state updates via RAF — reduces re-renders from 60→~30fps
+          scrollYPending.current = e.nativeEvent.contentOffset.y;
+          if (scrollYRaf.current === null) {
+            scrollYRaf.current = requestAnimationFrame(() => {
+              scrollYRaf.current = null;
+              setScrollY(scrollYPending.current);
+            });
+          }
+        }}
+        onScrollEndDrag={() => setScrollY(scrollYPending.current)}
+        onMomentumScrollEnd={() => setScrollY(scrollYPending.current)}
         scrollEventThrottle={16}>
         {/* Spacer — keeps content below the absolutely-positioned cover */}
         <View style={{ height: 260 }} />
