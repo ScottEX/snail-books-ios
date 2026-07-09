@@ -36,7 +36,9 @@ function getApiBase(): string {
     if (saved) return saved;
   }
   if (typeof navigator !== 'undefined' && (navigator as any).product === 'ReactNative') {
-    return 'http://8.135.58.90:8601';
+    // @ts-ignore React Native global
+    const port = typeof __DEV__ !== 'undefined' && __DEV__ ? '8601' : '8600';
+    return `http://8.135.58.90:${port}`;
   }
   return '';
 }
@@ -121,7 +123,6 @@ async function authFetch<T = any>(url: string, options?: RequestInit): Promise<T
       if (body?.message) kickMsg = body.message;
     } catch {}
     localStorage.removeItem('user');
-    try { localStorage.removeItem('bg-image'); } catch {}
     _emitUserChange();
     if (kickCode === 'session_kicked') {
       _emitSessionKicked();
@@ -138,7 +139,6 @@ async function authFetch<T = any>(url: string, options?: RequestInit): Promise<T
     } catch {}
     if (isDisabled) {
       localStorage.removeItem('user');
-      try { localStorage.removeItem('bg-image'); } catch {}
       _emitUserChange();
       try { onSessionExpired?.(); } catch {}
       return Promise.reject(new Error('Account disabled'));
@@ -180,7 +180,6 @@ async function silentAuthFetch<T = any>(url: string, options?: RequestInit): Pro
 function _handleRawAuthError(resp: Response, label: string) {
   if (resp.status === 401 || resp.status === 403) {
     localStorage.removeItem('user');
-    try { localStorage.removeItem('bg-image'); } catch {}
     _emitUserChange();
     try { onSessionExpired?.(); } catch {}
     throw new Error('Unauthorized');

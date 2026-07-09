@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Image, ImageBackground, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Animated } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
 import { t, getLang, langs, useLang, I18nKey } from '../i18n';
-import { api } from '../api/client';
+import { api, resolveAssetUrl } from '../api/client';
+import { getOrDownloadBackground } from '../utils/backgroundCache';
 import * as FileSystem from 'expo-file-system';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
@@ -75,16 +76,17 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   // credential. pwdHasFaceID: the currently typed username has any
   // WebAuthn credential bound server-side (drives the "Face ID 登录"
   // link in the password form).
-  const [hasFaceID, setHasFaceID] = useState(() => getWebAuthnBound().bound);
+  const [hasFaceID, setHasFaceID] = useState(false);
   const [pwdHasFaceID, setPwdHasFaceID] = useState(false);
-  const [faceMode, setFaceMode] = useState(() => {
-    if (!getWebAuthnBound().bound) return false;
-    const u = localStorage.getItem('webauthn_user') || localStorage.getItem('saved_login') || '';
-    return !!u;
-  });
+  /** Username of the credential stored in Keychain — used to prevent
+   *  Face ID from logging into the wrong account when a different
+   *  username is typed. */
+  const [keychainUser, setKeychainUser] = useState('');
+  const [faceMode, setFaceMode] = useState(false);
   const [faceAvailable, setFaceAvailable] = useState(false);
   const [faceEnrolling, setFaceEnrolling] = useState(false);
   const breatheAnim = useRef(new Animated.Value(1)).current;
+  const bgFadeAnim = useRef(new Animated.Value(0)).current;
   const codeRef = useRef<any>(null);
   const { colors } = useTheme();
 
@@ -133,31 +135,51 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   // can race and use a stale cached.bound value.
   useEffect(() => {
     (async () => {
-      const cached = getWebAuthnBound();
-      let hasBound = cached.bound;
-
-      // 1. Refresh server state first — this may clear stale localStorage
-      try {
-        const r = await api.webauthnStatus();
-        if (r && typeof r.has_credential === 'boolean') {
-          if (!r.has_credential && cached.bound) clearWebAuthn();
-          hasBound = !!r.has_credential;
-          setHasFaceID(hasBound);
-        }
-      } catch {}
-
-      // 2. Now check biometric with fresh hasBound
+      // 1. Check biometric hardware
       const a = await isBiometricAvailable();
       setFaceAvailable(a.available);
-      if (a.available && hasBound) {
-        const stored = await hasStoredCredential();
-        if (stored || hasBound) {
+      if (!a.available) return;
+
+      // 2. Server is the authority — try webauthnStatus (needs token)
+      //    then fall back to webauthnCheck (public, by username).
+      let serverHasCredential = false;
+      let serverReachable = false;
+      try {
+        const r = await api.webauthnStatus();
+        serverReachable = true;
+        if (r && typeof r.has_credential === 'boolean') {
+          serverHasCredential = !!r.has_credential;
+        }
+      } catch {}
+      if (!serverReachable) {
+        const savedUser = localStorage.getItem('saved_login') || '';
+        if (savedUser) {
           try {
-            const savedUser = localStorage.getItem('saved_login') || '';
-            if (savedUser) setUsername(savedUser);
-            switchToFaceMode();
+            const r = await api.webauthnCheck(savedUser);
+            serverReachable = true;
+            serverHasCredential = !!(r && (r.has_credential || r.pwdHasFaceID));
           } catch {}
         }
+      }
+
+      // 3. Resolve Keychain credential — this is what Face ID login uses
+      let keychainCred: { username: string; password: string } | null = null;
+      try { keychainCred = await getCredential(); } catch {}
+      if (keychainCred) setKeychainUser(keychainCred.username);
+
+      // 4. hasFaceID flag (for ProfileScreen switch). Server is authority.
+      if (serverReachable) {
+        setHasFaceID(serverHasCredential);
+      }
+
+      // 5. Face mode: auto-enter when Keychain matches saved_login.
+      //    On mismatch, stay in password mode — never destroy the credential.
+      //    keychainUser (set in step 3) drives the Face ID button in password form.
+      if (!keychainCred) return;
+      const savedUser = localStorage.getItem('saved_login') || '';
+      if (keychainCred.username === savedUser && savedUser) {
+        setUsername(savedUser);
+        switchToFaceMode();
       }
     })();
   }, []);
@@ -179,50 +201,61 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     return () => loop.stop();
   }, [faceMode]);
 
-  // Fetch avatar + background on username change (debounced 400ms).
-  // Saves as local files so Image loads instantly on next mount
-  // (data URIs are too slow for RN's Image decoder).
+  // Fade custom background in on url change (double-layer, no flash)
   useEffect(() => {
-    if (!username) { setAvatarUrl(''); return; }
-    const timer = setTimeout(async () => {
-      const saveDataUri = async (dataUri: string, prefix: string): Promise<string> => {
-        try {
-          const base64 = dataUri.split(',')[1];
-          if (!base64) return '';
-          // Content hash in filename busts RN Image URI cache
-          const hash = base64.slice(0, 48).split('').reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0).toString(36);
-          const fileUri = FileSystem.cacheDirectory + prefix + '-' + encodeURIComponent(username) + '-' + hash + '.jpg';
-          await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
-          return fileUri;
-        } catch { return ''; }
-      };
+    if (bgUrl) {
+      bgFadeAnim.setValue(0);
+      Animated.timing(bgFadeAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      bgFadeAnim.setValue(0);
+    }
+  }, [bgUrl]);
 
-      try {
-        const avatarDataUri = await api.getUserAvatarByLoginUri(username).catch(() => null);
-        if (avatarDataUri) {
-          const fileUri = await saveDataUri(avatarDataUri, 'avatar');
-          const url = fileUri || avatarDataUri;
-          setAvatarUrl(url);
-          try { localStorage.setItem('avatar-uri', url); } catch {}
-        } else {
-          setAvatarUrl('');
-        }
-      } catch { setAvatarUrl(''); }
+  // Fetch avatar + background for the given username. Called on blur.
+  const fetchUserMedia = useCallback(async (user: string) => {
+    if (!user) { setAvatarUrl(''); setBgUrl(''); return; }
 
+    const saveDataUri = async (dataUri: string, prefix: string): Promise<string> => {
       try {
-        const bgDataUri = await api.getUserBackgroundUri(username).catch(() => null);
-        if (bgDataUri) {
-          const fileUri = await saveDataUri(bgDataUri, 'bg');
-          const url = fileUri || bgDataUri;
-          setBgUrl(url);
-          try { localStorage.setItem('bg-image', url); } catch {}
-        } else {
-          setBgUrl('');
-        }
-      } catch { setBgUrl(''); }
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [username]);
+        const base64 = dataUri.split(',')[1];
+        if (!base64) return '';
+        const hash = base64.slice(0, 48).split('').reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0).toString(36);
+        const fileUri = FileSystem.cacheDirectory + prefix + '-' + encodeURIComponent(user) + '-' + hash + '.jpg';
+        await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+        return fileUri;
+      } catch { return ''; }
+    };
+
+    try {
+      const avatarDataUri = await api.getUserAvatarByLoginUri(user).catch(() => null);
+      if (avatarDataUri) {
+        const fileUri = await saveDataUri(avatarDataUri, 'avatar');
+        const url = fileUri || avatarDataUri;
+        await Image.prefetch(url);
+        setAvatarUrl(url);
+        try { localStorage.setItem('avatar-uri', url); } catch {}
+      } else {
+        setAvatarUrl('');
+      }
+    } catch { setAvatarUrl(''); }
+
+    try {
+      const bgDataUri = await api.getUserBackgroundUri(user).catch(() => null);
+      if (bgDataUri) {
+        const fileUri = await saveDataUri(bgDataUri, 'bg');
+        const url = fileUri || bgDataUri;
+        await Image.prefetch(url);
+        setBgUrl(url);
+        try { localStorage.setItem('bg-image', url); } catch {}
+      } else {
+        setBgUrl('');
+      }
+    } catch { setBgUrl(''); }
+  }, []);
 
   // Debounced check whether the typed username has any WebAuthn
   // credential bound server-side. Mirrors web LoginScreen L237-255 —
@@ -233,6 +266,18 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   useEffect(() => {
     const id = username.trim();
     if (!id) { setPwdHasFaceID(false); return; }
+    // Keychain match: always show Face ID button — iOS stores credential
+    // locally without server registration, so webauthnCheck would miss it.
+    if (keychainUser && keychainUser === id) {
+      setPwdHasFaceID(true);
+      return;
+    }
+    // Keychain mismatch: a different user's credential exists — hide button.
+    if (keychainUser && keychainUser !== id) {
+      setPwdHasFaceID(false);
+      return;
+    }
+    // No Keychain credential → fall back to server check (web WebAuthn users).
     const reqId = ++pwdReqId.current;
     const timer = setTimeout(async () => {
       try {
@@ -244,7 +289,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       }
     }, 500);
     return () => { clearTimeout(timer); };
-  }, [username]);
+  }, [username, keychainUser]);
 
   const reset = () => { setMsg(''); setMsgKey(''); setMsgOk(false); setDevCode(''); setCode(''); };
   const switchToFaceMode = () => { setFaceMode(true); setMsg(''); setMsgKey(''); };
@@ -252,16 +297,11 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     setMsg(''); setMsgKey('');
     setStep('login');
     setPassword(''); setPassword2(''); setEmail('');
-    // Restore Face ID mode if user has credential
-    if (hasFaceID) {
-      try {
-        const savedUser = localStorage.getItem('webauthn_user') || localStorage.getItem('saved_login') || '';
-        if (savedUser) {
-          setUsername(savedUser);
-          switchToFaceMode();
-          return;
-        }
-      } catch {}
+    // Restore Face ID mode if this device has any Keychain credential
+    if (keychainUser) {
+      setUsername(keychainUser);
+      switchToFaceMode();
+      return;
     }
     setFaceMode(false);
     try {
@@ -303,6 +343,67 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     ]).start(() => setShake(false));
   };
 
+  // Download the current user's background to local FileSystem BEFORE
+  // navigating to HomeScreen, so useState initializer finds bg-local-path.
+  // Same-user: localStorage + FileSystem check (near-instant).
+  // Cross-user: network download (acceptable delay, better than flash).
+  const preloadHomeBackground = async () => {
+    try {
+      const r = await api.getBackground();
+      if (r?.url) {
+        const resolved = resolveAssetUrl(r.url);
+        if (resolved) {
+          const localPath = await getOrDownloadBackground(resolved);
+          if (localPath) await Image.prefetch(localPath);
+          return;
+        }
+      }
+      // Fallback: api.getBackground returned null/empty (token warming,
+      // server cache, or reset-to-default). Use bg-image set by this
+      // screen's own username-lookup — it's already a local file.
+      try {
+        const bgImage = localStorage.getItem('bg-image');
+        if (bgImage && bgImage.startsWith('file://')) {
+          const info = await FileSystem.getInfoAsync(bgImage);
+          if (info.exists) {
+            try { localStorage.setItem('bg-local-path', bgImage); } catch {}
+            await Image.prefetch(bgImage);
+            return;
+          }
+        }
+        // Last resort: bg-image not ready yet (e.g. FaceID login beat
+        // the 400ms debounce). Fetch directly, bypass the debounce.
+        const u = username || localStorage.getItem('saved_login') || '';
+        if (u) {
+          const dataUri = await api.getUserBackgroundUri(u).catch(() => null);
+          if (dataUri) {
+            const base64 = dataUri.split(',')[1];
+            if (base64) {
+              // Delete old cached file before writing new one
+              try {
+                const oldPath = localStorage.getItem('bg-local-path');
+                if (oldPath) await FileSystem.deleteAsync(oldPath, { idempotent: true });
+              } catch {}
+              const fileUri = FileSystem.cacheDirectory + `bg_${Date.now()}.jpg`;
+              await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+              try { localStorage.setItem('bg-local-path', fileUri); } catch {}
+              await Image.prefetch(fileUri);
+              return;
+            }
+          }
+        }
+        // All layers exhausted — this user has no custom background.
+        // Delete any stale cached file from a previous user.
+        try {
+          const oldPath = localStorage.getItem('bg-local-path');
+          if (oldPath) await FileSystem.deleteAsync(oldPath, { idempotent: true });
+        } catch {}
+        try { localStorage.removeItem('bg-local-path'); } catch {}
+        try { localStorage.removeItem('bg-remote-url'); } catch {}
+      } catch {}
+    } catch {}
+  };
+
   const handleFaceIDLogin = async () => {
     if (loading) return;
     setLoading(true);
@@ -330,14 +431,27 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         setLoading(false);
         return;
       }
-      // 3. POST to /login so the server sets a fresh session cookie.
+      // 3. Guard: if the user typed a different username, don't log in
+      // with the Keychain credential — it belongs to someone else.
+      const typedUser = username.trim();
+      if (typedUser && cred.username !== typedUser) {
+        setMsgKey('errWrongCredentials'); setMsg('');
+        setFaceMode(false);
+        setLoading(false);
+        return;
+      }
+      // 4. POST to /login so the server sets a fresh session cookie.
       // The stored password was Keychain-protected by biometric so we
       // can safely hand it back to the auth endpoint.
       const r = await api.login(cred.username, cred.password, true);
       if (r.status !== 'ok') {
+        // Keychain credential is stale (e.g. FaceID was disabled
+        // server-side). Clear it so it doesn't reappear on next mount.
+        clearCredential().catch(() => {});
+        clearWebAuthn();
+        setHasFaceID(false);
         setMsgOk(false);
-        if (r.message) { setMsg(r.message); setMsgKey(''); }
-        else { setMsgKey('errWrongCredentials'); setMsg(''); }
+        setMsgKey('errWrongCredentials'); setMsg('');
         triggerShake();
         setFaceMode(false);
         setLoading(false);
@@ -353,25 +467,17 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         localStorage.removeItem('expense_active_tab');
       }
       try { await api.saveLang(getLang()); } catch {}
-      // Refresh WebAuthn state to match server — use webauthnCheck like web
-      try {
-        const resp = await api.webauthnCheck(cred.username);
-        if (resp.has_credential) {
-          setWebAuthnBound(resp.username || cred.username, 'server');
-          setHasFaceID(true);
-        } else {
-          clearWebAuthn();
-          setHasFaceID(false);
-        }
-      } catch {}
       setLoading(false);
+      // Preload background so HomeScreen's first frame shows custom bg
+      await preloadHomeBackground();
       onLogin();
     } catch (e: any) {
       setLoading(false);
       setFaceMode(false);
       setMsgOk(false);
-      if (e?.message) { setMsg(e.message); setMsgKey(''); }
-      else { setMsgKey('errNetworkError'); setMsg(''); }
+      if (e instanceof TypeError) { setMsgKey('errNetworkError'); setMsg(''); }
+      else if (e?.message) { setMsg(e.message); setMsgKey(''); }
+      else { setMsgKey('errWrongCredentials'); setMsg(''); }
     }
   };
 
@@ -423,7 +529,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     setLoading(true);
     try {
       const r = await api.login(username, password, remember);
-      setLoading(false);
       if (r.status === 'ok') {
         if (r.token && typeof localStorage !== 'undefined') localStorage.setItem('token', r.token);
         if (typeof localStorage !== 'undefined') {
@@ -438,43 +543,26 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
           localStorage.removeItem('expense_active_tab');
         }
         try { await api.saveLang(getLang()); } catch {}
-        // Post-login WebAuthn re-sync. Use webauthnCheck like web — confirms
-        // the freshly-logged-in user has any Face ID credential bound
-        // server-side and updates localStorage flags.
-        try {
-          const loggedUser = r.username || username;
-          const resp = await api.webauthnCheck(loggedUser);
-          if (resp.has_credential) {
-            setWebAuthnBound(resp.username || loggedUser, 'server');
-            setHasFaceID(true);
-          } else {
-            clearWebAuthn();
-            setHasFaceID(false);
-          }
-        } catch {}
-        // Offer biometric enrollment on first successful password
-        // login. Auto-confirms into Keychain if the user taps the
-        // confirmation; the actual write happens via enableFaceID()
-        // triggered from a soft prompt below. We don't gate onLogin()
-        // on this — biometric is optional.
-        if (faceAvailable && !(await hasStoredCredential())) {
-          offerEnableFaceID();
-        }
+        // Preload background so HomeScreen's first frame shows custom bg
+        await preloadHomeBackground();
+        setLoading(false);
         onLogin();
       } else if (r.need_verify) {
+        setLoading(false);
         setEmail(r.email); setStep('verify'); setMsg(''); setMsgKey('');
         setTimeout(() => codeRef.current?.focus(), 100);
       } else {
+        setLoading(false);
         setMsgOk(false);
-        if (r.message) { setMsg(r.message); setMsgKey(''); }
-        else { setMsgKey('errWrongCredentials'); setMsg(''); }
+        setMsgKey('errWrongCredentials'); setMsg('');
         triggerShake();
       }
     } catch (e: any) {
       setLoading(false);
       setMsgOk(false);
-      if (e?.message) { setMsg(e.message); setMsgKey(''); }
-      else { setMsgKey('errNetworkError'); setMsg(''); }
+      if (e instanceof TypeError) { setMsgKey('errNetworkError'); setMsg(''); }
+      else if (e?.message) { setMsg(e.message); setMsgKey(''); }
+      else { setMsgKey('errWrongCredentials'); setMsg(''); }
     }
   };
 
@@ -581,17 +669,16 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   return (
     <View style={styles.container}>
-      {/* Background — single layer, defaultSource handles decode gap */}
+      {/* Background — double layer: default always rendered, custom fades on top.
+          Avoids the blue-gray flash from container bg during user switch. */}
+      <ImageBackground source={BG_IMAGE} style={styles.bgLayer} resizeMode="cover" />
       {bgUrl ? (
-        <Image
+        <Animated.Image
           source={{ uri: bgUrl }}
-          defaultSource={BG_IMAGE}
-          style={styles.bgLayer}
+          style={[styles.bgLayer, { opacity: bgFadeAnim }]}
           resizeMode="cover"
         />
-      ) : (
-        <ImageBackground source={BG_IMAGE} style={styles.bgLayer} resizeMode="cover" />
-      )}
+      ) : null}
       <View style={styles.bgOverlay} />
       <KeyboardAvoidingView
         style={styles.flex}
@@ -686,7 +773,8 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                       <View style={styles.pwWrap}>
                         <AppTextInput style={[styles.textInput, { paddingRight: username ? 44 : 16 }]} value={username} onChangeText={setUsername}
                           placeholder={t('loginPlaceholder') || '用户名 / 邮箱'} placeholderTextColor="rgba(255,255,255,0.55)"
-                          onSubmitEditing={handleLogin} autoCapitalize="none" />
+                          onSubmitEditing={handleLogin} autoCapitalize="none"
+                          onBlur={() => fetchUserMedia(username)} />
                         {username ? (
                           <TouchableOpacity style={styles.clearBtn} onPress={() => setUsername('')}>
                             <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -730,7 +818,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                         </View>
                         <Text style={styles.rememberText}>{t('rememberMe') || '记住我'}</Text>
                       </TouchableOpacity>
-                      {hasFaceID && pwdHasFaceID ? (
+                      {pwdHasFaceID && !!keychainUser ? (
                         <TouchableOpacity onPress={switchToFaceMode}>
                           <Text style={{ fontSize: 14, color: colors.primary }}>{t('faceIDLogin') || '面容登录'}</Text>
                         </TouchableOpacity>

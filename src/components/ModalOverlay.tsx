@@ -170,7 +170,7 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, childr
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <Animated.View style={[{ flex: 1, justifyContent: 'center', alignItems: 'center' }, overlayStyle]}>
+      <Animated.View style={[{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }, overlayStyle]}>
         <TouchableOpacity
           activeOpacity={1}
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}

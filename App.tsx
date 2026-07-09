@@ -10,7 +10,6 @@ import { ThemeProvider } from './src/theme';
 import { LangProvider } from './src/i18n';
 import { onSessionKicked, onUserChange, setSessionExpiredHandler } from './src/api/client';
 import { initStorageCache } from './src/platform';
-import { clearWebAuthn } from './src/utils/storage';
 
 export default function App() {
   const [_page, _setPage] = useState<'login' | 'home'>('login');
@@ -74,12 +73,16 @@ export default function App() {
     let bgImage = '';
     let avatarUri = '';
     let themeId = '';
+    let bgLocalPath = '';
+    let bgRemoteUrl = '';
     try {
       lang = localStorage.getItem('lang') || '';
       rememberMe = localStorage.getItem('remember_me') || '';
       savedLogin = localStorage.getItem('saved_login') || '';
       bgImage = localStorage.getItem('bg-image') || '';
       avatarUri = localStorage.getItem('avatar-uri') || '';
+      bgLocalPath = localStorage.getItem('bg-local-path') || '';
+      bgRemoteUrl = localStorage.getItem('bg-remote-url') || '';
       const themeKey = (() => { try { const { getThemeKey } = require('./src/theme'); return getThemeKey(); } catch { return 'snail-books-theme'; } })();
       themeId = localStorage.getItem(themeKey) || '';
       localStorage.clear();
@@ -88,9 +91,10 @@ export default function App() {
       if (savedLogin) localStorage.setItem('saved_login', savedLogin);
       if (bgImage) localStorage.setItem('bg-image', bgImage);
       if (avatarUri) localStorage.setItem('avatar-uri', avatarUri);
+      if (bgLocalPath) localStorage.setItem('bg-local-path', bgLocalPath);
+      if (bgRemoteUrl) localStorage.setItem('bg-remote-url', bgRemoteUrl);
       if (themeId) localStorage.setItem('snail-books-theme', themeId);
     } catch {}
-    clearWebAuthn();
     if (pageRef.current !== 'login') {
       setAppKey((k) => k + 1);
       setPage('login');

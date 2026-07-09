@@ -21,6 +21,7 @@ import SubmitButton from '../components/SubmitButton';
 import DatePickerModal from '../components/DatePickerModal';
 import ModalOverlay from '../components/ModalOverlay';
 import ThemePickerModal from '../components/ThemePickerModal';
+import LogoutConfirmModal from '../components/LogoutConfirmModal';
 import BgCropModal from '../components/BgCropModal';
 import { cacheBackground, getCachedLocalPath, getOrDownloadBackground, clearBackgroundCache } from '../utils/backgroundCache';
 import SlideScreen from '../components/SlideScreen';
@@ -290,7 +291,6 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   // ── Modal state ──
   const [showBgModal, setShowBgModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [loggingOut, setLoggingOut] = useState(false);
   const modalAnim = useRef(new Animated.Value(0)).current;
   const modalFade = useRef(new Animated.Value(0)).current;
   const openModal = (show: () => void) => { show(); modalAnim.setValue(-300); modalFade.setValue(0); Animated.parallel([Animated.spring(modalAnim,{toValue:0,useNativeDriver:true,bounciness:4,speed:14}),Animated.timing(modalFade,{toValue:1,duration:200,useNativeDriver:true})]).start(); };
@@ -839,40 +839,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
       </ModalOverlay>
 
       {/* Logout modal */}
-      <ModalOverlay visible={showLogoutModal} onClose={() => setShowLogoutModal(false)}>
-          <View style={mo.card}>
-            <View style={mo.header}>
-              <Text style={mo.title}>{t('logout')}</Text>
-              <TouchableOpacity onPress={() => setShowLogoutModal(false)}>
-                <Text style={mo.close}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={mo.body}>
-              <Text style={{ color: colors.textMain, fontSize: 15, lineHeight: 22, textAlign: 'center' }}>
-                {t('logoutConfirm')}
-              </Text>
-              <View style={mo.btnRow}>
-                <TouchableOpacity style={mo.cancelBtn} onPress={() => setShowLogoutModal(false)}>
-                  <Text style={mo.cancelText}>{t('cancel')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={mo.confirmBtn}
-                  disabled={loggingOut}
-                  onPress={() => {
-                    setLoggingOut(true);
-                    api.logout().finally(() => onLogout());
-                  }}
-                >
-                  {loggingOut ? (
-                    <ActivityIndicator size="small" color="rgba(255,255,255,0.8)" />
-                  ) : (
-                    <Text style={mo.confirmText}>{t('confirmLogout')}</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-      </ModalOverlay>
+      <LogoutConfirmModal visible={showLogoutModal} onClose={() => setShowLogoutModal(false)} onLogout={onLogout} />
 
       <DatePickerModal
         visible={showDatePicker}

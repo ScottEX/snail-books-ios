@@ -15,11 +15,13 @@ import Toast from '../components/Toast';
 import BackArrow from '../components/icons/BackArrow';
 import CameraIcon from '../components/icons/CameraIcon';
 import ThemePickerModal from '../components/ThemePickerModal';
+import LogoutConfirmModal from '../components/LogoutConfirmModal';
 import BgCropModal from '../components/BgCropModal';
 import CropModal from '../components/CropModal';
 import CloseButton from '../components/CloseButton';
 import ButtonPair from '../components/ButtonPair';
 import SubmitButton from '../components/SubmitButton';
+import LoadingSpinner from '../components/LoadingSpinner';
 import ModalOverlay from '../components/ModalOverlay';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { pickImages } from '../utils/imagePicker';
@@ -27,6 +29,7 @@ import { cacheBackground } from '../utils/backgroundCache';
 import { modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 import { isBiometricAvailable, hasStoredCredential, clearCredential, saveCredential, promptBiometric, getCredential } from '../utils/biometric';
+import { clearWebAuthn } from '../utils/storage';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import ReAnimated, { useAnimatedStyle } from 'react-native-reanimated';
 
@@ -218,7 +221,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const bgRecropRef = useRef(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [loggingOut, setLoggingOut] = useState(false);
   const [showAdminBlockModal, setShowAdminBlockModal] = useState(false);
   const [showPartnerBlockModal, setShowPartnerBlockModal] = useState(false);
 
@@ -372,15 +374,44 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     } catch {}
   };
 
-  // Face ID
+  // Face ID — WebAuthn (server) and Keychain (iOS local) are independent paths.
+  // Web users register real WebAuthn credentials → server has_credential.
+  // iOS users only store password in Keychain → server has no record.
+  // Either source is sufficient to show the switch ON.
   const loadFaceIDStatus = async () => {
     try {
       const { available } = await isBiometricAvailable();
       setFaceAvailable(available);
-      if (available) {
-        const stored = await hasStoredCredential();
-        setHasFaceID(stored);
-      }
+      if (!available) return;
+
+      // 1. Server: WebAuthn credentials (registered via web)
+      let serverHas = false;
+      try {
+        const resp = await api.webauthnStatus();
+        if (resp && typeof resp.has_credential === 'boolean') {
+          serverHas = !!resp.has_credential;
+        } else {
+          const user = getCurrentUser();
+          if (user) {
+            try {
+              const r = await api.webauthnCheck(user);
+              serverHas = !!(r && r.has_credential);
+            } catch {}
+          }
+        }
+      } catch {}
+
+      // 2. Keychain: iOS biometric credential (local-only, no server registration).
+      //    Must belong to the currently logged-in user — otherwise it's another
+      //    user's credential left from a previous session on this device.
+      let keychainHas = false;
+      try {
+        const cred = await getCredential();
+        const currentUser = getCurrentUser();
+        keychainHas = !!(cred && cred.username === currentUser);
+      } catch {}
+
+      setHasFaceID(serverHas || keychainHas);
     } catch {}
   };
 
@@ -394,11 +425,11 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     } else {
       setFaceIDLoading(true);
       try {
+        await api.webauthnDelete();
         await clearCredential();
+        clearWebAuthn();
         setHasFaceID(false);
-        setToast(t('faceIDDisabled') || '面容登录已关闭');
       } catch {
-        setToast(t('toastSubmitFailed'));
       }
       setFaceIDLoading(false);
     }
@@ -406,7 +437,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
   const enrollFaceID = async () => {
     if (!faceIDPassword) {
-      setToast(t('errEmptyFields'));
+      setFaceIDError(t('errEmptyFields'));
       return;
     }
     setFaceIDLoading(true);
@@ -414,16 +445,14 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       const username = getCurrentUser() || '';
       const { success, error } = await promptBiometric(t('faceIDEnrollPrompt') || '启用面容登录');
       if (!success) {
-        if (error !== 'cancelled') setToast(t('toastSubmitFailed'));
         setFaceIDLoading(false);
         return;
       }
       const { ok, error: saveErr } = await saveCredential(username, faceIDPassword);
       if (ok) {
-        // Verify immediately
         const verify = await getCredential();
         if (!verify) {
-          setToast('Keychain 写入失败，请重试');
+          setFaceIDError('Keychain 写入失败，请重试');
           setFaceIDLoading(false);
           return;
         }
@@ -431,10 +460,10 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         setShowFaceIDSetup(false);
         setFaceIDPassword('');
       } else {
-        setToast(saveErr || t('toastSubmitFailed'));
+        setFaceIDError(saveErr || t('toastSubmitFailed'));
       }
     } catch {
-      setToast(t('toastSubmitFailed'));
+      setFaceIDError(t('toastSubmitFailed'));
     }
     setFaceIDLoading(false);
   };
@@ -522,11 +551,9 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       const r: any = await api.uploadAvatar(form);
       if (r?.ok !== false) {
         await loadAvatar();
-        setToast('头像已更新');
         onAvatarChange?.();
       }
     } catch (err: any) {
-      setToast(err?.message || t('uploadFailedShort'));
     } finally {
       setUploadingAvatar(false);
       setShowAvatarPreview(false);
@@ -572,10 +599,8 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         const resolved = resolveAssetUrl(r.url) || r.url;
         const sep = resolved.includes('?') ? '&' : '?';
         setCoverUrl(resolved + sep + 'v=' + Date.now());
-        setToast('封面已更新');
       }
     } catch (err: any) {
-      setToast(err?.message || t('uploadFailedShort'));
     } finally {
       setUploadingCover(false);
       setShowCoverPreview(false);
@@ -612,12 +637,9 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         if (typeof window !== 'undefined' && typeof (window as any).dispatchEvent === 'function') {
           (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: resolved } }));
         }
-        setToast(t('bgUpdated') || '背景已更新');
       } else {
-        setToast(t('toastSubmitFailed'));
       }
     } catch {
-      setToast(t('toastSubmitFailed'));
     } finally {
       setUploadingCover(false);
       setShowBgPreview(false);
@@ -637,9 +659,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     setSignature(draft);
     try {
       await api.saveSignature(draft);
-      setToast(t('signatureSaved'));
     } catch (err: any) {
-      setToast(err?.message || t('toastSubmitFailed'));
     }
   };
 
@@ -659,7 +679,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     try {
       const r: any = await api.changePassword(oldPw, newPw);
       if (r?.status === 'ok' || r?.message) {
-        setToast(r?.message || t('passwordChanged'));
         setShowPwModal(false);
         setOldPw(''); setNewPw(''); setConfirmPw('');
       } else {
@@ -682,7 +701,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       const r: any = await api.sendEmailCode(newEmail);
       if (r?.status === 'ok') {
         setEmailStep('verify');
-        setToast(r?.message || t('codeSent'));
       } else {
         setEmailMsg(r?.message || t('toastSubmitFailed'));
       }
@@ -702,7 +720,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       const r: any = await api.verifyEmailCode(newEmail, emailCode);
       if (r?.status === 'ok') {
         setEmail(newEmail);
-        setToast(r?.message || t('emailUpdated'));
         setShowEmailModal(false);
         setEmailStep('input');
         setNewEmail(''); setEmailCode('');
@@ -722,13 +739,11 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     setDeleteLoading(true);
     try {
       const rawUid = getCurrentUserId();
-      if (!rawUid) { setToast(t('errUserInfoUnavailable')); setDeleteLoading(false); setShowDeleteModal(false); return; }
-      const data: any = await api.deleteAccount(Number(rawUid));
+      if (!rawUid) { setDeleteLoading(false); setShowDeleteModal(false); return; }
+      await api.deleteAccount(Number(rawUid));
       setShowDeleteModal(false);
       setDeleteConfirmUsername('');
-      setToast(data?.message || t('accountCooldown'));
     } catch (err: any) {
-      setToast(err?.message || t('toastSubmitFailed'));
     } finally {
       setDeleteLoading(false);
     }
@@ -1072,41 +1087,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
 
       {/* ══════ Logout modal ══════ */}
-      <ModalOverlay visible={showLogoutModal} onClose={() => setShowLogoutModal(false)}>
-          <View style={mo.card}>
-            <View style={mo.header}>
-              <Text style={mo.title}>{t('logout')}</Text>
-              <TouchableOpacity onPress={() => setShowLogoutModal(false)}>
-                <Text style={mo.close}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={mo.body}>
-              <Text style={{ color: colors.textMain, fontSize: 15, lineHeight: 22, textAlign: 'center' }}>
-                {t('logoutConfirm')}
-              </Text>
-              <View style={mo.btnRow}>
-                <TouchableOpacity style={mo.cancelBtn} onPress={() => setShowLogoutModal(false)}>
-                  <Text style={mo.cancelText}>{t('cancel')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={mo.confirmBtn}
-                  disabled={loggingOut}
-                  onPress={async () => {
-                    setLoggingOut(true);
-                    await api.logout();
-                    onLogout();
-                  }}
-                >
-                  {loggingOut ? (
-                    <ActivityIndicator size="small" color="rgba(255,255,255,0.8)" />
-                  ) : (
-                    <Text style={mo.confirmText}>{t('confirmLogout')}</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-      </ModalOverlay>
+      <LogoutConfirmModal visible={showLogoutModal} onClose={() => setShowLogoutModal(false)} onLogout={onLogout} />
 
       {/* ══════ Admin block modal ══════ */}
       <ModalOverlay visible={showAdminBlockModal} onClose={() => setShowAdminBlockModal(false)}>
@@ -1132,7 +1113,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       </ModalOverlay>
 
       {/* ══════ Partner block modal ══════ */}
-      <ModalOverlay visible={showPartnerBlockModal} onClose={() => setShowPartnerBlockModal(false)}>
+      <ModalOverlay visible={showPartnerBlockModal} onClose={() => setShowPartnerBlockModal(false)} animation="blurMorph">
           <View style={mo.card}>
             <View style={mo.header}>
               <Text style={mo.title}>{t('deleteAccount')}</Text>
@@ -1155,7 +1136,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       </ModalOverlay>
 
       {/* ══════ Delete account modal ══════ */}
-      <ModalOverlay visible={showDeleteModal} onClose={() => setShowDeleteModal(false)}>
+      <ModalOverlay visible={showDeleteModal} onClose={() => setShowDeleteModal(false)} animation="blurMorph">
           <View style={mo.card}>
             <View style={mo.header}>
               <Text style={mo.title}>{t('deleteAccountConfirmTitle')}</Text>
@@ -1183,7 +1164,9 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                   onPress={handleDeleteAccount}
                   disabled={deleteLoading || deleteConfirmUsername !== username}
                 >
-                  <Text style={mo.confirmText}>{deleteLoading ? '...' : t('deleteAccountBtn')}</Text>
+                  <Text style={mo.confirmText}>
+                    {deleteLoading ? <LoadingSpinner label={false} size={20} color="#fff" /> : t('deleteAccountBtn')}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1394,7 +1377,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
           </View>
       </ModalOverlay>
       {/* Face ID setup modal */}
-      <ModalOverlay visible={showFaceIDSetup} onClose={() => { setShowFaceIDSetup(false); setFaceIDPassword(''); setFaceIDError(''); }}>
+      <ModalOverlay visible={showFaceIDSetup} onClose={() => { setShowFaceIDSetup(false); setFaceIDPassword(''); setFaceIDError(''); }} animation="springScale">
           <View style={mo.card}>
             <View style={mo.header}>
               <Text style={mo.title}>{t('faceIDLabel') || '面容登录'}</Text>
@@ -1425,7 +1408,9 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                   onPress={enrollFaceID}
                   disabled={faceIDLoading || !faceIDPassword}
                 >
-                  <Text style={mo.confirmText}>{faceIDLoading ? '...' : t('confirm')}</Text>
+                  <Text style={mo.confirmText}>
+                    {faceIDLoading ? <LoadingSpinner label={false} size={20} color="#fff" /> : t('confirm')}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1606,7 +1591,7 @@ const getMo = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center', alignItems: 'center', padding: 16,
   },
   card: {
-    backgroundColor: colors.surface, borderRadius: 16,
+    backgroundColor: colors.surface, borderRadius: MODAL_CARD_RADIUS,
     width: 340, maxWidth: '90%', overflow: 'hidden' as any,
   },
   header: {
@@ -1616,7 +1601,7 @@ const getMo = (colors: ThemeColors) => StyleSheet.create({
   },
   title: { fontSize: 14, fontWeight: '700', color: colors.surface },
   close: { ...modalClose },
-  body: { padding: 20, gap: 12 } as any,
+  body: { padding: 24, gap: 18 } as any,
   input: {
     paddingHorizontal: 10, paddingVertical: 9, borderRadius: 8,
     fontSize: FONTS.sub.size, color: colors.textMain,
@@ -1631,7 +1616,7 @@ const getMo = (colors: ThemeColors) => StyleSheet.create({
   warnMsg: {
     fontSize: FONTS.micro.size, color: colors.textSub, textAlign: 'center', lineHeight: 22,
   },
-  btnRow: { flexDirection: 'row', gap: 12, marginTop: 0 },
+  btnRow: { flexDirection: 'row', gap: 12, width: '100%' },
   cancelBtn: {
     flex: 1, borderRadius: 10, borderWidth: 1,
     borderColor: (colors as any).secondary || '#e0e0e0',
@@ -1642,5 +1627,5 @@ const getMo = (colors: ThemeColors) => StyleSheet.create({
     flex: 1, backgroundColor: colors.primary, borderRadius: 10,
     paddingVertical: 12, alignItems: 'center',
   },
-  confirmText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.surface },
+  confirmText: { fontSize: FONTS.sub.size, fontWeight: '600', color: colors.surface },
 });

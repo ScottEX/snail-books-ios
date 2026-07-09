@@ -1,10 +1,13 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useState } from 'react';
 import { useTheme, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
+import { MODAL_CARD_RADIUS } from '../sharedStyles';
 import { t } from '../i18n';
 import { api } from '../api/client';
 import ModalOverlay from './ModalOverlay';
 import CloseButton from './CloseButton';
+import LoadingSpinner from './LoadingSpinner';
 
 interface LogoutConfirmModalProps {
   visible: boolean;
@@ -15,9 +18,20 @@ interface LogoutConfirmModalProps {
 export default function LogoutConfirmModal({ visible, onClose, onLogout }: LogoutConfirmModalProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
+  const [loading, setLoading] = useState(false);
+
+  const handleLogout = async () => {
+    setLoading(true);
+    try {
+      await api.logout();
+      onLogout();
+    } catch {
+      setLoading(false);
+    }
+  };
 
   return (
-    <ModalOverlay visible={visible} onClose={onClose}>
+    <ModalOverlay visible={visible} onClose={onClose} animation="blurMorph">
       <View style={styles.card}>
         <View style={styles.header}>
           <Text style={styles.title}>{t('logout')}</Text>
@@ -28,14 +42,15 @@ export default function LogoutConfirmModal({ visible, onClose, onLogout }: Logou
             {t('logoutConfirm') || '确定要退出登录吗？'}
           </Text>
           <View style={styles.btnRow}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
+            <TouchableOpacity style={[styles.cancelBtn, loading && { opacity: 0.5 }]} onPress={onClose} disabled={loading}>
               <Text style={styles.cancelText}>{t('cancel')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.confirmBtn} onPress={async () => {
-              await api.logout();
-              onLogout();
-            }}>
-              <Text style={styles.confirmBtnText}>{t('confirmLogout') || '确定退出'}</Text>
+            <TouchableOpacity style={[styles.confirmBtn, loading && { opacity: 0.5 }]} onPress={handleLogout} disabled={loading}>
+              {loading ? (
+                <LoadingSpinner label={false} size={20} color={colors.surface} />
+              ) : (
+                <Text style={styles.confirmBtnText}>{t('confirmLogout') || '确定退出'}</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -46,7 +61,7 @@ export default function LogoutConfirmModal({ visible, onClose, onLogout }: Logou
 
 const getStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
-    backgroundColor: colors.surface, borderRadius: 16,
+    backgroundColor: colors.surface, borderRadius: MODAL_CARD_RADIUS,
     width: 340, maxWidth: '90%', overflow: 'hidden',
   },
   header: {
