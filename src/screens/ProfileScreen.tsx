@@ -183,7 +183,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [unreviewedCount, setUnreviewedCount] = useState(0);
 
   // Auth prefs
-  const [enforceSingleSession, setEnforceSingleSession] = useState(0);
+  const [enforceSingleSession, setEnforceSingleSession] = useState(1);
   const [sessionTimeoutHours, setSessionTimeoutHours] = useState(1);
   const authPrefsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
