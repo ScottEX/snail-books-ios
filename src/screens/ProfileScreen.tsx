@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
-  Image, Switch, Modal, ActivityIndicator, useWindowDimensions,
+  Image, Switch, Modal, ActivityIndicator, useWindowDimensions, Animated,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Defs, LinearGradient as SVGGradient, Stop, Rect } from 'react-native-svg';
@@ -245,11 +245,15 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const coverOffset = scrollY > 0 ? Math.min(scrollY, FREEZE_POINT) : 0; // how far cover has scrolled up
   // Pull-down stretch + blur (scrollY < 0 = pull-down, scrollY > 0 = scroll-up blur)
   const pullDown = Math.max(0, -scrollY);
+  // Rubber-band damping: sqrt reduces pull effect as it increases (iOS-style)
+  const dampedPull = Math.sqrt(pullDown * 80);
   const blurIntensity = scrollY > 0
     ? Math.min(scrollY / 2, 10)   // scroll-up: progressive blur, max 10 at freeze point
     : Math.min(pullDown / 3, 18);  // pull-down: stretch blur
+    // ── Cover image fade-in ──
+    const coverFade = useRef(new Animated.Value(0)).current;
 
-  // Modal keyboard push
+    // Modal keyboard push
   const { height: screenH, width: screenW } = useWindowDimensions();
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const modalCap = -screenH * 0.1;
@@ -729,7 +733,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         </TouchableOpacity>
         <Text style={[st.navTitle, { color: '#fff' }]}>{t('editProfile')}</Text>
       </View>
-      {/* ── Cover — absolutely positioned, slides up 120px then freezes ── */}
+      {/* ── Cover — absolutely positioned, slides up 92px then freezes ── */}
       <TouchableOpacity
         style={[
           st.coverWrap,
@@ -739,35 +743,45 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
           },
         ]}
         onPress={handleCoverPress} activeOpacity={0.9} disabled={uploadingCover}>
+        {/* Gradient — always rendered as base; cover image fades in on top */}
+        <View style={st.coverGradient}>
+          <Svg width="100%" height="100%" viewBox="0 0 360 260" preserveAspectRatio="none">
+            <Defs>
+              <SVGGradient id="coverGrad" x1="0" y1="0" x2="1" y2="1">
+                <Stop offset="0" stopColor={colors.primary} stopOpacity={1} />
+                <Stop offset="0.5" stopColor={(colors as any).accent || colors.primary} stopOpacity={0.7} />
+                <Stop offset="1" stopColor={colors.primary} stopOpacity={0.35} />
+              </SVGGradient>
+            </Defs>
+            <Rect width="360" height="260" fill="url(#coverGrad)" />
+          </Svg>
+        </View>
+
+        {/* Cover image — fades in on top of gradient, 300ms crossfade */}
         {coverUrl ? (
-          <Image
+          <Animated.Image
+            key={coverUrl}
             source={{ uri: coverUrl }}
+            onLoad={() => {
+              coverFade.setValue(0);
+              Animated.timing(coverFade, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+            }}
             blurRadius={blurIntensity}
             style={[
               st.coverImg,
-              { opacity: coverOpacity },
+              {
+                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                opacity: coverFade,
+              },
               pullDown > 0 && {
                 transform: [
-                  { translateY: pullDown / 2 },
-                  { scaleY: 1 + pullDown / 220 },
+                  { translateY: dampedPull / 2 },
+                  { scaleY: 1 + dampedPull / 220 },
                 ],
               },
             ]}
           />
-        ) : (
-          <View style={st.coverGradient}>
-            <Svg width="100%" height="100%" viewBox="0 0 360 260" preserveAspectRatio="none">
-              <Defs>
-                <SVGGradient id="coverGrad" x1="0" y1="0" x2="1" y2="1">
-                  <Stop offset="0" stopColor={colors.primary} stopOpacity={1} />
-                  <Stop offset="0.5" stopColor={(colors as any).accent || colors.primary} stopOpacity={0.7} />
-                  <Stop offset="1" stopColor={colors.primary} stopOpacity={0.35} />
-                </SVGGradient>
-              </Defs>
-              <Rect width="360" height="260" fill="url(#coverGrad)" />
-            </Svg>
-          </View>
-        )}
+        ) : null}
 
         {/* Pull-down blur overlay — mirrors image transform for full coverage */}
         {blurIntensity > 0 && (
@@ -778,8 +792,8 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
               scrollY < 0 && {
                 transform: [
-                  { translateY: pullDown / 2 },
-                  { scaleY: 1 + pullDown / 220 },
+                  { translateY: dampedPull / 2 },
+                  { scaleY: 1 + dampedPull / 220 },
                 ],
               },
             ]}
