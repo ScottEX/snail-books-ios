@@ -252,6 +252,11 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     : Math.min(pullDown / 3, 18);  // pull-down: stretch blur
     // ── Cover image fade-in ──
     const coverFade = useRef(new Animated.Value(0)).current;
+    const coverLoaded = useRef(false);
+    useEffect(() => {
+      coverLoaded.current = false;
+      coverFade.setValue(0);
+    }, [coverUrl]);
 
     // Modal keyboard push
   const { height: screenH, width: screenW } = useWindowDimensions();
@@ -763,7 +768,8 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
             key={coverUrl}
             source={{ uri: coverUrl }}
             onLoad={() => {
-              coverFade.setValue(0);
+              if (coverLoaded.current) return;
+              coverLoaded.current = true;
               Animated.timing(coverFade, { toValue: 1, duration: 300, useNativeDriver: true }).start();
             }}
             blurRadius={blurIntensity}
