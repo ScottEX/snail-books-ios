@@ -163,7 +163,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [toast, setToast] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string>('');
   const [coverUrl, setCoverUrl] = useState<string>('');
-  const [coverOpacity, setCoverOpacity] = useState(1); // cover image opacity (always visible, not slider-controlled)
   const [bgOpacity, setBgOpacity] = useState<number>(() => {
     try {
       const uid = getCurrentUserId();
