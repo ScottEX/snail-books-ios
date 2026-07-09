@@ -276,7 +276,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     Animated.event([{ nativeEvent: { contentOffset: { y: scrollYAnim } } }])
   ).current;
   const computeBlur = (y: number) =>
-    y > 0 ? Math.min(y / 2, 10) : Math.min(Math.max(0, -y) / 3, 18);
+    y > 0 ? Math.min(y / 2, 10) : 0;
 
   // ── Cover image fade-in ──
     const coverFade = useRef(new Animated.Value(0)).current;
