@@ -292,6 +292,7 @@ const I18N: Record<string, Record<string, string>> = {
     jokeClosedLoop: '「一个董事长负责画饼，一个CEO负责烙饼，一个打杂的负责吃饼 —— 完美的商业闭环」',
     jokeRecon: '已为您载入最近一次对账数据，请核对账单日期是否正确。',
     language: '语言',
+    anyDate: '任何日期',
     last30Days: '近30天',
     last3Months: '近3月',
     last7Days: '近7天',
@@ -896,6 +897,7 @@ const I18N: Record<string, Record<string, string>> = {
     jokeClosedLoop: '「一個董事長負責畫餅，一個CEO負責烙餅，一個打雜的負責吃餅 —— 完美的商業閉環」',
     jokeRecon: '已為您載入最近一次對賬數據，請核對賬單日期是否正確。',
     language: '語言',
+    anyDate: '任何日期',
     last30Days: '近30天',
     last3Months: '近3月',
     last7Days: '近7天',
@@ -1510,6 +1512,7 @@ const I18N: Record<string, Record<string, string>> = {
     jokeClosedLoop: '「One chairman paints the pie, one CEO bakes it, one helper eats it — the perfect business loop」',
     jokeRecon: 'The latest reconciliation data has been loaded. Please verify the bill date is correct.',
     language: 'Language',
+    anyDate: 'Any date',
     last30Days: 'Last 30 days',
     last3Months: 'Last 3 months',
     last7Days: 'Last 7 days',
@@ -2116,6 +2119,7 @@ export type I18nKey =
   | 'jokeClosedLoop'
   | 'jokeRecon'
   | 'language'
+  | 'anyDate'
   | 'last30Days'
   | 'last3Months'
   | 'last7Days'

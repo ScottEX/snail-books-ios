@@ -446,6 +446,14 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
             </View>
             {/* Quick presets */}
             <View style={s.quickRow}>
+              <TouchableOpacity
+                style={[s.quickBtn, (!dateFrom && !dateTo) && s.quickBtnOn]}
+                onPress={clearDate}
+              >
+                <Text style={[s.quickBtnText, (!dateFrom && !dateTo) && s.quickBtnTextOn]}>
+                  {t('anyDate')}
+                </Text>
+              </TouchableOpacity>
               <TouchableOpacity style={s.quickBtn} onPress={() => applyQuick(7)}>
                 <Text style={s.quickBtnText}>{t('last7Days')}</Text>
               </TouchableOpacity>
@@ -546,7 +554,11 @@ const getStyles = (c: ThemeColors) => {
       flex: 1, alignItems: 'center', paddingVertical: 7,
       borderRadius: 8, backgroundColor: withAlpha(c.textMain, 0.04),
     },
+    quickBtnOn: {
+      backgroundColor: c.primary,
+    },
     quickBtnText: { fontSize: 12, color: c.textSub },
+    quickBtnTextOn: { color: '#fff', fontWeight: '600' as any },
     dateActions: {
       flexDirection: 'row', justifyContent: 'flex-end', gap: 8,
       paddingHorizontal: 14, paddingBottom: 10,
