@@ -16,6 +16,7 @@ import BackArrow from '../components/icons/BackArrow';
 import CameraIcon from '../components/icons/CameraIcon';
 import ThemePickerModal from '../components/ThemePickerModal';
 import LogoutConfirmModal from '../components/LogoutConfirmModal';
+import DisableFaceIDModal from '../components/DisableFaceIDModal';
 import BgCropModal from '../components/BgCropModal';
 import CropModal from '../components/CropModal';
 import CloseButton from '../components/CloseButton';
@@ -28,8 +29,7 @@ import { pickImages } from '../utils/imagePicker';
 import { cacheBackground } from '../utils/backgroundCache';
 import { modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
 import { useSwipeBack } from '../hooks/useSwipeBack';
-import { isBiometricAvailable, hasStoredCredential, clearCredential, saveCredential, promptBiometric, getCredential } from '../utils/biometric';
-import { clearWebAuthn } from '../utils/storage';
+import { isBiometricAvailable, saveCredential, promptBiometric, getCredential } from '../utils/biometric';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import ReAnimated, { useAnimatedStyle } from 'react-native-reanimated';
 
@@ -221,6 +221,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const bgRecropRef = useRef(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showDisableFaceIDModal, setShowDisableFaceIDModal] = useState(false);
   const [showAdminBlockModal, setShowAdminBlockModal] = useState(false);
   const [showPartnerBlockModal, setShowPartnerBlockModal] = useState(false);
 
@@ -406,8 +407,8 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       //    user's credential left from a previous session on this device.
       let keychainHas = false;
       try {
-        const cred = await getCredential();
         const currentUser = getCurrentUser();
+        const cred = await getCredential(currentUser);
         keychainHas = !!(cred && cred.username === currentUser);
       } catch {}
 
@@ -423,15 +424,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       setFaceIDError('');
       setShowFaceIDSetup(true);
     } else {
-      setFaceIDLoading(true);
-      try {
-        await api.webauthnDelete();
-        await clearCredential();
-        clearWebAuthn();
-        setHasFaceID(false);
-      } catch {
-      }
-      setFaceIDLoading(false);
+      setShowDisableFaceIDModal(true);
     }
   };
 
@@ -450,7 +443,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       }
       const { ok, error: saveErr } = await saveCredential(username, faceIDPassword);
       if (ok) {
-        const verify = await getCredential();
+        const verify = await getCredential(username);
         if (!verify) {
           setFaceIDError('Keychain 写入失败，请重试');
           setFaceIDLoading(false);
@@ -1088,6 +1081,14 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
       {/* ══════ Logout modal ══════ */}
       <LogoutConfirmModal visible={showLogoutModal} onClose={() => setShowLogoutModal(false)} onLogout={onLogout} />
+
+      {/* ══════ Disable Face ID modal ══════ */}
+      <DisableFaceIDModal
+        visible={showDisableFaceIDModal}
+        onClose={() => setShowDisableFaceIDModal(false)}
+        onDisabled={() => { setShowDisableFaceIDModal(false); setHasFaceID(false); }}
+        username={username}
+      />
 
       {/* ══════ Admin block modal ══════ */}
       <ModalOverlay visible={showAdminBlockModal} onClose={() => setShowAdminBlockModal(false)}>

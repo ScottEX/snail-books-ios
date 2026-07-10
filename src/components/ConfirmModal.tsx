@@ -86,11 +86,11 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   warningText: { fontSize: FONTS.micro.size, color: c.textSub, textAlign: 'center' },
   btnRow: { flexDirection: 'row', gap: 10, width: '100%' },
   cancelBtn: {
-    flex: 1, paddingVertical: 13, borderRadius: 12,
-    backgroundColor: withAlpha(c.textMain, 0.06), alignItems: 'center',
+    flex: 1, paddingVertical: 12, borderRadius: 10,
     borderWidth: 1, borderColor: c.secondary,
+    justifyContent: 'center', alignItems: 'center',
   },
-  cancelText: { fontSize: FONTS.sub.size, fontWeight: '600', color: c.textMain },
+  cancelText: { fontSize: FONTS.sub.size, fontWeight: '500', color: c.textSub },
   confirmBtn: {
     flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: 'center',
   },

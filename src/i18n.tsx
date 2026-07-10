@@ -67,6 +67,7 @@ const I18N: Record<string, Record<string, string>> = {
     confirm: '确认',
     confirmDelete: '确认删除？',
     confirmDeleteRecord: '确认删除',
+    confirmDisable: '关闭面容',
     confirmIssue: '确认发放并记账',
     confirmLogout: '确定退出',
     confirmNewPassword: '确认新密码',
@@ -106,6 +107,7 @@ const I18N: Record<string, Record<string, string>> = {
     deleteUser: '删除用户',
     deleteUserConfirm: '确认删除该用户，该用户的所有数据（交易记录、进货记录等）也将一并删除',
     deleteUserGraceNote: '账户将进入 5 天冷静期，期满后永久删除并转移经营数据至管理员。冷静期内您可随时恢复。',
+    disableFaceIDConfirm: '关闭后需重新设置面容才能再次使用。确定关闭吗？',
     devCodeLabel: '🔧 开发模式 — 验证码',
     dineIn: '堂食',
     disabledStatus: '禁用',
@@ -669,6 +671,7 @@ const I18N: Record<string, Record<string, string>> = {
     confirm: '確認',
     confirmDelete: '確認刪除？',
     confirmDeleteRecord: '確認刪除',
+    confirmDisable: '關閉面容',
     confirmIssue: '確認發放並記賬',
     confirmLogout: '確定登出',
     confirmNewPassword: '確認新密碼',
@@ -708,6 +711,7 @@ const I18N: Record<string, Record<string, string>> = {
     deleteUser: '刪除用戶',
     deleteUserConfirm: '確認刪除該用戶，該用戶的所有數據（交易記錄、進貨記錄等）也將一併刪除',
     deleteUserGraceNote: '帳戶將進入 5 天冷靜期，期滿後永久刪除並轉移經營數據至管理員。冷靜期內您可隨時恢復。',
+    disableFaceIDConfirm: '關閉後需重新設定面容才能再次使用。確定關閉嗎？',
     devCodeLabel: '🔧 開發模式 — 驗證碼',
     dineIn: '堂食',
     disabledStatus: '禁用',
@@ -1281,6 +1285,7 @@ const I18N: Record<string, Record<string, string>> = {
     confirm: 'Confirm',
     confirmDelete: 'Confirm delete?',
     confirmDeleteRecord: 'Confirm Delete',
+    confirmDisable: 'Disable',
     confirmIssue: 'Confirm & Record',
     confirmLogout: 'Confirm Logout',
     confirmNewPassword: 'Confirm New Password',
@@ -1320,6 +1325,7 @@ const I18N: Record<string, Record<string, string>> = {
     deleteUser: 'Delete User',
     deleteUserConfirm: 'Are you sure you want to delete this user? All associated data (transactions, procurement records, etc.) will also be deleted.',
     deleteUserGraceNote: 'Account will enter a 5-day grace period before being permanently deleted. Business data will be transferred to admin. You can restore at any time during the grace period.',
+    disableFaceIDConfirm: 'When disabled, you will need to re-enable Face ID to use it again. Are you sure?',
     devCodeLabel: '🔧 Dev Mode — Verification Code',
     dineIn: 'Dine-in',
     disabledStatus: 'Disabled',
@@ -1885,6 +1891,7 @@ export type I18nKey =
   | 'confirm'
   | 'confirmDelete'
   | 'confirmDeleteRecord'
+  | 'confirmDisable'
   | 'confirmIssue'
   | 'confirmLogout'
   | 'confirmNewPassword'
@@ -1924,6 +1931,7 @@ export type I18nKey =
   | 'deleteUser'
   | 'deleteUserConfirm'
   | 'deleteUserGraceNote'
+  | 'disableFaceIDConfirm'
   | 'devCodeLabel'
   | 'dineIn'
   | 'disabledStatus'

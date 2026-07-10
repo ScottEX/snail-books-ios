@@ -70,6 +70,7 @@ export default function App() {
     let lang = '';
     let rememberMe = '';
     let savedLogin = '';
+    let faceModeUser = '';
     let bgImage = '';
     let avatarUri = '';
     let themeId = '';
@@ -79,8 +80,9 @@ export default function App() {
       lang = localStorage.getItem('lang') || '';
       rememberMe = localStorage.getItem('remember_me') || '';
       savedLogin = localStorage.getItem('saved_login') || '';
-      bgImage = localStorage.getItem('bg-image') || '';
-      avatarUri = localStorage.getItem('avatar-uri') || '';
+      faceModeUser = localStorage.getItem('face_mode_user') || '';
+      bgImage = savedLogin ? localStorage.getItem(`bg-image-${savedLogin}`) || '' : '';
+      avatarUri = savedLogin ? localStorage.getItem(`avatar-uri-${savedLogin}`) || '' : '';
       bgLocalPath = localStorage.getItem('bg-local-path') || '';
       bgRemoteUrl = localStorage.getItem('bg-remote-url') || '';
       const themeKey = (() => { try { const { getThemeKey } = require('./src/theme'); return getThemeKey(); } catch { return 'snail-books-theme'; } })();
@@ -89,8 +91,9 @@ export default function App() {
       if (lang) localStorage.setItem('lang', lang);
       if (rememberMe) localStorage.setItem('remember_me', rememberMe);
       if (savedLogin) localStorage.setItem('saved_login', savedLogin);
-      if (bgImage) localStorage.setItem('bg-image', bgImage);
-      if (avatarUri) localStorage.setItem('avatar-uri', avatarUri);
+      if (faceModeUser) localStorage.setItem('face_mode_user', faceModeUser);
+      if (bgImage) localStorage.setItem(`bg-image-${savedLogin}`, bgImage);
+      if (avatarUri) localStorage.setItem(`avatar-uri-${savedLogin}`, avatarUri);
       if (bgLocalPath) localStorage.setItem('bg-local-path', bgLocalPath);
       if (bgRemoteUrl) localStorage.setItem('bg-remote-url', bgRemoteUrl);
       if (themeId) localStorage.setItem('snail-books-theme', themeId);

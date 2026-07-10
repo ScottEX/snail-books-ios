@@ -1,17 +1,27 @@
 /**
  * Biometric helpers — wraps expo-local-authentication + react-native-keychain.
+ *
+ * Each user gets their own Keychain slot: `snailbooks.biometric.v2.<username>`.
+ * When `username` is omitted, falls back to `saved_login` from localStorage.
+ * On first upgrade, migrates old global-slot credentials to user-specific slots.
  */
 
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Keychain from 'react-native-keychain';
 
-const KEYCHAIN_SERVICE = 'snailbooks.biometric.v2';
+const SERVICE_PREFIX = 'snailbooks.biometric.v2';
+const SERVICE_LEGACY = 'snailbooks.biometric.v2'; // pre-user-specific global slot
 const KEYCHAIN_USERNAME = 'snailbooks-biometric-user';
 
 export type BiometricCredential = {
   username: string;
   password: string;
 };
+
+function resolveService(username?: string): string {
+  const u = username || (() => { try { return localStorage.getItem('saved_login') || ''; } catch { return ''; } })();
+  return u ? `${SERVICE_PREFIX}.${u}` : SERVICE_LEGACY;
+}
 
 export async function isBiometricAvailable(): Promise<{
   available: boolean;
@@ -22,19 +32,12 @@ export async function isBiometricAvailable(): Promise<{
     if (!hasHardware) return { available: false, reason: 'no-hardware' };
     const enrolled = await LocalAuthentication.isEnrolledAsync();
     if (!enrolled) return { available: false, reason: 'not-enrolled' };
-    // isEnrolledAsync may return true for passcode-only devices on some
-    // iOS versions. getEnrolledLevelAsync returns 0=NONE / 1=SECRET
-    // (passcode) / 2=BIOMETRIC, giving a reliable distinction.
-    // Use raw values (not LocalAuthentication.SecurityLevel) in case the
-    // enum isn't exported on the current SDK version.
     try {
       const level = await LocalAuthentication.getEnrolledLevelAsync();
       if (level <= 1) {
         return { available: false, reason: level === 0 ? 'none' : 'passcode-only' };
       }
-    } catch {
-      // Fall through — getEnrolledLevelAsync unavailable on older SDKs
-    }
+    } catch {}
     const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
     if (!supportedTypes || supportedTypes.length === 0) {
       return { available: false, reason: 'no-types' };
@@ -70,7 +73,7 @@ export async function saveCredential(
 ): Promise<{ ok: boolean; error?: string }> {
   try {
     await Keychain.setGenericPassword(username, password, {
-      service: KEYCHAIN_SERVICE,
+      service: resolveService(username),
     });
     try { localStorage.setItem(KEYCHAIN_USERNAME, username); } catch {}
     return { ok: true };
@@ -79,28 +82,38 @@ export async function saveCredential(
   }
 }
 
-export async function getCredential(): Promise<BiometricCredential | null> {
+/** Read credential for a specific user. Tries user slot first, then
+ *  legacy global slot (migrates to user slot on hit). */
+export async function getCredential(username?: string): Promise<BiometricCredential | null> {
+  const service = resolveService(username);
   try {
-    const r = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE });
-    if (!r) return null;
-    return { username: r.username, password: r.password };
+    // 1. Try user-specific slot
+    let r = await Keychain.getGenericPassword({ service });
+    if (r) return { username: r.username, password: r.password };
+
+    // 2. Migration: try legacy global slot
+    r = await Keychain.getGenericPassword({ service: SERVICE_LEGACY });
+    if (r) {
+      // Migrate to user-specific slot and clear legacy
+      await saveCredential(r.username, r.password);
+      try { await Keychain.resetGenericPassword({ service: SERVICE_LEGACY }); } catch {}
+      return { username: r.username, password: r.password };
+    }
+    return null;
   } catch {
     return null;
   }
 }
 
-export async function hasStoredCredential(): Promise<boolean> {
-  try {
-    const r = await Keychain.getGenericPassword({ service: KEYCHAIN_SERVICE });
-    return !!r;
-  } catch {
-    return false;
-  }
+export async function hasStoredCredential(username?: string): Promise<boolean> {
+  const c = await getCredential(username);
+  return !!c;
 }
 
-export async function clearCredential(): Promise<void> {
+export async function clearCredential(username?: string): Promise<void> {
+  const service = resolveService(username);
   try {
-    await Keychain.resetGenericPassword({ service: KEYCHAIN_SERVICE });
+    await Keychain.resetGenericPassword({ service });
     try { localStorage.removeItem(KEYCHAIN_USERNAME); } catch {}
   } catch {}
 }
