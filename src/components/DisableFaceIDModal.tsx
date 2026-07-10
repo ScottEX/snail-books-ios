@@ -4,9 +4,7 @@ import { useTheme, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import { MODAL_CARD_RADIUS } from '../sharedStyles';
 import { t } from '../i18n';
-import { api } from '../api/client';
 import { clearCredential } from '../utils/biometric';
-import { clearWebAuthn } from '../utils/storage';
 import ModalOverlay from './ModalOverlay';
 import CloseButton from './CloseButton';
 import LoadingSpinner from './LoadingSpinner';
@@ -26,11 +24,7 @@ export default function DisableFaceIDModal({ visible, onClose, onDisabled, usern
   const handleDisable = async () => {
     setLoading(true);
     try {
-      // Server-side: delete WebAuthn credential if registered via web
-      try { await api.webauthnDelete(); } catch {}
-      // iOS: clear Keychain credential
-      try { await clearCredential(username || undefined); } catch {}
-      clearWebAuthn();
+      await clearCredential(username || undefined);
       onDisabled();
     } catch {
       setLoading(false);

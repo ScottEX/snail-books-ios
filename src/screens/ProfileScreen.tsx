@@ -375,36 +375,15 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     } catch {}
   };
 
-  // Face ID — WebAuthn (server) and Keychain (iOS local) are independent paths.
-  // Web users register real WebAuthn credentials → server has_credential.
-  // iOS users only store password in Keychain → server has no record.
-  // Either source is sufficient to show the switch ON.
+  // Face ID — iOS Keychain only, independent from web WebAuthn.
   const loadFaceIDStatus = async () => {
     try {
       const { available } = await isBiometricAvailable();
       setFaceAvailable(available);
       if (!available) return;
 
-      // 1. Server: WebAuthn credentials (registered via web)
-      let serverHas = false;
-      try {
-        const resp = await api.webauthnStatus();
-        if (resp && typeof resp.has_credential === 'boolean') {
-          serverHas = !!resp.has_credential;
-        } else {
-          const user = getCurrentUser();
-          if (user) {
-            try {
-              const r = await api.webauthnCheck(user);
-              serverHas = !!(r && r.has_credential);
-            } catch {}
-          }
-        }
-      } catch {}
-
-      // 2. Keychain: iOS biometric credential (local-only, no server registration).
-      //    Must belong to the currently logged-in user — otherwise it's another
-      //    user's credential left from a previous session on this device.
+      // Keychain: iOS biometric credential (local-only).
+      // Must belong to the currently logged-in user.
       let keychainHas = false;
       try {
         const currentUser = getCurrentUser();
@@ -412,7 +391,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         keychainHas = !!(cred && cred.username === currentUser);
       } catch {}
 
-      setHasFaceID(serverHas || keychainHas);
+      setHasFaceID(keychainHas);
     } catch {}
   };
 
