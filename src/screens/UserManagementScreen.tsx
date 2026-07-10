@@ -220,6 +220,15 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
     fetchUsers(statusFilter, '', '');
   }, [statusFilter, fetchUsers]);
 
+  // ── Which quick preset is active? ──
+  const quickActive = useMemo(() => {
+    if (!dateFrom && !dateTo) return 0;
+    if (sd.ready && dateFrom === sd.offset(-7) && dateTo === sd.today) return 7;
+    if (sd.ready && dateFrom === sd.offset(-30) && dateTo === sd.today) return 30;
+    if (sd.ready && dateFrom === sd.offset(-90) && dateTo === sd.today) return 90;
+    return null;
+  }, [dateFrom, dateTo, sd.today, sd.ready]);
+
   // ── Labels ──
   const statusLabel =
     statusFilter === 'normal' ? t('normalStatus') :
@@ -447,21 +456,21 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
             {/* Quick presets */}
             <View style={s.quickRow}>
               <TouchableOpacity
-                style={[s.quickBtn, (!dateFrom && !dateTo) && s.quickBtnOn]}
+                style={[s.quickBtn, quickActive === 0 && s.quickBtnOn]}
                 onPress={clearDate}
               >
-                <Text style={[s.quickBtnText, (!dateFrom && !dateTo) && s.quickBtnTextOn]}>
+                <Text style={[s.quickBtnText, quickActive === 0 && s.quickBtnTextOn]}>
                   {t('anyDate')}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={s.quickBtn} onPress={() => applyQuick(7)}>
-                <Text style={s.quickBtnText}>{t('last7Days')}</Text>
+              <TouchableOpacity style={[s.quickBtn, quickActive === 7 && s.quickBtnOn]} onPress={() => applyQuick(7)}>
+                <Text style={[s.quickBtnText, quickActive === 7 && s.quickBtnTextOn]}>{t('last7Days')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={s.quickBtn} onPress={() => applyQuick(30)}>
-                <Text style={s.quickBtnText}>{t('last30Days')}</Text>
+              <TouchableOpacity style={[s.quickBtn, quickActive === 30 && s.quickBtnOn]} onPress={() => applyQuick(30)}>
+                <Text style={[s.quickBtnText, quickActive === 30 && s.quickBtnTextOn]}>{t('last30Days')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={s.quickBtn} onPress={() => applyQuick(90)}>
-                <Text style={s.quickBtnText}>{t('last3Months')}</Text>
+              <TouchableOpacity style={[s.quickBtn, quickActive === 90 && s.quickBtnOn]} onPress={() => applyQuick(90)}>
+                <Text style={[s.quickBtnText, quickActive === 90 && s.quickBtnTextOn]}>{t('last3Months')}</Text>
               </TouchableOpacity>
             </View>
             {/* Actions */}
