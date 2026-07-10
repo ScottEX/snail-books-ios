@@ -227,9 +227,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
     statusFilter === 'grace' ? t('graceStatus') :
     t('all');
   const dateLabel = (dateFrom || dateTo)
-    ? (dateFrom && dateTo && dateFrom.slice(0, 7) === dateTo.slice(0, 7)
-        ? `${dropYear}年${dropMonth}${t('monthUnit')}`
-        : `${dateFrom || '…'} - ${dateTo || '…'}`)
+    ? `${dateFrom || '…'} - ${dateTo || '…'}`
     : t('registrationTime');
 
   return (
