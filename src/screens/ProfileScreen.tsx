@@ -1379,6 +1379,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       </ModalOverlay>
       {/* Face ID setup modal */}
       <ModalOverlay visible={showFaceIDSetup} onClose={() => { setShowFaceIDSetup(false); setFaceIDPassword(''); setFaceIDError(''); }} animation="springScale">
+        <ReAnimated.View style={modalPushStyleEmail}>
           <View style={mo.card}>
             <View style={mo.header}>
               <Text style={mo.title}>{t('faceIDLabel') || '面容登录'}</Text>
@@ -1415,6 +1416,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               </View>
             </View>
           </View>
+        </ReAnimated.View>
       </ModalOverlay>
     </View>
   );
