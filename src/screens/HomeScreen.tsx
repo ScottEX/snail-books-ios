@@ -574,7 +574,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
               try { await api.admin.markReviewed(u.id); } catch {}
               setReviewedUserId(u.id);
             }
-            setTimeout(() => setShowUserDetail(u), 250);
+            setShowUserDetail(u);
           }}
         />}
       </SlideScreen>
