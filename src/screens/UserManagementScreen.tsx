@@ -6,9 +6,9 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
-  Image,
   Dimensions,
 } from 'react-native';
+import { Image } from 'expo-image';
 import AppTextInput from '../components/AppTextInput';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle } from 'react-native-svg';
@@ -330,9 +330,9 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
                 >
                   <View style={s.avatarWrap}>
                     {u.avatar ? (
-                      <Image source={{ uri: resolveAssetUrl(u.avatar) || '' }} style={s.avatar} />
+                      <Image source={{ uri: resolveAssetUrl(u.avatar) || '' }} style={s.avatar} contentFit="cover" transition={200} placeholder={{ uri: resolveAssetUrl('/img/logo.jpg') || '' }} />
                     ) : (
-                      <Image source={require('../../assets/img/logo.jpg')} style={s.avatar} />
+                      <Image source={require('../../assets/img/logo.jpg')} style={s.avatar} contentFit="cover" />
                     )}
                   </View>
                   <View style={{ flex: 1 }}>
