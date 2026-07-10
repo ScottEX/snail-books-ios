@@ -1397,7 +1397,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                 secureTextEntry
                 value={faceIDPassword}
                 onChangeText={(t) => { setFaceIDPassword(t); setFaceIDError(''); }}
-                autoFocus
               />
               {faceIDError ? <Text style={mo.err}>{faceIDError}</Text> : null}
               <View style={mo.btnRow}>
