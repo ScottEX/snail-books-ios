@@ -308,6 +308,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const [dStatus, setDStatus] = useState<InvStatus>('pending');
   const [dBatchId, setDBatchId] = useState<number | null>(null);
   const [batchList, setBatchList] = useState<any[]>([]);
+  const [showBatchPicker, setShowBatchPicker] = useState(false);
   const [dFiles, setDFiles] = useState<PickedImage[]>([]);
   const [dExistingFilePath, setDExistingFilePath] = useState<string[]>([]);
 
@@ -946,34 +947,64 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 ))}
               </View>
 
-              {/* Batch selector */}
+              {/* Batch selector — dropdown matching web */}
               <View style={styles.dField}>
                 <Text style={styles.dLabel}>{t('invDrawerBatch')}</Text>
-                <View style={styles.dSelectWrap}>
-                  <ScrollView style={styles.dSelectScroll} horizontal showsHorizontalScrollIndicator={false}>
+                <TouchableOpacity
+                  style={[styles.dBatchSelect, { backgroundColor: withAlpha(c.textMain, 0.03) }]}
+                  onPress={() => setShowBatchPicker(true)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={{ fontSize: 14, color: dBatchId ? c.textMain : c.textSub }}
+                    numberOfLines={1}
+                  >
+                    {dBatchId
+                      ? t('procNowBatch').replace('{n}', String(batchList.find(b => b.id === dBatchId)?.batch_number ?? dBatchId))
+                      : t('invDrawerBatchPlaceholder')}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: c.textSub, marginLeft: 8 }}>▼</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Batch picker modal */}
+              <ModalOverlay
+                visible={showBatchPicker}
+                onClose={() => setShowBatchPicker(false)}
+                animation="springScale"
+              >
+                <View style={[styles.dBatchPicker, { backgroundColor: c.surface }]}>
+                  <Text style={[styles.dBatchPickerTitle, { color: c.textMain }]}>
+                    {t('invDrawerBatch')}
+                  </Text>
+                  <ScrollView style={{ maxHeight: 320 }}>
+                    <TouchableOpacity
+                      style={[styles.dBatchPickerRow, dBatchId === null && { backgroundColor: withAlpha(c.primary, 0.06) }]}
+                      onPress={() => { setDBatchId(null); setShowBatchPicker(false); }}
+                    >
+                      <Text style={[styles.dBatchPickerText, { color: dBatchId === null ? c.primary : c.textSub }]}>
+                        {t('invDrawerBatchPlaceholder')}
+                      </Text>
+                    </TouchableOpacity>
                     {batchList.map((b: any) => (
                       <TouchableOpacity
                         key={b.id}
-                        style={[
-                          styles.dBatchChip,
-                          dBatchId === b.id && { backgroundColor: c.primary, borderColor: c.primary },
-                        ]}
-                        onPress={() => setDBatchId(dBatchId === b.id ? null : b.id)}
-                        activeOpacity={0.7}
+                        style={[styles.dBatchPickerRow, dBatchId === b.id && { backgroundColor: withAlpha(c.primary, 0.06) }]}
+                        onPress={() => { setDBatchId(b.id); setShowBatchPicker(false); }}
                       >
-                        <Text style={[styles.dBatchChipText, { color: dBatchId === b.id ? '#fff' : c.textSub }]}>
+                        <Text style={[styles.dBatchPickerText, { color: dBatchId === b.id ? c.primary : c.textMain }]}>
                           {t('procNowBatch').replace('{n}', String(b.batch_number))}
                         </Text>
                       </TouchableOpacity>
                     ))}
+                    {batchList.length === 0 && (
+                      <Text style={[styles.dBatchPickerText, { color: c.textSub, padding: 12, textAlign: 'center' }]}>
+                        {t('invDrawerBatchPlaceholder')}
+                      </Text>
+                    )}
                   </ScrollView>
-                  {batchList.length === 0 && (
-                    <Text style={[styles.dSelectText, { color: c.textSub }]}>
-                      {t('invDrawerBatchPlaceholder')}
-                    </Text>
-                  )}
                 </View>
-              </View>
+              </ModalOverlay>
 
               {/* Amount */}
               <View style={styles.dField}>
@@ -1348,10 +1379,26 @@ const getStyles = (c: ThemeColors) =>
     dTypeChip: { flex: 1, flexDirection: 'row', paddingVertical: 10, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
     dTypeChipText: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight },
     dSelectWrap: { minHeight: 40, justifyContent: 'center' },
-    dSelectScroll: { flexDirection: 'row' },
-    dSelectText: { fontSize: 14, paddingVertical: 4 },
-    dBatchChip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: c.secondary, backgroundColor: c.surface, marginRight: 6 },
-    dBatchChipText: { fontSize: 12 },
+    dBatchSelect: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingVertical: 11, paddingHorizontal: 14,
+      borderRadius: 10,
+    },
+    dBatchPicker: {
+      width: 280, borderRadius: 14,
+      paddingVertical: 12, paddingHorizontal: 4,
+    },
+    dBatchPickerTitle: {
+      fontSize: 15, fontWeight: '600',
+      textAlign: 'center', paddingBottom: 10,
+    },
+    dBatchPickerRow: {
+      paddingVertical: 11, paddingHorizontal: 14,
+      borderRadius: 8,
+    },
+    dBatchPickerText: {
+      fontSize: 14,
+    },
 
     dSubmit: { paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginHorizontal: 20, marginBottom: 16, marginTop: 8 },
     dSubmitText: { fontSize: 15, fontWeight: '600', color: '#fff' },
