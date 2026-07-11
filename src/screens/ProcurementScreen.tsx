@@ -413,9 +413,9 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
     setShowItemsModal(true);
   };
 
-  const openHistoryDetail = (batch: BatchRecord) => {
+  const openHistoryDetail = useCallback((batch: BatchRecord) => {
     onProcurementDetail?.(batch);
-  };
+  }, [onProcurementDetail]);
 
   const suppliers = useMemo(() => {
     const set = new Set(products.map(p => p.supplier).filter(Boolean));
@@ -652,7 +652,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
     setSubmitting(false);
   };
 
-  const openEditBatch = (batch: BatchRecord) => {
+  const openEditBatch = useCallback((batch: BatchRecord) => {
     setEditingBatchId(batch.id);
     setEditingBatchNumber(batch.batch_number);
     setOrderDate(batch.date);
@@ -678,7 +678,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
     setEditSnapshot(JSON.stringify({ date: batch.date, pm: payKey(batch.payment_method), cart: newCart, note: batch.note || '', imgs: (batch.images || []).length }));
     setShowDrawer(true);
     onDrawerOpen?.();
-  };
+  }, [onDrawerOpen]);
 
   const pendingEditRef = useRef<any>(null);
   useEffect(() => { pendingEditRef.current = pendingEditBatch; }, [pendingEditBatch]);
