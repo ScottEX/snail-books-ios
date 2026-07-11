@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, Animated,
+  View, Text, TouchableOpacity, ScrollView, Animated,
   StyleSheet, Modal,
 } from 'react-native';
 import { useTheme, ThemeColors } from '../theme';
@@ -21,10 +21,11 @@ interface Props {
   actions: ActionItem[];
   onClose: () => void;
   offsetY?: number;
+  offsetX?: number;
 }
 
 export default function CustomActionSheet({
-  visible, title, message, actions, onClose, offsetY = 0,
+  visible, title, message, actions, onClose, offsetY = 0, offsetX = 0,
 }: Props) {
   const { colors: c } = useTheme();
   const anim = useRef(new Animated.Value(0)).current;
@@ -76,6 +77,7 @@ export default function CustomActionSheet({
             st.sheet,
             {
               marginTop: offsetY,
+              marginLeft: offsetX,
               transform: [{ scale: anim.interpolate({
                 inputRange: [0, 1],
                 outputRange: [0.9, 1],
@@ -91,6 +93,7 @@ export default function CustomActionSheet({
             </View>
           )}
 
+          <ScrollView style={{ maxHeight: 200 }} bounces={false}>
           {actions.map((action, index) => (
             <React.Fragment key={index}>
               {index > 0 && <View style={st.divider} />}
@@ -119,6 +122,7 @@ export default function CustomActionSheet({
               </TouchableOpacity>
             </React.Fragment>
           ))}
+          </ScrollView>
         </Animated.View>
       </View>
     </Modal>
@@ -132,15 +136,15 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   },
   sheetOuter: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'flex-start',
   },
   sheet: {
     backgroundColor: c.surface,
     borderRadius: 14,
     overflow: 'hidden',
-    maxWidth: 260,
-    width: '100%',
+    maxWidth: 140,
+    width: 140,
   },
   titleWrap: {
     paddingVertical: 10,
@@ -151,7 +155,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   title: {
     fontSize: 12, fontWeight: '600',
     color: c.textSub,
-    textAlign: 'center',
+    textAlign: 'left',
     marginBottom: 2,
   },
   message: {
@@ -168,26 +172,26 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    minHeight: 38,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    minHeight: 32,
     backgroundColor: c.surface,
   },
   actionDisabled: { opacity: 0.4 },
   actionIcon: {
-    width: 24, height: 24,
-    borderRadius: 6,
+    width: 18, height: 18,
+    borderRadius: 4,
     alignItems: 'center', justifyContent: 'center',
-    marginRight: 10,
+    marginRight: 8,
   },
   actionBody: { flex: 1 },
   actionLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: c.textMain,
     fontWeight: '400',
   },
   actionSublabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: c.textSub,
     marginTop: 1,
   },
