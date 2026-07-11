@@ -26,13 +26,15 @@ interface Props {
   label?: boolean;
   /** Custom label text (overrides default "加载中...") */
   labelText?: string;
+  /** Footer content rendered below the label (e.g., a seconds counter) */
+  footer?: React.ReactNode;
   /** Spinner diameter in px (default: 48) */
   size?: number;
   /** Override the spinner colour (defaults to colors.primary) */
   color?: string;
 }
 
-export default function LoadingSpinner({ label = true, labelText, size = 48, color }: Props) {
+export default function LoadingSpinner({ label = true, labelText, footer, size = 48, color }: Props) {
   const { colors } = useTheme();
   const fill = color || colors.primary;
 
@@ -80,6 +82,7 @@ export default function LoadingSpinner({ label = true, labelText, size = 48, col
       <View style={spinnerAnimation.container}>
         {spinnerSvg}
         <Text style={spinnerAnimation.label}>{labelText || t('loading')}</Text>
+        {footer}
       </View>
     );
   }

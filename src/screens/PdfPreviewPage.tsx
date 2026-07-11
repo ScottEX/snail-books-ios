@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Share } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { BlurView } from 'expo-blur';
@@ -57,6 +57,15 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState<'download' | 'images' | null>(null);
+  const [introSec, setIntroSec] = useState(0);
+
+  // Loading countdown timer
+  useEffect(() => {
+    if (!loading) { setIntroSec(0); return; }
+    setIntroSec(0);
+    const id = setInterval(() => setIntroSec(s => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [loading]);
 
   const title = (t('procPdfTitle') as string).replace('{n}', String(batchNumber));
   const pdfUrl = supplier
@@ -187,7 +196,10 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
         )}
         {loading && !error && (
           <View style={styles.loadingOverlay} pointerEvents="none">
-            <LoadingSpinner labelText={t('pdfGenerating')} />
+            <LoadingSpinner
+              labelText={t('pdfGenerating')}
+              footer={<Text style={styles.loadingSec}>{introSec}s</Text>}
+            />
           </View>
         )}
       </View>
@@ -237,6 +249,12 @@ const getStyles = (c: ThemeColors) => {
     alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.08)',
     zIndex: 5,
+  },
+  loadingSec: {
+    fontSize: 36,
+    fontWeight: '800' as const,
+    color: c.primary,
+    marginTop: 4,
   },
   errorWrap: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
