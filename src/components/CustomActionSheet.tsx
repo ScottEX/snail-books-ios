@@ -28,7 +28,7 @@ interface Props {
 
 export default function CustomActionSheet({
   visible, title, message, actions, onClose,
-  width, position = 'bottom', cancelText,
+  width = 280, position = 'center', cancelText,
 }: Props) {
   const { colors: c } = useTheme();
   const insets = useSafeAreaInsets();
@@ -87,7 +87,6 @@ export default function CustomActionSheet({
         <Animated.View
           style={[
             st.sheet,
-            { width: width ?? '100%' as any, alignSelf: 'center' as const },
             {
               transform: position === 'bottom'
                 ? [{ translateY: sheetY }]
@@ -169,9 +168,10 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   },
   sheet: {
     backgroundColor: c.surface,
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
+    borderRadius: 14,
     overflow: 'hidden',
+    maxWidth: 340,
+    width: '100%',
   },
   handle: {
     width: 36, height: 4,
