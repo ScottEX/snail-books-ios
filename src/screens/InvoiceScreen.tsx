@@ -963,7 +963,6 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                       ? t('procNowBatch').replace('{n}', String(batchList.find(b => b.id === dBatchId)?.batch_number ?? dBatchId))
                       : t('invDrawerBatchPlaceholder')}
                   </Text>
-                  <Text style={{ fontSize: 12, color: c.textSub, marginLeft: 8 }}>▼</Text>
                 </TouchableOpacity>
               </View>
 
