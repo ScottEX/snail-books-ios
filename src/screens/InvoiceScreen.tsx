@@ -954,7 +954,8 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                   <Picker
                     selectedValue={dBatchId ?? ''}
                     onValueChange={(val: any) => setDBatchId(val === '' ? null : Number(val))}
-                    style={{ color: c.textMain, width: '100%', height: 40 }}
+                    style={{ width: '100%' }}
+                    dropdownIconColor={c.textSub}
                   >
                     <Picker.Item label={t('invDrawerBatchPlaceholder')} value="" color={c.textSub} />
                     {batchList.map((b: any) => (
@@ -962,6 +963,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                         key={b.id}
                         label={t('procNowBatch').replace('{n}', String(b.batch_number))}
                         value={b.id}
+                        color={c.textMain}
                       />
                     ))}
                   </Picker>
