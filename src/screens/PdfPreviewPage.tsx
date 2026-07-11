@@ -187,7 +187,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
         )}
         {loading && !error && (
           <View style={styles.loadingOverlay} pointerEvents="none">
-            <LoadingSpinner />
+            <LoadingSpinner labelText={t('pdfGenerating')} />
           </View>
         )}
       </View>

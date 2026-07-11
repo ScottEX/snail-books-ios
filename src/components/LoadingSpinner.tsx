@@ -24,13 +24,15 @@ import { useEffect, useRef } from 'react';
 interface Props {
   /** Show "加载中..." label beneath the spinner (default: true) */
   label?: boolean;
+  /** Custom label text (overrides default "加载中...") */
+  labelText?: string;
   /** Spinner diameter in px (default: 48) */
   size?: number;
   /** Override the spinner colour (defaults to colors.primary) */
   color?: string;
 }
 
-export default function LoadingSpinner({ label = true, size = 48, color }: Props) {
+export default function LoadingSpinner({ label = true, labelText, size = 48, color }: Props) {
   const { colors } = useTheme();
   const fill = color || colors.primary;
 
@@ -77,7 +79,7 @@ export default function LoadingSpinner({ label = true, size = 48, color }: Props
     return (
       <View style={spinnerAnimation.container}>
         {spinnerSvg}
-        <Text style={spinnerAnimation.label}>{t('loading')}</Text>
+        <Text style={spinnerAnimation.label}>{labelText || t('loading')}</Text>
       </View>
     );
   }
