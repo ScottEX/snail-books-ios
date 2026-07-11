@@ -9,6 +9,7 @@ import { t, getLang } from '../i18n';
 import { useTheme, ThemeColors } from '../theme';
 import { API_BASE } from '../api/client';
 import { useSwipeBack } from '../hooks/useSwipeBack';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 function BackArrowSvg() {
   return (
@@ -186,8 +187,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
         )}
         {loading && !error && (
           <View style={styles.loadingOverlay} pointerEvents="none">
-            <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>{t('pdfGenerating')}</Text>
+            <LoadingSpinner />
           </View>
         )}
       </View>
@@ -238,7 +238,6 @@ const getStyles = (c: ThemeColors) => {
     backgroundColor: 'rgba(0,0,0,0.08)',
     zIndex: 5,
   },
-  loadingText: { fontSize: 13, color: c.textSub, marginTop: 10 },
   errorWrap: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
     padding: 40, gap: 12,
