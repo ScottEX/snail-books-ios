@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions, useWindowDimensions,
-  ActionSheetIOS,
 } from 'react-native';
+import CustomActionSheet, { ActionItem } from '../components/CustomActionSheet';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Line, Circle, Rect, Polyline, Text as SvgText } from 'react-native-svg';
 import { t } from '../i18n';
@@ -309,6 +309,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const [dStatus, setDStatus] = useState<InvStatus>('pending');
   const [dBatchId, setDBatchId] = useState<number | null>(null);
   const [batchList, setBatchList] = useState<any[]>([]);
+  const [showBatchPicker, setShowBatchPicker] = useState(false);
   const [dFiles, setDFiles] = useState<PickedImage[]>([]);
   const [dExistingFilePath, setDExistingFilePath] = useState<string[]>([]);
 
@@ -548,24 +549,14 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
     }, 250);
   };
 
-  /* ── Batch picker (ActionSheet) ── */
-  const openBatchPicker = useCallback(() => {
-    const labels = batchList.map((b: any) =>
-      t('procNowBatch').replace('{n}', String(b.batch_number))
-    );
-    const ids = batchList.map((b: any) => b.id);
-    const cancelIdx = labels.length;
-    ActionSheetIOS.showActionSheetWithOptions(
-      {
-        options: [...labels, t('cancel')],
-        cancelButtonIndex: cancelIdx,
-        title: t('invDrawerBatch'),
-      },
-      (idx: number) => {
-        if (idx !== cancelIdx) setDBatchId(ids[idx]);
-      },
-    );
-  }, [batchList]);
+  /* ── Batch picker (CustomActionSheet) ── */
+  const batchActions: ActionItem[] = useMemo(() =>
+    batchList.map((b: any) => ({
+      label: t('procNowBatch').replace('{n}', String(b.batch_number)),
+      onPress: () => setDBatchId(b.id),
+    })),
+    [batchList],
+  );
 
   /* ── Auto-fill amount when batch selected ── */
   useEffect(() => {
@@ -966,12 +957,12 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 ))}
               </View>
 
-              {/* Batch selector — ActionSheet */}
+              {/* Batch selector — CustomActionSheet */}
               <View style={styles.dField}>
                 <Text style={styles.dLabel}>{t('invDrawerBatch')}</Text>
                 <TouchableOpacity
                   style={[styles.dBatchSelect, { backgroundColor: withAlpha(c.textMain, 0.03) }]}
-                  onPress={openBatchPicker}
+                  onPress={() => setShowBatchPicker(true)}
                   activeOpacity={0.7}
                 >
                   <Text
@@ -1152,6 +1143,13 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
             />
           )}
       </ModalOverlay>
+
+      <CustomActionSheet
+        visible={showBatchPicker}
+        title={t('invDrawerBatch')}
+        actions={batchActions}
+        onClose={() => setShowBatchPicker(false)}
+      />
     </View>
   );
 }
