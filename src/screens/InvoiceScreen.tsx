@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions, useWindowDimensions,
-  ActionSheetIOS,
+  ActionSheetIOS, Animated,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Line, Circle, Rect, Polyline, Text as SvgText } from 'react-native-svg';
@@ -549,7 +549,11 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   };
 
   /* ── Batch picker (ActionSheet) ── */
+  const batchScale = useRef(new Animated.Value(1)).current;
   const openBatchPicker = useCallback(() => {
+    Animated.spring(batchScale, { toValue: 0.96, useNativeDriver: true, speed: 20, bounciness: 4 }).start(() => {
+      Animated.spring(batchScale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 4 }).start();
+    });
     const labels = [t('invDrawerBatchPlaceholder'), ...batchList.map((b: any) =>
       t('procNowBatch').replace('{n}', String(b.batch_number))
     )];
@@ -969,11 +973,12 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
               {/* Batch selector — ActionSheet */}
               <View style={styles.dField}>
                 <Text style={styles.dLabel}>{t('invDrawerBatch')}</Text>
-                <TouchableOpacity
-                  style={[styles.dBatchSelect, { backgroundColor: withAlpha(c.textMain, 0.03) }]}
-                  onPress={openBatchPicker}
-                  activeOpacity={0.7}
-                >
+                <Animated.View style={{ transform: [{ scale: batchScale }] }}>
+                  <TouchableOpacity
+                    style={[styles.dBatchSelect, { backgroundColor: withAlpha(c.textMain, 0.03) }]}
+                    onPress={openBatchPicker}
+                    activeOpacity={0.7}
+                  >
                   <Text
                     style={{ fontSize: 14, color: dBatchId ? c.textMain : c.textSub }}
                     numberOfLines={1}
@@ -983,6 +988,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                       : t('invDrawerBatchPlaceholder')}
                   </Text>
                 </TouchableOpacity>
+                </Animated.View>
               </View>
 
               {/* Amount */}
