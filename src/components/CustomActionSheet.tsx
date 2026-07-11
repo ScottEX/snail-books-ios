@@ -3,7 +3,6 @@ import {
   View, Text, TouchableOpacity, Animated,
   StyleSheet, Modal,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, ThemeColors } from '../theme';
 
 export interface ActionItem {
@@ -21,17 +20,13 @@ interface Props {
   message?: string;
   actions: ActionItem[];
   onClose: () => void;
-  width?: number | string;
-  position?: 'bottom' | 'center';
-  cancelText?: string;
+  offsetY?: number;
 }
 
 export default function CustomActionSheet({
-  visible, title, message, actions, onClose,
-  width = 280, position = 'center', cancelText,
+  visible, title, message, actions, onClose, offsetY = 0,
 }: Props) {
   const { colors: c } = useTheme();
-  const insets = useSafeAreaInsets();
   const anim = useRef(new Animated.Value(0)).current;
   const st = getStyles(c);
 
@@ -54,11 +49,6 @@ export default function CustomActionSheet({
     }).start(() => onClose());
   }, [onClose]);
 
-  const sheetY = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [300, 0],
-  });
-
   return (
     <Modal
       visible={visible}
@@ -78,28 +68,22 @@ export default function CustomActionSheet({
       </Animated.View>
 
       <View
-        style={[
-          st.sheetOuter,
-          position === 'center' && st.sheetOuterCenter,
-        ]}
+        style={st.sheetOuter}
         pointerEvents="box-none"
       >
         <Animated.View
           style={[
             st.sheet,
             {
-              transform: position === 'bottom'
-                ? [{ translateY: sheetY }]
-                : [{ scale: anim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.9, 1],
-                  }) }],
-              opacity: position === 'center' ? anim : 1,
+              marginTop: offsetY,
+              transform: [{ scale: anim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.9, 1],
+              }) }],
+              opacity: anim,
             },
           ]}
         >
-          {position === 'bottom' && <View style={st.handle} />}
-
           {(title || message) && (
             <View style={st.titleWrap}>
               {title && <Text style={st.title}>{title}</Text>}
@@ -135,17 +119,6 @@ export default function CustomActionSheet({
               </TouchableOpacity>
             </React.Fragment>
           ))}
-
-          <View style={st.cancelGap} />
-          <TouchableOpacity
-            style={st.cancelBtn}
-            onPress={handleClose}
-            activeOpacity={0.6}
-          >
-            <Text style={st.cancelText}>{cancelText || '取消'}</Text>
-          </TouchableOpacity>
-
-          {insets.bottom > 0 && <View style={{ height: insets.bottom }} />}
         </Animated.View>
       </View>
     </Modal>
@@ -158,13 +131,9 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.45)',
   },
   sheetOuter: {
-    position: 'absolute',
-    bottom: 0, left: 0, right: 0,
+    flex: 1,
     alignItems: 'center',
-  },
-  sheetOuterCenter: {
-    top: 0,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
   },
   sheet: {
     backgroundColor: c.surface,
@@ -172,13 +141,6 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     overflow: 'hidden',
     maxWidth: 340,
     width: '100%',
-  },
-  handle: {
-    width: 36, height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(0,0,0,0.15)',
-    alignSelf: 'center',
-    marginTop: 8, marginBottom: 4,
   },
   titleWrap: {
     paddingVertical: 14,
@@ -206,9 +168,9 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 10,
     paddingHorizontal: 16,
-    minHeight: 52,
+    minHeight: 44,
     backgroundColor: c.surface,
   },
   actionDisabled: { opacity: 0.4 },
@@ -231,19 +193,4 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   },
   actionDanger: { color: c.danger },
   actionDisabledText: { color: c.textSub },
-  cancelGap: {
-    height: 8,
-    backgroundColor: c.bg,
-  },
-  cancelBtn: {
-    backgroundColor: c.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-  },
-  cancelText: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: c.primary,
-  },
 });

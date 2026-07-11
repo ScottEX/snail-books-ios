@@ -310,6 +310,8 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const [dBatchId, setDBatchId] = useState<number | null>(null);
   const [batchList, setBatchList] = useState<any[]>([]);
   const [showBatchPicker, setShowBatchPicker] = useState(false);
+  const [batchOffsetY, setBatchOffsetY] = useState(0);
+  const batchBtnRef = useRef<any>(null);
   const [dFiles, setDFiles] = useState<PickedImage[]>([]);
   const [dExistingFilePath, setDExistingFilePath] = useState<string[]>([]);
 
@@ -961,8 +963,14 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
               <View style={styles.dField}>
                 <Text style={styles.dLabel}>{t('invDrawerBatch')}</Text>
                 <TouchableOpacity
+                  ref={batchBtnRef as any}
                   style={[styles.dBatchSelect, { backgroundColor: withAlpha(c.textMain, 0.03) }]}
-                  onPress={() => setShowBatchPicker(true)}
+                  onPress={() => {
+                    (batchBtnRef.current as any)?.measureInWindow?.((_x: number, _y: number, _w: number, h: number) => {
+                      setBatchOffsetY((_y || 100) + (h || 40) + 8);
+                      setShowBatchPicker(true);
+                    }) || setShowBatchPicker(true);
+                  }}
                   activeOpacity={0.7}
                 >
                   <Text
@@ -1149,6 +1157,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
         title={t('invDrawerBatch')}
         actions={batchActions}
         onClose={() => setShowBatchPicker(false)}
+        offsetY={batchOffsetY}
       />
     </View>
   );
