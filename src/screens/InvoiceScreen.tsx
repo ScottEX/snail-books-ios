@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions, useWindowDimensions,
-  ActionSheetIOS, Animated,
 } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Line, Circle, Rect, Polyline, Text as SvgText } from 'react-native-svg';
 import { t } from '../i18n';
@@ -548,29 +548,6 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
     }, 250);
   };
 
-  /* ── Batch picker (ActionSheet) ── */
-  const batchScale = useRef(new Animated.Value(1)).current;
-  const openBatchPicker = useCallback(() => {
-    Animated.spring(batchScale, { toValue: 0.96, useNativeDriver: true, speed: 20, bounciness: 4 }).start(() => {
-      Animated.spring(batchScale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 4 }).start();
-    });
-    const labels = [t('invDrawerBatchPlaceholder'), ...batchList.map((b: any) =>
-      t('procNowBatch').replace('{n}', String(b.batch_number))
-    )];
-    const ids: (number | null)[] = [null, ...batchList.map((b: any) => b.id)];
-    const cancelIdx = labels.length;
-    ActionSheetIOS.showActionSheetWithOptions(
-      {
-        options: [...labels, t('cancel')],
-        cancelButtonIndex: cancelIdx,
-        title: t('invDrawerBatch'),
-      },
-      (idx: number) => {
-        if (idx !== cancelIdx) setDBatchId(ids[idx]);
-      },
-    );
-  }, [batchList]);
-
   /* ── Auto-fill amount when batch selected ── */
   useEffect(() => {
     if (!dBatchId) return;
@@ -970,25 +947,25 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 ))}
               </View>
 
-              {/* Batch selector — ActionSheet */}
+              {/* Batch selector — Picker */}
               <View style={styles.dField}>
                 <Text style={styles.dLabel}>{t('invDrawerBatch')}</Text>
-                <Animated.View style={{ transform: [{ scale: batchScale }] }}>
-                  <TouchableOpacity
-                    style={[styles.dBatchSelect, { backgroundColor: withAlpha(c.textMain, 0.03) }]}
-                    onPress={openBatchPicker}
-                    activeOpacity={0.7}
+                <View style={[styles.dBatchSelect, { backgroundColor: withAlpha(c.textMain, 0.03) }]}>
+                  <Picker
+                    selectedValue={dBatchId ?? ''}
+                    onValueChange={(val: any) => setDBatchId(val === '' ? null : Number(val))}
+                    style={{ color: c.textMain, width: '100%', height: 40 }}
                   >
-                  <Text
-                    style={{ fontSize: 14, color: dBatchId ? c.textMain : c.textSub }}
-                    numberOfLines={1}
-                  >
-                    {dBatchId
-                      ? t('procNowBatch').replace('{n}', String(batchList.find(b => b.id === dBatchId)?.batch_number ?? dBatchId))
-                      : t('invDrawerBatchPlaceholder')}
-                  </Text>
-                </TouchableOpacity>
-                </Animated.View>
+                    <Picker.Item label={t('invDrawerBatchPlaceholder')} value="" color={c.textSub} />
+                    {batchList.map((b: any) => (
+                      <Picker.Item
+                        key={b.id}
+                        label={t('procNowBatch').replace('{n}', String(b.batch_number))}
+                        value={b.id}
+                      />
+                    ))}
+                  </Picker>
+                </View>
               </View>
 
               {/* Amount */}
