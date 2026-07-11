@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, StatusBar, Share } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Share } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -147,7 +147,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
         <TouchableOpacity onPress={handleDownload} activeOpacity={0.7} disabled={isActionLoading}>
           <View style={styles.shareBtn}>
             {actionLoading === 'download' ? (
-              <ActivityIndicator size="small" color="#2C2626" />
+              <LoadingSpinner label={false} size={16} color="#2C2626" />
             ) : (
               <DownloadSvg />
             )}
@@ -156,7 +156,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
         <TouchableOpacity onPress={handleExportImage} activeOpacity={0.7} disabled={isActionLoading}>
           <View style={styles.shareBtn}>
             {actionLoading === 'images' ? (
-              <ActivityIndicator size="small" color="#2C2626" />
+              <LoadingSpinner label={false} size={16} color="#2C2626" />
             ) : (
               <ImageDownloadSvg />
             )}
