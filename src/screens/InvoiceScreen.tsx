@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions, useWindowDimensions,
+  ActionSheetIOS,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Line, Circle, Rect, Polyline, Text as SvgText } from 'react-native-svg';
@@ -308,7 +309,6 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const [dStatus, setDStatus] = useState<InvStatus>('pending');
   const [dBatchId, setDBatchId] = useState<number | null>(null);
   const [batchList, setBatchList] = useState<any[]>([]);
-  const [showBatchPicker, setShowBatchPicker] = useState(false);
   const [dFiles, setDFiles] = useState<PickedImage[]>([]);
   const [dExistingFilePath, setDExistingFilePath] = useState<string[]>([]);
 
@@ -547,6 +547,25 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       setDFiles([]);
     }, 250);
   };
+
+  /* ── Batch picker (ActionSheet) ── */
+  const openBatchPicker = useCallback(() => {
+    const labels = [t('invDrawerBatchPlaceholder'), ...batchList.map((b: any) =>
+      t('procNowBatch').replace('{n}', String(b.batch_number))
+    )];
+    const ids: (number | null)[] = [null, ...batchList.map((b: any) => b.id)];
+    const cancelIdx = labels.length;
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: [...labels, t('cancel')],
+        cancelButtonIndex: cancelIdx,
+        title: t('invDrawerBatch'),
+      },
+      (idx: number) => {
+        if (idx !== cancelIdx) setDBatchId(ids[idx]);
+      },
+    );
+  }, [batchList]);
 
   /* ── Auto-fill amount when batch selected ── */
   useEffect(() => {
@@ -947,12 +966,12 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 ))}
               </View>
 
-              {/* Batch selector — dropdown */}
+              {/* Batch selector — ActionSheet */}
               <View style={styles.dField}>
                 <Text style={styles.dLabel}>{t('invDrawerBatch')}</Text>
                 <TouchableOpacity
                   style={[styles.dBatchSelect, { backgroundColor: withAlpha(c.textMain, 0.03) }]}
-                  onPress={() => setShowBatchPicker(true)}
+                  onPress={openBatchPicker}
                   activeOpacity={0.7}
                 >
                   <Text
@@ -965,45 +984,6 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                   </Text>
                 </TouchableOpacity>
               </View>
-
-              {/* Batch picker modal */}
-              <ModalOverlay
-                visible={showBatchPicker}
-                onClose={() => setShowBatchPicker(false)}
-                animation="springScale"
-              >
-                <View style={[styles.dBatchPicker, { backgroundColor: c.surface }]}>
-                  <Text style={[styles.dBatchPickerTitle, { color: c.textMain }]}>
-                    {t('invDrawerBatch')}
-                  </Text>
-                  <ScrollView style={{ maxHeight: 320 }}>
-                    <TouchableOpacity
-                      style={[styles.dBatchPickerRow, dBatchId === null && { backgroundColor: withAlpha(c.primary, 0.06) }]}
-                      onPress={() => { setDBatchId(null); setShowBatchPicker(false); }}
-                    >
-                      <Text style={[styles.dBatchPickerText, { color: dBatchId === null ? c.primary : c.textSub }]}>
-                        {t('invDrawerBatchPlaceholder')}
-                      </Text>
-                    </TouchableOpacity>
-                    {batchList.map((b: any) => (
-                      <TouchableOpacity
-                        key={b.id}
-                        style={[styles.dBatchPickerRow, dBatchId === b.id && { backgroundColor: withAlpha(c.primary, 0.06) }]}
-                        onPress={() => { setDBatchId(b.id); setShowBatchPicker(false); }}
-                      >
-                        <Text style={[styles.dBatchPickerText, { color: dBatchId === b.id ? c.primary : c.textMain }]}>
-                          {t('procNowBatch').replace('{n}', String(b.batch_number))}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                    {batchList.length === 0 && (
-                      <Text style={[styles.dBatchPickerText, { color: c.textSub, padding: 12, textAlign: 'center' }]}>
-                        {t('invDrawerBatchPlaceholder')}
-                      </Text>
-                    )}
-                  </ScrollView>
-                </View>
-              </ModalOverlay>
 
               {/* Amount */}
               <View style={styles.dField}>
@@ -1382,21 +1362,6 @@ const getStyles = (c: ThemeColors) =>
       flexDirection: 'row', alignItems: 'center',
       paddingVertical: 11, paddingHorizontal: 14,
       borderRadius: 10,
-    },
-    dBatchPicker: {
-      width: 280, borderRadius: 14,
-      paddingVertical: 12, paddingHorizontal: 4,
-    },
-    dBatchPickerTitle: {
-      fontSize: 15, fontWeight: '600',
-      textAlign: 'center', paddingBottom: 10,
-    },
-    dBatchPickerRow: {
-      paddingVertical: 11, paddingHorizontal: 14,
-      borderRadius: 8,
-    },
-    dBatchPickerText: {
-      fontSize: 14,
     },
 
     dSubmit: { paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginHorizontal: 20, marginBottom: 16, marginTop: 8 },
