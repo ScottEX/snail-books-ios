@@ -4,7 +4,7 @@ import { WebView } from 'react-native-webview';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Polyline, Rect, Circle, Line } from 'react-native-svg';
 import { t, getLang } from '../i18n';
 import { useTheme, ThemeColors } from '../theme';
 import { API_BASE } from '../api/client';
@@ -13,28 +13,29 @@ import { useSwipeBack } from '../hooks/useSwipeBack';
 function BackArrowSvg() {
   return (
     <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M15 18l-6-6 6-6" />
+      <Polyline points="15 18 9 12 15 6" />
     </Svg>
   );
 }
 
 function DownloadSvg() {
   return (
-    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <Path d="M7 10l5 5 5-5" />
-      <Path d="M12 15V3" />
+    <Svg width={18} height={18} viewBox="0 0 24 24">
+      <Path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke="#2C2626" strokeWidth={2} fill="none" />
+      <Polyline points="7 10 12 15 17 10" stroke="#2C2626" strokeWidth={2} fill="none" />
+      <Line x1="12" y1="15" x2="12" y2="3" stroke="#2C2626" strokeWidth={2} />
     </Svg>
   );
 }
 
-function ImageSvg() {
+function ImageDownloadSvg() {
   return (
-    <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
-      <Path d="M14 2v6h6" />
-      <Path d="M14 14l-3 3-3-3" />
-      <Path d="M11 17V11" />
+    <Svg width={18} height={18} viewBox="0 0 24 24">
+      <Rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="#2C2626" strokeWidth={2} fill="none" />
+      <Circle cx="8.5" cy="8.5" r="1.5" fill="#2C2626" />
+      <Polyline points="21 15 16 10 5 21" stroke="#2C2626" strokeWidth={2} fill="none" />
+      <Line x1="12" y1="18" x2="12" y2="12" stroke="#2C2626" strokeWidth={2} />
+      <Polyline points="9 15 12 12 15 15" stroke="#2C2626" strokeWidth={2} fill="none" />
     </Svg>
   );
 }
@@ -57,7 +58,6 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
   const [actionLoading, setActionLoading] = useState<'download' | 'images' | null>(null);
 
   const title = (t('procPdfTitle') as string).replace('{n}', String(batchNumber));
-  const fileName = `proc-${batchNumber}.pdf`;
   const pdfUrl = supplier
     ? `${API_BASE}/api/procurement-batches/${batchId}/pdf?supplier=${encodeURIComponent(supplier)}`
     : `${API_BASE}/api/procurement-batches/${batchId}/pdf`;
@@ -67,35 +67,34 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
 
   const headerHeight = safeTop + 42;
 
-  // Download PDF to temp dir and present share sheet
+  // Download PDF — same filename pattern as web: procurement_${batchId}.pdf
   const handleDownload = useCallback(async () => {
     setActionLoading('download');
     try {
+      const fileName = `procurement_${batchId}.pdf`;
       const localUri = `${FileSystem.cacheDirectory}${fileName}`;
       await FileSystem.downloadAsync(pdfUrl, localUri);
       await Share.share({ url: localUri, title: fileName });
     } catch (err: any) {
-      // User cancelled share sheet — not an error
       if (err?.message !== 'User did not share') {
         setError(err?.message || '下载失败');
       }
     } finally {
       setActionLoading(null);
     }
-  }, [pdfUrl, fileName]);
+  }, [pdfUrl, batchId]);
 
-  // Export pages as images — downloads PDF, then opens share sheet for user to convert
-  const handleExportImages = useCallback(async () => {
+  // Export image — downloads PDF, opens share sheet for iOS conversion
+  // Same filename pattern as web: procurement_${batchId}.png
+  const handleExportImage = useCallback(async () => {
     setActionLoading('images');
     try {
+      const fileName = `procurement_${batchId}.pdf`;
       const localUri = `${FileSystem.cacheDirectory}${fileName}`;
       await FileSystem.downloadAsync(pdfUrl, localUri);
-      // iOS share sheet: user can Print → pinch-zoom to save page as image,
-      // or use Files / third-party apps to convert
-      await Share.share({
-        url: localUri,
-        title: fileName,
-      });
+      // iOS share sheet lets user Print → pinch-zoom page → save as image,
+      // or use Files / Shortcuts to convert PDF pages to images
+      await Share.share({ url: localUri, title: `procurement_${batchId}` });
     } catch (err: any) {
       if (err?.message !== 'User did not share') {
         setError(err?.message || '导出失败');
@@ -103,7 +102,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
     } finally {
       setActionLoading(null);
     }
-  }, [pdfUrl, fileName]);
+  }, [pdfUrl, batchId]);
 
   const isActionLoading = actionLoading !== null;
 
@@ -130,7 +129,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
           zIndex: 90,
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 12,
+          gap: 10,
           paddingTop: 0,
           paddingBottom: 6,
           paddingHorizontal: 16,
@@ -145,20 +144,20 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
         </TouchableOpacity>
         <Text style={styles.title} numberOfLines={1}>{title}</Text>
         <TouchableOpacity onPress={handleDownload} activeOpacity={0.7} disabled={isActionLoading}>
-          <View style={styles.actionBtn}>
+          <View style={styles.shareBtn}>
             {actionLoading === 'download' ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color="#2C2626" />
             ) : (
               <DownloadSvg />
             )}
           </View>
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleExportImages} activeOpacity={0.7} disabled={isActionLoading}>
-          <View style={styles.actionBtn}>
+        <TouchableOpacity onPress={handleExportImage} activeOpacity={0.7} disabled={isActionLoading}>
+          <View style={styles.shareBtn}>
             {actionLoading === 'images' ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color="#2C2626" />
             ) : (
-              <ImageSvg />
+              <ImageDownloadSvg />
             )}
           </View>
         </TouchableOpacity>
@@ -203,14 +202,18 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     height: 36,
     borderRadius: 18,
     backgroundColor: 'rgba(0,0,0,0.25)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.10)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  actionBtn: {
+  shareBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
     backgroundColor: 'rgba(0,0,0,0.25)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.10)',
     justifyContent: 'center',
     alignItems: 'center',
   },
