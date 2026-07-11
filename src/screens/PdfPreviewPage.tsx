@@ -195,13 +195,20 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
   );
 }
 
-const getStyles = (c: ThemeColors) => StyleSheet.create({
+const getStyles = (c: ThemeColors) => {
+  const btnBg = (op: number) => {
+    const r = parseInt(c.bg.slice(1,3), 16);
+    const g = parseInt(c.bg.slice(3,5), 16);
+    const b = parseInt(c.bg.slice(5,7), 16);
+    return `rgba(${r},${g},${b},${op})`;
+  };
+  return StyleSheet.create({
   root: { flex: 1 },
   backBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: btnBg(0.30),
     borderWidth: 0.5,
     borderColor: 'rgba(0,0,0,0.10)',
     justifyContent: 'center',
@@ -211,7 +218,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: btnBg(0.30),
     borderWidth: 0.5,
     borderColor: 'rgba(0,0,0,0.10)',
     justifyContent: 'center',
@@ -244,3 +251,4 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   },
   retryBtnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
 });
+};
