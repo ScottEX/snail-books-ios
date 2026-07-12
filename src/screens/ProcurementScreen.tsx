@@ -202,8 +202,8 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   cartInfoText: { fontSize: FONTS.micro.size, color: c.textSub },
   cartInfoCount: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.primary },
   cartTotal: { fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: c.primary },
-  cartClearBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: withAlpha(c.primary, 0.08) },
-  cartClearBtnText: { fontSize: FONTS.micro.size, color: c.primary, fontWeight: FONTS.microBold.weight },
+  cartClearBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: withAlpha(c.danger, 0.08) },
+  cartClearBtnText: { fontSize: FONTS.micro.size, color: c.danger, fontWeight: FONTS.microBold.weight },
 
   drawerHead: { flexDirection: 'column' as const, alignItems: 'flex-start' as const, paddingVertical: 14, paddingHorizontal: 20, backgroundColor: c.primary, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
   drawerBody: { padding: 16, flex: 1 } as any,
