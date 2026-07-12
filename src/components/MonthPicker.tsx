@@ -2,10 +2,9 @@ import React, { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Svg, { Path } from 'react-native-svg';
-import { FONTS, ThemeColors } from '../theme';
+import { FONTS, ThemeColors, withAlpha } from '../theme';
 import { t } from '../i18n';
 import AnimatedDropdown from './AnimatedDropdown';
-
 export type MonthValue = 'all' | { year: number; month: number };
 
 interface MonthPickerProps {

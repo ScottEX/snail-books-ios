@@ -3,7 +3,7 @@ import {
   View, Text, TouchableOpacity, ScrollView, Animated,
   StyleSheet, Modal,
 } from 'react-native';
-import { useTheme, ThemeColors, FONTS } from '../theme';
+import { useTheme, ThemeColors, FONTS, withAlpha } from '../theme';
 
 export interface ActionItem {
   label: string;
@@ -11,6 +11,7 @@ export interface ActionItem {
   icon?: React.ReactNode;
   destructive?: boolean;
   disabled?: boolean;
+  selected?: boolean;
   onPress: () => void;
 }
 
@@ -98,7 +99,11 @@ export default function CustomActionSheet({
             <React.Fragment key={index}>
               {index > 0 && <View style={st.divider} />}
               <TouchableOpacity
-                style={[st.actionRow, action.disabled && st.actionDisabled]}
+                style={[
+                  st.actionRow,
+                  action.selected && { backgroundColor: withAlpha(c.primary, 0.12), borderRadius: 8, marginHorizontal: 4 },
+                  action.disabled && st.actionDisabled,
+                ]}
                 onPress={() => {
                   if (action.disabled) return;
                   handleClose();
