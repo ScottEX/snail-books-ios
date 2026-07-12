@@ -148,7 +148,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   },
   titleWrap: {
     paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: 'rgba(0,0,0,0.08)',
   },
@@ -172,9 +172,9 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    minHeight: 32,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    minHeight: 40,
     backgroundColor: c.surface,
   },
   actionDisabled: { opacity: 0.4 },
@@ -186,12 +186,12 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   },
   actionBody: { flex: 1 },
   actionLabel: {
-    fontSize: 12,
+    fontSize: 14,
     color: c.textMain,
     fontWeight: '400',
   },
   actionSublabel: {
-    fontSize: 10,
+    fontSize: 12,
     color: c.textSub,
     marginTop: 1,
   },

@@ -83,11 +83,11 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
           borderRadius: 10,
           overflow: 'hidden' as const,
         }}>
-          <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
+          <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={false}>
             {/* All months option */}
             <TouchableOpacity
               style={{
-                paddingHorizontal: 12, paddingVertical: 8,
+                paddingHorizontal: 12, paddingVertical: 10,
                 backgroundColor: selected === 'all' ? 'rgba(10,132,255,0.15)' : 'transparent',
                 borderRadius: 8, marginHorizontal: 4, marginTop: 4,
               }}
@@ -109,7 +109,7 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
                 <TouchableOpacity
                   key={`mp-${f.year}-${f.month}`}
                   style={{
-                    paddingHorizontal: 12, paddingVertical: 8,
+                    paddingHorizontal: 12, paddingVertical: 10,
                     backgroundColor: isSel ? 'rgba(10,132,255,0.15)' : 'transparent',
                     borderRadius: 8, marginHorizontal: 4,
                   }}
