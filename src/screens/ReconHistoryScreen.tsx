@@ -253,7 +253,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
       {/* User dropdown — moved outside FilterPanel to avoid overflow clipping */}
       {showUserPick && (
         <Animated.View style={{
-          position: 'absolute' as any, top: 212, left: 108, width: 160, zIndex: 10000,
+          position: 'absolute' as any, top: 212, left: 92, width: 160, zIndex: 10000,
           opacity: userDropAnim,
           transform: [{ translateY: dropSlide }, { scale: dropScale }],
         }}>
