@@ -230,7 +230,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
         <View style={st.filterField}>
           <Text style={st.filterLabel}>{t('reconciledBy')}</Text>
           <View style={st.filterSelectWrap}>
-            <TouchableOpacity style={{ flex: 1, height: '100%', justifyContent: 'center', flexDirection: 'row', alignItems: 'center' }} onPress={openUserDrop} activeOpacity={0.7}>
+            <TouchableOpacity style={{ flex: 1, height: '100%', justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' }} onPress={openUserDrop} activeOpacity={0.7}>
               <Text style={st.filterSelectText}>{filBy || t('any')}</Text>
               <Svg width={12} height={12} viewBox="0 0 1024 1024" style={{ marginLeft: 4, transform: [{ rotate: showUserPick ? '180deg' : '0deg' }] }}>
                 <Path d="M836.899 399.237l-218.01 335.037c-47.506 73.007-166.272 73.007-213.778 0l-218.01-335.037C139.595 326.23 198.977 234.97 293.99 234.97h436.02c95.013 0 154.395 91.26 106.889 164.267z" fill="#FFFFFF" />
