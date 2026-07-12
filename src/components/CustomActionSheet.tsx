@@ -41,7 +41,7 @@ export default function CustomActionSheet({
       setTimeout(() => {
         const idx = actions.findIndex(a => a.selected);
         if (idx >= 0) {
-          darkScrollRef.current?.scrollTo({ y: idx * 54 + 4, animated: false });
+          darkScrollRef.current?.scrollTo({ y: idx * 40 + 4, animated: false });
         }
       }, 100);
     }

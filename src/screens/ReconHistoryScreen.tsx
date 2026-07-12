@@ -97,7 +97,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
     setTimeout(() => {
       const idx = filBy === '' ? 0 : users.findIndex(u => u.username === filBy) + 1;
       if (idx >= 0) {
-        dropScrollRef.current?.scrollTo({ y: idx * 54, animated: false });
+        dropScrollRef.current?.scrollTo({ y: idx * 40 + 4, animated: false });
       }
     }, 100);
   };

@@ -43,7 +43,7 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
           scrollRef.current?.scrollTo({ y: 0, animated: false });
         } else {
           const idx = sortedMonths.findIndex((f: any) => f.year === selected.year && f.month === selected.month);
-          if (idx >= 0) scrollRef.current?.scrollTo({ y: (idx + 1) * 54, animated: false });
+          if (idx >= 0) scrollRef.current?.scrollTo({ y: (idx + 1) * 40 + 4, animated: false });
         }
       }, 100);
     } else {
