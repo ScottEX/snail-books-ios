@@ -37,15 +37,15 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
         });
       }
       setVisible(true);
-      // Scroll to selected item
+      // Scroll to selected item after layout
       setTimeout(() => {
         if (selected === 'all') {
-          scrollRef.current?.scrollTo({ y: 0, animated: false });
+          scrollRef.current?.scrollTo({ y: 0, animated: true });
         } else {
           const idx = sortedMonths.findIndex((f: any) => f.year === selected.year && f.month === selected.month);
-          if (idx >= 0) scrollRef.current?.scrollTo({ y: (idx + 1) * 40 + 4, animated: false });
+          if (idx >= 0) scrollRef.current?.scrollTo({ y: (idx + 1) * 44, animated: true });
         }
-      }, 100);
+      }, 300);
     } else {
       setVisible(false);
     }

@@ -37,13 +37,13 @@ export default function CustomActionSheet({
 
   useEffect(() => {
     if (visible && dark) {
-      // Scroll to selected item on open
+      // Scroll to selected item after layout
       setTimeout(() => {
         const idx = actions.findIndex(a => a.selected);
         if (idx >= 0) {
-          darkScrollRef.current?.scrollTo({ y: idx * 40 + 4, animated: false });
+          darkScrollRef.current?.scrollTo({ y: idx * 44, animated: true });
         }
-      }, 100);
+      }, 300);
     }
   }, [visible, dark]);
   const st = getStyles(c);

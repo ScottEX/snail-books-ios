@@ -93,13 +93,13 @@ export default function ReconHistoryScreen({ onBack }: Props) {
       Animated.spring(dropSlide, { toValue: 0, useNativeDriver: true, bounciness: 8, speed: 14 }),
       Animated.timing(userDropAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
     ]).start();
-    // Scroll to selected item
+    // Scroll to selected item after layout
     setTimeout(() => {
       const idx = filBy === '' ? 0 : users.findIndex(u => u.username === filBy) + 1;
       if (idx >= 0) {
-        dropScrollRef.current?.scrollTo({ y: idx * 40 + 4, animated: false });
+        dropScrollRef.current?.scrollTo({ y: idx * 44, animated: true });
       }
-    }, 100);
+    }, 300);
   };
   const closeUserDrop = () => {
     Animated.parallel([
