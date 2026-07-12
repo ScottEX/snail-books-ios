@@ -80,6 +80,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
   const userDropAnim = useRef(new Animated.Value(0)).current;
   const dropScale = useRef(new Animated.Value(0.85)).current;
   const dropSlide = useRef(new Animated.Value(12)).current;
+  const dropScrollRef = useRef<ScrollView>(null);
 
   const openUserDrop = () => {
     if (showUserPick) { closeUserDrop(); return; }
@@ -92,6 +93,13 @@ export default function ReconHistoryScreen({ onBack }: Props) {
       Animated.spring(dropSlide, { toValue: 0, useNativeDriver: true, bounciness: 8, speed: 14 }),
       Animated.timing(userDropAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
     ]).start();
+    // Scroll to selected item
+    setTimeout(() => {
+      const idx = filBy === '' ? 0 : users.findIndex(u => u.username === filBy) + 1;
+      if (idx >= 0) {
+        dropScrollRef.current?.scrollTo({ y: idx * 54, animated: false });
+      }
+    }, 100);
   };
   const closeUserDrop = () => {
     Animated.parallel([
@@ -263,12 +271,12 @@ export default function ReconHistoryScreen({ onBack }: Props) {
           transform: [{ translateY: dropSlide }, { scale: dropScale }],
         }}>
           <BlurView intensity={45} tint="dark" style={{ borderRadius: 10, overflow: 'hidden' as any }}>
-            <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
+            <ScrollView ref={dropScrollRef} style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
             <TouchableOpacity onPress={() => { setFilBy(''); closeUserDrop(); }} activeOpacity={0.6} style={{ paddingVertical: 10, paddingHorizontal: 12, marginHorizontal: 4, marginTop: 4, borderRadius: 8, backgroundColor: filBy === '' ? 'rgba(10,132,255,0.15)' : 'transparent' }}>
               <Text style={{ fontSize: FONTS.sub.size, color: filBy === '' ? '#0A84FF' : '#FFFFFF', fontWeight: filBy === '' ? '700' : FONTS.sub.weight }}>{t('any')}</Text>
             </TouchableOpacity>
-            {users.map(u => (
-              <TouchableOpacity key={u.id} onPress={() => { setFilBy(u.username); closeUserDrop(); }} activeOpacity={0.6} style={{ paddingVertical: 10, paddingHorizontal: 12, marginHorizontal: 4, borderRadius: 8, backgroundColor: filBy === u.username ? 'rgba(10,132,255,0.15)' : 'transparent' }}>
+            {users.map((u, i) => (
+              <TouchableOpacity key={u.id} onPress={() => { setFilBy(u.username); closeUserDrop(); }} activeOpacity={0.6} style={{ paddingVertical: 10, paddingHorizontal: 12, marginHorizontal: 4, marginBottom: i === users.length - 1 ? 4 : 0, borderRadius: 8, backgroundColor: filBy === u.username ? 'rgba(10,132,255,0.15)' : 'transparent' }}>
                 <Text style={{ fontSize: FONTS.sub.size, color: filBy === u.username ? '#0A84FF' : '#FFFFFF', fontWeight: filBy === u.username ? '700' : FONTS.sub.weight }}>{u.username}</Text>
               </TouchableOpacity>
             ))}

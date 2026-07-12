@@ -33,6 +33,19 @@ export default function CustomActionSheet({
 }: Props) {
   const { colors: c } = useTheme();
   const anim = useRef(new Animated.Value(0)).current;
+  const darkScrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    if (visible && dark) {
+      // Scroll to selected item on open
+      setTimeout(() => {
+        const idx = actions.findIndex(a => a.selected);
+        if (idx >= 0) {
+          darkScrollRef.current?.scrollTo({ y: idx * 54 + 4, animated: false });
+        }
+      }, 100);
+    }
+  }, [visible, dark]);
   const st = getStyles(c);
 
   useEffect(() => {
@@ -92,12 +105,14 @@ export default function CustomActionSheet({
         >
           {dark ? (
             <BlurView intensity={45} tint="dark" style={{ borderRadius: 10, overflow: 'hidden' as any }}>
-              <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
+              <ScrollView ref={darkScrollRef} style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
                 {actions.map((action, index) => (
                   <TouchableOpacity
                     key={index}
                     style={{
-                      paddingVertical: 10, paddingHorizontal: 12, marginHorizontal: 4, marginTop: index === 0 ? 4 : 0,
+                      paddingVertical: 10, paddingHorizontal: 12, marginHorizontal: 4,
+                      marginTop: index === 0 ? 4 : 0,
+                      marginBottom: index === actions.length - 1 ? 4 : 0,
                       borderRadius: 8,
                       backgroundColor: action.selected ? 'rgba(10,132,255,0.15)' : 'transparent',
                     }}

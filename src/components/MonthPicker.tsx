@@ -25,6 +25,7 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
   const [visible, setVisible] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<any>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   const label = allLabel ?? t('feeAllMonths');
 
@@ -36,6 +37,15 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
         });
       }
       setVisible(true);
+      // Scroll to selected item
+      setTimeout(() => {
+        if (selected === 'all') {
+          scrollRef.current?.scrollTo({ y: 0, animated: false });
+        } else {
+          const idx = sortedMonths.findIndex((f: any) => f.year === selected.year && f.month === selected.month);
+          if (idx >= 0) scrollRef.current?.scrollTo({ y: (idx + 1) * 54, animated: false });
+        }
+      }, 100);
     } else {
       setVisible(false);
     }
@@ -82,7 +92,7 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
           borderRadius: 10,
           overflow: 'hidden' as const,
         }}>
-          <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
+          <ScrollView ref={scrollRef} style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
             {/* All months option */}
             <TouchableOpacity
               style={{
@@ -101,7 +111,7 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
                 {label}
               </Text>
             </TouchableOpacity>
-            {sortedMonths.map((f: any) => {
+            {sortedMonths.map((f: any, i: number) => {
               const isSel = selected !== 'all' && selected.year === f.year && selected.month === f.month;
               return (
                 <TouchableOpacity
@@ -110,6 +120,7 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
                     paddingHorizontal: 12, paddingVertical: 10,
                     backgroundColor: isSel ? 'rgba(10,132,255,0.15)' : 'transparent',
                     borderRadius: 8, marginHorizontal: 4,
+                    marginBottom: i === sortedMonths.length - 1 ? 4 : 0,
                   }}
                   onPress={() => selectAndClose({ year: f.year, month: f.month })}
                   activeOpacity={0.6}
