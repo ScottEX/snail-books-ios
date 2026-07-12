@@ -263,12 +263,12 @@ export default function ReconHistoryScreen({ onBack }: Props) {
           transform: [{ translateY: dropSlide }, { scale: dropScale }],
         }}>
           <BlurView intensity={45} tint="dark" style={{ borderRadius: 10, overflow: 'hidden' as any }}>
-            <TouchableOpacity onPress={() => { setFilBy(''); closeUserDrop(); }} activeOpacity={0.6} style={{ paddingVertical: 10, paddingHorizontal: 12 }}>
+            <TouchableOpacity onPress={() => { setFilBy(''); closeUserDrop(); }} activeOpacity={0.6} style={{ paddingVertical: 10, paddingHorizontal: 12, backgroundColor: filBy === '' ? 'rgba(10,132,255,0.15)' : 'transparent' }}>
               <Text style={{ fontSize: 14, color: filBy === '' ? '#0A84FF' : '#FFFFFF', fontWeight: filBy === '' ? '700' : '600' }}>{t('any')}</Text>
             </TouchableOpacity>
             <View style={{ height: 0.5, backgroundColor: 'rgba(255,255,255,0.08)', marginHorizontal: 12 }} />
             {users.map(u => (
-              <TouchableOpacity key={u.id} onPress={() => { setFilBy(u.username); closeUserDrop(); }} activeOpacity={0.6} style={{ paddingVertical: 10, paddingHorizontal: 12 }}>
+              <TouchableOpacity key={u.id} onPress={() => { setFilBy(u.username); closeUserDrop(); }} activeOpacity={0.6} style={{ paddingVertical: 10, paddingHorizontal: 12, backgroundColor: filBy === u.username ? 'rgba(10,132,255,0.15)' : 'transparent' }}>
                 <Text style={{ fontSize: 14, color: filBy === u.username ? '#0A84FF' : '#FFFFFF', fontWeight: filBy === u.username ? '700' : '400' }}>{u.username}</Text>
               </TouchableOpacity>
             ))}
