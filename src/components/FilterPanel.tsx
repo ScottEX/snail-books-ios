@@ -94,7 +94,6 @@ const getStyles = () =>
       borderRadius: 16,
       borderWidth: 0.5,
       borderColor: 'rgba(255,255,255,0.12)',
-      overflow: 'hidden' as any,
     },
     content: {
       padding: 16,
