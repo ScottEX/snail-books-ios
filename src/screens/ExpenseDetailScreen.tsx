@@ -542,14 +542,14 @@ const getStyles = (c: ThemeColors) =>
       marginBottom: 16,
     },
     amountLabel: {
-      fontSize: 14, fontWeight: '500', color: c.textSub,
+      fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textSub,
       textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4,
     },
     amountValue: { fontSize: 36, fontWeight: '700' },
     amountSymbol: { fontSize: 20, fontWeight: '600', marginRight: 2, marginBottom: 2 },
     amountUser: { alignItems: 'center', marginLeft: 12 },
     amountAvatar: { width: 36, height: 36, borderRadius: 18, marginBottom: 4, backgroundColor: withAlpha(c.textMain, 0.08) },
-    amountUsername: { fontSize: 14, fontWeight: '600', color: c.textMain, maxWidth: 100 },
+    amountUsername: { fontSize: FONTS.sub.size, fontWeight: '600', color: c.textMain, maxWidth: 100 },
 
     infoCard: {
       backgroundColor: c.surface,
@@ -565,7 +565,7 @@ const getStyles = (c: ThemeColors) =>
       borderBottomWidth: 0.5,
       borderBottomColor: withAlpha(c.textMain, 0.06),
     },
-    infoLabel: { fontSize: 14, fontWeight: '500', color: c.textSub },
+    infoLabel: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textSub },
     infoValue: { fontSize: FONTS.sub.size, fontWeight: '500', color: c.textMain },
 
     section: { marginBottom: 16 },
