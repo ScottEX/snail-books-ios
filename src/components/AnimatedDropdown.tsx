@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, Modal, TouchableOpacity, View, ViewStyle } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { Animated, Modal, TouchableOpacity, ViewStyle } from 'react-native';
 import { BACKDROP_COLOR } from '../theme';
 
 interface AnimatedDropdownProps {
@@ -27,7 +27,7 @@ interface AnimatedDropdownProps {
 }
 
 /**
- * Shared animated dropdown wrapper — always mounted, hidden via opacity + pointerEvents.
+ * Shared animated dropdown wrapper.
  *
  * Animation matches ModalOverlay springScale:
  *   spring(bounciness:8, speed:14), scale 0.85→1, slide 12→0, fade 250ms in / 180ms out.
@@ -42,12 +42,14 @@ export default function AnimatedDropdown({
   inline = false,
   backdropColor = BACKDROP_COLOR,
 }: AnimatedDropdownProps) {
+  const [mounted, setMounted] = useState(false);
   const fade = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.85)).current;
   const slide = useRef(new Animated.Value(12)).current;
 
   useEffect(() => {
     if (visible) {
+      setMounted(true);
       fade.setValue(0);
       scale.setValue(0.85);
       slide.setValue(12);
@@ -56,14 +58,16 @@ export default function AnimatedDropdown({
         Animated.spring(slide, { toValue: 0, useNativeDriver: true, bounciness: 8, speed: 14 }),
         Animated.timing(fade, { toValue: 1, duration: 250, useNativeDriver: true }),
       ]).start();
-    } else {
+    } else if (mounted) {
       Animated.parallel([
         Animated.timing(scale, { toValue: 0.85, duration: 180, useNativeDriver: true }),
         Animated.timing(slide, { toValue: 12, duration: 180, useNativeDriver: true }),
         Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: true }),
-      ]).start();
+      ]).start(() => setMounted(false));
     }
   }, [visible]);
+
+  if (!mounted) return null;
 
   const animatedTransform = {
     opacity: fade,
@@ -80,40 +84,52 @@ export default function AnimatedDropdown({
         { position: 'absolute' as const },
         animatedTransform,
       ]}
-      pointerEvents={visible ? 'auto' : 'none'}
     >
       {children}
     </Animated.View>
   );
 
+  const backdrop = (
+    <TouchableOpacity
+      style={{ flex: 1 }}
+      activeOpacity={1}
+      onPress={onClose}
+    >
+      <Animated.View
+        style={{
+          flex: 1,
+          backgroundColor: backdropColor,
+          opacity: fade,
+        }}
+      />
+    </TouchableOpacity>
+  );
+
   if (inline) {
     return (
-      <View
-        style={{
-          position: 'absolute',
-          top: 0, left: 0, right: 0, bottom: 0,
-          zIndex: 99998,
-        }}
-        pointerEvents={visible ? 'auto' : 'none'}
-      >
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: backdropColor,
-            opacity: (fade as any)._value ?? 0,
-          }}
-          pointerEvents="none"
-        />
+      <>
         <TouchableOpacity
           style={{
             position: 'absolute',
-            top: 0, left: 0, right: 0, bottom: 0,
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 99998,
           }}
           activeOpacity={1}
-          onPress={visible ? onClose : undefined}
-        />
+          onPress={onClose}
+        >
+          <Animated.View
+            style={{
+              flex: 1,
+              backgroundColor: backdropColor,
+              opacity: fade,
+            }}
+          />
+        </TouchableOpacity>
         {panel}
-      </View>
+      </>
     );
   }
 
@@ -124,19 +140,7 @@ export default function AnimatedDropdown({
       animationType="none"
       onRequestClose={onClose}
     >
-      <TouchableOpacity
-        style={{ flex: 1 }}
-        activeOpacity={1}
-        onPress={visible ? onClose : undefined}
-      >
-        <Animated.View
-          style={{
-            flex: 1,
-            backgroundColor: backdropColor,
-            opacity: fade,
-          }}
-        />
-      </TouchableOpacity>
+      {backdrop}
       {panel}
     </Modal>
   );

@@ -59,7 +59,7 @@ export default function CustomActionSheet({
 
   return (
     <Modal
-      visible={true}
+      visible={visible}
       transparent
       animationType="none"
       statusBarTranslucent
@@ -68,11 +68,10 @@ export default function CustomActionSheet({
       <TouchableOpacity
         style={StyleSheet.absoluteFill}
         activeOpacity={1}
-        onPress={visible ? handleClose : undefined}
+        onPress={handleClose}
       >
         <Animated.View
           style={[st.overlay, { opacity: anim }]}
-          pointerEvents="none"
         />
       </TouchableOpacity>
 
@@ -93,7 +92,6 @@ export default function CustomActionSheet({
               opacity: anim,
             },
           ]}
-          pointerEvents={visible ? 'auto' : 'none'}
         >
           {dark ? (
             <BlurView intensity={45} tint="dark" style={{ borderRadius: 10, overflow: 'hidden' as any }}>
