@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Animated, PanResponder, StatusBar, Dimensions } from 'react-native';
+import { BlurView } from 'expo-blur';
 import Svg, { Path, Line } from 'react-native-svg';
 import { t, getLang } from '../i18n';
 import { api } from '../api/client';
@@ -257,7 +258,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
           opacity: userDropAnim,
           transform: [{ translateY: dropSlide }, { scale: dropScale }],
         }}>
-          <View style={{ backgroundColor: 'rgba(44,44,46,0.96)', borderRadius: 10, overflow: 'hidden' }}>
+          <BlurView intensity={45} tint="dark" style={{ borderRadius: 10, overflow: 'hidden' as any }}>
             <TouchableOpacity onPress={() => { setFilBy(''); closeUserDrop(); }} activeOpacity={0.6} style={{ paddingVertical: 10, paddingHorizontal: 12 }}>
               <Text style={{ fontSize: 14, color: '#FFFFFF', fontWeight: '600' }}>{t('any')}</Text>
             </TouchableOpacity>
@@ -267,7 +268,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
                 <Text style={{ fontSize: 14, color: filBy === u.username ? '#0A84FF' : '#FFFFFF', fontWeight: filBy === u.username ? '700' : '400' }}>{u.username}</Text>
               </TouchableOpacity>
             ))}
-          </View>
+          </BlurView>
         </Animated.View>
       )}
 
