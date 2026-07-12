@@ -556,9 +556,10 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const batchActions: ActionItem[] = useMemo(() =>
     batchList.map((b: any) => ({
       label: t('procNowBatch').replace('{n}', String(b.batch_number)),
+      selected: b.id === dBatchId,
       onPress: () => setDBatchId(b.id),
     })),
-    [batchList],
+    [batchList, dBatchId],
   );
 
   /* ── Auto-fill amount when batch selected ── */
