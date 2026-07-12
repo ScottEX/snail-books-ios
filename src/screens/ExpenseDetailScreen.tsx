@@ -7,6 +7,7 @@ import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller
 import ReAnimated, { useAnimatedStyle, useSharedValue, withTiming, cancelAnimation } from 'react-native-reanimated';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path } from 'react-native-svg';
+import TrashIcon from '../components/icons/TrashIcon';
 import { t, getLang } from '../i18n';
 import { trCategory, trPayment } from '../i18nHelpers';
 import { fmtDecInput, toDec2 } from '../utils/numbers';
@@ -236,9 +237,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
             style={styles.actionBtn}
             disabled={deleting}
           >
-            <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={c.danger} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <Path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
-            </Svg>
+            <TrashIcon color={c.danger} />
           </TouchableOpacity>
         ) : undefined}
       />
