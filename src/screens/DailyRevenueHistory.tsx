@@ -126,9 +126,7 @@ export default function DailyRevenueHistory({ onBack }: Props) {
                 {dateFrom ? fmtDate(dateFrom) : t('any')}
               </Text>
             </TouchableOpacity>
-            <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={colors.secondary} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <Path d="M9 18l6-6-6-6"/>
-            </Svg>
+            <Text style={{ color: '#FFFFFF' }}>→</Text>
             <TouchableOpacity style={styles.filterDateWrap} onPress={() => setDatePickTarget('to')} activeOpacity={0.7}>
               <Text style={dateTo ? styles.filterDateText : styles.filterDatePlaceholder}>
                 {dateTo ? fmtDate(dateTo) : t('any')}
