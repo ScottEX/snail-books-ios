@@ -144,7 +144,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
     const [y, m, day] = d.split('-');
     const l = getLang();
     if (l.startsWith('en')) { const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return `${months[+m-1]} ${+day}, ${y}`; }
-    return `${y}/${m}/${day}`;
+    return `${y}年${+m}月${+day}日`;
   };
 
   const fmtDateTime = (d: string) => {
