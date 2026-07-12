@@ -29,8 +29,8 @@ interface AnimatedDropdownProps {
 /**
  * Shared animated dropdown wrapper.
  *
- * Provides: Modal (or inline) backdrop + spring-in/timing-out animation
- * (scale 0.9→1, translateY -8→0, opacity fade).
+ * Animation matches ModalOverlay springScale:
+ *   spring(bounciness:8, speed:14), scale 0.85→1, slide 12→0, fade 250ms in / 180ms out.
  *
  * Used by: UserManagementScreen (status/date filters), MonthPicker.
  */
@@ -43,46 +43,37 @@ export default function AnimatedDropdown({
   backdropColor = BACKDROP_COLOR,
 }: AnimatedDropdownProps) {
   const [mounted, setMounted] = useState(false);
-  const anim = useRef(new Animated.Value(0)).current;
+  const fade = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(0.85)).current;
+  const slide = useRef(new Animated.Value(12)).current;
 
   useEffect(() => {
     if (visible) {
       setMounted(true);
-      anim.setValue(0);
-      Animated.spring(anim, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 300,
-        friction: 24,
-      }).start();
+      fade.setValue(0);
+      scale.setValue(0.85);
+      slide.setValue(12);
+      Animated.parallel([
+        Animated.spring(scale, { toValue: 1, useNativeDriver: true, bounciness: 8, speed: 14 }),
+        Animated.spring(slide, { toValue: 0, useNativeDriver: true, bounciness: 8, speed: 14 }),
+        Animated.timing(fade, { toValue: 1, duration: 250, useNativeDriver: true }),
+      ]).start();
     } else if (mounted) {
-      Animated.timing(anim, {
-        toValue: 0,
-        duration: 150,
-        useNativeDriver: true,
-      }).start(() => setMounted(false));
+      Animated.parallel([
+        Animated.timing(scale, { toValue: 0.85, duration: 180, useNativeDriver: true }),
+        Animated.timing(slide, { toValue: 12, duration: 180, useNativeDriver: true }),
+        Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: true }),
+      ]).start(() => setMounted(false));
     }
   }, [visible]);
 
   if (!mounted) return null;
 
   const animatedTransform = {
-    opacity: anim,
+    opacity: fade,
     transform: [
-      {
-        scale: anim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0.9, 1],
-          extrapolate: 'clamp',
-        }),
-      },
-      {
-        translateY: anim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [-8, 0],
-          extrapolate: 'clamp',
-        }),
-      },
+      { scale },
+      { translateY: slide },
     ],
   };
 
@@ -108,7 +99,7 @@ export default function AnimatedDropdown({
         style={{
           flex: 1,
           backgroundColor: backdropColor,
-          opacity: anim,
+          opacity: fade,
         }}
       />
     </TouchableOpacity>
@@ -133,7 +124,7 @@ export default function AnimatedDropdown({
             style={{
               flex: 1,
               backgroundColor: backdropColor,
-              opacity: anim,
+              opacity: fade,
             }}
           />
         </TouchableOpacity>
