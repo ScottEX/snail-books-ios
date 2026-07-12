@@ -1,3 +1,4 @@
+import React, { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useTheme, ThemeColors, withAlpha } from '../theme';
 import { MODAL_CARD_RADIUS } from '../sharedStyles';
@@ -39,19 +40,38 @@ export default function ConfirmModal({
   const hdr = headerColor || c.primary;
   const btn = confirmColor || c.primary;
 
+  // Delay parent state reset until after close animation
+  const [animVisible, setAnimVisible] = useState(false);
+  React.useEffect(() => {
+    if (visible) setAnimVisible(true);
+  }, [visible]);
+
+  const handleClose = useCallback(() => {
+    setAnimVisible(false);
+  }, []);
+
+  const handleClosed = useCallback(() => {
+    onCancel();
+  }, [onCancel]);
+
   return (
-    <ModalOverlay visible={visible} onClose={onCancel} animation={animation}>
+    <ModalOverlay
+      visible={animVisible}
+      onClose={handleClose}
+      onClosed={handleClosed}
+      animation={animation}
+    >
       <View style={styles.card}>
         <View style={[styles.header, { backgroundColor: hdr }]}>
           <Text style={styles.title}>{title}</Text>
-          <CloseButton onPress={onCancel} />
+          <CloseButton onPress={handleClose} />
         </View>
         <View style={styles.body}>
           <View style={styles.warningBox}>
             <Text style={styles.warningText}>{message}</Text>
           </View>
           <View style={styles.btnRow}>
-            <TouchableOpacity style={[styles.cancelBtn, loading && styles.btnDisabled]} onPress={onCancel} disabled={loading}>
+            <TouchableOpacity style={[styles.cancelBtn, loading && styles.btnDisabled]} onPress={handleClose} disabled={loading}>
               <Text style={styles.cancelText}>{cancelLabel || t('cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.confirmBtn, { backgroundColor: btn }, loading && styles.btnDisabled]} onPress={onConfirm} disabled={loading}>
