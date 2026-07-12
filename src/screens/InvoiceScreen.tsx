@@ -967,6 +967,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                   ref={batchBtnRef as any}
                   style={[styles.dBatchSelect, { backgroundColor: withAlpha(c.textMain, 0.03) }]}
                   onPress={() => {
+                    if (showBatchPicker) { setShowBatchPicker(false); return; }
                     (batchBtnRef.current as any)?.measureInWindow?.((x: number, y: number, _w: number, h: number) => {
                       setBatchOffsetX(x || 16);
                       setBatchOffsetY((y || 100) + (h || 40) + 8);
@@ -975,6 +976,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                   }}
                   activeOpacity={0.7}
                 >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
                   <Text
                     style={{ fontSize: 14, color: dBatchId ? c.textMain : c.textSub }}
                     numberOfLines={1}
@@ -983,6 +985,10 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                       ? t('procNowBatch').replace('{n}', String(batchList.find(b => b.id === dBatchId)?.batch_number ?? dBatchId))
                       : t('invDrawerBatchPlaceholder')}
                   </Text>
+                  <Svg width={12} height={12} viewBox="0 0 1024 1024" style={{ marginLeft: 4, transform: [{ rotate: showBatchPicker ? '180deg' : '0deg' }] }}>
+                    <Path d="M836.899 399.237l-218.01 335.037c-47.506 73.007-166.272 73.007-213.778 0l-218.01-335.037C139.595 326.23 198.977 234.97 293.99 234.97h436.02c95.013 0 154.395 91.26 106.889 164.267z" fill={c.textSub} />
+                  </Svg>
+                  </View>
                 </TouchableOpacity>
               </View>
 
@@ -1156,11 +1162,11 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
 
       <CustomActionSheet
         visible={showBatchPicker}
-        title={t('invDrawerBatch')}
         actions={batchActions}
         onClose={() => setShowBatchPicker(false)}
         offsetY={batchOffsetY}
         offsetX={batchOffsetX}
+        dark
       />
     </View>
   );

@@ -3,6 +3,7 @@ import {
   View, Text, TouchableOpacity, ScrollView, Animated,
   StyleSheet, Modal,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useTheme, ThemeColors, FONTS, withAlpha } from '../theme';
 
 export interface ActionItem {
@@ -23,10 +24,12 @@ interface Props {
   onClose: () => void;
   offsetY?: number;
   offsetX?: number;
+  /** Dark BlurView style — matches 对账人 dropdown */
+  dark?: boolean;
 }
 
 export default function CustomActionSheet({
-  visible, title, message, actions, onClose, offsetY = 0, offsetX = 0,
+  visible, title, message, actions, onClose, offsetY = 0, offsetX = 0, dark = false,
 }: Props) {
   const { colors: c } = useTheme();
   const anim = useRef(new Animated.Value(0)).current;
@@ -75,7 +78,7 @@ export default function CustomActionSheet({
       >
         <Animated.View
           style={[
-            st.sheet,
+            dark ? { width: 160, alignSelf: 'flex-start' as const } : st.sheet,
             {
               marginTop: offsetY,
               marginLeft: offsetX,
@@ -87,6 +90,33 @@ export default function CustomActionSheet({
             },
           ]}
         >
+          {dark ? (
+            <BlurView intensity={45} tint="dark" style={{ borderRadius: 10, overflow: 'hidden' as any }}>
+              <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
+                {actions.map((action, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={{
+                      paddingVertical: 10, paddingHorizontal: 12, marginHorizontal: 4, marginTop: index === 0 ? 4 : 0,
+                      borderRadius: 8,
+                      backgroundColor: action.selected ? 'rgba(10,132,255,0.15)' : 'transparent',
+                    }}
+                    onPress={() => { if (action.disabled) return; handleClose(); setTimeout(action.onPress, 250); }}
+                    activeOpacity={0.6}
+                  >
+                    <Text style={{
+                      fontSize: FONTS.sub.size,
+                      color: action.selected ? '#0A84FF' : action.destructive ? '#FF453A' : '#FFFFFF',
+                      fontWeight: action.selected ? '700' : FONTS.sub.weight as any,
+                    }}>
+                      {action.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </BlurView>
+          ) : (
+            <>
           {(title || message) && (
             <View style={st.titleWrap}>
               {title && <Text style={st.title}>{title}</Text>}
@@ -128,6 +158,8 @@ export default function CustomActionSheet({
             </React.Fragment>
           ))}
           </ScrollView>
+            </>
+          )}
         </Animated.View>
       </View>
     </Modal>
