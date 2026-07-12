@@ -264,7 +264,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
         }}>
           <BlurView intensity={45} tint="dark" style={{ borderRadius: 10, overflow: 'hidden' as any }}>
             <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
-            <TouchableOpacity onPress={() => { setFilBy(''); closeUserDrop(); }} activeOpacity={0.6} style={{ paddingVertical: 10, paddingHorizontal: 12, marginHorizontal: 4, borderRadius: 8, backgroundColor: filBy === '' ? 'rgba(10,132,255,0.15)' : 'transparent' }}>
+            <TouchableOpacity onPress={() => { setFilBy(''); closeUserDrop(); }} activeOpacity={0.6} style={{ paddingVertical: 10, paddingHorizontal: 12, marginHorizontal: 4, marginTop: 4, borderRadius: 8, backgroundColor: filBy === '' ? 'rgba(10,132,255,0.15)' : 'transparent' }}>
               <Text style={{ fontSize: FONTS.sub.size, color: filBy === '' ? '#0A84FF' : '#FFFFFF', fontWeight: filBy === '' ? '700' : FONTS.sub.weight }}>{t('any')}</Text>
             </TouchableOpacity>
             {users.map(u => (
