@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
-  Animated, ImageBackground, Image, ActivityIndicator,
+  Animated, ImageBackground, Image, ActivityIndicator, StatusBar,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -520,6 +520,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
 
   return (
     <View style={styles.container}>
+    <StatusBar barStyle={bgOpacity === 1 ? 'light-content' : 'dark-content'} />
     <View style={styles.inner}>
       {/* Two-layer background (mirrors web). Base layer = bundled
           bg.jpg, always at bgOpacity. Top layer = the user's custom
