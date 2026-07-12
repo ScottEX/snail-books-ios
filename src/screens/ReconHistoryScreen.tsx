@@ -230,23 +230,24 @@ export default function ReconHistoryScreen({ onBack }: Props) {
             </Text>
           </TouchableOpacity>
         </View>
-        {/* User dropdown */}
-        {showUserPick && (
-          <View style={{ position: 'absolute' as any, top: 96, left: 100, width: 160, zIndex: 10 }}>
-            <View style={{ backgroundColor: 'rgba(44,44,46,0.96)', borderRadius: 10, overflow: 'hidden' }}>
-              <TouchableOpacity onPress={() => { setFilBy(''); closeUserDrop(); }} activeOpacity={0.6} style={{ paddingVertical: 10, paddingHorizontal: 12 }}>
-                <Text style={{ fontSize: 14, color: '#FFFFFF', fontWeight: '600' }}>{t('any')}</Text>
-              </TouchableOpacity>
-              <View style={{ height: 0.5, backgroundColor: 'rgba(255,255,255,0.08)', marginHorizontal: 12 }} />
-              {users.map(u => (
-                <TouchableOpacity key={u.id} onPress={() => { setFilBy(u.username); closeUserDrop(); }} activeOpacity={0.6} style={{ paddingVertical: 10, paddingHorizontal: 12 }}>
-                  <Text style={{ fontSize: 14, color: filBy === u.username ? '#0A84FF' : '#FFFFFF', fontWeight: filBy === u.username ? '700' : '400' }}>{u.username}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        )}
       </FilterPanel>
+
+      {/* User dropdown — moved outside FilterPanel to avoid overflow clipping */}
+      {showUserPick && (
+        <View style={{ position: 'absolute' as any, top: 212, left: 128, width: 160, zIndex: 10000 }}>
+          <View style={{ backgroundColor: 'rgba(44,44,46,0.96)', borderRadius: 10, overflow: 'hidden' }}>
+            <TouchableOpacity onPress={() => { setFilBy(''); closeUserDrop(); }} activeOpacity={0.6} style={{ paddingVertical: 10, paddingHorizontal: 12 }}>
+              <Text style={{ fontSize: 14, color: '#FFFFFF', fontWeight: '600' }}>{t('any')}</Text>
+            </TouchableOpacity>
+            <View style={{ height: 0.5, backgroundColor: 'rgba(255,255,255,0.08)', marginHorizontal: 12 }} />
+            {users.map(u => (
+              <TouchableOpacity key={u.id} onPress={() => { setFilBy(u.username); closeUserDrop(); }} activeOpacity={0.6} style={{ paddingVertical: 10, paddingHorizontal: 12 }}>
+                <Text style={{ fontSize: 14, color: filBy === u.username ? '#0A84FF' : '#FFFFFF', fontWeight: filBy === u.username ? '700' : '400' }}>{u.username}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
 
       {/* Toast */}
       {ToastHost}
