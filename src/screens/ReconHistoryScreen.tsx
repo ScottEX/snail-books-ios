@@ -82,6 +82,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
   const dropSlide = useRef(new Animated.Value(12)).current;
 
   const openUserDrop = () => {
+    if (showUserPick) { closeUserDrop(); return; }
     setShowUserPick(true);
     dropScale.setValue(0.85);
     dropSlide.setValue(12);
@@ -260,7 +261,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
         }}>
           <BlurView intensity={45} tint="dark" style={{ borderRadius: 10, overflow: 'hidden' as any }}>
             <TouchableOpacity onPress={() => { setFilBy(''); closeUserDrop(); }} activeOpacity={0.6} style={{ paddingVertical: 10, paddingHorizontal: 12 }}>
-              <Text style={{ fontSize: 14, color: '#FFFFFF', fontWeight: '600' }}>{t('any')}</Text>
+              <Text style={{ fontSize: 14, color: filBy === '' ? '#0A84FF' : '#FFFFFF', fontWeight: filBy === '' ? '700' : '600' }}>{t('any')}</Text>
             </TouchableOpacity>
             <View style={{ height: 0.5, backgroundColor: 'rgba(255,255,255,0.08)', marginHorizontal: 12 }} />
             {users.map(u => (
