@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import ModalOverlay from './ModalOverlay';
 import { t, getLang } from '../i18n';
@@ -24,6 +25,7 @@ const parseDate = (s: string): Date => {
 
 export default function DatePickerModal({ visible, value, onClose, onSelect, minDate, maxDate }: Props) {
   const [draft, setDraft] = useState(value);
+  const insets = useSafeAreaInsets();
 
   const prevVisible = useRef(visible);
   if (visible && !prevVisible.current) {
@@ -51,10 +53,10 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
       visible={visible}
       onClose={onClose}
       animation="iosSheet"
-      overlayStyle={{ justifyContent: 'flex-end' }}
+      overlayStyle={{ justifyContent: 'flex-end', padding: 0 }}
       contentStyle={{ width: '100%', alignItems: 'center' }}
     >
-      <View style={styles.sheet}>
+      <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) }]}>
         <DateTimePicker
           value={pickerDate}
           mode="date"
@@ -83,7 +85,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
 }
 
 const styles = StyleSheet.create({
-  sheet: { width: '100%' as const, borderRadius: 22, overflow: 'hidden' as const, paddingHorizontal: 12, paddingBottom: 12, paddingTop: 0, backgroundColor: '#FFFFFF' },
+  sheet: { width: '100%' as const, borderRadius: 22, overflow: 'hidden' as const, backgroundColor: '#FFFFFF' },
   footer: { flexDirection: 'row' as const, gap: 10, marginTop: 8 },
   footerBtn: { flex: 1, paddingVertical: 10, alignItems: 'center' as const },
 });
