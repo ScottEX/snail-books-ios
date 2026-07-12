@@ -191,7 +191,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
 
   cartBar: {
     position: 'absolute' as const, bottom: 76, left: 0, right: 0, zIndex: 100,
-    marginHorizontal: 12, backgroundColor: withAlpha(c.surface, 0.65), borderRadius: 14,
+    marginHorizontal: 16, backgroundColor: withAlpha(c.surface, 0.65), borderRadius: 14,
     borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
   },
   cartPreview: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12, padding: 12 },
