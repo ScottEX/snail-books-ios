@@ -570,11 +570,11 @@ const getStyles = (c: ThemeColors) =>
 
     section: { marginBottom: 16 },
     sectionTitle: {
-      fontSize: 14, fontWeight: '500', color: c.textSub,
+      fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textSub,
       textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10,
     },
     sectionTitleInline: {
-      fontSize: 14, fontWeight: '500', color: c.textSub,
+      fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textSub,
       width: 56,
     },
     thumbRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

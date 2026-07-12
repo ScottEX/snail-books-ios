@@ -17,7 +17,7 @@ export default function ExpenseNoteInput({ value, onChangeText, placeholder, lab
 
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
-      <Text style={{ fontSize: 14, color: c.textSub, fontWeight: '500' as any, marginBottom: 0, marginTop: 9 }}>
+      <Text style={{ fontSize: FONTS.sub.size, color: c.textSub, fontWeight: FONTS.sub.weight as any, marginBottom: 0, marginTop: 9 }}>
         {label || t('expenseNote')}
       </Text>
       <AppTextInput
