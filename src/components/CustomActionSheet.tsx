@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, Animated,
-  StyleSheet,
+  StyleSheet, Modal,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useTheme, ThemeColors, FONTS, withAlpha } from '../theme';
@@ -42,6 +42,11 @@ export default function CustomActionSheet({
         tension: 65, friction: 11,
         useNativeDriver: true,
       }).start();
+    } else {
+      Animated.timing(anim, {
+        toValue: 0, duration: 200,
+        useNativeDriver: true,
+      }).start();
     }
   }, [visible]);
 
@@ -53,16 +58,24 @@ export default function CustomActionSheet({
   }, [onClose]);
 
   return (
-    <Animated.View
-      style={[st.overlay, { opacity: anim }]}
-      pointerEvents={visible ? 'auto' : 'none'}
+    <Modal
+      visible={true}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={handleClose}
     >
       <TouchableOpacity
         style={StyleSheet.absoluteFill}
         activeOpacity={1}
-        onPress={handleClose}
-        pointerEvents={visible ? 'auto' : 'none'}
-      />
+        onPress={visible ? handleClose : undefined}
+      >
+        <Animated.View
+          style={[st.overlay, { opacity: anim }]}
+          pointerEvents="none"
+        />
+      </TouchableOpacity>
+
       <View
         style={st.sheetOuter}
         pointerEvents="box-none"
@@ -80,6 +93,7 @@ export default function CustomActionSheet({
               opacity: anim,
             },
           ]}
+          pointerEvents={visible ? 'auto' : 'none'}
         >
           {dark ? (
             <BlurView intensity={45} tint="dark" style={{ borderRadius: 10, overflow: 'hidden' as any }}>
@@ -155,7 +169,7 @@ export default function CustomActionSheet({
           )}
         </Animated.View>
       </View>
-    </Animated.View>
+    </Modal>
   );
 }
 
@@ -163,7 +177,6 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.32)',
-    zIndex: 99999,
   },
   sheetOuter: {
     flex: 1,
@@ -173,7 +186,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   sheet: {
     width: 140,
     maxWidth: 140,
-    backgroundColor: c.modal,
+    backgroundColor: c.surface,
     borderRadius: 14,
     overflow: 'hidden' as any,
     elevation: 24,

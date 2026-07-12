@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Modal, TouchableOpacity, ViewStyle } from 'react-native';
+import { Animated, Modal, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { BACKDROP_COLOR } from '../theme';
 
 interface AnimatedDropdownProps {
@@ -27,7 +27,7 @@ interface AnimatedDropdownProps {
 }
 
 /**
- * Shared animated dropdown wrapper.
+ * Shared animated dropdown wrapper — always mounted, hidden via opacity + pointerEvents.
  *
  * Animation matches ModalOverlay springScale:
  *   spring(bounciness:8, speed:14), scale 0.85→1, slide 12→0, fade 250ms in / 180ms out.
@@ -86,47 +86,34 @@ export default function AnimatedDropdown({
     </Animated.View>
   );
 
-  const backdrop = (
-    <TouchableOpacity
-      style={{ flex: 1 }}
-      activeOpacity={1}
-      onPress={onClose}
-    >
-      <Animated.View
-        style={{
-          flex: 1,
-          backgroundColor: backdropColor,
-          opacity: fade,
-        }}
-      />
-    </TouchableOpacity>
-  );
-
   if (inline) {
     return (
-      <>
+      <View
+        style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          zIndex: 99998,
+        }}
+        pointerEvents={visible ? 'auto' : 'none'}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: backdropColor,
+            opacity: (fade as any)._value ?? 0,
+          }}
+          pointerEvents="none"
+        />
         <TouchableOpacity
           style={{
             position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 99998,
+            top: 0, left: 0, right: 0, bottom: 0,
           }}
           activeOpacity={1}
-          onPress={onClose}
-        >
-          <Animated.View
-            style={{
-              flex: 1,
-              backgroundColor: backdropColor,
-              opacity: fade,
-            }}
-          />
-        </TouchableOpacity>
+          onPress={visible ? onClose : undefined}
+        />
         {panel}
-      </>
+      </View>
     );
   }
 
@@ -137,7 +124,19 @@ export default function AnimatedDropdown({
       animationType="none"
       onRequestClose={onClose}
     >
-      {backdrop}
+      <TouchableOpacity
+        style={{ flex: 1 }}
+        activeOpacity={1}
+        onPress={visible ? onClose : undefined}
+      >
+        <Animated.View
+          style={{
+            flex: 1,
+            backgroundColor: backdropColor,
+            opacity: fade,
+          }}
+        />
+      </TouchableOpacity>
       {panel}
     </Modal>
   );
