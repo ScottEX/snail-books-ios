@@ -94,11 +94,11 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
           tint="regular"
           style={{ position: 'absolute', top: 0, left: 0, right: 0, height: headerHeight }}
         />
-        <StatusBar barStyle="light-content" />
+        <StatusBar barStyle="dark-content" />
         <View style={{ position: 'absolute', top: safeTop - 5, left: 0, right: 0, zIndex: 90, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingBottom: 6, backgroundColor: 'transparent', pointerEvents: 'box-none' as const }}>
           <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
             <View style={styles.backBtn}>
-              <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <Path d="M15 18l-6-6 6-6" />
               </Svg>
             </View>
@@ -201,7 +201,7 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
       >
         <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
           <View style={styles.backBtn}>
-            <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <Path d="M15 18l-6-6 6-6" />
             </Svg>
           </View>
@@ -422,7 +422,7 @@ const getStyles = (c: ThemeColors) => {
       width: 36,
       height: 36,
       borderRadius: 18,
-      backgroundColor: 'rgba(0,0,0,0.25)',
+      backgroundColor: 'rgba(0,0,0,0.08)',
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
     },
@@ -430,7 +430,7 @@ const getStyles = (c: ThemeColors) => {
       flex: 1,
       fontSize: 15,
       fontWeight: '600' as const,
-      color: '#fff',
+      color: '#000',
     },
     actionBtn: {
       width: 36, height: 36, borderRadius: 18,

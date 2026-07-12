@@ -6,7 +6,7 @@ import Svg, { Path } from 'react-native-svg';
 // ── SVG icon shared between UserManagementScreen and UserDetailScreen ──
 function BackArrowSvg() {
   return (
-    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M15 18l-6-6 6-6" />
     </Svg>
   );
@@ -34,7 +34,7 @@ export default function AdminHeader({ safeTop, onBack, title }: AdminHeaderProps
           height: headerHeight,
         }}
       />
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
       <View
         style={{
           position: 'absolute',
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: 'rgba(0,0,0,0.08)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -77,6 +77,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '600' as const,
-    color: '#fff',
+    color: '#000',
   },
 });

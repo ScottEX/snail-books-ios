@@ -13,7 +13,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 
 function BackArrowSvg() {
   return (
-    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
       <Polyline points="15 18 9 12 15 6" />
     </Svg>
   );
@@ -129,7 +129,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
           height: headerHeight,
         }}
       />
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
       <View
         style={{
           position: 'absolute',
@@ -220,7 +220,7 @@ const getStyles = (c: ThemeColors) => {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: btnBg(0.30),
+    backgroundColor: 'rgba(0,0,0,0.08)',
     borderWidth: 0.5,
     borderColor: 'rgba(0,0,0,0.10)',
     justifyContent: 'center',
@@ -240,7 +240,7 @@ const getStyles = (c: ThemeColors) => {
     flex: 1,
     fontSize: 15,
     fontWeight: '600' as const,
-    color: '#fff',
+    color: '#000',
   },
   webviewWrap: { flex: 1, backgroundColor: c.bg },
   webview: { flex: 1, backgroundColor: 'transparent' },
