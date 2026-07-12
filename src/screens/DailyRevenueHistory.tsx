@@ -296,16 +296,16 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
 
   // Filter
   filterField: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  filterLabel: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.textSub, width: 64, flexShrink: 0 },
+  filterLabel: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: '#FFFFFF', width: 64, flexShrink: 0 },
   filterDateRange: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 },
   filterDateWrap: {
     flex: 1, height: 34,
-    backgroundColor: colors.bg, borderRadius: 6,
-    borderWidth: 1, borderColor: colors.secondary,
+    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 6,
+    borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.12)',
     justifyContent: 'center', paddingHorizontal: 8,
   },
-  filterDateText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.textSub },
-  filterDatePlaceholder: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.textSub, fontStyle: 'italic' },
+  filterDateText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: '#FFFFFF' },
+  filterDatePlaceholder: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.45)', fontStyle: 'italic' },
   filterActions: { flexDirection: 'row', gap: 8, marginTop: 4 },
   filterResetBtn: {
     flex: 1, alignItems: 'center', paddingVertical: 8,
