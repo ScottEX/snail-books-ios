@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Animated, Modal, TouchableOpacity, ViewStyle } from 'react-native';
 import { BACKDROP_COLOR } from '../theme';
 
@@ -42,14 +42,12 @@ export default function AnimatedDropdown({
   inline = false,
   backdropColor = BACKDROP_COLOR,
 }: AnimatedDropdownProps) {
-  const [mounted, setMounted] = useState(false);
   const fade = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.85)).current;
   const slide = useRef(new Animated.Value(12)).current;
 
   useEffect(() => {
     if (visible) {
-      setMounted(true);
       fade.setValue(0);
       scale.setValue(0.85);
       slide.setValue(12);
@@ -58,16 +56,14 @@ export default function AnimatedDropdown({
         Animated.spring(slide, { toValue: 0, useNativeDriver: true, bounciness: 8, speed: 14 }),
         Animated.timing(fade, { toValue: 1, duration: 250, useNativeDriver: true }),
       ]).start();
-    } else if (mounted) {
+    } else {
       Animated.parallel([
         Animated.timing(scale, { toValue: 0.85, duration: 180, useNativeDriver: true }),
         Animated.timing(slide, { toValue: 12, duration: 180, useNativeDriver: true }),
         Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: true }),
-      ]).start(() => setMounted(false));
+      ]).start();
     }
   }, [visible]);
-
-  if (!mounted) return null;
 
   const animatedTransform = {
     opacity: fade,
@@ -84,6 +80,7 @@ export default function AnimatedDropdown({
         { position: 'absolute' as const },
         animatedTransform,
       ]}
+      pointerEvents={visible ? 'auto' : 'none'}
     >
       {children}
     </Animated.View>

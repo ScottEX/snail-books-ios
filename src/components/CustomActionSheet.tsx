@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, Animated,
-  StyleSheet, Modal,
+  StyleSheet,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useTheme, ThemeColors, FONTS, withAlpha } from '../theme';
@@ -33,19 +33,6 @@ export default function CustomActionSheet({
 }: Props) {
   const { colors: c } = useTheme();
   const anim = useRef(new Animated.Value(0)).current;
-  const darkScrollRef = useRef<ScrollView>(null);
-
-  useEffect(() => {
-    if (visible && dark) {
-      // Scroll to selected item after layout
-      setTimeout(() => {
-        const idx = actions.findIndex(a => a.selected);
-        if (idx >= 0) {
-          darkScrollRef.current?.scrollTo({ y: idx * 44, animated: true });
-        }
-      }, 300);
-    }
-  }, [visible, dark]);
   const st = getStyles(c);
 
   useEffect(() => {
@@ -55,8 +42,6 @@ export default function CustomActionSheet({
         tension: 65, friction: 11,
         useNativeDriver: true,
       }).start();
-    } else {
-      anim.setValue(0);
     }
   }, [visible]);
 
@@ -68,23 +53,16 @@ export default function CustomActionSheet({
   }, [onClose]);
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="none"
-      statusBarTranslucent
-      onRequestClose={handleClose}
+    <Animated.View
+      style={[st.overlay, { opacity: anim }]}
+      pointerEvents={visible ? 'auto' : 'none'}
     >
-      <Animated.View
-        style={[st.overlay, { opacity: anim }]}
-      >
-        <TouchableOpacity
-          style={StyleSheet.absoluteFill}
-          activeOpacity={1}
-          onPress={handleClose}
-        />
-      </Animated.View>
-
+      <TouchableOpacity
+        style={StyleSheet.absoluteFill}
+        activeOpacity={1}
+        onPress={handleClose}
+        pointerEvents={visible ? 'auto' : 'none'}
+      />
       <View
         style={st.sheetOuter}
         pointerEvents="box-none"
@@ -105,7 +83,7 @@ export default function CustomActionSheet({
         >
           {dark ? (
             <BlurView intensity={45} tint="dark" style={{ borderRadius: 10, overflow: 'hidden' as any }}>
-              <ScrollView ref={darkScrollRef} style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
+              <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
                 {actions.map((action, index) => (
                   <TouchableOpacity
                     key={index}
@@ -132,71 +110,77 @@ export default function CustomActionSheet({
             </BlurView>
           ) : (
             <>
-          {(title || message) && (
-            <View style={st.titleWrap}>
-              {title && <Text style={st.title}>{title}</Text>}
-              {message && <Text style={st.message}>{message}</Text>}
-            </View>
-          )}
-
-          <ScrollView style={{ maxHeight: 240 }} bounces={false}>
-          {actions.map((action, index) => (
-            <React.Fragment key={index}>
-              {index > 0 && <View style={st.divider} />}
-              <TouchableOpacity
-                style={[
-                  st.actionRow,
-                  action.selected && { backgroundColor: withAlpha(c.primary, 0.12), borderRadius: 8, marginHorizontal: 4 },
-                  action.disabled && st.actionDisabled,
-                ]}
-                onPress={() => {
-                  if (action.disabled) return;
-                  handleClose();
-                  setTimeout(action.onPress, 250);
-                }}
-                activeOpacity={0.6}
-              >
-                {action.icon && <View style={st.actionIcon}>{action.icon}</View>}
-                <View style={st.actionBody}>
-                  <Text style={[
-                    st.actionLabel,
-                    action.destructive && st.actionDanger,
-                    action.disabled && st.actionDisabledText,
-                  ]}>
-                    {action.label}
-                  </Text>
-                  {action.sublabel && (
-                    <Text style={st.actionSublabel}>{action.sublabel}</Text>
-                  )}
+              {(title || message) && (
+                <View style={st.titleWrap}>
+                  {title && <Text style={st.title}>{title}</Text>}
+                  {message && <Text style={st.message}>{message}</Text>}
                 </View>
-              </TouchableOpacity>
-            </React.Fragment>
-          ))}
-          </ScrollView>
+              )}
+
+              <ScrollView style={{ maxHeight: 240 }} bounces={false}>
+                {actions.map((action, index) => (
+                  <React.Fragment key={index}>
+                    {index > 0 && <View style={st.divider} />}
+                    <TouchableOpacity
+                      style={[
+                        st.actionRow,
+                        action.selected && { backgroundColor: withAlpha(c.primary, 0.12), borderRadius: 8, marginHorizontal: 4 },
+                        action.disabled && st.actionDisabled,
+                      ]}
+                      onPress={() => {
+                        if (action.disabled) return;
+                        handleClose();
+                        setTimeout(action.onPress, 250);
+                      }}
+                      activeOpacity={0.6}
+                    >
+                      {action.icon && <View style={st.actionIcon}>{action.icon}</View>}
+                      <View style={st.actionBody}>
+                        <Text style={[
+                          st.actionLabel,
+                          action.destructive && st.actionDanger,
+                          action.disabled && st.actionDisabledText,
+                        ]}>
+                          {action.label}
+                        </Text>
+                        {action.sublabel && (
+                          <Text style={st.actionSublabel}>{action.sublabel}</Text>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  </React.Fragment>
+                ))}
+              </ScrollView>
             </>
           )}
         </Animated.View>
       </View>
-    </Modal>
+    </Animated.View>
   );
 }
 
 const getStyles = (c: ThemeColors) => StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(0,0,0,0.32)',
+    zIndex: 99999,
   },
   sheetOuter: {
     flex: 1,
-    alignItems: 'flex-start',
-    justifyContent: 'flex-start',
+    justifyContent: 'flex-start' as any,
+    alignItems: 'flex-start' as any,
   },
   sheet: {
-    backgroundColor: c.surface,
-    borderRadius: 14,
-    overflow: 'hidden',
-    maxWidth: 140,
     width: 140,
+    maxWidth: 140,
+    backgroundColor: c.modal,
+    borderRadius: 14,
+    overflow: 'hidden' as any,
+    elevation: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
   },
   titleWrap: {
     paddingVertical: 10,
@@ -205,21 +189,19 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     borderBottomColor: 'rgba(0,0,0,0.08)',
   },
   title: {
-    fontSize: 12, fontWeight: '600',
-    color: c.textSub,
-    textAlign: 'left',
-    marginBottom: 2,
+    fontSize: 14,
+    fontWeight: '600',
+    color: c.textMain,
   },
   message: {
-    fontSize: 11,
+    fontSize: 12,
     color: c.textSub,
-    textAlign: 'center',
-    lineHeight: 15,
+    marginTop: 2,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(0,0,0,0.08)',
-    marginLeft: 0,
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    marginLeft: 48,
   },
   actionRow: {
     flexDirection: 'row',

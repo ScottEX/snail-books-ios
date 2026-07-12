@@ -25,7 +25,6 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
   const [visible, setVisible] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<any>(null);
-  const scrollRef = useRef<ScrollView>(null);
 
   const label = allLabel ?? t('feeAllMonths');
 
@@ -37,15 +36,6 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
         });
       }
       setVisible(true);
-      // Scroll to selected item after layout
-      setTimeout(() => {
-        if (selected === 'all') {
-          scrollRef.current?.scrollTo({ y: 0, animated: true });
-        } else {
-          const idx = sortedMonths.findIndex((f: any) => f.year === selected.year && f.month === selected.month);
-          if (idx >= 0) scrollRef.current?.scrollTo({ y: (idx + 1) * 44, animated: true });
-        }
-      }, 300);
     } else {
       setVisible(false);
     }
@@ -92,7 +82,7 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
           borderRadius: 10,
           overflow: 'hidden' as const,
         }}>
-          <ScrollView ref={scrollRef} style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
+          <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
             {/* All months option */}
             <TouchableOpacity
               style={{
