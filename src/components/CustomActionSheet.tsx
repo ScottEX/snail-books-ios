@@ -3,7 +3,7 @@ import {
   View, Text, TouchableOpacity, ScrollView, Animated,
   StyleSheet, Modal,
 } from 'react-native';
-import { useTheme, ThemeColors } from '../theme';
+import { useTheme, ThemeColors, FONTS } from '../theme';
 
 export interface ActionItem {
   label: string;
@@ -93,7 +93,7 @@ export default function CustomActionSheet({
             </View>
           )}
 
-          <ScrollView style={{ maxHeight: 200 }} bounces={false}>
+          <ScrollView style={{ maxHeight: 240 }} bounces={false}>
           {actions.map((action, index) => (
             <React.Fragment key={index}>
               {index > 0 && <View style={st.divider} />}
@@ -186,9 +186,9 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   },
   actionBody: { flex: 1 },
   actionLabel: {
-    fontSize: 14,
+    fontSize: FONTS.sub.size,
     color: c.textMain,
-    fontWeight: '400',
+    fontWeight: FONTS.sub.weight as any,
   },
   actionSublabel: {
     fontSize: 12,
