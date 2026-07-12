@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { BlurView } from 'expo-blur';
 import Svg, { Path } from 'react-native-svg';
-import { FONTS, withAlpha, ThemeColors } from '../theme';
+import { FONTS, ThemeColors } from '../theme';
 import { t } from '../i18n';
 import AnimatedDropdown from './AnimatedDropdown';
 
@@ -66,7 +67,7 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
         <Text style={{ fontSize: FONTS.microBold.size, color: colors.primary, fontWeight: FONTS.microBold.weight }}>
           {displayText}
         </Text>
-        <Svg width={14} height={14} viewBox="0 0 1024 1024" style={{ marginLeft: 2 }}>
+        <Svg width={14} height={14} viewBox="0 0 1024 1024" style={{ marginLeft: 2, transform: [{ rotate: visible ? '180deg' : '0deg' }] }}>
           <Path d="M836.899 399.237l-218.01 335.037c-47.506 73.007-166.272 73.007-213.778 0l-218.01-335.037C139.595 326.23 198.977 234.97 293.99 234.97h436.02c95.013 0 154.395 91.26 106.889 164.267z" fill={colors.primary} />
         </Svg>
       </TouchableOpacity>
@@ -76,13 +77,10 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
         visible={visible}
         onClose={() => setVisible(false)}
         inline={!useModal}
-        style={{ top: pos.top || 100, left: pos.left || 10, width: 140 }}
+        style={{ top: pos.top || 100, left: pos.left || 10, width: 160 }}
       >
-        <View style={{
-          backgroundColor: colors.surface,
-          borderRadius: 14,
-          paddingVertical: 6,
-          maxHeight: 240,
+        <BlurView intensity={45} tint="dark" style={{
+          borderRadius: 10,
           overflow: 'hidden' as const,
         }}>
           <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
@@ -90,8 +88,8 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
             <TouchableOpacity
               style={{
                 paddingHorizontal: 12, paddingVertical: 8,
-                backgroundColor: selected === 'all' ? withAlpha(colors.danger, 0.1) : 'transparent',
-                borderRadius: 8, marginHorizontal: 4,
+                backgroundColor: selected === 'all' ? 'rgba(10,132,255,0.15)' : 'transparent',
+                borderRadius: 8, marginHorizontal: 4, marginTop: 4,
               }}
               onPress={() => selectAndClose('all')}
               activeOpacity={0.6}
@@ -99,12 +97,12 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
               <Text style={{
                 fontSize: FONTS.sub.size,
                 fontWeight: selected === 'all' ? '700' : '500',
-                color: selected === 'all' ? colors.primary : colors.textMain,
+                color: selected === 'all' ? '#0A84FF' : '#FFFFFF',
               }}>
                 {label}
               </Text>
             </TouchableOpacity>
-            <View style={{ height: 1, backgroundColor: colors.secondary, marginHorizontal: 12, marginVertical: 4 }} />
+            <View style={{ height: 0.5, backgroundColor: 'rgba(255,255,255,0.08)', marginHorizontal: 12, marginVertical: 4 }} />
             {sortedMonths.map((f: any) => {
               const isSel = selected !== 'all' && selected.year === f.year && selected.month === f.month;
               return (
@@ -112,7 +110,7 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
                   key={`mp-${f.year}-${f.month}`}
                   style={{
                     paddingHorizontal: 12, paddingVertical: 8,
-                    backgroundColor: isSel ? withAlpha(colors.danger, 0.1) : 'transparent',
+                    backgroundColor: isSel ? 'rgba(10,132,255,0.15)' : 'transparent',
                     borderRadius: 8, marginHorizontal: 4,
                   }}
                   onPress={() => selectAndClose({ year: f.year, month: f.month })}
@@ -121,7 +119,7 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
                   <Text style={{
                     fontSize: FONTS.sub.size,
                     fontWeight: isSel ? '700' : '400',
-                    color: isSel ? colors.primary : colors.textMain,
+                    color: isSel ? '#0A84FF' : '#FFFFFF',
                   }}>
                     {f.year}.{String(f.month).padStart(2, '0')}
                   </Text>
@@ -129,7 +127,7 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
               );
             })}
           </ScrollView>
-        </View>
+        </BlurView>
       </AnimatedDropdown>
     </>
   );
