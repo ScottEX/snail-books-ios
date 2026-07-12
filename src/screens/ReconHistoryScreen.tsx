@@ -77,9 +77,27 @@ export default function ReconHistoryScreen({ onBack }: Props) {
   const [datePickTarget, setDatePickTarget] = useState<'from' | 'to' | null>(null);
   const [showUserPick, setShowUserPick] = useState(false);
   const userDropAnim = useRef(new Animated.Value(0)).current;
+  const dropScale = useRef(new Animated.Value(0.85)).current;
+  const dropSlide = useRef(new Animated.Value(12)).current;
 
-  const openUserDrop = () => { setShowUserPick(true); Animated.timing(userDropAnim, { toValue: 1, duration: 180, useNativeDriver: true }).start(); };
-  const closeUserDrop = () => { Animated.timing(userDropAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => setShowUserPick(false)); };
+  const openUserDrop = () => {
+    setShowUserPick(true);
+    dropScale.setValue(0.85);
+    dropSlide.setValue(12);
+    userDropAnim.setValue(0);
+    Animated.parallel([
+      Animated.spring(dropScale, { toValue: 1, useNativeDriver: true, bounciness: 8, speed: 14 }),
+      Animated.spring(dropSlide, { toValue: 0, useNativeDriver: true, bounciness: 8, speed: 14 }),
+      Animated.timing(userDropAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+    ]).start();
+  };
+  const closeUserDrop = () => {
+    Animated.parallel([
+      Animated.timing(dropScale, { toValue: 0.85, duration: 180, useNativeDriver: true }),
+      Animated.timing(dropSlide, { toValue: 12, duration: 180, useNativeDriver: true }),
+      Animated.timing(userDropAnim, { toValue: 0, duration: 180, useNativeDriver: true }),
+    ]).start(() => setShowUserPick(false));
+  };
 
   // Reset error when filter panel opens
   useEffect(() => { if (showFilter) setFilterDateError(0); }, [showFilter]);
@@ -237,7 +255,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
         <Animated.View style={{
           position: 'absolute' as any, top: 212, left: 128, width: 160, zIndex: 10000,
           opacity: userDropAnim,
-          transform: [{ translateY: userDropAnim.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] }) }, { scale: userDropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1] }) }],
+          transform: [{ translateY: dropSlide }, { scale: dropScale }],
         }}>
           <View style={{ backgroundColor: 'rgba(44,44,46,0.96)', borderRadius: 10, overflow: 'hidden' }}>
             <TouchableOpacity onPress={() => { setFilBy(''); closeUserDrop(); }} activeOpacity={0.6} style={{ paddingVertical: 10, paddingHorizontal: 12 }}>
