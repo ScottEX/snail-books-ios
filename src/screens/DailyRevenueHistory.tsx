@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, StatusBar } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { t, getLang } from '../i18n';
 import { api } from '../api/client';
@@ -106,6 +106,7 @@ export default function DailyRevenueHistory({ onBack }: Props) {
 
   return (
     <View style={styles.root} {...swipeBack}>
+      <StatusBar barStyle="dark-content" />
       <HistoryHeader
         onBack={onBack}
         title={`${t('revHistoryBtn')} (${total}/${totalAll})`}
