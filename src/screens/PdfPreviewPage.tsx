@@ -73,6 +73,9 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
   const pdfUrl = supplier
     ? `${API_BASE}/api/procurement-batches/${batchId}/pdf?supplier=${encodeURIComponent(supplier)}`
     : `${API_BASE}/api/procurement-batches/${batchId}/pdf`;
+  const pngUrl = supplier
+    ? `${API_BASE}/api/procurement-batches/${batchId}/png?supplier=${encodeURIComponent(supplier)}`
+    : `${API_BASE}/api/procurement-batches/${batchId}/png`;
 
   const lang = getLang();
   const source = { uri: pdfUrl, headers: { 'X-Lang': lang } };
@@ -81,9 +84,10 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
 
   // Pre-cache PDF on mount so download/share reuses the local file (matches web behavior)
   // Timeout at 15s to avoid hanging gunicorn workers like before
+  // Cache key includes lang so switching languages re-downloads
   useEffect(() => {
     let cancelled = false;
-    const fileName = `procurement_${batchId}.pdf`;
+    const fileName = `procurement_${batchId}_${lang}.pdf`;
     const localUri = `${FileSystem.cacheDirectory}${fileName}`;
     (async () => {
       try {
@@ -118,7 +122,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
   const handleDownload = useCallback(async () => {
     setActionLoading('download');
     try {
-      const fileName = `procurement_${batchId}.pdf`;
+      const fileName = `procurement_${batchId}_${lang}.pdf`;
       const localUri = cachedUriRef.current || `${FileSystem.cacheDirectory}${fileName}`;
       // If cache missed, download now with 15s timeout
       if (!pdfCached) {
@@ -140,24 +144,18 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
     }
   }, [pdfUrl, batchId, pdfCached]);
 
-  // Export image — reuses cached PDF (matches web: canvas.toDataURL, no extra request)
+  // Export image — downloads PNG from server (backend converts first PDF page to PNG)
   const handleExportImage = useCallback(async () => {
     setActionLoading('images');
     try {
-      const fileName = `procurement_${batchId}.pdf`;
-      const localUri = cachedUriRef.current || `${FileSystem.cacheDirectory}${fileName}`;
-      if (!pdfCached) {
-        const dl = FileSystem.createDownloadResumable(pdfUrl, localUri, { headers: { 'X-Lang': lang } });
-        const timeout = setTimeout(() => FileSystem.cancelDownloadResumable?.(dl), 15000);
-        const result = await dl.downloadAsync();
-        clearTimeout(timeout);
-        if (!result) throw new Error('导出超时');
-        cachedUriRef.current = result.uri;
-        setPdfCached(true);
-      }
-      // iOS share sheet lets user Print → pinch-zoom page → save as image,
-      // or use Files / Shortcuts to convert PDF pages to images
-      await Share.share({ url: cachedUriRef.current, title: `procurement_${batchId}` });
+      const fileName = `procurement_${batchId}.png`;
+      const localUri = `${FileSystem.cacheDirectory}${fileName}`;
+      const dl = FileSystem.createDownloadResumable(pngUrl, localUri, { headers: { 'X-Lang': lang } });
+      const timeout = setTimeout(() => FileSystem.cancelDownloadResumable?.(dl), 15000);
+      const result = await dl.downloadAsync();
+      clearTimeout(timeout);
+      if (!result) throw new Error('导出超时');
+      await Share.share({ url: result.uri, title: fileName });
     } catch (err: any) {
       if (err?.message !== 'User did not share') {
         setError(err?.message || '导出失败');
@@ -165,7 +163,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
     } finally {
       setActionLoading(null);
     }
-  }, [pdfUrl, batchId, pdfCached]);
+  }, [pngUrl, batchId, lang]);
 
   const isActionLoading = actionLoading !== null;
 
