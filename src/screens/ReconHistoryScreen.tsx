@@ -283,7 +283,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
       {/* List */}
       <ScrollView style={st.list} showsVerticalScrollIndicator={false}
         onScroll={handleScroll} scrollEventThrottle={50}
-        contentContainerStyle={{ paddingTop: showFilter ? 296 : 112 }}>
+        contentContainerStyle={{ paddingTop: showFilter ? 296 : 112, paddingBottom: 20 }}>
         {loading ? (
           <LoadingSpinner />
         ) : records.length === 0 ? (
@@ -299,7 +299,6 @@ export default function ReconHistoryScreen({ onBack }: Props) {
               )}
             </>
           )}
-        <View style={{ height: 20 }} />
       </ScrollView>
 
       {/* Detail Modal */}
@@ -382,7 +381,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   /* Card */
   card: {
     backgroundColor: colors.surface, borderRadius: 14, padding: 14,
-    marginBottom: 12, borderWidth: 1, borderColor: colors.secondary,
+    marginBottom: 8, borderWidth: 1, borderColor: colors.secondary,
     gap: 10,
   },
   dateRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2, gap: 8 },
@@ -411,7 +410,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   pairLabel: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight },
   pairVal: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain },
   pairDivider: { height: 1, backgroundColor: colors.secondary, width: '70%' },
-  chanSection: { marginHorizontal: 14, marginBottom: 18, marginTop: 4, borderTopWidth: 1, borderTopColor: colors.bg, paddingTop: 12 },
+  chanSection: { marginHorizontal: 14, marginBottom: 0, marginTop: 4, borderTopWidth: 1, borderTopColor: colors.bg, paddingTop: 12 },
   chanRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 7, paddingHorizontal: 4 },
   chanLabel: { fontSize: FONTS.sub.size, color: colors.textSub, fontWeight: FONTS.sub.weight },
   chanVal: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain },
