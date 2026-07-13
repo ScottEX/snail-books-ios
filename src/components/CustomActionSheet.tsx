@@ -4,7 +4,7 @@ import {
   StyleSheet, Modal,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { useTheme, ThemeColors, FONTS, withAlpha } from '../theme';
+import { useTheme, ThemeColors, FONTS, withAlpha, BACKDROP_COLOR } from '../theme';
 
 export interface ActionItem {
   label: string;
@@ -174,7 +174,7 @@ export default function CustomActionSheet({
 const getStyles = (c: ThemeColors) => StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.32)',
+    backgroundColor: BACKDROP_COLOR,
   },
   sheetOuter: {
     flex: 1,
