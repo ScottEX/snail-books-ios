@@ -150,7 +150,7 @@ export default function ThemePickerModal({
                 onValueChange={(v) => onCoverOpacityChange?.(Math.round(v * 20) / 20)}
                 minimumTrackTintColor={colors.primary}
                 maximumTrackTintColor={colors.secondary}
-                thumbTintColor={colors.primary}
+                thumbTintColor="#FFFFFF"
               />
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 }}>
                 <Text style={{ fontSize: FONTS.micro.size, color: colors.textSub }}>0</Text>
