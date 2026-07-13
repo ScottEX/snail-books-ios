@@ -92,7 +92,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
           if (!cancelled) { cachedUriRef.current = localUri; setPdfCached(true); }
           return;
         }
-        const dl = FileSystem.createDownloadResumable(pdfUrl, localUri, {}, (progress) => {
+        const dl = FileSystem.createDownloadResumable(pdfUrl, localUri, { headers: { 'X-Lang': lang } }, (progress) => {
           // progress callback — can be used for timeout detection
         });
         const timeout = setTimeout(() => {
@@ -122,7 +122,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
       const localUri = cachedUriRef.current || `${FileSystem.cacheDirectory}${fileName}`;
       // If cache missed, download now with 15s timeout
       if (!pdfCached) {
-        const dl = FileSystem.createDownloadResumable(pdfUrl, localUri);
+        const dl = FileSystem.createDownloadResumable(pdfUrl, localUri, { headers: { 'X-Lang': lang } });
         const timeout = setTimeout(() => FileSystem.cancelDownloadResumable?.(dl), 15000);
         const result = await dl.downloadAsync();
         clearTimeout(timeout);
@@ -147,7 +147,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
       const fileName = `procurement_${batchId}.pdf`;
       const localUri = cachedUriRef.current || `${FileSystem.cacheDirectory}${fileName}`;
       if (!pdfCached) {
-        const dl = FileSystem.createDownloadResumable(pdfUrl, localUri);
+        const dl = FileSystem.createDownloadResumable(pdfUrl, localUri, { headers: { 'X-Lang': lang } });
         const timeout = setTimeout(() => FileSystem.cancelDownloadResumable?.(dl), 15000);
         const result = await dl.downloadAsync();
         clearTimeout(timeout);
