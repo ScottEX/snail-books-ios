@@ -87,7 +87,7 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
             <TouchableOpacity
               style={{
                 paddingHorizontal: 12, paddingVertical: 10,
-                backgroundColor: selected === 'all' ? 'rgba(10,132,255,0.15)' : 'transparent',
+                backgroundColor: selected === 'all' ? 'rgba(10,132,255,0.25)' : 'transparent',
                 borderRadius: 8, marginHorizontal: 4, marginTop: 4,
               }}
               onPress={() => selectAndClose('all')}
@@ -108,7 +108,7 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
                   key={`mp-${f.year}-${f.month}`}
                   style={{
                     paddingHorizontal: 12, paddingVertical: 10,
-                    backgroundColor: isSel ? 'rgba(10,132,255,0.15)' : 'transparent',
+                    backgroundColor: isSel ? 'rgba(10,132,255,0.25)' : 'transparent',
                     borderRadius: 8, marginHorizontal: 4,
                     marginBottom: i === sortedMonths.length - 1 ? 4 : 0,
                   }}

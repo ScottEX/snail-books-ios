@@ -104,7 +104,7 @@ export default function CustomActionSheet({
                       marginTop: index === 0 ? 4 : 0,
                       marginBottom: index === actions.length - 1 ? 4 : 0,
                       borderRadius: 8,
-                      backgroundColor: action.selected ? 'rgba(10,132,255,0.15)' : 'transparent',
+                      backgroundColor: action.selected ? 'rgba(10,132,255,0.25)' : 'transparent',
                     }}
                     onPress={() => { if (action.disabled) return; handleClose(); setTimeout(action.onPress, 250); }}
                     activeOpacity={0.6}
