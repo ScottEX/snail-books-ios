@@ -1,0 +1,98 @@
+import React from 'react';
+import { t } from '../i18n';
+import { useTheme } from '../theme';
+import ChartWebView from '../components/ChartWebView';
+
+interface Props {
+  months: string[];
+  income: number[];
+  expense: number[];
+  profit: number[];
+  categories: Record<string, number>;
+  dailyDates?: string[];
+  dailyIncome?: number[];
+  dailyExpense?: number[];
+  dailyProfitDates?: string[];
+  dailyProfitValues?: number[];
+}
+
+export default function ChartsPanel({
+  months, income, expense, profit, categories,
+  dailyDates, dailyIncome, dailyExpense,
+  dailyProfitDates, dailyProfitValues,
+}: Props) {
+  const { colors } = useTheme();
+
+  const isLight = colors.surface?.toLowerCase?.() !== '#141416';
+
+  const currentMonth = months.length > 0
+    ? parseInt(months[months.length - 1].slice(5), 10)
+    : new Date().getMonth() + 1;
+
+  const monthNameLabel = (() => {
+    try {
+      const r = t(('month' + currentMonth) as any);
+      return typeof r === 'string' ? r : String(currentMonth);
+    } catch {
+      return String(currentMonth);
+    }
+  })();
+
+  const categoryNames = (() => {
+    const map: Record<string, string> = {};
+    for (const key of Object.keys(categories)) {
+      map[key] = t(key as any) || key;
+    }
+    return map;
+  })();
+
+  const monthNames = (() => {
+    const map: Record<string, string> = {};
+    for (let n = 1; n <= 12; n++) {
+      const key = 'month' + n;
+      const val = t(key as any);
+      map[String(n)] = typeof val === 'string' ? val : String(n);
+    }
+    return map;
+  })();
+
+  return (
+    <ChartWebView
+      months={months}
+      income={income}
+      expense={expense}
+      profit={profit}
+      categories={categories}
+      categoryNames={categoryNames}
+      monthNames={monthNames}
+      monthName={monthNameLabel}
+      dailyDates={dailyDates}
+      dailyIncome={dailyIncome}
+      dailyExpense={dailyExpense}
+      dailyProfitDates={dailyProfitDates}
+      dailyProfitValues={dailyProfitValues}
+      isLight={isLight}
+      primary={colors.primary}
+      accent={colors.accent}
+      warning={colors.warning}
+      surface={colors.surface}
+      textSub={colors.textSub}
+      labels={{
+        income: t('income'),
+        expense: t('expense'),
+        profit: t('profit'),
+        monthlyTrend: t('monthlyTrend'),
+        dailyTrend: t('dailyTrend'),
+        monthlyProfit: t('monthlyProfit'),
+        dailyProfit: t('dailyProfit') || t('dailyTrend'),
+        expenseBreakdown: t('expenseBreakdownOfMonth'),
+        chartSwitchPie: t('chartSwitchPie'),
+        chartSwitchBar: t('chartSwitchBar'),
+        chartSwitchHint: t('chartSwitchHint'),
+        chartXAxis: t('chartXAxis'),
+        chartXAxisDay: t('chartXAxisDay'),
+        chartYAxis: t('chartYAxis'),
+      }}
+    />
+  );
+}

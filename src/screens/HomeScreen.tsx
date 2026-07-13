@@ -1,0 +1,1543 @@
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import {
+  View, Text, TouchableOpacity, ScrollView, StyleSheet,
+  Animated, ImageBackground, Image, ActivityIndicator, StatusBar,
+} from 'react-native';
+import AppTextInput from '../components/AppTextInput';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
+import { BlurView } from 'expo-blur';
+import { t, getLang, langs, useLang } from '../i18n';
+import { api, resolveAssetUrl } from '../api/client';
+import * as FileSystem from 'expo-file-system';
+import { useTheme, withAlpha, ThemeColors, DEFAULT_THEME_ID } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { FONTS } from '../theme';
+import { getCurrentUserId } from '../utils/storage';
+import { useServerDate } from '../hooks/useServerDate';
+import { fmtDecInput, toDec2 } from '../utils/numbers';
+import Toast from '../components/Toast';
+import SubmitButton from '../components/SubmitButton';
+import DatePickerModal from '../components/DatePickerModal';
+import ModalOverlay from '../components/ModalOverlay';
+import ThemePickerModal from '../components/ThemePickerModal';
+import LogoutConfirmModal from '../components/LogoutConfirmModal';
+import BgCropModal from '../components/BgCropModal';
+import { cacheBackground, getCachedLocalPath, getOrDownloadBackground, clearBackgroundCache } from '../utils/backgroundCache';
+import SlideScreen from '../components/SlideScreen';
+import PartnerScreen from './PartnerScreen';
+import ProcurementScreen from './ProcurementScreen';
+import ExpenseScreen from './ExpenseScreen';
+import ReconHistoryScreen from './ReconHistoryScreen';
+import ExpenseHistoryScreen from './ExpenseHistoryScreen';
+import DailyRevenueHistory from './DailyRevenueHistory';
+import ProfileScreen from './ProfileScreen';
+import UserManagementScreen from './UserManagementScreen';
+import UserDetailScreen from './UserDetailScreen';
+import InvoiceScreen from './InvoiceScreen';
+import ProcurementDetailScreen from './ProcurementDetailScreen';
+import ExpenseDetailScreen from './ExpenseDetailScreen';
+import PdfPreviewPage from './PdfPreviewPage';
+import ChartsPanel from './ChartsPanel';
+import { modalCardAnimation, modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
+import { toDec2Comma } from '../utils/numbers';
+import DateErrorHint from '../components/DateErrorHint';
+import { fmtAmtFull } from '../utils/format';
+import NumberTicker from '../components/NumberTicker';
+
+const BG_IMAGE = require('../../assets/img/bg.jpg');
+const LOGO_IMAGE = require('../../assets/img/logo.jpg');
+
+type Tab = 'list' | 'expense' | 'supply' | 'chart' | 'partner';
+
+// ── Sub-component: DateErrorHint — moved to src/components/DateErrorHint.tsx ──
+
+export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
+  const { colors, setTheme, allThemes } = useTheme();
+  const mo = getMo(colors);
+  // Web's headerColor: when the bg image is fully opaque, the text
+  // sits on the image alone → white. When the bg has any transparency
+  // (≤ 0.99), the bgOverlay is partial and the image darkens, so
+  // text flips to black for legibility.
+  // Computed BEFORE the bgOpacity state declaration so the styles
+  // closure can read it.
+  const insets = useSafeAreaInsets();
+  const sd = useServerDate();
+
+  // ── Tab state (persisted) ──
+  const [tab, setTabState] = useState<Tab>(() => {
+    try { return (localStorage.getItem('active_tab') as Tab) || 'chart'; } catch { return 'chart'; }
+  });
+  const [partnerRefreshKey, setPartnerRefreshKey] = useState(0);
+  const setTab = (t: Tab) => {
+    setTabState(t);
+    try { localStorage.setItem('active_tab', t); } catch {}
+    if (t === 'partner') setPartnerRefreshKey(k => k + 1);
+    sd.refresh();
+  };
+
+  // ── User / lang ──
+  // Use useLang() so the lang state and t() output stay in sync within a
+  // single React render — the legacy setLang + setLangState pair updates
+  // globalThis.curLang synchronously but doesn't trigger a React re-render
+  // on its own, causing a brief flash of mismatched state.
+  const { lang, setLang } = useLang();
+  const usr = useMemo(() => { try { return localStorage.getItem('user') || '用户'; } catch { return '用户'; } }, []);
+  // Per-user avatar for the header. Mirrors web's headerLeft avatar.
+  // Mirrors LoginScreen's debounced fetch so the API isn't hit on every
+  // keystroke / re-render. Uses credentials: 'omit' so a missing user
+  // doesn't trigger session_expired.
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
+  const avatarReqId = useRef(0);
+  const loadAvatar = useCallback(() => {
+    const uid = getCurrentUserId();
+    if (!uid) { setAvatarUrl(''); return; }
+    const reqId = ++avatarReqId.current;
+    setTimeout(async () => {
+      try {
+        const url = await api.getUserAvatar(uid);
+        if (reqId === avatarReqId.current && url) setAvatarUrl(url);
+      } catch {}
+    }, 300);
+  }, []);
+  useEffect(() => { loadAvatar(); }, [loadAvatar]);
+
+  // ── Background image (mirrors web's two-layer approach) ──
+  // The default bg.jpg is ALWAYS rendered in the base layer so the
+  // page never flashes empty if the per-user fetch is slow or fails.
+  // The custom user bg is rendered on top (fading in once loaded) and
+  // replaced via bgVersion to bust any image cache on upload/reset.
+  // Opacity is per-user (`bg-opacity-{userId}`) so two users sharing
+  // the same device don't trample each other's preference.
+  const DEFAULT_BG = BG_IMAGE; // web uses '/img/bg.jpg?v=2'; iOS uses the bundled asset
+  const [bgImageUri, setBgImageUri] = useState<string>(() => {
+    // Read cached LOCAL file path so the first frame uses the
+    // already-downloaded image — no network flash.
+    try {
+      const localPath = localStorage.getItem('bg-local-path');
+      if (localPath) return localPath;
+    } catch {}
+    return DEFAULT_BG;
+  });
+  const [bgVersion, setBgVersion] = useState(0);
+  const [bgUploading, setBgUploading] = useState(false);
+  const [showBgCrop, setShowBgCrop] = useState(false);
+  const [bgCropSrc, setBgCropSrc] = useState('');
+  const [bgCropResult, setBgCropResult] = useState('');
+  const [showBgPreview, setShowBgPreview] = useState(false);
+  const bgRecropRef = useRef(false);
+  const opacityKey = useMemo(() => {
+    const uid = getCurrentUserId();
+    return uid ? `bg-opacity-${uid}` : 'bg-opacity';
+  }, []);
+  useEffect(() => {
+    // Fetch the persisted custom background URL from the backend,
+    // download to local FileSystem, and use the local path for instant rendering.
+    api.getBackground()
+      .then(async (r: any) => {
+        if (r?.url) {
+          const resolved = resolveAssetUrl(r.url) || DEFAULT_BG;
+          const localPath = await getOrDownloadBackground(resolved);
+          setBgImageUri(localPath || resolved); // fallback to remote if download fails
+        } else {
+          setBgImageUri(DEFAULT_BG);
+          try { clearBackgroundCache(); } catch {}
+        }
+        // Server opacity wins (per-user)
+        if (r?.opacity !== null && r?.opacity !== undefined) {
+          setBgOpacity(r.opacity);
+          try { localStorage.setItem(opacityKey, String(r.opacity)); } catch {}
+        }
+      })
+      .catch(() => { /* keep cached/default */ });
+  }, [opacityKey]);
+  // Cross-screen bg sync (web uses a window event; iOS uses the same
+  // global event-bus pattern via the api module).
+  // NOTE: RN's `window` shim exists but doesn't implement
+  // addEventListener, so we have to feature-test it explicitly —
+  // just `typeof window !== 'undefined'` isn't enough.
+  useEffect(() => {
+    const onBgChanged = async (e: any) => {
+      const url = e?.detail?.url;
+      if (typeof url === 'string') {
+        const resolved = resolveAssetUrl(url) || DEFAULT_BG;
+        const localPath = await getOrDownloadBackground(resolved);
+        setBgImageUri(localPath || resolved);
+        setBgVersion((v) => v + 1);
+      }
+    };
+    const onThemeReset = () => setShowBgModal(false);
+    // Also poll localStorage flag (fallback when window events don't fire in RN)
+    let pollTimer: any = null;
+    try {
+      const lastReset = localStorage.getItem('__theme_reset_ts');
+      if (lastReset && (Date.now() - parseInt(lastReset, 10) < 30000)) {
+        setShowBgModal(false);
+        localStorage.removeItem('__theme_reset_ts');
+      }
+    } catch {}
+    const w: any = typeof window !== 'undefined' ? window : undefined;
+    if (w && typeof w.addEventListener === 'function') {
+      w.addEventListener('bg-changed', onBgChanged);
+      w.addEventListener('theme-reset', onThemeReset);
+    }
+    // Always poll localStorage flags as fallback (window events are unreliable in RN)
+    let lastTs = 0;
+    let lastBgTs = 0;
+    pollTimer = setInterval(() => {
+      try {
+        const ts = localStorage.getItem('__theme_reset_ts');
+        if (ts) {
+          const t = parseInt(ts, 10);
+          if (t !== lastTs && (Date.now() - t < 30000)) {
+            lastTs = t;
+            setShowBgModal(false);
+            setBgImageUri(DEFAULT_BG);
+            setBgVersion((v) => v + 1);
+            setBgOpacity(1);
+            clearBackgroundCache().catch(() => {});
+            try {
+              const uid = getCurrentUserId();
+              localStorage.setItem(uid ? `bg-opacity-${uid}` : 'bg-opacity', '1');
+              api.saveBackgroundSettings({ opacity: 1 }).catch(() => {});
+              localStorage.removeItem('__theme_reset_ts');
+            } catch {}
+          }
+        }
+        // Poll for background image changes from other screens (ProfileScreen)
+        const bgTs = localStorage.getItem('__bg_changed_ts');
+        if (bgTs) {
+          const bt = parseInt(bgTs, 10);
+          if (bt !== lastBgTs && (Date.now() - bt < 30000)) {
+            lastBgTs = bt;
+            const localPath = localStorage.getItem('bg-local-path');
+            if (localPath) {
+              setBgImageUri(localPath);
+              setBgVersion((v) => v + 1);
+            }
+            localStorage.removeItem('__bg_changed_ts');
+          }
+        }
+      } catch {}
+    }, 2000);
+    return () => {
+      if (w && typeof w.removeEventListener === 'function') {
+        w.removeEventListener('bg-changed', onBgChanged);
+        w.removeEventListener('theme-reset', onThemeReset);
+      }
+      if (pollTimer) clearInterval(pollTimer);
+    };
+  }, []);
+  const [bgOpacity, setBgOpacity] = useState<number>(() => {
+    try {
+      const uid = getCurrentUserId();
+      const key = uid ? `bg-opacity-${uid}` : 'bg-opacity';
+      const s = localStorage.getItem(key);
+      return s !== null ? parseFloat(s) : 1;
+    } catch { return 1; }
+  });
+  // Web's headerColor: when the bg image is fully opaque the text
+  // sits on the image alone → white. When the bg has any transparency
+  // (≤ 0.99), the bgOverlay is partial and the image darkens, so
+  // text flips to black for legibility.
+  const headerColor = bgOpacity === 1 ? '#FFFFFF' : '#000000';
+  const setBgOpacityPersist = (v: number) => {
+    setBgOpacity(v);
+    try { localStorage.setItem(opacityKey, String(v)); } catch {}
+    api.saveBackgroundSettings({ opacity: v }).catch(() => {});
+  };
+
+  // ── Background crop / preview / upload flow (mirrors cover pattern) ──
+  const handleBgCropConfirm = (dataUri: string) => {
+    setBgCropResult(dataUri);
+    setShowBgCrop(false);
+    setShowBgPreview(true);
+  };
+
+  const handleBgUpload = async () => {
+    if (!bgCropResult || bgUploading) return;
+    setBgUploading(true);
+    try {
+      const tempFile = FileSystem.cacheDirectory + 'bg-crop.jpg';
+      await FileSystem.writeAsStringAsync(tempFile, bgCropResult.split(',')[1], {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const r: any = await api.uploadBackground({ uri: tempFile, type: 'image/jpeg', name: 'bg.jpg' });
+      if (r?.url) {
+        const resolved = resolveAssetUrl(r.url) || DEFAULT_BG;
+        // Download to local FileSystem for instant next-load, then set state
+        try {
+          const localPath = await cacheBackground(resolved);
+          setBgImageUri(localPath);
+        } catch {
+          setBgImageUri(resolved); // fallback to remote
+        }
+        setBgVersion((v) => v + 1);
+        try { localStorage.setItem('__bg_changed_ts', String(Date.now())); } catch {}
+        if (typeof window !== 'undefined' && typeof (window as any).dispatchEvent === 'function') {
+          (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: resolved } }));
+        }
+      } else {
+        setToast(t('toastSubmitFailed'));
+      }
+    } catch {
+      setToast(t('toastSubmitFailed'));
+    } finally {
+      setBgUploading(false);
+      setShowBgPreview(false);
+    }
+  };
+
+  // ── Modal state ──
+  const [showBgModal, setShowBgModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const modalAnim = useRef(new Animated.Value(0)).current;
+  const modalFade = useRef(new Animated.Value(0)).current;
+  const openModal = (show: () => void) => { show(); modalAnim.setValue(-300); modalFade.setValue(0); Animated.parallel([Animated.spring(modalAnim,{toValue:0,useNativeDriver:true,bounciness:4,speed:14}),Animated.timing(modalFade,{toValue:1,duration:200,useNativeDriver:true})]).start(); };
+  const closeModal = (hide: () => void) => { Animated.parallel([Animated.timing(modalAnim,{toValue:-300,duration:180,useNativeDriver:true}),Animated.timing(modalFade,{toValue:0,duration:180,useNativeDriver:true})]).start(()=>hide()); };
+
+  // ── Sub-screen slide state ──
+  const [showReconHistory, setShowReconHistory] = useState(false);
+  const [showExpenseHistory, setShowExpenseHistory] = useState(false);
+  const [showDailyHistory, setShowDailyHistory] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showUserMgmt, setShowUserMgmt] = useState(false);
+  const [showUserDetail, setShowUserDetail] = useState<any | null>(null);
+  const [showInvoice, setShowInvoice] = useState<{ filterBatchId?: number | null } | null>(null);
+  const [showProcurementDetail, setShowProcurementDetail] = useState<any | null>(null);
+  const [showExpenseDetail, setShowExpenseDetail] = useState<any | null>(null);
+  const [showPdfPreview, setShowPdfPreview] = useState<{ id: number; number: number; supplier?: string } | null>(null);
+  const [pendingEditBatch, setPendingEditBatch] = useState<any | null>(null);
+  const isHome = useMemo(() =>
+    !showExpenseHistory && !showDailyHistory && !showReconHistory && !showProfile &&
+    !showUserMgmt && !showUserDetail && !showInvoice && !showProcurementDetail &&
+    !showExpenseDetail && !showPdfPreview,
+    [showExpenseHistory, showDailyHistory, showReconHistory, showProfile,
+     showUserMgmt, showUserDetail, showInvoice, showProcurementDetail,
+     showExpenseDetail, showPdfPreview]
+  );
+  const [expenseRefreshKey, setExpenseRefreshKey] = useState(0);
+  const [userRefreshKey, setUserRefreshKey] = useState(0);
+  const [reviewedUserId, setReviewedUserId] = useState<number | null>(null);
+  const [profileRefreshKey, setProfileRefreshKey] = useState(0);
+
+  // ── Data state for chart / supply / partner ──
+  const [chartMonthly, setChartMonthly] = useState<any>(null);
+  const [products, setProducts] = useState<any[]>([]);
+  const [procurements] = useState<any[]>([]);
+  const [businessSummary, setBusinessSummary] = useState<{
+    cash_on_hand?: number;
+    cumulative_revenue?: number;
+    cumulative_expense?: number;
+    actual_received?: number;
+    receivable?: number;
+    discount?: number;
+    today_expense_amount?: number;
+    month_expense_amount?: number;
+    yesterday_income?: number;
+    yesterday_expense?: number;
+    yesterday_profit?: number;
+  }>({});
+  const navScaleAnims = useRef([...Array(5)].map(() => new Animated.Value(1))).current;
+
+  // ── Daily revenue state ──
+  const [revDate, setRevDate] = useState('');
+  useEffect(() => { if (sd.ready && revDate === '') setRevDate(sd.today); }, [sd.ready, sd.today, revDate]);
+  const [revDateErr, setRevDateErr] = useState(0);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [revRevenue, setRevRevenue] = useState('');
+  const [revTurnover, setRevTurnover] = useState('');
+  const [revJD, setRevJD] = useState('');
+  const [revNote, setRevNote] = useState('');
+  const revYear = sd.year;
+  const revMonth = sd.month;
+  const [revSaving, setRevSaving] = useState(false);
+  const [editingRevId, setEditingRevId] = useState<number | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [last7Records, setLast7Records] = useState<any[]>([]);
+  const [yesterdayRev, setYesterdayRev] = useState<any>(null);
+  const [weekRev, setWeekRev] = useState<any>(null);
+  const [monthRevRecords, setMonthRevRecords] = useState<any[]>([]);
+  const [revMarkedClosed, setRevMarkedClosed] = useState(false);
+  const [toast, setToast] = useState('');
+
+  const td = sd.today;
+  const loadRevForDate = (d: string) => {
+    if (d > td) return;
+    setRevDate(d);
+    api.getDailyRevenue(1, 1, undefined, undefined, d)
+      .then((r: any) => {
+        const rec = r?.records?.[0];
+        if (rec) {
+          setEditingRevId(rec.id);
+          setRevRevenue(String(rec.revenue || ''));
+          setRevTurnover(String(rec.turnover || ''));
+          setRevJD(String(rec.jd_revenue || ''));
+          setRevNote(rec.note || '');
+          setRevMarkedClosed(!!rec.archived);
+        } else {
+          setEditingRevId(null);
+          setRevRevenue('');
+          setRevTurnover('');
+          setRevJD('');
+          setRevNote('');
+          setRevMarkedClosed(false);
+        }
+      })
+      .catch(() => {});
+  };
+
+  // ── Data fetching (matches web) ──
+  const loadLast7 = useCallback(async () => {
+    try {
+      const r: any = await api.getLast7Days();
+      setLast7Records(r.records || []);
+    } catch { setToast(t('toastLoadFailed')); }
+  }, []);
+  const loadYesterday = useCallback(async () => {
+    try {
+      const yd = sd.yesterday;
+      const r: any = await api.getDailyRevenue(1, 1, undefined, undefined, yd);
+      setYesterdayRev(r.records?.[0] || null);
+    } catch {}
+  }, [sd.yesterday]);
+  const loadWeekTotals = useCallback(async () => {
+    try {
+      const r: any = await api.getDailyRevenue(1, 1, undefined, undefined, undefined, 30);
+      setWeekRev(r.totals || null);
+    } catch {}
+  }, []);
+  const loadMonthRevenues = useCallback(async () => {
+    try {
+      const todayStr = sd.today || new Date().toISOString().slice(0, 10);
+      const monthStart = todayStr.slice(0, 7) + '-01';
+      const r: any = await api.getDailyRevenue(1, 31, undefined, undefined, undefined, undefined, monthStart, todayStr);
+      setMonthRevRecords(r?.records || []);
+    } catch { /* non-fatal */ }
+  }, [sd.today]);
+
+  // ── Lazy load on tab change (chart / supply) ──
+  const loadChartMonthly = useCallback(async () => {
+    try { const d: any = await api.getChartMonthly(); setChartMonthly(d); } catch { setToast(t('toastLoadFailed')); }
+  }, []);
+  const loadBusinessSummary = useCallback(async () => {
+    try {
+      const r: any = await api.getBusinessSummary();
+      setBusinessSummary(r || {});
+    } catch { setToast(t('toastLoadFailed')); }
+  }, []);
+  const loadProducts = useCallback(async () => {
+    try { const p: any = await api.getProducts(); setProducts(p || []); } catch { setToast(t('toastLoadFailed')); }
+  }, []);
+  const loadProcurements = useCallback(async () => {}, []);
+
+  useEffect(() => { loadLast7(); loadYesterday(); loadWeekTotals(); loadBusinessSummary(); loadChartMonthly(); loadMonthRevenues(); }, [loadLast7, loadYesterday, loadWeekTotals, loadBusinessSummary, loadChartMonthly, loadMonthRevenues]);
+
+  useEffect(() => {
+    if (tab === 'list') { loadLast7(); loadYesterday(); loadWeekTotals(); }
+  }, [tab, loadLast7, loadYesterday, loadWeekTotals]);
+
+  useEffect(() => {
+    if (tab === 'chart') { loadChartMonthly(); loadBusinessSummary(); loadMonthRevenues(); }
+    if (tab === 'supply') { loadProducts(); }
+  }, [tab, loadChartMonthly, loadBusinessSummary, loadMonthRevenues, loadProducts, loadProcurements]);
+
+  // Check admin status (for User Management nav). Non-blocking — failure just means non-admin.
+  useEffect(() => {
+    api.admin.check().then((r: any) => {
+      if (r && (r.is_admin === true || r.admin === true)) setIsAdmin(true);
+    }).catch(() => {});
+  }, []);
+
+  // ── Daily revenue submit ──
+  const submitDailyRev = async () => {
+    const isClosed = revMarkedClosed;
+    if (!isClosed && (!revTurnover || parseFloat(revTurnover) <= 0)) {
+      setToast(t('revTurnover') + ' 不能为空');
+      return;
+    }
+    setRevSaving(true);
+    try {
+      if (editingRevId) {
+        await api.updateDailyRevenue(editingRevId, {
+          revenue: parseFloat(revRevenue) || 0,
+          turnover: parseFloat(revTurnover) || 0,
+          jd_revenue: parseFloat(revJD) || 0,
+          note: revNote,
+          archived: revMarkedClosed ? 1 : 0,
+        });
+      } else {
+        const r = await api.createDailyRevenue({
+          date: revDate,
+          revenue: parseFloat(revRevenue) || 0,
+          turnover: parseFloat(revTurnover) || 0,
+          jd_revenue: parseFloat(revJD) || 0,
+          note: revNote,
+          archived: revMarkedClosed ? 1 : 0,
+        });
+        if (r?.status === 'error') {
+          setToast(r.message);
+          setRevSaving(false);
+          return;
+        }
+      }
+      setRevRevenue('');
+      setRevTurnover('');
+      setRevJD('');
+      setRevNote('');
+      setEditingRevId(null);
+      setRevDate(sd.today);
+      setRevMarkedClosed(false);
+      await loadLast7();
+      loadYesterday();
+      loadWeekTotals();
+    } catch (e: any) { setToast(t('toastSubmitFailed') || e?.message); }
+    setRevSaving(false);
+  };
+  const styles = useMemo(() => getStyles(colors, headerColor), [colors, headerColor]);
+  const switchLang = (l: string) => {
+    setLang(l);
+    // Refetch any API-sourced labels that were captured at load time
+    // (recorded_by, etc.) so they pick up the new language.
+    loadLast7();
+    loadYesterday();
+    loadWeekTotals();
+  };
+
+  // ── Date label formatter (localized) ──
+  const fmtDateLabel = (s: string) => {
+    if (!s) return '';
+    const [y, m, d] = s.split('-');
+    const l = getLang();
+    if (l === 'en') {
+      const months = ['January','February','March','April','May','June',
+                      'July','August','September','October','November','December'];
+      return `${months[+m - 1]} ${+d}, ${y}`;
+    }
+    // zh / zh-TW / default
+    return `${y}年${+m}月${+d}日`;
+  };
+
+  return (
+    <View style={styles.container}>
+    <StatusBar barStyle={bgOpacity === 1 ? 'light-content' : 'dark-content'} />
+    <View style={styles.inner}>
+      {/* Two-layer background (mirrors web). Base layer = bundled
+          bg.jpg, always at bgOpacity. Top layer = the user's custom
+          bg (or base if none set), fading in once available. bgVersion
+          is appended as a cache-buster so an upload / reset forces
+          a fresh fetch. */}
+      <ImageBackground
+        source={BG_IMAGE}
+        style={[styles.bgLayer, { opacity: bgOpacity }]}
+        resizeMode="cover"
+      />
+      <ImageBackground
+        source={bgImageUri !== DEFAULT_BG ? { uri: `${bgImageUri}?v=${bgVersion}` } : BG_IMAGE}
+        style={[styles.bgLayer, { opacity: bgImageUri !== DEFAULT_BG ? bgOpacity : 0 }]}
+        resizeMode="cover"
+      />
+      <View style={[styles.bgOverlay, { opacity: bgOpacity }]} />
+
+      {/* History slide-overs */}
+      <SlideScreen visible={showExpenseHistory} onClose={() => setShowExpenseHistory(false)}>
+        {(onBack) => <ExpenseHistoryScreen onBack={onBack} refreshKey={expenseRefreshKey} onExpDetail={(e: any) => setShowExpenseDetail(e)} onInvoice={(batchId) => setShowInvoice({ filterBatchId: batchId })} />}
+      </SlideScreen>
+      <SlideScreen visible={showDailyHistory} onClose={() => setShowDailyHistory(false)}>
+        {(onBack) => <DailyRevenueHistory onBack={onBack} />}
+      </SlideScreen>
+      <SlideScreen visible={showReconHistory} onClose={() => setShowReconHistory(false)}>
+        {(onBack) => <ReconHistoryScreen onBack={onBack} />}
+      </SlideScreen>
+
+      {/* Profile / Invoice / User Management slide-overs (full-page sub-screens) */}
+      <SlideScreen visible={showProfile} onClose={() => setShowProfile(false)} stackIndex={0}>
+        {(onBack) => (
+          <ProfileScreen
+            onBack={onBack}
+            onLogout={onLogout}
+            onAvatarChange={loadAvatar}
+            onManageUsers={() => { setTimeout(() => setShowUserMgmt(true), 250); }}
+            refreshKey={profileRefreshKey}
+          />
+        )}
+      </SlideScreen>
+      <SlideScreen visible={!!showInvoice} onClose={() => setShowInvoice(null)}>
+        {(onBack) => <InvoiceScreen onBack={onBack} filterBatchId={showInvoice?.filterBatchId ?? null} />}
+      </SlideScreen>
+      <SlideScreen visible={showUserMgmt} onClose={() => setShowUserMgmt(false)} stackIndex={1}>
+        {(onBack) => <UserManagementScreen
+          key={userRefreshKey}
+          onBack={onBack}
+          reviewedUserId={reviewedUserId}
+          onSelectUser={async (u) => {
+            if (!u.reviewed) {
+              try { await api.admin.markReviewed(u.id); } catch {}
+              setReviewedUserId(u.id);
+            }
+            setShowUserDetail(u);
+          }}
+        />}
+      </SlideScreen>
+      <SlideScreen visible={!!showUserDetail} onClose={() => { setShowUserDetail(null); setReviewedUserId(null); setProfileRefreshKey(k => k + 1); }} stackIndex={2}>
+        {(onBack) => showUserDetail ? (
+          <UserDetailScreen
+            user={showUserDetail}
+            onBack={onBack}
+            onChanged={() => { setUserRefreshKey(k => k + 1); }}
+          />
+        ) : null}
+      </SlideScreen>
+      <SlideScreen visible={!!showProcurementDetail} onClose={() => setShowProcurementDetail(null)}>
+        {(onBack) => showProcurementDetail ? (
+          <ProcurementDetailScreen
+            batch={showProcurementDetail}
+            onBack={onBack}
+            onEdit={() => {
+              setPendingEditBatch(showProcurementDetail);
+              onBack();
+            }}
+            onPreview={(id, num, supplier) => { setShowPdfPreview({ id, number: num, supplier }); }}
+          />
+        ) : null}
+      </SlideScreen>
+      <SlideScreen visible={!!showExpenseDetail} onClose={() => setShowExpenseDetail(null)}>
+        {(onBack) => showExpenseDetail ? (
+          <ExpenseDetailScreen
+            expense={showExpenseDetail}
+            onBack={onBack}
+            onEdited={() => { setExpenseRefreshKey(k => k + 1); }}
+            onDeleted={() => { setExpenseRefreshKey(k => k + 1); }}
+          />
+        ) : null}
+      </SlideScreen>
+      <SlideScreen visible={!!showPdfPreview} onClose={() => setShowPdfPreview(null)}>
+        {(onBack) => showPdfPreview ? (
+          <PdfPreviewPage
+            batchId={showPdfPreview.id}
+            batchNumber={showPdfPreview.number}
+            supplier={showPdfPreview.supplier}
+            onBack={onBack}
+          />
+        ) : null}
+      </SlideScreen>
+
+      <View style={[styles.root, { paddingTop: insets.top }]}>
+        {/* Header — fixed frosted-glass bar matching web (zIndex 200,
+            backdropFilter:blur(30px) achieved here via expo-blur). Sits
+            ABOVE the scrollable content so the avatar/user row stays
+            visible while the panels scroll under it. */}
+        {isHome && <View style={styles.header}>
+          <BlurView
+            intensity={70}
+            tint="systemUltraThinMaterialLight"
+            style={StyleSheet.absoluteFillObject}
+            pointerEvents="none"
+          />
+          <View style={styles.headerInner}>
+            <TouchableOpacity
+              style={styles.headerLeft}
+              onPress={() => openModal(() => setShowProfile(true))}
+              activeOpacity={0.6}
+            >
+              <Image
+                source={avatarUrl ? { uri: avatarUrl } : LOGO_IMAGE}
+                style={styles.headerAvatar}
+              />
+              <Text style={styles.headerUser}>{usr}</Text>
+            </TouchableOpacity>
+            <View style={styles.headerRight}>
+              <TouchableOpacity
+                onPress={() => openModal(() => setShowBgModal(true))}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={styles.headerBtn}
+              >
+                <Text style={styles.headerLink}>{t('bgSettings')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setShowLogoutModal(true)}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={styles.headerBtn}
+              >
+                <Text style={styles.logoutBtn}>{t('logout')}</Text>
+              </TouchableOpacity>
+              <View style={styles.langRow}>
+                {langs.map(([l, label]) => (
+                  <TouchableOpacity
+                    key={l}
+                    onPress={() => switchLang(l)}
+                    hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+                    style={styles.langBtnTouch}
+                  >
+                    <Text style={[styles.langBtn, lang === l && styles.langActive]}>{label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </View>
+        </View>}
+
+        {/* Page content — tabs with their own scroll render outside the wrapper ScrollView
+            (aligns with web HomeScreen.tsx which also hoists partner/supply out). */}
+        {isHome && tab === 'expense' ? (
+          <ExpenseScreen
+            onReconHistory={() => setShowReconHistory(true)}
+            onExpenseHistory={() => { setShowExpenseHistory(true); setExpenseRefreshKey(k => k + 1); }}
+          />
+        ) : isHome && tab === 'partner' ? (
+          <View style={styles.page}>
+            <PartnerScreen onBack={() => setTab('list')} onProfile={() => openModal(() => setShowProfile(true))} onInvoice={() => setShowInvoice({})} refreshKey={partnerRefreshKey} />
+          </View>
+        ) : isHome && tab === 'supply' ? (
+          <ProcurementScreen
+            onProcurementDetail={(batch) => setShowProcurementDetail(batch)}
+            pendingEditBatch={pendingEditBatch}
+            onPendingEditConsumed={() => setPendingEditBatch(null)}
+          />
+        ) : isHome && (
+        <>
+        {/* 收支总览玻璃卡片：固定顶部不滚动 */}
+        {isHome && tab === 'chart' && (
+          <View style={{ paddingTop: 4, marginBottom: 8, paddingHorizontal: 16 }}>
+            <ChartGlassCard
+              colors={colors}
+              bgOpacity={bgOpacity}
+              businessSummary={businessSummary}
+            />
+          </View>
+        )}
+
+        {isHome && (
+        <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false}>
+
+          {tab === 'list' ? (
+            <DailyRevenueView
+              colors={colors}
+              styles={styles}
+              revDate={revDate} setRevDate={setRevDate} revDateErr={revDateErr} setRevDateErr={setRevDateErr}
+              loadRevForDate={loadRevForDate} td={td} sdYesterday={sd.yesterday} sdDb4={sd.offset(-2)} fmtDateLabel={fmtDateLabel}
+              showDatePicker={showDatePicker} setShowDatePicker={setShowDatePicker}
+              revRevenue={revRevenue} setRevRevenue={setRevRevenue}
+              revTurnover={revTurnover} setRevTurnover={setRevTurnover}
+              revJD={revJD} setRevJD={setRevJD}
+              revNote={revNote} setRevNote={setRevNote}
+              revMarkedClosed={revMarkedClosed} setRevMarkedClosed={setRevMarkedClosed}
+              revSaving={revSaving} submitDailyRev={submitDailyRev}
+              yesterdayRev={yesterdayRev} weekRev={weekRev} last7Records={last7Records}
+              onShowDailyHistory={() => setShowDailyHistory(true)}
+            />
+          ) : tab === 'chart' ? (
+            <ChartTabContent
+              colors={colors}
+              weekRev={weekRev}
+              monthRevRecords={monthRevRecords}
+              businessSummary={businessSummary}
+              chartMonthly={chartMonthly}
+            />
+          ) : null}
+        </ScrollView>
+        )}
+        </>
+        )}
+
+        {isHome && (
+        <View pointerEvents="box-none" style={styles.bottomNavWrap}>
+          <View style={styles.bottomNav}>
+            {/* Real blur via expo-blur. Sits behind the icons, clipped
+                to the rounded pill shape by overflow:hidden on the
+                bottomNav container. */}
+            <BlurView
+              intensity={75}
+              tint="systemUltraThinMaterialLight"
+              style={[StyleSheet.absoluteFillObject, { borderRadius: 28 }]}
+              pointerEvents="none"
+            />
+            {/* Inset top highlight — mimics web's
+                boxShadow: inset 0 0.5px 0 rgba(255,255,255,0.12). RN
+                has no inset shadow so we fake it with a thin white
+                line at the top edge. */}
+            <View style={styles.bottomNavInsetTop} pointerEvents="none" />
+            {NAV_ITEMS.map(({ id, labelKey, icon }, i) => {
+              const active = tab === id;
+              // Active icon colour matches web's NavIcon* helpers —
+              // colors.navActiveColor (per-theme soft tint) for active,
+              // not colors.textMain which was too high-contrast.
+              const c = active ? colors.navActiveColor : colors.textSub;
+              return (
+                <TouchableOpacity
+                  key={id}
+                  style={styles.navItem}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    if (id !== tab) {
+                      Animated.sequence([
+                        Animated.spring(navScaleAnims[i], { toValue: 0.85, useNativeDriver: true, speed: 30, bounciness: 6 }),
+                        Animated.spring(navScaleAnims[i], { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 14 }),
+                      ]).start();
+                      setTab(id);
+                    }
+                  }}
+                >
+                  <Animated.View style={[styles.navIconWrap, active && styles.navIconWrapActive, { transform: [{ scale: navScaleAnims[i] }] }]}>
+                    {icon(c)}
+                  </Animated.View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+        )}
+      </View>
+
+      {/* BG settings modal — uses shared ThemePickerModal (matches web) */}
+      <ThemePickerModal
+        visible={showBgModal}
+        onClose={() => setShowBgModal(false)}
+        showCoverTools
+        coverOpacity={bgOpacity}
+        onCoverOpacityChange={setBgOpacityPersist}
+        onCoverImagePicked={async (file: any) => {
+          setShowBgModal(false);
+          setBgCropSrc(file?.uri || file);
+          setShowBgCrop(true);
+        }}
+        onResetCover={() => setShowBgModal(false)}
+        coverUploading={bgUploading}
+      />
+
+      {/* BG crop modal */}
+      <BgCropModal
+        visible={showBgCrop}
+        src={bgCropSrc}
+        mode="bg"
+        onCancel={() => { setShowBgCrop(false); setBgCropSrc(''); setShowBgModal(true); }}
+        onConfirm={handleBgCropConfirm}
+      />
+      {/* BG preview modal — springScale, matches ThemePickerModal */}
+      <ModalOverlay visible={showBgPreview && bgCropResult !== ''} onClose={() => { bgRecropRef.current = false; setShowBgPreview(false); }} onClosed={() => { if (bgRecropRef.current) { bgRecropRef.current = false; setShowBgCrop(true); setBgCropResult(''); } else { setBgCropSrc(''); setBgCropResult(''); } }} animation="springScale" backdropColor="rgba(8,8,12,0.92)">
+        <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: MODAL_CARD_RADIUS, padding: 24, width: 360, alignItems: 'center', gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' as any }}>
+            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(27,122,74,0.2)', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 20, color: '#1B7A4A' }}>✓</Text>
+            </View>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>{t('bgUpdated') || '背景已更新'}</Text>
+            <Image source={{ uri: bgCropResult }} style={{ width: 130, height: 280, borderRadius: 4, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' }} resizeMode="cover" />
+            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{t('bgResultHint') || '点击确认后将从照片中直接选取'}</Text>
+            <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+              <TouchableOpacity
+                style={{ flex: 1, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center' }}
+                onPress={() => { bgRecropRef.current = true; setShowBgPreview(false); }}>
+                <Text style={{ fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.7)' }}>{t('recrop') || '再编辑'}</Text>
+              </TouchableOpacity>
+              <SubmitButton
+                onPress={handleBgUpload}
+                loading={bgUploading}
+                label={t('confirmUse') || '确认使用'}
+                style={{ flex: 2, padding: 12, borderRadius: 10, backgroundColor: '#5B5BD6', alignItems: 'center' }}
+                textStyle={{ fontSize: 13, fontWeight: '600', color: '#fff' }}
+              />
+            </View>
+          </View>
+      </ModalOverlay>
+
+      {/* Logout modal */}
+      <LogoutConfirmModal visible={showLogoutModal} onClose={() => setShowLogoutModal(false)} onLogout={onLogout} />
+
+      <DatePickerModal
+        visible={showDatePicker}
+        value={revDate}
+        onClose={() => setShowDatePicker(false)}
+        onSelect={(d) => { if (d > td) { setRevDateErr(c => c + 1); } else { setRevDate(d); setRevDateErr(0); } }}
+        maxDate={td}
+        title={t('billDate') || '选择日期'}
+      />
+      <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
+    </View>
+    </View>
+  );
+}
+
+/* ── Chart tab view (matches web's tab=chart content) ─────────────── */
+
+interface ChartGlassProps {
+  colors: ThemeColors;
+  bgOpacity: number;
+  weekRev: any;
+  monthRevRecords: any[];
+  businessSummary: {
+    cash_on_hand?: number;
+    cumulative_revenue?: number;
+    cumulative_expense?: number;
+    actual_received?: number;
+    receivable?: number;
+    discount?: number;
+    today_expense_amount?: number;
+    month_expense_amount?: number;
+    yesterday_income?: number;
+    yesterday_expense?: number;
+    yesterday_profit?: number;
+  };
+  chartMonthly: any;
+}
+
+/** 6 张收支卡片：昨日/本月 收入/支出/利润 2x3 grid */
+function ExpenseSummaryCardsInline({
+  yesterdayExpense, monthExpense, yesterdayIncome, monthIncome, colors,
+}: {
+  yesterdayExpense: number; monthExpense: number;
+  yesterdayIncome: number; monthIncome: number;
+  colors: ThemeColors;
+}) {
+  const yesterdayProfit = yesterdayIncome - yesterdayExpense;
+  const monthProfit = monthIncome - monthExpense;
+
+  const cards = [
+    { label: t('yesterdayIncome'), value: yesterdayIncome, clr: colors.success, isProfit: false },
+    { label: t('yesterdayExpense'), value: yesterdayExpense, clr: colors.danger, isProfit: false },
+    { label: t('monthIncome'), value: monthIncome, clr: colors.success, isProfit: false },
+    { label: t('monthExpense'), value: monthExpense, clr: colors.danger, isProfit: false },
+    { label: t('yesterdayProfit'), value: yesterdayProfit, clr: yesterdayProfit >= 0 ? colors.success : colors.danger, isProfit: true },
+    { label: t('monthProfit'), value: monthProfit, clr: monthProfit >= 0 ? colors.success : colors.danger, isProfit: true },
+  ];
+
+  return (
+    <View style={{ marginBottom: 12 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {cards.map((c, i) => (
+          <View
+            key={i}
+            style={{
+              width: '48%' as any, flexGrow: 1, flexBasis: '46%' as any,
+              backgroundColor: colors.surface,
+              borderRadius: 12, paddingVertical: 10, paddingHorizontal: 18,
+              borderWidth: 0.5, borderColor: colors.secondary,
+              borderLeftColor: c.clr, borderLeftWidth: 3,
+            }}
+          >
+            <Text style={{ fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.textSub, marginBottom: 4 }}>
+              {c.label}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+              {c.isProfit ? (
+                <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.clr }}>
+                  {c.value >= 0 ? '+' : '-'}{fmtAmtFull(Math.abs(c.value))}
+                </Text>
+              ) : (
+                <NumberTicker value={c.value} style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain }} formatFn={fmtAmtFull} />
+              )}
+            </View>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function ChartGlassCard({ colors, bgOpacity, businessSummary }: { colors: ThemeColors; bgOpacity: number; businessSummary: any }) {
+  const gradientAlpha = bgOpacity === 1 ? 0.30 : 0.48;
+  return (
+    <LinearGradient
+      colors={[withAlpha(colors.expenseGradientStart, gradientAlpha), withAlpha(colors.expenseGradientEnd, gradientAlpha)]}
+      start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+      style={{ borderRadius: 14, paddingVertical: 14, paddingHorizontal: 18, gap: 12 } as any}
+    >
+      <Text style={{ fontSize: FONTS.amount.size, fontWeight: FONTS.amount.weight, color: 'rgba(255,255,255,0.95)' }}>
+        {t('summary')}
+      </Text>
+      <View style={{ justifyContent: 'space-between' } as any}>
+      <View style={{ alignItems: 'flex-start', gap: 2 }}>
+        <Text style={{ fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.70)' }}>{t('cashOnHand')}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+          <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.expenseAmountColor, marginRight: 2 }}>¥</Text>
+          <Text style={{ fontSize: FONTS.h1.size + 4, fontWeight: FONTS.h1.weight, color: colors.expenseAmountColor }}>{toDec2Comma(businessSummary.cash_on_hand || 0)}</Text>
+        </View>
+      </View>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: 14, gap: 6, borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.20)' } as any}>
+          <Text style={{ fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.70)' }}>{t('cumulativeRevenue')}</Text>
+          <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: 'rgba(255,255,255,0.95)' }}>{'¥' + toDec2Comma(businessSummary.cumulative_revenue || 0)}</Text>
+        </View>
+        <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: 14, gap: 6, borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.20)' } as any}>
+          <Text style={{ fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.70)' }}>{t('cumulativeExpense')}</Text>
+          <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: 'rgba(255,255,255,0.95)' }}>{'¥' + toDec2Comma(businessSummary.cumulative_expense || 0)}</Text>
+        </View>
+      </View>
+      </View>
+    </LinearGradient>
+  );
+}
+
+function ChartTabContent({ colors, weekRev, monthRevRecords, businessSummary, chartMonthly }: Omit<ChartGlassProps, 'bgOpacity'>) {
+  const kpiCardStyle: any = {
+    borderRadius: 14, paddingTop: 18, paddingHorizontal: 18, paddingBottom: 12,
+    backgroundColor: colors.surface, borderWidth: 0.5, borderColor: colors.secondary, marginBottom: 12,
+  };
+  const kpiLabelStyle = { fontSize: FONTS.sub.size, color: colors.textSub, fontWeight: FONTS.sub.weight };
+  const kpiValueStyle = { fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.textMain };
+
+  const toNum = (v: any) => parseFloat(String(v ?? 0)) || 0;
+  const yesterdayIncome = toNum(businessSummary.yesterday_income);
+  const yesterdayExpense = toNum(businessSummary.yesterday_expense);
+  const monthExpense = toNum(businessSummary.month_expense_amount);
+  const monthIncomeVal = monthRevRecords.reduce((s: number, r: any) => s + (r.revenue || 0) + (r.jd_revenue || 0), 0);
+
+  return (
+    <View style={{ paddingBottom: 110, paddingTop: 4, paddingHorizontal: 16 }}>
+      {/* ── KPI 三行：实收 / 应收 / 优惠减免 (web: surface card + secondary border) ── */}
+      <View style={kpiCardStyle}>
+        {[
+          { label: t('actualReceived'), val: toNum(businessSummary.actual_received) },
+          { label: t('receivable'), val: toNum(businessSummary.receivable) },
+          { label: t('discountAmount'), val: toNum(businessSummary.discount) },
+        ].map((item, i) => (
+          <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 }}>
+            <Text style={kpiLabelStyle}>{item.label}</Text>
+            <Text style={kpiValueStyle}>{'¥' + toDec2Comma(item.val)}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* ── 6 张收支卡片 ── */}
+      <ExpenseSummaryCardsInline
+        yesterdayExpense={yesterdayExpense}
+        monthExpense={monthExpense}
+        yesterdayIncome={yesterdayIncome}
+        monthIncome={monthIncomeVal}
+        colors={colors}
+      />
+
+      {/* ── 图表：月度趋势 + 分类占比 + 每日收支 ── */}
+      {chartMonthly ? (
+        <ChartsPanel
+          months={chartMonthly.months || []}
+          income={chartMonthly.income || []}
+          expense={chartMonthly.expense || []}
+          profit={chartMonthly.profit || []}
+          categories={chartMonthly.categories || {}}
+          dailyDates={chartMonthly.daily_dates || []}
+          dailyIncome={chartMonthly.daily_income || []}
+          dailyExpense={chartMonthly.daily_expense || []}
+          dailyProfitDates={chartMonthly.daily_dates || []}
+          dailyProfitValues={chartMonthly.daily_profit || []}
+        />
+      ) : (
+        <View style={{ padding: 24, alignItems: 'center' }}>
+          <Text style={{ color: 'rgba(0,0,0,0.4)', fontSize: FONTS.sub.size }}>{t('noData')}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+/* ── Daily Revenue view (matches web's tab=list content) ─────────── */
+
+interface DailyRevProps {
+  colors: ThemeColors;
+  styles: ReturnType<typeof getStyles>;
+  revDate: string; setRevDate: (v: string) => void; revDateErr: number; setRevDateErr: (v: number) => void;
+  loadRevForDate: (d: string) => void; td: string; sdYesterday: string; sdDb4: string; fmtDateLabel: (s: string) => string;
+  showDatePicker: boolean; setShowDatePicker: (v: boolean) => void;
+  revRevenue: string; setRevRevenue: (v: string) => void;
+  revTurnover: string; setRevTurnover: (v: string) => void;
+  revJD: string; setRevJD: (v: string) => void;
+  revNote: string; setRevNote: (v: string) => void;
+  revMarkedClosed: boolean; setRevMarkedClosed: (v: boolean) => void;
+  revSaving: boolean; submitDailyRev: () => void;
+  yesterdayRev: any; weekRev: any; last7Records: any[];
+  onShowDailyHistory: () => void;
+}
+
+function DailyRevenueView(p: DailyRevProps) {
+  const { colors, styles } = p;
+  return (
+    <View style={{ paddingBottom: 100 }}>
+      <View style={{ paddingTop: 4 }}>
+        {/* ── Daily revenue entry card (liquid glass — web parity) ── */}
+        <View style={styles.revCard}>
+          <BlurView
+            intensity={70}
+            tint="regular"
+            style={[StyleSheet.absoluteFillObject, { borderRadius: 14 }]}
+            pointerEvents="none"
+          />
+          <View style={styles.revHeaderRow}>
+            <View style={styles.revTitleGroup}>
+              <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.textMain} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                <Path d="M3 3v18h18M7 16l4-8 4 4 4-6" />
+              </Svg>
+              <Text style={styles.revTitle}>{t('dailyRevenue')}</Text>
+            </View>
+          </View>
+
+          {/* Quick date pills */}
+          <View style={styles.datePillRow}>
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              {[
+                { label: t('revQuickToday'), d: p.td },
+                { label: t('revQuickYesterday'), d: p.sdYesterday },
+                { label: t('revQuickDB4'), d: p.sdDb4 },
+              ].map(pill => (
+                <TouchableOpacity
+                  key={pill.d}
+                  onPress={() => p.loadRevForDate(pill.d)}
+                  style={[styles.datePill, p.revDate === pill.d && styles.datePillActive]}
+                >
+                  <Text style={[styles.datePillText, p.revDate === pill.d && styles.datePillTextActive]}>
+                    {pill.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity
+              onPress={() => p.setShowDatePicker(true)}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 1 }}
+            >
+              <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={1.5}>
+                <Rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <Line x1="16" y1="2" x2="16" y2="6"/>
+                <Line x1="8" y1="2" x2="8" y2="6"/>
+                <Line x1="3" y1="10" x2="21" y2="10"/>
+              </Svg>
+              <Text style={[styles.dateLabel, { color: colors.primary }]}>{p.fmtDateLabel(p.revDate)}</Text>
+              <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                <Path d="M8 5l8 7-8 7" />
+              </Svg>
+            </TouchableOpacity>
+            <DateErrorHint trigger={p.revDateErr} message={t('errDateFuture')} color={colors.danger} textAlign="left" />
+          </View>
+
+          {/* Three input cards: 营业额收入 / 营业额 / 京东营收 */}
+          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+            <RevInputCard
+              title={t('revRevenue')} sub={t('revRevenueSub')} symbol="¥"
+              value={p.revRevenue} onChangeText={(v) => p.setRevRevenue(fmtDecInput(v))}
+              yesterdayValue={p.yesterdayRev?.revenue} colors={colors} styles={styles}
+              icon={<Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 6 }}><Path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></Svg>}
+            />
+            <RevInputCard
+              title={t('revTurnover')} sub={t('revTurnoverSub')} symbol="¥"
+              value={p.revTurnover} onChangeText={(v) => p.setRevTurnover(fmtDecInput(v))}
+              yesterdayValue={p.yesterdayRev?.turnover} colors={colors} styles={styles}
+              icon={<Text style={{ fontSize: FONTS.sub.size, marginBottom: 6 }}>🛒</Text>}
+            />
+            <RevInputCard
+              title={t('revJD')} sub={t('revJDSub')} symbol="¥"
+              value={p.revJD} onChangeText={(v) => p.setRevJD(fmtDecInput(v))}
+              yesterdayValue={p.yesterdayRev?.jd_revenue} colors={colors} styles={styles}
+              icon={<Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={colors.textSub} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 6 }}><Path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0" /></Svg>}
+            />
+          </View>
+
+          {/* Note */}
+          <AppTextInput
+            style={styles.revNoteInput}
+            value={p.revNote} onChangeText={p.setRevNote}
+            placeholder={t('revNoteHint')} placeholderTextColor={colors.textSub}
+          />
+
+          {/* Two action buttons: archive + submit */}
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              style={[styles.revArchiveBtn, { flex: 2 }, p.revMarkedClosed && styles.revArchiveBtnDone]}
+              onPress={() => {
+                const next = !p.revMarkedClosed;
+                p.setRevMarkedClosed(next);
+                if (next && !p.revNote.trim()) {
+                  p.setRevNote(t('revClosedReason'));
+                } else if (!next && p.revNote.trim() === t('revClosedReason')) {
+                  p.setRevNote('');
+                }
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.revArchiveText, p.revMarkedClosed && styles.revArchiveTextDone]}>
+                {p.revMarkedClosed ? t('revCancelArchive') : t('revMarkArchive')}
+              </Text>
+            </TouchableOpacity>
+            <SubmitButton
+              onPress={p.submitDailyRev}
+              loading={p.revSaving}
+              disabled={(!p.revMarkedClosed && (!p.revTurnover || parseFloat(p.revTurnover) <= 0))}
+              style={[styles.revSubmitBtn, { flex: 4 }, (!p.revMarkedClosed && (!p.revTurnover || parseFloat(p.revTurnover) <= 0)) && { opacity: 0.5 }]}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.surface} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <Path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2zM17 21v-8H7v8M7 3v5h8" />
+                </Svg>
+                <Text style={styles.revSubmitText}>
+                  {p.revDate === p.td ? t('revSaveToday') :
+                    p.revDate === p.sdYesterday ? t('revSaveYesterday') :
+                    p.revDate === p.sdDb4 ? t('revSaveDayBefore') :
+                    t('revSaveDate').replace('{date}', p.revDate.slice(5).replace('-', ''))}
+                </Text>
+              </View>
+            </SubmitButton>
+          </View>
+
+          {/* Last 30 days summary */}
+          <View style={styles.revWeekRow}>
+            <View style={{ alignItems: 'flex-start' }}>
+              <Text style={styles.revWeekLabel}>{t('revWeekRevenue')}</Text>
+              <Text style={styles.revWeekVal}>¥{toDec2(p.weekRev?.revenue)}</Text>
+            </View>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={styles.revWeekLabel}>{t('revWeekTurnover')}</Text>
+              <Text style={styles.revWeekVal}>¥{toDec2(p.weekRev?.turnover)}</Text>
+            </View>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={styles.revWeekLabel}>{t('revWeekJD')}</Text>
+              <Text style={styles.revWeekVal}>¥{toDec2(p.weekRev?.jd_revenue)}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ── Last 7 days records ── */}
+        <View style={{ marginTop: 20 }}>
+          <View style={styles.revHistoryHeader}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.textMain} strokeWidth={2} strokeLinecap="round">
+                <Path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2M9 12h6M9 16h6" />
+              </Svg>
+              <Text style={styles.revHistoryTitle}>{t('revHistory')}</Text>
+            </View>
+            <TouchableOpacity onPress={p.onShowDailyHistory} style={{ marginLeft: 'auto' }} activeOpacity={0.7}>
+              <Text style={styles.revHistoryBtn}>{t('revHistoryBtn')} →</Text>
+            </TouchableOpacity>
+          </View>
+
+          {p.last7Records.length === 0 ? (
+            <View style={styles.rev7Empty}>
+              <Text style={{ color: colors.textSub, fontSize: 14 }}>...</Text>
+            </View>
+          ) : (
+            p.last7Records.map((rec: any, i: number) => (
+              <View key={i} style={styles.rev7Card}>
+                <View style={styles.rev7CardTop}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.rev7CardDate}>{p.fmtDateLabel(rec.date)}</Text>
+                    {rec.date === p.td && (
+                      <View style={styles.rev7TodayTag}>
+                        <Text style={styles.rev7TodayTagText}>{t('today')}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={[styles.rev7CardBadge, (rec.status === '未录入' || !rec.recorded_by) ? styles.rev7CardBadgeGap : styles.rev7CardBadgeOk]}>
+                    <View style={[styles.rev7CardDot, { backgroundColor: (rec.status === '未录入' || !rec.recorded_by) ? colors.danger : colors.success }]} />
+                    <Text style={[styles.rev7CardStatus, { color: (rec.status === '未录入' || !rec.recorded_by) ? colors.danger : colors.success }]}>
+                      {rec.status === '未录入' || !rec.recorded_by ? t('revNotEntered') : t('revEntered')}
+                    </Text>
+                  </View>
+                </View>
+                {rec.archived ? (
+                  <View style={styles.rev7ArchivedBadge}>
+                    <Text style={styles.rev7ArchivedBadgeText}>{t('revMarkArchive')}</Text>
+                  </View>
+                ) : null}
+                <View style={styles.rev7CardAmounts}>
+                  <View style={styles.rev7CardAmtCol}>
+                    {rec.revenue > 0 ? <Text style={[styles.rev7CardAmtVal, { color: colors.textMain }]}>¥{toDec2(rec.revenue)}</Text> : <Dash color={colors.secondary} />}
+                    <Text style={styles.rev7CardAmtLabel}>{t('revRevenue')}</Text>
+                  </View>
+                  <View style={styles.rev7CardAmtCol}>
+                    {rec.turnover > 0 ? <Text style={[styles.rev7CardAmtVal, { color: colors.textMain }]}>¥{toDec2(rec.turnover)}</Text> : <Dash color={colors.secondary} />}
+                    <Text style={styles.rev7CardAmtLabel}>{t('revTurnover')}</Text>
+                  </View>
+                  <View style={styles.rev7CardAmtCol}>
+                    {rec.jd_revenue > 0 ? <Text style={[styles.rev7CardAmtVal, { color: colors.textMain }]}>¥{toDec2(rec.jd_revenue)}</Text> : <Dash color={colors.secondary} />}
+                    <Text style={styles.rev7CardAmtLabel}>{t('revJD')}</Text>
+                  </View>
+                </View>
+                <View style={styles.rev7CardFooter}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Text style={styles.rev7CardFooterText}>{t('recordedBy')}:</Text>
+                    {rec.recorded_by ? (
+                      <Text style={styles.rev7CardFooterText}>{rec.recorded_by}</Text>
+                    ) : (
+                      <Svg width={16} height={8} viewBox="0 0 16 8" fill="none" stroke={colors.secondary} strokeWidth={1.5} strokeLinecap="round">
+                        <Path d="M2 4h12" />
+                      </Svg>
+                    )}
+                  </View>
+                </View>
+                {rec.note ? <View style={styles.rev7CardNote}><Text style={styles.rev7CardNoteText}>{rec.note}</Text></View> : null}
+              </View>
+            ))
+          )}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function RevInputCard({ title, sub, symbol, value, onChangeText, yesterdayValue, colors, styles, icon }: {
+  title: string; sub: string; symbol: string; value: string; onChangeText: (v: string) => void;
+  yesterdayValue: number | undefined; colors: ThemeColors; styles: ReturnType<typeof getStyles>;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <View style={styles.revInputCard}>
+      {icon}
+      <Text style={styles.revInputCardTitle}>{title}</Text>
+      <Text style={styles.revInputCardSub}>{sub}</Text>
+      <View style={styles.revInputCardInputWrap}>
+        <Text style={styles.revInputCardSymbol}>{symbol}</Text>
+        <AppTextInput
+          style={styles.revInputCardInput}
+          value={value} onChangeText={onChangeText}
+          keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={colors.textSub}
+        />
+      </View>
+      <Text style={styles.revInputCardFooter}>
+        {t('revYesterdayLabel')}{' '}
+        {yesterdayValue != null && yesterdayValue > 0 ? `¥${toDec2(yesterdayValue)}` : t('revYesterdayNA')}
+      </Text>
+    </View>
+  );
+}
+
+function Dash({ color }: { color: string }) {
+  return (
+    <Svg width={24} height={12} viewBox="0 0 24 12" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round">
+      <Path d="M4 6h16" />
+    </Svg>
+  );
+}
+
+/* ── Bottom nav config ────────────────────────────────────────────── */
+
+interface NavItem { id: Tab; labelKey: string; icon: (c: string) => React.ReactNode }
+const NAV_ITEMS: NavItem[] = [
+  { id: 'expense', labelKey: 'tabRecord',  icon: (c) => <IconAdd c={c} /> },
+  { id: 'list',    labelKey: 'tabBill',    icon: (c) => <IconList c={c} /> },
+  { id: 'supply',  labelKey: 'tabSupply',  icon: (c) => <IconSupply c={c} /> },
+  { id: 'chart',   labelKey: 'tabTrends',  icon: (c) => <IconChart c={c} /> },
+  { id: 'partner', labelKey: 'navPartner', icon: (c) => <IconPartner c={c} /> },
+];
+
+function IconAdd({ c }: { c: string }) {
+  // Wallet — port of web's NavIconExpense (web/src/screens/HomeScreen.tsx
+  // NavIconExpense). The previous Plus-sign icon didn't match web.
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M20 12V8H6a2 2 0 010-4h12v4" />
+      <Path d="M4 6v12a2 2 0 002 2h14v-4" />
+      <Path d="M18 12a2 2 0 100 4h4v-4h-4z" />
+    </Svg>
+  );
+}
+function IconList({ c }: { c: string }) {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
+      <Path d="M9 5a2 2 0 012-2h2a2 2 0 012 2v0a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      <Path d="M9 12h6M9 16h6" />
+    </Svg>
+  );
+}
+function IconSupply({ c }: { c: string }) {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
+      <Path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12" />
+    </Svg>
+  );
+}
+function IconChart({ c }: { c: string }) {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M3 3v18h18" />
+      <Path d="M7 16l4-8 4 4 4-6" />
+    </Svg>
+  );
+}
+function IconPartner({ c }: { c: string }) {
+  return (
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" />
+      <Circle cx="9" cy="7" r="4" />
+      <Path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+    </Svg>
+  );
+}
+
+/* ── Styles ────────────────────────────────────────────────────────── */
+
+const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.create({
+  // Mirrors web HomeScreen.tsx — container > inner wrapper.
+  // container = flex: 1 (full screen); inner = flex: 1, alignSelf: 'center',
+  // width: '100%', position: 'relative' (anchors absolute SlideScreens).
+  container: { flex: 1, backgroundColor: 'transparent' },
+  inner: { flex: 1, alignSelf: 'stretch', position: 'relative' },
+  bgLayer: { ...StyleSheet.absoluteFillObject },
+  bgOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.25)' },
+  root: { flex: 1 },
+
+  // Page wrapper — mirrors web HomeScreen.tsx styles.page (L973).
+  // Web wraps all tabs (partner/supply/expense/list/chart) in this view
+  // for consistent horizontal padding. Applied per-tab here so iOS
+  // (which has a fixed bottom-nav overlay) matches the visual inset.
+  page: { flex: 1, paddingHorizontal: 16, paddingBottom: 12 },
+
+  // Header — frosted-glass bar at top of root, mirrors web's zIndex:200
+  // header with backdropFilter blur(30px) (we use expo-blur since RN has
+  // no backdrop-filter). Sits in the normal flow (after the root's
+  // insets.top padding) so the notch isn't covered.
+  header: {
+    zIndex: 200, overflow: 'hidden',
+    paddingLeft: 16, paddingRight: 16, paddingVertical: 8,
+    borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.10)',
+  },
+  headerInner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  // Header typography — exact port of web/src/screens/HomeScreen.tsx L914-931
+  // (web/src/theme.tsx FONTS.micro = 12px / weight 500). Web computes
+  // `headerColor` from `bgOpacity === 1 ? '#FFFFFF' : '#000000'` so
+  // text flips white when the bg is fully opaque, otherwise black.
+  headerAvatar: { width: 32, height: 32, borderRadius: 16, marginRight: 6 },
+  headerUser: { fontSize: FONTS.micro.size, color: headerColor, fontWeight: FONTS.micro.weight },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerBtn: { /* matches web — no extra padding, label is the tap target */ },
+  headerLink: { fontSize: FONTS.micro.size, color: headerColor, fontWeight: FONTS.micro.weight },
+  logoutBtn: { fontSize: FONTS.micro.size, color: colors.danger, fontWeight: FONTS.micro.weight },
+  // Lang switcher — tighter spacing (gap 4→2, paddingH 7→4, paddingV
+  // 2→1) per user feedback. Unselected inherits headerColor so it
+  // matches the rest of the header text (white over opaque bg, black
+  // otherwise). Active stays colors.primary per web.
+  langRow: { flexDirection: 'row', gap: 4 },
+  langBtnTouch: { /* no extra padding */ },
+  langBtn: { fontSize: FONTS.micro.size, color: headerColor, fontWeight: FONTS.micro.weight, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5 },
+  langActive: { color: colors.primary, backgroundColor: withAlpha(colors.danger, 0.1), fontWeight: FONTS.microBold.weight, borderRadius: 5, overflow: 'hidden' },
+
+  // Content
+  content: { flex: 1 },
+  contentInner: { flexGrow: 1, overflow: 'hidden', maxWidth: 520, width: '100%', alignSelf: 'center' },
+
+  // Bottom nav — floating glass pill (mirrors web's center-positioned
+// saturate(220%) blur(30px) capsule).
+  bottomNavWrap: {
+    position: 'absolute' as const, left: 0, right: 0, bottom: 0,
+    alignItems: 'center', paddingBottom: 16,
+  },
+  bottomNav: {
+    flexDirection: 'row',
+    width: '80%', maxWidth: 420,
+    backgroundColor: withAlpha(colors.surface, 0.20),
+    borderRadius: 28, overflow: 'hidden',
+    paddingVertical: 10, paddingHorizontal: 12,
+    borderWidth: 0.5, borderColor: withAlpha(colors.surface, 0.25),
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12,
+    zIndex: 100,
+  },
+  bottomNavInsetTop: {
+    position: 'absolute', left: 12, right: 12, top: 0, height: 1,
+    backgroundColor: 'rgba(255,255,255,0.20)',
+  },
+  navItem: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  navIconWrap: { width: 48, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  navIconWrapActive: { backgroundColor: withAlpha(colors.textMain, 0.1) },
+
+  // BG settings modal extras
+  opacityChip: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: colors.bg, alignItems: 'center', borderWidth: 1, borderColor: 'transparent' },
+  opacityChipActive: { backgroundColor: withAlpha(colors.primary, 0.12), borderColor: colors.primary },
+  opacityChipText: { fontSize: 11, color: colors.textSub, fontWeight: '600' },
+  opacityChipTextActive: { color: colors.primary },
+  themePickerItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12, marginBottom: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.secondary },
+
+  // Daily revenue card — web parity (DailyRevenuePanel.tsx L366-376):
+  // backdrop-filter: saturate(180%) blur(20px) achieved here via expo-blur
+  // (intensity 85, tint systemUltraThinMaterialLight, layered absolutely
+  // behind the content with overflow:hidden for the rounded clip).
+  // Alpha 0.92 → 0.65 to actually let the blur show through; padding
+  // 16 → 18; add borderWidth 0.5 + subtle borderColor.
+  revCard: {
+    backgroundColor: withAlpha(colors.surface, 0.65),
+    borderRadius: 14, padding: 18, overflow: 'hidden',
+    marginHorizontal: 16,
+    borderWidth: 0.5, borderColor: withAlpha(colors.textMain, 0.08),
+  },
+  revHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  revTitleGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  revTitle: { fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: colors.textMain },
+  cancelEditBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: colors.bg },
+  cancelEditText: { fontSize: FONTS.microBold.size, color: colors.textSub, fontWeight: FONTS.microBold.weight },
+  datePillRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  datePill: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 22, backgroundColor: colors.bg },
+  datePillActive: { backgroundColor: colors.primary },
+  datePillText: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub },
+  datePillTextActive: { color: colors.surface },
+  dateLabel: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub },
+  revInputCard: { flex: 1, backgroundColor: colors.surface, borderRadius: 10, padding: 10, borderWidth: 0.5, borderColor: colors.secondary },
+  revInputCardTitle: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.textSub, marginBottom: 2 },
+  revInputCardSub: { fontSize: FONTS.micro.size, color: colors.textSub, marginBottom: 8 },
+  revInputCardInputWrap: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 6 },
+  revInputCardSymbol: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub, marginRight: 2, marginBottom: 1 },
+  revInputCardInput: { flex: 1, fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.textMain, padding: 0 },
+  revInputCardFooter: { fontSize: FONTS.micro.size, color: colors.textSub },
+  revNoteInput: { backgroundColor: colors.surface, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: FONTS.sub.size, color: colors.textSub, marginBottom: 14, borderWidth: 1, borderColor: colors.secondary },
+  revArchiveBtn: { backgroundColor: colors.secondary, borderRadius: 12, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
+  revArchiveBtnDone: { backgroundColor: withAlpha(colors.primary, 0.1) },
+  revArchiveText: { fontSize: FONTS.subBold.size, color: colors.textSub, fontWeight: FONTS.subBold.weight },
+  revArchiveTextDone: { color: colors.primary },
+  revSubmitBtn: { backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  revSubmitText: { fontSize: FONTS.subBold.size, color: colors.surface, fontWeight: FONTS.subBold.weight },
+  revWeekRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, paddingHorizontal: 4 },
+  revWeekLabel: { fontSize: FONTS.micro.size, color: colors.textSub, marginBottom: 2 },
+  revWeekVal: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain },
+
+  // Last 7 days
+  revHistoryHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, marginHorizontal: 16 },
+  revHistoryTitle: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary },
+  revHistoryBtn: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary },
+  rev7Empty: { paddingVertical: 30, alignItems: 'center' },
+  rev7Card: { backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 16, paddingHorizontal: 16, marginBottom: 10, marginHorizontal: 16, borderWidth: 1, borderColor: colors.secondary, gap: 12 },
+  rev7CardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  rev7CardDate: { fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.textMain },
+  rev7TodayTag: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, backgroundColor: withAlpha(colors.success, 0.1) },
+  rev7TodayTagText: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.success },
+  rev7CardBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, gap: 5 },
+  rev7CardBadgeGap: { backgroundColor: withAlpha(colors.danger, 0.1) },
+  rev7CardBadgeOk: { backgroundColor: withAlpha(colors.success, 0.1) },
+  rev7CardDot: { width: 6, height: 6, borderRadius: 3 },
+  rev7CardStatus: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight },
+  rev7ArchivedBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, backgroundColor: withAlpha(colors.danger, 0.1) },
+  rev7ArchivedBadgeText: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.danger },
+  rev7CardAmounts: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 8, backgroundColor: colors.surface, borderRadius: 8 },
+  rev7CardAmtCol: { alignItems: 'center', flex: 1, gap: 4 },
+  rev7CardAmtVal: { fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight },
+  rev7CardAmtLabel: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight },
+  rev7CardFooter: { borderTopWidth: 0.5, borderTopColor: colors.secondary, paddingTop: 8 },
+  rev7CardFooterText: { fontSize: FONTS.micro.size, color: colors.textSub },
+  rev7CardNote: { borderTopWidth: 0.5, borderTopColor: colors.secondary, paddingTop: 8, marginTop: 4 },
+  rev7CardNoteText: { fontSize: FONTS.micro.size, color: colors.textSub, lineHeight: 16 },
+});
+
+const getMo = (colors: ThemeColors) => StyleSheet.create({
+  backdrop: {
+    flex: 1, backgroundColor: withAlpha(colors.textMain, 0.4),
+    justifyContent: 'center', alignItems: 'center', padding: 16,
+  },
+  card: {
+    backgroundColor: colors.surface, borderRadius: 16,
+    width: 340, maxWidth: '90%', overflow: 'hidden' as any,
+    ...modalCardAnimation,
+  },
+  header: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 20, paddingVertical: 14,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+  },
+  title: { fontSize: 14, fontWeight: '700', color: colors.surface },
+  close: { ...modalClose },
+  body: { padding: 24, gap: 18 } as any,
+  btnRow: { flexDirection: 'row', gap: 12, marginTop: 0 },
+  cancelBtn: {
+    flex: 1, borderRadius: 10, borderWidth: 1,
+    borderColor: (colors as any).secondary || '#e0e0e0',
+    paddingVertical: 12, alignItems: 'center',
+  },
+  cancelText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.textSub },
+  confirmBtn: {
+    flex: 1, backgroundColor: colors.primary, borderRadius: 10,
+    paddingVertical: 12, alignItems: 'center',
+  },
+  confirmText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.surface },
+});

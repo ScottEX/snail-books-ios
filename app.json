@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "狸花猫",
+    "slug": "snail-books-ios",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.lanx.snailbooks",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "用于使用 Face ID 快速登录柳味探秘",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false,
+          "NSAllowsLocalNetworking": true,
+          "NSExceptionDomains": {
+            "8.135.58.90": {
+              "NSExceptionAllowsInsecureHTTPLoads": true
+            }
+          }
+        }
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "newArchEnabled": false,
+    "extra": {
+      "eas": {
+        "projectId": "snail-books"
+      }
+    },
+    "plugins": [
+      "expo-asset",
+      "expo-localization",
+      "@react-native-community/datetimepicker",
+      "./plugins/withTunnelConfig"
+    ]
+  }
+}
