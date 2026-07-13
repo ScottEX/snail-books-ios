@@ -382,7 +382,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   /* Card */
   card: {
     backgroundColor: colors.surface, borderRadius: 14, padding: 14,
-    marginBottom: 12, borderWidth: 1, borderColor: colors.secondary,
+    marginBottom: 8, borderWidth: 1, borderColor: colors.secondary,
     gap: 10,
   },
   dateRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2, gap: 8 },
@@ -411,7 +411,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   pairLabel: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight },
   pairVal: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain },
   pairDivider: { height: 1, backgroundColor: colors.secondary, width: '70%' },
-  chanSection: { marginHorizontal: 14, marginBottom: 18, marginTop: 4, borderTopWidth: 1, borderTopColor: colors.bg, paddingTop: 12 },
+  chanSection: { marginHorizontal: 14, marginBottom: 0, marginTop: 4, borderTopWidth: 1, borderTopColor: colors.bg, paddingTop: 12 },
   chanRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 7, paddingHorizontal: 4 },
   chanLabel: { fontSize: FONTS.sub.size, color: colors.textSub, fontWeight: FONTS.sub.weight },
   chanVal: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain },

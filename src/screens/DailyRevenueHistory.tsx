@@ -248,7 +248,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
     backgroundColor: colors.surface, borderRadius: 12,
     paddingVertical: 16, paddingHorizontal: 16,
-    marginBottom: 10,
+    marginBottom: 8,
     borderWidth: 1, borderColor: colors.secondary,
     gap: 12,
   } as any,
