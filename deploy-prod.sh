@@ -4,7 +4,7 @@
 # Does NOT overwrite the debug test app (different bundle ID).
 
 set -e
-cd "$(dirname "$0")"
+PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
 DEVICE_ID="${1:-00008150-000231920244401C}"
 DERIVED_DATA=~/Library/Developer/Xcode/DerivedData/app-*
@@ -13,11 +13,11 @@ echo "🧹 清理旧签名缓存..."
 /bin/rm -rf $DERIVED_DATA
 
 echo "📦 同步原生依赖..."
-cd ios && pod install --quiet && cd ..
+cd "$PROJECT_ROOT/ios" && pod install --silent && cd "$PROJECT_ROOT"
 
 echo "🏗️  构建生产包..."
 xcodebuild \
-  -workspace ios/app.xcworkspace \
+  -workspace "$PROJECT_ROOT/ios/app.xcworkspace" \
   -scheme app \
   -configuration Release \
   -destination "id=${DEVICE_ID}" \
