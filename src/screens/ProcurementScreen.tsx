@@ -753,7 +753,8 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   };
 
   return (
-    <View style={styles.container}>
+    <>
+      <View style={styles.container}>
       {/* ── Frosted Glass Block ── */}
       <View style={styles.frostedBlock}>
         <BlurView
@@ -1508,13 +1509,14 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
         </Animated.View>
       )}
       {ToastHost}
-
-      <ImagePreview
-        images={preview?.images ?? []}
-        initialIdx={preview?.idx ?? 0}
-        visible={preview !== null}
-        onClose={closePreview}
-      />
     </View>
+
+    <ImagePreview
+      images={preview?.images ?? []}
+      initialIdx={preview?.idx ?? 0}
+      visible={preview !== null}
+      onClose={closePreview}
+    />
+    </>
   );
 }
