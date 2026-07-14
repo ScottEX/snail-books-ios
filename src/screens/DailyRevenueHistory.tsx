@@ -293,7 +293,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   loadingMoreText: { fontSize: FONTS.sub.size, color: colors.primary },
 
   // Filter
-  filterField: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  filterField: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   filterLabel: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: '#FFFFFF', width: 64, flexShrink: 0 },
   filterDateRange: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 },
   filterDateWrap: {
@@ -306,15 +306,15 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   filterDatePlaceholder: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.45)', fontStyle: 'italic' },
   filterActions: { flexDirection: 'row', gap: 8, marginTop: 4 },
   filterResetBtn: {
-    flex: 1, alignItems: 'center', paddingVertical: 8,
+    flex: 1, height: 34, justifyContent: 'center', alignItems: 'center',
     backgroundColor: colors.secondary, borderRadius: 8,
   },
-  filterResetBtnText: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.textSub },
+  filterResetBtnText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.textSub },
   filterApplyBtn: {
-    flex: 1, alignItems: 'center', paddingVertical: 8,
+    flex: 1, height: 34, justifyContent: 'center', alignItems: 'center',
     backgroundColor: colors.primary, borderRadius: 8,
   },
-  filterApplyBtnDisabled: { backgroundColor: colors.secondary },
-  filterApplyBtnText: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.surface },
-  filterApplyBtnTextDisabled: { color: colors.textSub },
+  filterApplyBtnDisabled: { opacity: 0.3 },
+  filterApplyBtnText: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.surface },
+  filterApplyBtnTextDisabled: { color: 'rgba(255,255,255,0.3)' },
 } as any);
