@@ -512,9 +512,7 @@ export const api = {
     if (!resp.ok) throw new Error('Upload failed');
     return resp.json() as Promise<{ status: string; file_path: string; file_type: string; file_size: number }>;
   },
-  getInvoiceFileUrl: (filePath: string) => {
-    return `${API_BASE}${filePath.startsWith('/') ? '' : '/'}${filePath}`;
-  },
+  getInvoiceFileUrl: (filePath: string) => `${API_BASE}/api/invoice-files/${filePath}`,
   getUserAvatar: async (userId: number | string): Promise<string | null> => {
     try {
       const resp = await fetch(API_BASE + `/api/users/avatar?user_id=${userId}`, { credentials: 'omit' as RequestCredentials });
