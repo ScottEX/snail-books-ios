@@ -190,6 +190,12 @@ export default function ImagePreview({
             </Animated.View>
           ))}
         </ScrollView>
+      ) : images.length === 1 ? (
+        <Animated.View
+          style={[styles.page, { width: WINDOW_W, transform: [{ scale: imageScale }] }]}
+        >
+          <NativeZoomableImage src={images[0]} windowW={WINDOW_W} windowH={WINDOW_H} isActive={true} onZoomChange={handleZoomChange} onSwipeToPage={handleSwipeToPage} />
+        </Animated.View>
       ) : (
         <ScrollView
           ref={scrollRef}
@@ -205,7 +211,7 @@ export default function ImagePreview({
             }
           }}
           bounces={false}
-          scrollEnabled={images.length > 1 && !scrollLocked}
+          scrollEnabled={!scrollLocked}
           style={styles.scrollView}
         >
           {images.map((src, i) => (
