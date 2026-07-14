@@ -199,7 +199,7 @@ export default function ImagePreview({
             }
           }}
           bounces={false}
-          scrollEnabled={!scrollLocked}
+          scrollEnabled={images.length > 1 && !scrollLocked}
           style={styles.scrollView}
         >
           {images.map((src, i) => (
