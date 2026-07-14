@@ -280,7 +280,7 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
         key={scrollKey}
         pointerEvents={isActive ? 'auto' : 'none'}
         style={StyleSheet.absoluteFillObject}
-        contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center' }}
+        contentContainerStyle={{ minHeight: '100%', alignItems: 'center', justifyContent: 'center' }}
         maximumZoomScale={4}
         minimumZoomScale={1}
         bouncesZoom={false}
