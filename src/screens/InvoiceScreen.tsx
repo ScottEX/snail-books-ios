@@ -579,7 +579,8 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   };
 
   return (
-    <View style={styles.root} {...swipeBack}>
+    <>
+      <View style={styles.root} {...swipeBack}>
       {/* ═══ ENTRY CARD ═══ */}
       <View
         style={[styles.entryCard, { backgroundColor: '#D15F6C', paddingTop: insets.top }]}
@@ -1145,13 +1146,6 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
         </ReAnimated.View>
       </ModalOverlay>
 
-      <ImagePreview
-        images={preview?.images ?? []}
-        initialIdx={preview?.idx ?? 0}
-        visible={preview !== null}
-        onClose={closePreview}
-      />
-
       <CustomActionSheet
         visible={showBatchPicker}
         actions={batchActions}
@@ -1161,6 +1155,14 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
         dark
       />
     </View>
+
+    <ImagePreview
+      images={preview?.images ?? []}
+      initialIdx={preview?.idx ?? 0}
+      visible={preview !== null}
+      onClose={closePreview}
+    />
+    </>
   );
 }
 
