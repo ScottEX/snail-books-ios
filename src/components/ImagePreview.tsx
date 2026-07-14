@@ -78,14 +78,13 @@ export default function ImagePreview({
   // ── PanResponder — vertical dismiss (native ScrollViews handle paging+zoom) ──
   const [scrollLocked, setScrollLocked] = useState(false);
 
-  const moveHandler = useCallback((_: any, gs: any) =>
-    !dismissing && Math.abs(gs.dy) > Math.abs(gs.dx) * 1.5 && Math.abs(gs.dy) > 20, []);
-
   const panResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
     ...(captureGestures
-      ? { onMoveShouldSetPanResponderCapture: moveHandler }
-      : { onMoveShouldSetPanResponder: moveHandler }),
+      ? { onMoveShouldSetPanResponderCapture: (_: any, gs: any) =>
+            !dismissing && Math.abs(gs.dy) > Math.abs(gs.dx) * 1.5 && Math.abs(gs.dy) > 20 }
+      : { onMoveShouldSetPanResponder: (_: any, gs: any) =>
+            !dismissing && Math.abs(gs.dy) > Math.abs(gs.dx) * 1.5 && Math.abs(gs.dy) > 20 }),
 
     onPanResponderGrant: () => {
       panY.stopAnimation();
@@ -270,7 +269,6 @@ function clampResist(val: number, low: number, high: number) {
 
 function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, onSwipeToPage }: { src: string; windowW: number; windowH: number; isActive: boolean; onZoomChange: (zooming: boolean) => void; onSwipeToPage: (dir: -1 | 1) => void }) {
   const [scrollKey, setScrollKey] = useState(0);
-  const [zoomed, setZoomed] = useState(false);
   const zoomedRef = useRef(false);
   const reachedLeftEdge = useRef(false);
   const reachedRightEdge = useRef(false);
@@ -281,8 +279,8 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
   useEffect(() => {
     if (!isActive && prevActive.current && zoomedRef.current) {
       zoomedRef.current = false;
-      setZoomed(false);
       onZoomChange(false);
+      // Defer key bump: user is looking at the new page by now, won't see shrink
       const timer = setTimeout(() => setScrollKey(k => k + 1), 350);
       return () => clearTimeout(timer);
     }
@@ -291,21 +289,10 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
 
   return (
     <View style={{ width: windowW, height: '100%' }}>
-      {/* Invisible pinch detector overlay — only active when not zoomed */}
-      {!zoomed && (
-        <View
-          style={[StyleSheet.absoluteFillObject, { zIndex: 10 }]}
-          onTouchStart={(e: any) => {
-            if (e.nativeEvent.touches?.length >= 2) {
-              setZoomed(true);
-            }
-          }}
-        />
-      )}
       {/* Zoom layer: remounts (via key) to reset native zoom when needed */}
       <ScrollView
         key={scrollKey}
-        pointerEvents={zoomed ? 'auto' : 'none'}
+        pointerEvents={isActive ? 'auto' : 'none'}
         style={StyleSheet.absoluteFillObject}
         contentContainerStyle={{ minHeight: '100%', alignItems: 'center', justifyContent: 'center' }}
         maximumZoomScale={4}
@@ -334,7 +321,6 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
             onZoomChange(true);
           } else if (!isZoomed && zoomedRef.current) {
             zoomedRef.current = false;
-            setZoomed(false);
             reachedLeftEdge.current = false;
             reachedRightEdge.current = false;
             requestAnimationFrame(() => onZoomChange(false));
@@ -348,6 +334,7 @@ function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, on
         onScrollEndDrag={() => {
           isInteracting.current = false;
           if (zoomedRef.current && (reachedLeftEdge.current || reachedRightEdge.current)) {
+            // Unlock for scrollTo; don't reset zoomedRef — let useEffect delay key bump
             onZoomChange(false);
             const dir = reachedLeftEdge.current ? -1 : 1;
             reachedLeftEdge.current = false;
