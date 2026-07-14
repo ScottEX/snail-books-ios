@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
-  View, TouchableOpacity, StyleSheet, Animated,
+  View, TouchableOpacity, StyleSheet, Animated, StatusBar,
   PanResponder, ScrollView, Platform, useWindowDimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
@@ -135,10 +135,12 @@ export default function ImagePreview({
   const isHidden = !visible && !dismissing;
 
   return (
-    <Animated.View
-      style={[styles.overlay, { opacity: overlayOpacity }]}
-      pointerEvents={isHidden ? 'none' : 'auto'}
-      {...panResponder.panHandlers}>
+    <>
+      <StatusBar hidden={visible && !dismissing} animated />
+      <Animated.View
+        style={[styles.overlay, { opacity: overlayOpacity }]}
+        pointerEvents={isHidden ? 'none' : 'auto'}
+        {...panResponder.panHandlers}>
       {/* Close button */}
       <TouchableOpacity style={styles.close} onPress={animateClose} activeOpacity={0.7}>
         <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round">
@@ -220,6 +222,7 @@ export default function ImagePreview({
         </View>
       )}
     </Animated.View>
+    </>
   );
 }
 
