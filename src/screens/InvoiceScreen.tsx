@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions, useWindowDimensions,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions, useWindowDimensions, Modal,
 } from 'react-native';
 import CustomActionSheet, { ActionItem } from '../components/CustomActionSheet';
 import AppTextInput from '../components/AppTextInput';
@@ -571,18 +571,11 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
 
   /* ── Preview handlers ── */
   const handlePreviewExisting = (index: number) => {
-    setDrawerOpen(false);
     openPreview(dExistingFilePath.map(p => api.getInvoiceFileUrl(p)), index);
   };
 
   const handlePreviewNew = (index: number) => {
-    setDrawerOpen(false);
     openPreview(dFiles.map(f => f.uri), index);
-  };
-
-  const handleClosePreview = () => {
-    closePreview();
-    setDrawerOpen(true);
   };
 
   return (
@@ -1163,12 +1156,16 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       />
     </View>
 
-    <ImagePreview
-      images={preview?.images ?? []}
-      initialIdx={preview?.idx ?? 0}
-      visible={preview !== null}
-      onClose={handleClosePreview}
-    />
+    <Modal visible={preview !== null} transparent animationType="fade" statusBarTranslucent onRequestClose={closePreview}>
+      <View style={{ flex: 1 }}>
+        <ImagePreview
+          images={preview?.images ?? []}
+          initialIdx={preview?.idx ?? 0}
+          visible={preview !== null}
+          onClose={closePreview}
+        />
+      </View>
+    </Modal>
     </>
   );
 }
