@@ -1156,7 +1156,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       />
     </View>
 
-    <Modal visible={preview !== null} transparent animationType="fade" onRequestClose={closePreview}>
+    <Modal visible={preview !== null} transparent animationType="fade" presentationStyle="overFullScreen" onRequestClose={closePreview}>
       <ImagePreview
         images={preview?.images ?? []}
         initialIdx={preview?.idx ?? 0}
