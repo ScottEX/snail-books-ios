@@ -78,7 +78,7 @@ export default function ImagePreview({
 
   const panResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
-    onMoveShouldSetPanResponderCapture: (_, gs) =>
+    onMoveShouldSetPanResponder: (_, gs) =>
       !dismissing && Math.abs(gs.dy) > Math.abs(gs.dx) * 1.5 && Math.abs(gs.dy) > 20,
 
     onPanResponderGrant: () => {
