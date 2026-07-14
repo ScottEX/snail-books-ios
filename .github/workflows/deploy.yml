@@ -16,31 +16,15 @@ jobs:
         with:
           node-version: 22
 
-      - name: Build Expo web frontend
-        working-directory: ../snail-books-web
-        run: |
-          npm ci
-          npm run build:web
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Sync www/ from Expo dist
-        run: |
-          cp -r ../snail-books-web/dist/* www/
-          mkdir -p www/static
+      - name: TypeScript check
+        run: npx tsc --noEmit
 
       - name: 关键文件完整性
         run: |
-          for f in www/index.html capacitor.config.json package.json; do
+          for f in app.json package.json App.tsx index.js; do
             test -f "$f" || { echo "MISSING: $f"; exit 1; }
           done
           echo "All key files present"
-
-      - name: Capacitor config 合法性
-        run: |
-          python3 -c "
-          import json
-          with open('capacitor.config.json') as f:
-              c = json.load(f)
-          assert c.get('appId'), 'Missing appId'
-          assert c.get('webDir'), 'Missing webDir'
-          print('Config OK')
-          "
