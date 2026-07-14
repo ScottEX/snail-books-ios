@@ -1163,6 +1163,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
           initialIdx={preview?.idx ?? 0}
           visible={preview !== null}
           onClose={closePreview}
+          captureGestures
         />
       </View>
     </Modal>
