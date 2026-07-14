@@ -269,12 +269,20 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const fetchUserMedia = useCallback(async (user: string) => {
     if (!user) { setAvatarUrl(''); setBgUrl(''); return; }
 
-    const saveDataUri = async (dataUri: string, prefix: string): Promise<string> => {
+    // Timestamped filename so the file:// URI is always unique. A
+    // content-hash name (old approach) could collide when a new image
+    // shared the same leading bytes as the cached one (JPEG headers are
+    // near-identical), producing the SAME URI — React would then skip the
+    // re-render and RN's Image cache would keep showing the stale image.
+    // Delete the previous cached file first to avoid piling up in cache.
+    const saveDataUri = async (dataUri: string, prefix: string, oldUri: string): Promise<string> => {
       try {
         const base64 = dataUri.split(',')[1];
         if (!base64) return '';
-        const hash = base64.slice(0, 48).split('').reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0).toString(36);
-        const fileUri = FileSystem.cacheDirectory + prefix + '-' + encodeURIComponent(user) + '-' + hash + '.jpg';
+        if (oldUri && oldUri.startsWith('file://')) {
+          try { await FileSystem.deleteAsync(oldUri, { idempotent: true }); } catch {}
+        }
+        const fileUri = FileSystem.cacheDirectory + prefix + '-' + encodeURIComponent(user) + '-' + Date.now() + '.jpg';
         await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
         return fileUri;
       } catch { return ''; }
@@ -283,7 +291,8 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     try {
       const avatarDataUri = await api.getUserAvatarByLoginUri(user).catch(() => null);
       if (avatarDataUri) {
-        const fileUri = await saveDataUri(avatarDataUri, 'avatar');
+        const oldAvatar = (() => { try { return localStorage.getItem(`avatar-uri-${user}`) || ''; } catch { return ''; } })();
+        const fileUri = await saveDataUri(avatarDataUri, 'avatar', oldAvatar);
         const url = fileUri || avatarDataUri;
         await Image.prefetch(url);
         setAvatarUrl(url);
@@ -296,7 +305,8 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     try {
       const bgDataUri = await api.getUserBackgroundUri(user).catch(() => null);
       if (bgDataUri) {
-        const fileUri = await saveDataUri(bgDataUri, 'bg');
+        const oldBg = (() => { try { return localStorage.getItem(`bg-image-${user}`) || ''; } catch { return ''; } })();
+        const fileUri = await saveDataUri(bgDataUri, 'bg', oldBg);
         const url = fileUri || bgDataUri;
         await Image.prefetch(url);
         setBgUrl(url);
