@@ -173,6 +173,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       setFaceAvailable(a.available);
       if (!a.available) return;
 
+      // saved_login is read once up front and reused throughout bootstrap
+      // (server fallback check, Keychain resolution, face-mode decision).
+      const savedUser = localStorage.getItem('saved_login') || '';
+
       // 2. Server is the authority — try webauthnStatus (needs token)
       //    then fall back to webauthnCheck (public, by username).
       let serverHasCredential = false;
@@ -185,7 +189,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         }
       } catch {}
       if (!serverReachable) {
-        const savedUser = localStorage.getItem('saved_login') || '';
         if (savedUser) {
           try {
             const r = await api.webauthnCheck(savedUser);
@@ -207,7 +210,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
       // 5. Face mode: auto-enter when Keychain matches saved_login.
       //    Persist result to localStorage so next mount starts correctly.
-      const savedUser = localStorage.getItem('saved_login') || '';
       if (!keychainCred) {
         localStorage.removeItem('face_mode_user');
         setFaceMode(false);
