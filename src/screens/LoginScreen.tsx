@@ -107,7 +107,16 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   useEffect(() => {
     if (typeof localStorage !== 'undefined') {
       const saved = localStorage.getItem('saved_login');
-      if (saved) setUsername(saved);
+      if (saved) {
+        setUsername(saved);
+        // Refresh avatar + background from the server on mount so the
+        // login page reflects changes made elsewhere (e.g. web). Without
+        // this the page only shows the cached (possibly stale) background
+        // until the user manually blurs the username field. Covers both
+        // Face ID and password entry paths since LoginScreen remounts on
+        // every logout / cold start.
+        fetchUserMedia(saved);
+      }
       if (localStorage.getItem('user')) onLogin();
     }
   }, []);
@@ -164,6 +173,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       setFaceAvailable(a.available);
       if (!a.available) return;
 
+      // saved_login is read once up front and reused throughout bootstrap
+      // (server fallback check, Keychain resolution, face-mode decision).
+      const savedUser = localStorage.getItem('saved_login') || '';
+
       // 2. Server is the authority — try webauthnStatus (needs token)
       //    then fall back to webauthnCheck (public, by username).
       let serverHasCredential = false;
@@ -176,7 +189,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         }
       } catch {}
       if (!serverReachable) {
-        const savedUser = localStorage.getItem('saved_login') || '';
         if (savedUser) {
           try {
             const r = await api.webauthnCheck(savedUser);
@@ -198,7 +210,6 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
       // 5. Face mode: auto-enter when Keychain matches saved_login.
       //    Persist result to localStorage so next mount starts correctly.
-      const savedUser = localStorage.getItem('saved_login') || '';
       if (!keychainCred) {
         localStorage.removeItem('face_mode_user');
         setFaceMode(false);
@@ -258,12 +269,20 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const fetchUserMedia = useCallback(async (user: string) => {
     if (!user) { setAvatarUrl(''); setBgUrl(''); return; }
 
-    const saveDataUri = async (dataUri: string, prefix: string): Promise<string> => {
+    // Timestamped filename so the file:// URI is always unique. A
+    // content-hash name (old approach) could collide when a new image
+    // shared the same leading bytes as the cached one (JPEG headers are
+    // near-identical), producing the SAME URI — React would then skip the
+    // re-render and RN's Image cache would keep showing the stale image.
+    // Delete the previous cached file first to avoid piling up in cache.
+    const saveDataUri = async (dataUri: string, prefix: string, oldUri: string): Promise<string> => {
       try {
         const base64 = dataUri.split(',')[1];
         if (!base64) return '';
-        const hash = base64.slice(0, 48).split('').reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0).toString(36);
-        const fileUri = FileSystem.cacheDirectory + prefix + '-' + encodeURIComponent(user) + '-' + hash + '.jpg';
+        if (oldUri && oldUri.startsWith('file://')) {
+          try { await FileSystem.deleteAsync(oldUri, { idempotent: true }); } catch {}
+        }
+        const fileUri = FileSystem.cacheDirectory + prefix + '-' + encodeURIComponent(user) + '-' + Date.now() + '.jpg';
         await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
         return fileUri;
       } catch { return ''; }
@@ -272,7 +291,8 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     try {
       const avatarDataUri = await api.getUserAvatarByLoginUri(user).catch(() => null);
       if (avatarDataUri) {
-        const fileUri = await saveDataUri(avatarDataUri, 'avatar');
+        const oldAvatar = (() => { try { return localStorage.getItem(`avatar-uri-${user}`) || ''; } catch { return ''; } })();
+        const fileUri = await saveDataUri(avatarDataUri, 'avatar', oldAvatar);
         const url = fileUri || avatarDataUri;
         await Image.prefetch(url);
         setAvatarUrl(url);
@@ -285,7 +305,8 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     try {
       const bgDataUri = await api.getUserBackgroundUri(user).catch(() => null);
       if (bgDataUri) {
-        const fileUri = await saveDataUri(bgDataUri, 'bg');
+        const oldBg = (() => { try { return localStorage.getItem(`bg-image-${user}`) || ''; } catch { return ''; } })();
+        const fileUri = await saveDataUri(bgDataUri, 'bg', oldBg);
         const url = fileUri || bgDataUri;
         await Image.prefetch(url);
         setBgUrl(url);
