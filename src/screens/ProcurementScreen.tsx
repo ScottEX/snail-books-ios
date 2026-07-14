@@ -34,6 +34,8 @@ import PlusIcon from '../components/icons/PlusIcon';
 import { fmtDecInput } from '../utils/numbers';
 import type { PickedImage } from '../utils/imagePicker';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import ImagePreview from '../components/ImagePreview';
+import { useImagePreview } from '../hooks/useImagePreview';
 
 type SubTab = 'new' | 'history' | 'products';
 type PayMethod = 'payCash' | 'payWechat' | 'payAlipay';
@@ -356,6 +358,8 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   const [successIsEdit, setSuccessIsEdit] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const { showToast, ToastHost } = useToast();
+
+  const { preview, openPreview, closePreview } = useImagePreview();
 
   const [stats, setStats] = useState<ProcStats>({ total_spent: 0, total_income: 0, batch_count: 0, margin_pct: 0 });
 
@@ -1067,11 +1071,14 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                   </View>
                   {(() => {
                   const thumbImgs: string[] = (batch.thumb_images?.length ? batch.thumb_images : batch.images) || [];
+                  const fullImgs: string[] = batch.images || [];
                   return thumbImgs.length > 0 && (
                     <View style={styles.histImages}>
                       {thumbImgs.map((img: string, i: number) => (
-                        <Image key={i} source={{ uri: resolveAssetUrl(img) || img }}
-                          style={{ width: 60, height: 60, borderRadius: 6, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.08) }} />
+                        <TouchableOpacity key={i} onPress={() => openPreview(fullImgs.map((u: string) => resolveAssetUrl(u) || u), i)} activeOpacity={0.7}>
+                          <Image source={{ uri: resolveAssetUrl(img) || img }}
+                            style={{ width: 60, height: 60, borderRadius: 6, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.08) }} />
+                        </TouchableOpacity>
                       ))}
                     </View>
                   );
@@ -1501,6 +1508,13 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
         </Animated.View>
       )}
       {ToastHost}
+
+      <ImagePreview
+        images={preview?.images ?? []}
+        initialIdx={preview?.idx ?? 0}
+        visible={preview !== null}
+        onClose={closePreview}
+      />
     </View>
   );
 }

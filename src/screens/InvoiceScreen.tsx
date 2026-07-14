@@ -19,6 +19,7 @@ import ExpenseNoteInput from '../components/ExpenseNoteInput';
 import SubmitButton from '../components/SubmitButton';
 import TrashIcon from '../components/icons/TrashIcon';
 import ImagePreview from '../components/ImagePreview';
+import { useImagePreview } from '../hooks/useImagePreview';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 import { useServerDate } from '../hooks/useServerDate';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -326,14 +327,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   // Toast
   const [toast, setToast] = useState('');
 
-  // Image preview state (using ImagePreview component)
-  const [previewImages, setPreviewImages] = useState<string[] | null>(null);
-  const [previewIdx, setPreviewIdx] = useState(0);
-  const openPreview = (images: string[], idx: number = 0) => {
-    setPreviewImages(images);
-    setPreviewIdx(idx);
-  };
-  const closePreview = () => setPreviewImages(null);
+  const { preview, openPreview, closePreview } = useImagePreview();
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -1151,14 +1145,12 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
         </ReAnimated.View>
 
           {/* Image preview overlay */}
-          {previewImages && (
-            <ImagePreview
-              images={previewImages}
-              initialIdx={previewIdx}
-              visible={true}
-              onClose={closePreview}
-            />
-          )}
+          <ImagePreview
+            images={preview?.images ?? []}
+            initialIdx={preview?.idx ?? 0}
+            visible={preview !== null}
+            onClose={closePreview}
+          />
       </ModalOverlay>
 
       <CustomActionSheet
