@@ -412,6 +412,14 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       setFaceIDError(t('errEmptyFields'));
       return;
     }
+    // Enforce the same password rules as registration (8+ chars, letter,
+    // digit, special char). All accounts are created under these rules, so
+    // an input that fails them can't be a valid password — reject locally
+    // without a network round-trip.
+    if (!isPwValid(faceIDPassword)) {
+      setFaceIDError(t('errPwRequirements'));
+      return;
+    }
     setFaceIDLoading(true);
     try {
       const username = getCurrentUser() || '';
@@ -423,12 +431,12 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       try {
         const vr = await api.verifyPassword(faceIDPassword);
         if (!vr || vr.status !== 'ok') {
-          setFaceIDError(t('errWrongCredentials'));
+          setFaceIDError(t('errWrongPassword'));
           setFaceIDLoading(false);
           return;
         }
       } catch {
-        setFaceIDError(t('errWrongCredentials'));
+        setFaceIDError(t('errWrongPassword'));
         setFaceIDLoading(false);
         return;
       }
