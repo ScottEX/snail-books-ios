@@ -1143,15 +1143,14 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
               );
             })()}
         </ReAnimated.View>
-
-          {/* Image preview overlay */}
-          <ImagePreview
-            images={preview?.images ?? []}
-            initialIdx={preview?.idx ?? 0}
-            visible={preview !== null}
-            onClose={closePreview}
-          />
       </ModalOverlay>
+
+      <ImagePreview
+        images={preview?.images ?? []}
+        initialIdx={preview?.idx ?? 0}
+        visible={preview !== null}
+        onClose={closePreview}
+      />
 
       <CustomActionSheet
         visible={showBatchPicker}
