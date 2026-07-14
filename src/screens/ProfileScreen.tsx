@@ -415,6 +415,24 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     setFaceIDLoading(true);
     try {
       const username = getCurrentUser() || '';
+      // 1. Verify the password against the server BEFORE storing it in
+      //    Keychain. Otherwise a wrong password gets saved and every future
+      //    Face ID login silently fails (it replays the stored password).
+      //    Uses the side-effect-free /profile/verify-password endpoint
+      //    (does NOT create a session or trigger login rate-limiting).
+      try {
+        const vr = await api.verifyPassword(faceIDPassword);
+        if (!vr || vr.status !== 'ok') {
+          setFaceIDError(t('errWrongCredentials'));
+          setFaceIDLoading(false);
+          return;
+        }
+      } catch {
+        setFaceIDError(t('errWrongCredentials'));
+        setFaceIDLoading(false);
+        return;
+      }
+      // 2. Password confirmed — now prompt biometric.
       const { success, error } = await promptBiometric(t('faceIDEnrollPrompt') || '启用面容登录');
       if (!success) {
         setFaceIDLoading(false);

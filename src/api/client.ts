@@ -340,6 +340,8 @@ export const api = {
 
   changePassword: (old_password: string, new_password: string) =>
     authFetch('/api/profile/password', { method: 'POST', body: JSON.stringify({ old_password, new_password }) }),
+  verifyPassword: (password: string) =>
+    authFetch('/api/profile/verify-password', { method: 'POST', body: JSON.stringify({ password }) }),
   sendEmailCode: (email: string) =>
     authFetch('/api/profile/email/send-code', { method: 'POST', body: JSON.stringify({ email }) }),
   verifyEmailCode: (email: string, code: string) =>
