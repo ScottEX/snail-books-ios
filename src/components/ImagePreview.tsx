@@ -22,7 +22,6 @@ interface ImagePreviewProps {
   initialIdx?: number;
   visible: boolean;
   onClose: () => void;
-  captureGestures?: boolean;
 }
 
 export default function ImagePreview({
@@ -30,7 +29,6 @@ export default function ImagePreview({
   initialIdx = 0,
   visible,
   onClose,
-  captureGestures,
 }: ImagePreviewProps) {
   const { width: WINDOW_W, height: WINDOW_H } = useWindowDimensions();
   const [idx, setIdx] = useState(initialIdx);
@@ -78,14 +76,10 @@ export default function ImagePreview({
   // ── PanResponder — vertical dismiss (native ScrollViews handle paging+zoom) ──
   const [scrollLocked, setScrollLocked] = useState(false);
 
-  const moveHandler = useCallback((_: any, gs: any) =>
-    !dismissing && Math.abs(gs.dy) > Math.abs(gs.dx) * 1.5 && Math.abs(gs.dy) > 20, []);
-
   const panResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
-    ...(captureGestures
-      ? { onMoveShouldSetPanResponderCapture: moveHandler }
-      : { onMoveShouldSetPanResponder: moveHandler }),
+    onMoveShouldSetPanResponderCapture: (_, gs) =>
+      !dismissing && Math.abs(gs.dy) > Math.abs(gs.dx) * 1.5 && Math.abs(gs.dy) > 20,
 
     onPanResponderGrant: () => {
       panY.stopAnimation();
@@ -123,7 +117,7 @@ export default function ImagePreview({
         ]).start();
       }
     },
-  }), [dismissing, captureGestures, panY, overlayOpacity, imageScale, WINDOW_H, onClose]);
+  }), [dismissing, panY, overlayOpacity, imageScale, WINDOW_H, onClose]);
 
   // ── Edge-swipe page change when zoomed ──
   const handleSwipeToPage = useCallback((direction: -1 | 1) => {
