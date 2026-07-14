@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions, useWindowDimensions,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions, useWindowDimensions, Modal,
 } from 'react-native';
 import CustomActionSheet, { ActionItem } from '../components/CustomActionSheet';
 import AppTextInput from '../components/AppTextInput';
@@ -1156,12 +1156,14 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       />
     </View>
 
-    <ImagePreview
-      images={preview?.images ?? []}
-      initialIdx={preview?.idx ?? 0}
-      visible={preview !== null}
-      onClose={closePreview}
-    />
+    <Modal visible={preview !== null} transparent animationType="fade" onRequestClose={closePreview}>
+      <ImagePreview
+        images={preview?.images ?? []}
+        initialIdx={preview?.idx ?? 0}
+        visible={preview !== null}
+        onClose={closePreview}
+      />
+    </Modal>
     </>
   );
 }
