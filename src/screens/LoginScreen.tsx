@@ -107,7 +107,16 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   useEffect(() => {
     if (typeof localStorage !== 'undefined') {
       const saved = localStorage.getItem('saved_login');
-      if (saved) setUsername(saved);
+      if (saved) {
+        setUsername(saved);
+        // Refresh avatar + background from the server on mount so the
+        // login page reflects changes made elsewhere (e.g. web). Without
+        // this the page only shows the cached (possibly stale) background
+        // until the user manually blurs the username field. Covers both
+        // Face ID and password entry paths since LoginScreen remounts on
+        // every logout / cold start.
+        fetchUserMedia(saved);
+      }
       if (localStorage.getItem('user')) onLogin();
     }
   }, []);
