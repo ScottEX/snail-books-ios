@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions, useWindowDimensions,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions, useWindowDimensions, Platform,
 } from 'react-native';
 import CustomActionSheet, { ActionItem } from '../components/CustomActionSheet';
 import AppTextInput from '../components/AppTextInput';
@@ -571,18 +571,18 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
 
   /* ── Preview handlers ── */
   const handlePreviewExisting = (index: number) => {
-    setDrawerOpen(false);
+    if (Platform.OS !== 'web') setDrawerOpen(false);
     openPreview(dExistingFilePath.map(p => api.getInvoiceFileUrl(p)), index);
   };
 
   const handlePreviewNew = (index: number) => {
-    setDrawerOpen(false);
+    if (Platform.OS !== 'web') setDrawerOpen(false);
     openPreview(dFiles.map(f => f.uri), index);
   };
 
   const handleClosePreview = () => {
     closePreview();
-    setDrawerOpen(true);
+    if (Platform.OS !== 'web') setDrawerOpen(true);
   };
 
   return (
