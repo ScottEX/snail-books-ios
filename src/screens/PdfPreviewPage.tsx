@@ -100,7 +100,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
           // progress callback — can be used for timeout detection
         });
         const timeout = setTimeout(() => {
-          if (!cancelled) FileSystem.cancelDownloadResumable?.(dl);
+          if (!cancelled) dl.cancelAsync();
         }, 15000);
         const result = await dl.downloadAsync();
         clearTimeout(timeout);
@@ -127,7 +127,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
       // If cache missed, download now with 15s timeout
       if (!pdfCached) {
         const dl = FileSystem.createDownloadResumable(pdfUrl, localUri, { headers: { 'X-Lang': lang } });
-        const timeout = setTimeout(() => FileSystem.cancelDownloadResumable?.(dl), 15000);
+        const timeout = setTimeout(() => dl.cancelAsync(), 15000);
         const result = await dl.downloadAsync();
         clearTimeout(timeout);
         if (!result) throw new Error('下载超时');
@@ -151,7 +151,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
       const fileName = `procurement_${batchId}.png`;
       const localUri = `${FileSystem.cacheDirectory}${fileName}`;
       const dl = FileSystem.createDownloadResumable(pngUrl, localUri, { headers: { 'X-Lang': lang } });
-      const timeout = setTimeout(() => FileSystem.cancelDownloadResumable?.(dl), 15000);
+      const timeout = setTimeout(() => dl.cancelAsync(), 15000);
       const result = await dl.downloadAsync();
       clearTimeout(timeout);
       if (!result) throw new Error('导出超时');
