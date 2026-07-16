@@ -250,7 +250,7 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
 
         // 下拉关闭: 向下滑 30px+ 且不是水平滑
         if (ty > 30 && ty > Math.abs(tx)) {
-          runOnJS(() => { requestAnimationFrame(() => onClose()); })();
+          runOnJS(() => { console.log('IMAGE_PREVIEW_DISMISS'); requestAnimationFrame(() => onClose()); })();
           return;
         }
 
