@@ -248,8 +248,8 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
         const tx = e.translationX;
         const ty = e.translationY;
 
-        // 下拉关闭: 向下滑 30px+ 且不是水平滑
-        if (ty > 30 && ty > Math.abs(tx)) {
+        // 下拉关闭
+        if (ty > 80 && Math.abs(tx) < 60) {
           runOnJS(() => { console.log('IMAGE_PREVIEW_DISMISS'); requestAnimationFrame(() => onClose()); })();
           return;
         }
@@ -289,8 +289,13 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
       }
     });
 
-  // ── Gesture composition ── (DEBUG: bare pan only)
-  const composed = pan;
+  // Race: first to activate wins. pan/pinch/doubleTap don't block each other.
+  // pan activates ~10px → beats doubleTap timeout → swipe/zoom responsive
+  // doubleTap activates on 2nd tap → beats pan (no movement) → zoom toggle
+  const composed = Gesture.Race(
+    doubleTap,
+    Gesture.Simultaneous(pan, pinch),
+  );
 
   // ── Animated styles ──
   const listStyle = useAnimatedStyle(() => ({
