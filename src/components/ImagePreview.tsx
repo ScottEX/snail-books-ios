@@ -1,611 +1,372 @@
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
-  View, TouchableOpacity, StyleSheet, Animated,
-  PanResponder, ScrollView, Platform, useWindowDimensions,
+  View, Text, StyleSheet, Dimensions,
+  StatusBar, TouchableOpacity, Modal,
 } from 'react-native';
 import { Image } from 'expo-image';
-import Svg, { Path } from 'react-native-svg';
+import Animated, {
+  useSharedValue, useAnimatedStyle,
+  withSpring, withTiming, runOnJS,
+  clamp, interpolate, Extrapolation,
+} from 'react-native-reanimated';
+import {
+  GestureDetector, Gesture,
+} from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const SPRING = { friction: 8, tension: 60 };
-const DISMISS_THRESHOLD = 80;
-const DISMISS_VELOCITY = 0.4;
-const OPEN_DURATION = 220;
-const CLOSE_DURATION = 200;
-const SNAP_DURATION = 220;
-const MAX_ZOOM = 4;
-const DOUBLE_TAP_MS = 300;
-const DOUBLE_TAP_ZOOM = 2;
-const OVERSCROLL_SWIPE = 60; // px past boundary to trigger page change
+const { width: W, height: H } = Dimensions.get('window');
 
-interface ImagePreviewProps {
+const MAX_SCALE = 4;
+const OVERSCALE_DAMPING = 0.3;
+const SWIPE_VELOCITY = 400;
+const SWIPE_THRESHOLD = W * 0.3;
+
+const SPRING_CFG = { damping: 32, stiffness: 280, mass: 0.8 };
+
+interface Props {
   images: string[];
   initialIdx?: number;
   visible: boolean;
   onClose: () => void;
 }
 
-export default function ImagePreview({
-  images,
-  initialIdx = 0,
-  visible,
-  onClose,
-}: ImagePreviewProps) {
-  const { width: WINDOW_W, height: WINDOW_H } = useWindowDimensions();
-  const [idx, setIdx] = useState(initialIdx);
-  const [dismissing, setDismissing] = useState(false);
-  const scrollRef = useRef<ScrollView>(null);
+export default function ImagePreview({ images, initialIdx = 0, visible, onClose }: Props) {
+  const insets = useSafeAreaInsets();
+  const currentIdx = useSharedValue(initialIdx);
+  const [renderIdx, setRenderIdx] = useState(initialIdx);
+  const listOffsetX = useSharedValue(-initialIdx * W);
 
-  // ── Animated values ──
-  const overlayOpacity = useRef(new Animated.Value(0)).current;
-  const imageScale = useRef(new Animated.Value(0.92)).current;
-  const panY = useRef(new Animated.Value(0)).current;
-
-  // ── ① Open: fade + scale ──
-  useEffect(() => {
-    if (!visible) return;
-    setDismissing(false);
-    overlayOpacity.setValue(0);
-    imageScale.setValue(0.92);
-    panY.setValue(0);
-    Animated.parallel([
-      Animated.timing(overlayOpacity, { toValue: 1, duration: OPEN_DURATION, useNativeDriver: false }),
-      Animated.spring(imageScale, { ...SPRING, toValue: 1, useNativeDriver: false }),
-    ]).start();
-  }, [visible]);
-
-  // ── Scroll to initial index on open ──
-  useEffect(() => {
-    if (!visible) return;
-    setIdx(initialIdx);
-    setScrollLocked(false);
-    if (WINDOW_W > 0) {
-      scrollRef.current?.scrollTo({ x: initialIdx * WINDOW_W, animated: false });
-    }
-  }, [visible, initialIdx, WINDOW_W]);
-
-  // ── Close ──
-  const animateClose = useCallback(() => {
-    if (dismissing) return;
-    setDismissing(true);
-    Animated.parallel([
-      Animated.timing(overlayOpacity, { toValue: 0, duration: CLOSE_DURATION, useNativeDriver: false }),
-      Animated.spring(imageScale, { ...SPRING, toValue: 0.92, useNativeDriver: false }),
-    ]).start(() => { onClose(); setDismissing(false); });
-  }, [dismissing, overlayOpacity, imageScale, onClose]);
-
-  // ── PanResponder — vertical dismiss (native ScrollViews handle paging+zoom) ──
-  const [scrollLocked, setScrollLocked] = useState(false);
-
-  const panResponder = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => false,
-    onMoveShouldSetPanResponder: (_, gs) =>
-      !dismissing && Math.abs(gs.dy) > Math.abs(gs.dx) * 1.5 && Math.abs(gs.dy) > 20,
-
-    onPanResponderGrant: () => {
-      panY.stopAnimation();
-      panY.setValue(0);
-    },
-
-    onPanResponderMove: (_, gs) => {
-      const dy = gs.dy;
-      const resistance = dy / (1 + Math.abs(dy) / 250);
-      panY.setValue(resistance);
-
-      const scaleProgress = Math.min(Math.abs(dy) / 350, 1);
-      imageScale.setValue(1 - scaleProgress * 0.08);
-
-      const fadeProgress = Math.pow(Math.min(Math.abs(dy) / (DISMISS_THRESHOLD * 1.3), 1), 1.6);
-      overlayOpacity.setValue(1 - fadeProgress * 0.55);
-    },
-
-    onPanResponderRelease: (_, gs) => {
-      const fastFling = gs.vy > DISMISS_VELOCITY;
-      const overThreshold = gs.dy > DISMISS_THRESHOLD;
-
-      if (overThreshold || (fastFling && gs.dy > 30)) {
-        setDismissing(true);
-        Animated.parallel([
-          Animated.timing(overlayOpacity, { toValue: 0, duration: CLOSE_DURATION, useNativeDriver: false }),
-          Animated.timing(panY, { toValue: WINDOW_H * 0.5, duration: CLOSE_DURATION, useNativeDriver: false }),
-          Animated.spring(imageScale, { ...SPRING, toValue: 0.92, useNativeDriver: false }),
-        ]).start(() => { onClose(); setDismissing(false); });
-      } else {
-        Animated.parallel([
-          Animated.timing(panY, { toValue: 0, duration: SNAP_DURATION, useNativeDriver: false }),
-          Animated.spring(imageScale, { ...SPRING, toValue: 1, useNativeDriver: false }),
-          Animated.timing(overlayOpacity, { toValue: 1, duration: 180, useNativeDriver: false }),
-        ]).start();
-      }
-    },
-  }), [dismissing, panY, overlayOpacity, imageScale, WINDOW_H, onClose]);
-
-  // ── Edge-swipe page change when zoomed ──
-  const handleSwipeToPage = useCallback((direction: -1 | 1) => {
-    const nextIdx = idx + direction;
-    if (nextIdx < 0 || nextIdx >= images.length) return;
-    setIdx(nextIdx);
-    scrollRef.current?.scrollTo({ x: nextIdx * WINDOW_W, animated: false });
-  }, [idx, images.length, WINDOW_W]);
-
-  const handleZoomChange = useCallback((zooming: boolean) => {
-    setScrollLocked(zooming);
-  }, []);
-
-  if (images.length === 0 || WINDOW_W === 0) return null;
-  const isHidden = !visible && !dismissing;
+  const syncRenderIdx = useCallback((idx: number) => { setRenderIdx(idx); }, []);
 
   return (
-    <Animated.View
-      style={[styles.overlay, { opacity: overlayOpacity }]}
-      pointerEvents={isHidden ? 'none' : 'auto'}
-      {...panResponder.panHandlers}>
-      {/* Close button */}
-      <TouchableOpacity style={styles.close} onPress={animateClose} activeOpacity={0.7}>
-        <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round">
-          <Path d="M18 6L6 18M6 6l12 12" />
-        </Svg>
-      </TouchableOpacity>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <StatusBar hidden />
+      <View style={styles.root}>
+        {/* Image list */}
+        <Animated.View style={styles.list}>
+          {images.map((uri, index) => (
+            <ImageItem
+              key={uri + index}
+              uri={uri}
+              index={index}
+              currentIdx={currentIdx}
+              listOffsetX={listOffsetX}
+              total={images.length}
+              onClose={onClose}
+              onIndexChange={syncRenderIdx}
+            />
+          ))}
+        </Animated.View>
 
-      {/* Paged image viewer */}
-      {Platform.OS === 'web' ? (
-        <ScrollView
-          ref={scrollRef}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          scrollEventThrottle={16}
-          onScroll={(e) => {
-            const offsetX = e.nativeEvent.contentOffset.x;
-            const raw = offsetX / WINDOW_W;
-            const page = Math.round(raw);
-            if (page >= 0 && page < images.length && page !== idx) {
-              setIdx(page);
-            }
-          }}
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          bounces={false}
-          scrollEnabled={!scrollLocked}
-        >
-          {images.map((src, i) => (
-            <Animated.View
-              key={i}
-              style={[styles.page, { width: WINDOW_W, transform: [{ scale: imageScale }] }]}
-            >
-              <ZoomableImage
-                src={src}
-                windowW={WINDOW_W}
-                windowH={WINDOW_H}
-                onZoomActive={(v) => { setScrollLocked(v); }}
-                onSwipeToPage={handleSwipeToPage}
-              />
-            </Animated.View>
-          ))}
-        </ScrollView>
-      ) : (
-        <ScrollView
-          ref={scrollRef}
-          horizontal
-          pagingEnabled
-          directionalLockEnabled
-          showsHorizontalScrollIndicator={false}
-          scrollEventThrottle={16}
-          onScroll={(e) => {
-            const page = Math.round(e.nativeEvent.contentOffset.x / WINDOW_W);
-            if (page >= 0 && page < images.length && page !== idx) {
-              setIdx(page);
-            }
-          }}
-          bounces={false}
-          scrollEnabled={!scrollLocked}
-          style={styles.scrollView}
-        >
-          {images.map((src, i) => (
-            <Animated.View
-              key={i}
-              style={[styles.page, { width: WINDOW_W, transform: [{ scale: imageScale }] }]}
-            >
-              <NativeZoomableImage src={src} windowW={WINDOW_W} windowH={WINDOW_H} isActive={i === idx} onZoomChange={handleZoomChange} onSwipeToPage={handleSwipeToPage} />
-            </Animated.View>
-          ))}
-        </ScrollView>
-      )}
-
-      {/* Counter — dots */}
-      {images.length > 1 && (
-        <View style={styles.dots}>
-          {images.map((_, i) => (
-            <View key={i} style={[styles.dot, i === idx && styles.dotActive]} />
-          ))}
+        {/* Header: close + counter */}
+        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+          <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
+            <Text style={styles.closeTxt}>✕</Text>
+          </TouchableOpacity>
+          <Text style={styles.counter}>
+            {renderIdx + 1} / {images.length}
+          </Text>
+          <View style={{ width: 40 }} />
         </View>
-      )}
-    </Animated.View>
+
+        {/* Dots */}
+        {images.length > 1 && (
+          <View style={[styles.dots, { paddingBottom: insets.bottom + 12 }]}>
+            {images.map((_, i) => (
+              <View key={i} style={[styles.dot, i === renderIdx && styles.dotActive]} />
+            ))}
+          </View>
+        )}
+      </View>
+    </Modal>
   );
 }
 
-// ── Helpers ──
+// ─── Single Image Item with full gesture logic ──────────────────────────────────
 
-/** Compute the fitted image dimensions given natural size and viewport constraints. */
-function getFittedSize(naturalW: number, naturalH: number, viewW: number, viewH: number) {
-  if (!naturalW || !naturalH) return { w: viewW, h: viewH };
-  const imgRatio = naturalW / naturalH;
-  const viewRatio = viewW / viewH;
-  if (imgRatio > viewRatio) {
-    return { w: viewW, h: viewW / imgRatio };
-  }
-  return { w: viewH * imgRatio, h: viewH };
+interface ItemProps {
+  uri: string;
+  index: number;
+  currentIdx: Animated.SharedValue<number>;
+  listOffsetX: Animated.SharedValue<number>;
+  total: number;
+  onClose: () => void;
+  onIndexChange: (idx: number) => void;
 }
 
-/** Clamp a value within [low, high], applying sqrt resistance beyond bounds (iOS-style). */
-function clampResist(val: number, low: number, high: number) {
-  if (val < low) return low - Math.sqrt(low - val) * 2;
-  if (val > high) return high + Math.sqrt(val - high) * 2;
-  return val;
-}
+function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onIndexChange }: ItemProps) {
+  const scale = useSharedValue(1);
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const savedScale = useSharedValue(1);
+  const savedTx = useSharedValue(0);
+  const savedTy = useSharedValue(0);
+  const bgOpacity = useSharedValue(1);
 
-// ═══════════════════════════════════════════════════════════════════════
-//  ZoomableImage — pinch-to-zoom + edge-constrained pan + edge-swipe page
-// ═══════════════════════════════════════════════════════════════════════
+  const getMaxTranslate = (s: number) => {
+    'worklet';
+    const scaledW = W * s;
+    const scaledH = H * s;
+    return { x: Math.max(0, (scaledW - W) / 2), y: Math.max(0, (scaledH - H) / 2) };
+  };
 
-// ═══════════════════════════════════════════════════════════════════════
-//  NativeZoomableImage — native ScrollView zoom (UIScrollView pinch)
-//  Pinch zoom is 100% native (no JS bridge) → buttery smooth
-//  onScroll reads zoomScale to lock/unlock outer paging ScrollView
-// ═══════════════════════════════════════════════════════════════════════
+  const clampTranslate = (tx: number, ty: number, s: number) => {
+    'worklet';
+    const { x: maxX, y: maxY } = getMaxTranslate(s);
+    return { x: clamp(tx, -maxX, maxX), y: clamp(ty, -maxY, maxY) };
+  };
 
-function NativeZoomableImage({ src, windowW, windowH, isActive, onZoomChange, onSwipeToPage }: { src: string; windowW: number; windowH: number; isActive: boolean; onZoomChange: (zooming: boolean) => void; onSwipeToPage: (dir: -1 | 1) => void }) {
-  const [scrollKey, setScrollKey] = useState(0);
-  const zoomedRef = useRef(false);
-  const reachedLeftEdge = useRef(false);
-  const reachedRightEdge = useRef(false);
-  const isInteracting = useRef(false);
+  const resetZoom = () => {
+    'worklet';
+    scale.value = withSpring(1, SPRING_CFG);
+    translateX.value = withSpring(0, SPRING_CFG);
+    translateY.value = withSpring(0, SPRING_CFG);
+    savedScale.value = 1;
+    savedTx.value = 0;
+    savedTy.value = 0;
+  };
 
-  // When becoming inactive while zoomed: delay key bump until page transition done
-  const prevActive = useRef(isActive);
-  useEffect(() => {
-    if (!isActive && prevActive.current && zoomedRef.current) {
-      zoomedRef.current = false;
-      onZoomChange(false);
-      // Defer key bump: user is looking at the new page by now, won't see shrink
-      const timer = setTimeout(() => setScrollKey(k => k + 1), 350);
-      return () => clearTimeout(timer);
-    }
-    prevActive.current = isActive;
-  }, [isActive]);
+  const goToIndex = (idx: number) => {
+    'worklet';
+    const clamped = clamp(idx, 0, total - 1);
+    currentIdx.value = clamped;
+    listOffsetX.value = withSpring(-clamped * W, SPRING_CFG);
+    runOnJS(onIndexChange)(clamped);
+  };
+
+  // ── Double tap (scale 1 ↔ 2.5) ──
+  const doubleTap = Gesture.Tap()
+    .numberOfTaps(2)
+    .maxDelay(250)
+    .onEnd((e) => {
+      'worklet';
+      if (scale.value > 1) {
+        resetZoom();
+      } else {
+        const targetScale = 2.5;
+        const focal = { x: e.x - W / 2, y: e.y - H / 2 };
+        scale.value = withSpring(targetScale, SPRING_CFG);
+        const { x: maxX, y: maxY } = getMaxTranslate(targetScale);
+        const newTx = clamp(-focal.x * (targetScale - 1), -maxX, maxX);
+        const newTy = clamp(-focal.y * (targetScale - 1), -maxY, maxY);
+        translateX.value = withSpring(newTx, SPRING_CFG);
+        translateY.value = withSpring(newTy, SPRING_CFG);
+        savedScale.value = targetScale;
+        savedTx.value = newTx;
+        savedTy.value = newTy;
+      }
+    });
+
+  // ── Pinch zoom ──
+  const pinch = Gesture.Pinch()
+    .onStart(() => {
+      'worklet';
+      savedScale.value = scale.value;
+    })
+    .onUpdate((e) => {
+      'worklet';
+      const next = savedScale.value * e.scale;
+      if (next < 1) {
+        scale.value = 1 + (next - 1) * OVERSCALE_DAMPING;
+      } else {
+        scale.value = Math.min(next, MAX_SCALE);
+      }
+    })
+    .onEnd(() => {
+      'worklet';
+      if (scale.value < 1) {
+        resetZoom();
+      } else {
+        const clamped = clampTranslate(translateX.value, translateY.value, scale.value);
+        translateX.value = withSpring(clamped.x, SPRING_CFG);
+        translateY.value = withSpring(clamped.y, SPRING_CFG);
+        savedScale.value = scale.value;
+        savedTx.value = clamped.x;
+        savedTy.value = clamped.y;
+      }
+    });
+
+  // ── Pan (translate + edge swipe + pull-down dismiss) ──
+  const pan = Gesture.Pan()
+    .averageTouches(true)
+    .onStart(() => {
+      'worklet';
+      savedTx.value = translateX.value;
+      savedTy.value = translateY.value;
+    })
+    .onUpdate((e) => {
+      'worklet';
+      const s = scale.value;
+      const { x: maxX, y: maxY } = getMaxTranslate(s);
+
+      if (s <= 1) {
+        // scale=1: horizontal swipe switches images
+        const baseOffset = -currentIdx.value * W;
+        let nextOffset = baseOffset + e.translationX;
+
+        // Damping at boundaries
+        const isFirst = currentIdx.value === 0 && e.translationX > 0;
+        const isLast = currentIdx.value === total - 1 && e.translationX < 0;
+        if (isFirst || isLast) {
+          nextOffset = baseOffset + e.translationX * 0.25;
+        }
+        listOffsetX.value = nextOffset;
+
+        // Vertical drag → fade background
+        const absY = Math.abs(e.translationY);
+        bgOpacity.value = interpolate(absY, [0, 200], [1, 0.4], Extrapolation.CLAMP);
+      } else {
+        // scale>1: pan within zoomed image
+        const rawTx = savedTx.value + e.translationX;
+        const rawTy = savedTy.value + e.translationY;
+
+        // Damping beyond boundaries
+        if (rawTx > maxX) {
+          translateX.value = maxX + (rawTx - maxX) * OVERSCALE_DAMPING;
+        } else if (rawTx < -maxX) {
+          translateX.value = -maxX + (rawTx + maxX) * OVERSCALE_DAMPING;
+        } else {
+          translateX.value = rawTx;
+        }
+        translateY.value = clamp(rawTy, -maxY, maxY);
+      }
+    })
+    .onEnd((e) => {
+      'worklet';
+      const s = scale.value;
+
+      if (s <= 1) {
+        // Pull-down dismiss
+        if (e.translationY > 80 && Math.abs(e.translationX) < 60) {
+          runOnJS(onClose)();
+          return;
+        }
+
+        // Swipe left/right
+        const shouldNext = e.velocityX < -SWIPE_VELOCITY || e.translationX < -SWIPE_THRESHOLD;
+        const shouldPrev = e.velocityX > SWIPE_VELOCITY || e.translationX > SWIPE_THRESHOLD;
+
+        if (shouldNext && currentIdx.value < total - 1) {
+          goToIndex(currentIdx.value + 1);
+        } else if (shouldPrev && currentIdx.value > 0) {
+          goToIndex(currentIdx.value - 1);
+        } else {
+          listOffsetX.value = withSpring(-currentIdx.value * W, SPRING_CFG);
+        }
+        bgOpacity.value = withTiming(1, { duration: 200 });
+      } else {
+        // scale>1: snap back + edge swipe to next page
+        const { x: maxX } = getMaxTranslate(s);
+        const clamped = clampTranslate(translateX.value, translateY.value, s);
+
+        const atRightEdge = translateX.value <= -maxX + 2;
+        const atLeftEdge = translateX.value >= maxX - 2;
+
+        if (atRightEdge && e.velocityX < -SWIPE_VELOCITY && currentIdx.value < total - 1) {
+          resetZoom();
+          goToIndex(currentIdx.value + 1);
+        } else if (atLeftEdge && e.velocityX > SWIPE_VELOCITY && currentIdx.value > 0) {
+          resetZoom();
+          goToIndex(currentIdx.value - 1);
+        } else {
+          translateX.value = withSpring(clamped.x, SPRING_CFG);
+          translateY.value = withSpring(clamped.y, SPRING_CFG);
+          savedTx.value = clamped.x;
+          savedTy.value = clamped.y;
+        }
+      }
+    });
+
+  // ── Gesture composition ──
+  const composed = Gesture.Simultaneous(
+    Gesture.Exclusive(doubleTap, pan),
+    pinch,
+  );
+
+  // ── Animated styles ──
+  const listStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: listOffsetX.value }],
+  }));
+
+  const imageStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: scale.value },
+    ],
+  }));
+
+  const bgStyle = useAnimatedStyle(() => ({
+    backgroundColor: `rgba(0,0,0,${bgOpacity.value})`,
+  }));
+
+  const isVisible = useAnimatedStyle(() => ({
+    display: Math.abs(index - currentIdx.value) <= 1 ? 'flex' : 'none',
+  }));
 
   return (
-    <View style={{ width: windowW, height: '100%' }}>
-      {/* Zoom layer: remounts (via key) to reset native zoom when needed */}
-      <ScrollView
-        key={scrollKey}
-        pointerEvents={isActive ? 'auto' : 'none'}
-        style={StyleSheet.absoluteFillObject}
-        contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center' }}
-        maximumZoomScale={4}
-        minimumZoomScale={1}
-        bouncesZoom={false}
-        centerContent
-        showsVerticalScrollIndicator={false}
-        showsHorizontalScrollIndicator={false}
-        directionalLockEnabled
-        scrollEventThrottle={16}
-        onScroll={(e) => {
-          const ox = e.nativeEvent.contentOffset?.x ?? 0;
-          const cw = e.nativeEvent.contentSize?.width ?? windowW;
-          const lw = e.nativeEvent.layoutMeasurement?.width ?? windowW;
-          const maxX = Math.max(0, cw - lw);
+    <>
+      {/* Background layer (follows pull-down opacity) */}
+      {index === 0 && (
+        <Animated.View style={[StyleSheet.absoluteFill, bgStyle]} pointerEvents="none" />
+      )}
 
-          if (zoomedRef.current && maxX > 0) {
-            if (ox <= 1) reachedLeftEdge.current = true;
-            if (ox >= maxX - 1) reachedRightEdge.current = true;
-          }
-
-          const zs = e.nativeEvent.zoomScale ?? 1;
-          const isZoomed = zs > 1.01;
-          if (isZoomed && !zoomedRef.current && isInteracting.current) {
-            zoomedRef.current = true;
-            onZoomChange(true);
-          } else if (!isZoomed && zoomedRef.current) {
-            zoomedRef.current = false;
-            reachedLeftEdge.current = false;
-            reachedRightEdge.current = false;
-            requestAnimationFrame(() => onZoomChange(false));
-          }
-        }}
-        onScrollBeginDrag={() => {
-          isInteracting.current = true;
-          reachedLeftEdge.current = false;
-          reachedRightEdge.current = false;
-        }}
-        onScrollEndDrag={() => {
-          isInteracting.current = false;
-          if (zoomedRef.current && (reachedLeftEdge.current || reachedRightEdge.current)) {
-            // Unlock for scrollTo; don't reset zoomedRef — let useEffect delay key bump
-            onZoomChange(false);
-            const dir = reachedLeftEdge.current ? -1 : 1;
-            reachedLeftEdge.current = false;
-            reachedRightEdge.current = false;
-            requestAnimationFrame(() => onSwipeToPage(dir as -1 | 1));
-          }
-        }}
-      >
-        <Image source={src} style={{ width: windowW, height: windowH * 0.9 }} contentFit="contain" cachePolicy="disk" />
-      </ScrollView>
-    </View>
-  );
-}
-
-function ZoomableImage({
-  src, windowW, windowH, onZoomActive, onSwipeToPage,
-}: {
-  src: string; windowW: number; windowH: number;
-  onZoomActive: (active: boolean) => void;
-  onSwipeToPage?: (direction: -1 | 1) => void;
-}) {
-  const [scale, setScale] = useState(1);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-
-  const scaleRef = useRef(1);
-  const rawOffsetRef = useRef({ x: 0, y: 0 }); // raw unclamped — for edge-swipe detection only
-  const offRef = useRef({ x: 0, y: 0 });        // always synced with state — for snap-back
-
-  const pinchBase = useRef({ dist: 0, scale: 1 });
-  const panBase = useRef({ x: 0, y: 0 });
-  const touchRef = useRef({ startX: 0, startY: 0 });
-  const lastTap = useRef(0);
-  const wasPinch = useRef(false);
-  const didPan = useRef(false);    // true if this gesture involved horizontal panning
-
-  // Image natural size — updated on load; used to compute pan boundaries
-  const imgNatural = useRef({ w: 0, h: 0 });
-  const imgRef = useRef<HTMLImageElement | null>(null);
-
-  const zoomed = scaleRef.current > 1.005;
-
-  /** Current allowed pan range given zoom level and natural image size. */
-  const computeBounds = useCallback(() => {
-    const viewH = windowH * 0.9;
-    const fitted = getFittedSize(imgNatural.current.w, imgNatural.current.h, windowW, viewH);
-    const s = scaleRef.current;
-    const scaledW = fitted.w * s;
-    const scaledH = fitted.h * s;
-    const maxX = Math.max(0, (scaledW - windowW) / 2);
-    const maxY = Math.max(0, (scaledH - windowH) / 2);
-    return { maxX, maxY, scaledW, scaledH, fitted };
-  }, [windowW, windowH]);
-
-  // ── Touch handlers ──
-
-  const handleTouchStart = useCallback((e: any) => {
-    const ts = e.nativeEvent?.touches || e.touches || [];
-    const isPinch = ts.length === 2;
-    const isPan = ts.length === 1 && zoomed;
-
-    if (!isPinch && !isPan) return;
-
-    e.stopPropagation();
-    onZoomActive(true);
-    wasPinch.current = isPinch;
-    didPan.current = false;
-
-    if (isPinch) {
-      const dx = ts[0].clientX - ts[1].clientX;
-      const dy = ts[0].clientY - ts[1].clientY;
-      pinchBase.current = { dist: Math.hypot(dx, dy), scale: scaleRef.current };
-    } else {
-      panBase.current = { x: offset.x, y: offset.y };
-      touchRef.current = { startX: ts[0].clientX, startY: ts[0].clientY };
-    }
-  }, [offset.x, offset.y, zoomed, onZoomActive]);
-
-  const handleTouchMove = useCallback((e: any) => {
-    const ts = e.nativeEvent?.touches || e.touches || [];
-    const isPinch = ts.length === 2;
-    const isPan = ts.length === 1 && zoomed;
-
-    if (!isPinch && !isPan) return;
-
-    e.stopPropagation();
-    e.preventDefault?.();
-
-    if (isPinch) {
-      const dx = ts[0].clientX - ts[1].clientX;
-      const dy = ts[0].clientY - ts[1].clientY;
-      const dist = Math.hypot(dx, dy);
-      if (pinchBase.current.dist > 0) {
-        const newScale = Math.max(1, Math.min(MAX_ZOOM, pinchBase.current.scale * (dist / pinchBase.current.dist)));
-        scaleRef.current = newScale;
-        setScale(newScale);
-
-        // Re-clamp offset — zooming out shrinks allowed pan area
-        const { maxX, maxY } = computeBounds();
-        const cx = offRef.current.x;
-        const cy = offRef.current.y;
-        const nx = Math.max(-maxX, Math.min(maxX, cx));
-        const ny = Math.max(-maxY, Math.min(maxY, cy));
-        if (nx !== cx || ny !== cy) {
-          offRef.current = { x: nx, y: ny };
-          rawOffsetRef.current = { x: nx, y: ny };
-          setOffset({ x: nx, y: ny });
-        }
-      }
-    } else {
-      didPan.current = true;
-      const rawX = panBase.current.x + (ts[0].clientX - touchRef.current.startX);
-      const rawY = panBase.current.y + (ts[0].clientY - touchRef.current.startY);
-
-      // Clamp with iOS-style resistance beyond boundaries
-      const { maxX, maxY } = computeBounds();
-      const clampedX = clampResist(rawX, -maxX, maxX);
-      const clampedY = clampResist(rawY, -maxY, maxY);
-
-      rawOffsetRef.current = { x: rawX, y: rawY }; // for edge-swipe
-      offRef.current = { x: rawX, y: rawY };
-      setOffset({ x: clampedX, y: clampedY });
-    }
-  }, [zoomed, computeBounds]);
-
-  const handleTouchEnd = useCallback((e: any) => {
-    const ts = e.nativeEvent?.changedTouches || e.changedTouches || [];
-    const isPinch = ts.length === 2;
-    const curScale = scaleRef.current;
-    const curZoomed = curScale > 1.005;
-
-    if (curZoomed || isPinch) {
-      e.stopPropagation();
-    } else {
-      onZoomActive(false); // ensure ScrollView unlocked (touchcancel safety)
-      return;
-    }
-
-    const now = Date.now();
-    const endOfPinch = wasPinch.current;
-    wasPinch.current = false;
-
-    if (!endOfPinch) {
-      if (ts.length === 1 && now - lastTap.current < DOUBLE_TAP_MS) {
-        const touch = ts[0];
-        if (curZoomed) {
-          scaleRef.current = 1;
-          setScale(1);
-          setOffset({ x: 0, y: 0 });
-          offRef.current = { x: 0, y: 0 };
-          rawOffsetRef.current = { x: 0, y: 0 };
-          onZoomActive(false);
-        } else {
-          scaleRef.current = DOUBLE_TAP_ZOOM;
-          setScale(DOUBLE_TAP_ZOOM);
-          const cx = windowW / 2;
-          const cy = windowH / 2;
-          setOffset({
-            x: (cx - touch.clientX) * (DOUBLE_TAP_ZOOM - 1),
-            y: (cy - touch.clientY) * (DOUBLE_TAP_ZOOM - 1),
-          });
-          offRef.current = { x: (cx - touch.clientX) * (DOUBLE_TAP_ZOOM - 1), y: (cy - touch.clientY) * (DOUBLE_TAP_ZOOM - 1) };
-          rawOffsetRef.current = { x: (cx - touch.clientX) * (DOUBLE_TAP_ZOOM - 1), y: (cy - touch.clientY) * (DOUBLE_TAP_ZOOM - 1) };
-        }
-        lastTap.current = 0;
-        return;
-      }
-      if (ts.length === 1) {
-        lastTap.current = now;
-      }
-    }
-
-    if (curScale <= 1.005) {
-      scaleRef.current = 1;
-      setScale(1);
-      setOffset({ x: 0, y: 0 });
-      offRef.current = { x: 0, y: 0 };
-      rawOffsetRef.current = { x: 0, y: 0 };
-      onZoomActive(false);
-      return;
-    }
-
-    // ── Edge-swipe to next/prev page (only if user actually panned) ──
-    if (curZoomed && didPan.current) {
-      const { maxX } = computeBounds();
-      const rawX = rawOffsetRef.current.x;
-
-      if (rawX < -maxX - OVERSCROLL_SWIPE) {
-        onSwipeToPage?.(1);
-        scaleRef.current = 1;
-        setScale(1);
-        setOffset({ x: 0, y: 0 });
-        offRef.current = { x: 0, y: 0 };
-        rawOffsetRef.current = { x: 0, y: 0 };
-        onZoomActive(false);
-        return;
-      }
-      if (rawX > maxX + OVERSCROLL_SWIPE) {
-        onSwipeToPage?.(-1);
-        setScale(1);
-        setOffset({ x: 0, y: 0 });
-        offRef.current = { x: 0, y: 0 };
-        rawOffsetRef.current = { x: 0, y: 0 };
-        onZoomActive(false);
-        return;
-      }
-    }
-
-    // ── Snap pan back within bounds ──
-    const { maxX, maxY } = computeBounds();
-    const curX = offRef.current.x;
-    const curY = offRef.current.y;
-    const snapX = Math.max(-maxX, Math.min(maxX, curX));
-    const snapY = Math.max(-maxY, Math.min(maxY, curY));
-    if (snapX !== curX || snapY !== curY) {
-      setOffset({ x: snapX, y: snapY });
-      offRef.current = { x: snapX, y: snapY };
-    }
-    // Gesture ended — unlock ScrollView for page swiping
-    onZoomActive(false);
-  }, [windowW, windowH, onZoomActive, onSwipeToPage, computeBounds]);
-
-  // ── Image load: capture natural dimensions ──
-  const onImgLoad = useCallback((e: any) => {
-    const img = e.target || e.currentTarget;
-    imgNatural.current = { w: img.naturalWidth || 0, h: img.naturalHeight || 0 };
-  }, []);
-
-  if (Platform.OS !== 'web') return null; // Only rendered inside web branch; NativeZoomableImage handles iOS
-
-  // Web-only: raw elements for precise touch handling
-  return React.createElement('div', {
-    style: {
-      width: '100%', height: '100%', display: 'flex',
-      alignItems: 'center', justifyContent: 'center',
-      overflow: 'hidden',
-      touchAction: zoomed ? 'none' : 'auto',
-    } as React.CSSProperties,
-    onTouchStart: handleTouchStart,
-    onTouchMove: handleTouchMove,
-    onTouchEnd: handleTouchEnd,
-    onTouchCancel: handleTouchEnd,  // same cleanup: unlock ScrollView
-  },
-    React.createElement('img', {
-      ref: imgRef,
-      src,
-      draggable: false,
-      alt: 'preview',
-      onLoad: onImgLoad,
-      style: {
-        width: `${100 * scale}%`,
-        maxWidth: 'none',
-        height: 'auto',
-        maxHeight: `${90 * scale}vh`,
-        objectFit: 'contain',
-        transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
-        transformOrigin: 'center center',
-        transition: scale === 1 && offset.x === 0 && offset.y === 0
-          ? 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)' : 'none',
-        pointerEvents: 'none',
-      } as React.CSSProperties,
-    })
+      {/* Image container (horizontal layout) */}
+      <Animated.View style={[styles.itemWrap, { left: index * W }, listStyle, isVisible]}>
+        <GestureDetector gesture={composed}>
+          <Animated.View style={[styles.imageWrap, imageStyle]}>
+            <Image
+              source={uri}
+              style={styles.image}
+              contentFit="contain"
+              cachePolicy="disk"
+            />
+          </Animated.View>
+        </GestureDetector>
+      </Animated.View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    position: 'absolute' as any, top: 0, left: 0, right: 0, bottom: 0, zIndex: 999,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-  },
-  scrollView: { flex: 1 },
-  scrollContent: { alignItems: 'center' },
-  page: { alignItems: 'center', justifyContent: 'center' },
-  close: {
-    position: 'absolute', top: 48, right: 20, zIndex: 10,
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+  root: { flex: 1, backgroundColor: '#000' },
+  list: { flex: 1, flexDirection: 'row', position: 'relative' },
+  itemWrap: {
+    position: 'absolute',
+    width: W, height: H,
     alignItems: 'center', justifyContent: 'center',
   },
+  imageWrap: {
+    width: W, height: H,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  image: { width: W, height: H },
+  header: {
+    position: 'absolute', top: 0, left: 0, right: 0,
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16, zIndex: 10,
+  },
+  closeBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  closeTxt: { color: '#fff', fontSize: 14, fontWeight: '500' },
+  counter: { color: 'rgba(255,255,255,0.85)', fontSize: 14, fontWeight: '500' },
   dots: {
-    position: 'absolute' as any, bottom: 60, alignSelf: 'center', zIndex: 10,
-    flexDirection: 'row' as any, gap: 6,
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    flexDirection: 'row', justifyContent: 'center', gap: 6,
   },
   dot: {
-    width: 6, height: 6, borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.35)',
+    width: 5, height: 5, borderRadius: 2.5,
+    backgroundColor: 'rgba(255,255,255,0.4)',
   },
-  dotActive: { backgroundColor: 'rgba(255,255,255,0.9)' },
+  dotActive: { backgroundColor: '#fff', width: 16, borderRadius: 3 },
 });

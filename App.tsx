@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StatusBar } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { StatusBar, StyleSheet } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -107,6 +108,7 @@ export default function App() {
   if (!ready) return null;
 
   return (
+    <GestureHandlerRootView style={styles.root}>
     <SafeAreaProvider>
       <KeyboardProvider>
         <LangProvider>
@@ -121,5 +123,8 @@ export default function App() {
       </LangProvider>
       </KeyboardProvider>
       </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({ root: { flex: 1 } });

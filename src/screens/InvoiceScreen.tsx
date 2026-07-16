@@ -19,6 +19,7 @@ import ExpenseNoteInput from '../components/ExpenseNoteInput';
 import SubmitButton from '../components/SubmitButton';
 import TrashIcon from '../components/icons/TrashIcon';
 import ImagePreview from '../components/ImagePreview';
+import { useImagePreview } from '../hooks/useImagePreview';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 import { useServerDate } from '../hooks/useServerDate';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -326,14 +327,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   // Toast
   const [toast, setToast] = useState('');
 
-  // Image preview state (using ImagePreview component)
-  const [previewImages, setPreviewImages] = useState<string[] | null>(null);
-  const [previewIdx, setPreviewIdx] = useState(0);
-  const openPreview = (images: string[], idx: number = 0) => {
-    setPreviewImages(images);
-    setPreviewIdx(idx);
-  };
-  const closePreview = () => setPreviewImages(null);
+  const { preview, openPreview, closePreview } = useImagePreview();
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -577,15 +571,23 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
 
   /* ── Preview handlers ── */
   const handlePreviewExisting = (index: number) => {
+    setDrawerOpen(false);
     openPreview(dExistingFilePath.map(p => api.getInvoiceFileUrl(p)), index);
   };
 
   const handlePreviewNew = (index: number) => {
+    setDrawerOpen(false);
     openPreview(dFiles.map(f => f.uri), index);
   };
 
+  const handleClosePreview = () => {
+    closePreview();
+    setDrawerOpen(true);
+  };
+
   return (
-    <View style={styles.root} {...swipeBack}>
+    <>
+      <View style={styles.root} {...swipeBack}>
       {/* ═══ ENTRY CARD ═══ */}
       <View
         style={[styles.entryCard, { backgroundColor: '#D15F6C', paddingTop: insets.top }]}
@@ -1106,7 +1108,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
               {dStatus === 'done' && (
                 <View style={{ marginBottom: 8 }}>
                   <ReceiptUpload
-                    existingImages={editingId && dExistingFilePath.length > 0 ? dExistingFilePath.map(p => api.getInvoiceFileUrl(p)) : []}
+                    existingImages={editingId && dExistingFilePath.length > 0 ? dExistingFilePath.map(p => api.getInvoiceFileUrl(p, true)) : []}
                     newFiles={dFiles}
                     onAdd={(files: PickedImage[]) => setDFiles(prev => [...prev, ...files])}
                     onRemoveExisting={(i: number) => { setDExistingFilePath(prev => prev.filter((_, j) => j !== i)); }}
@@ -1149,16 +1151,6 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
               );
             })()}
         </ReAnimated.View>
-
-          {/* Image preview overlay */}
-          {previewImages && (
-            <ImagePreview
-              images={previewImages}
-              initialIdx={previewIdx}
-              visible={true}
-              onClose={closePreview}
-            />
-          )}
       </ModalOverlay>
 
       <CustomActionSheet
@@ -1170,6 +1162,14 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
         dark
       />
     </View>
+
+    <ImagePreview
+      images={preview?.images ?? []}
+      initialIdx={preview?.idx ?? 0}
+      visible={preview !== null}
+      onClose={handleClosePreview}
+    />
+    </>
   );
 }
 
