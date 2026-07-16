@@ -196,7 +196,6 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
 
   // ── Pan (translate + edge swipe + pull-down dismiss) ──
   const pan = Gesture.Pan()
-    .averageTouches(true)
     .onStart(() => {
       'worklet';
       savedTx.value = translateX.value;
@@ -241,26 +240,23 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
     })
     .onEnd((e) => {
       'worklet';
-      // DEBUG: log gesture end values
-      runOnJS(console.log)('pan.onEnd', JSON.stringify({
-        tx: Math.round(e.translationX), ty: Math.round(e.translationY),
-        vx: Math.round(e.velocityX), vy: Math.round(e.velocityY),
-        scale: scale.value,
-      }));
-
-      // DEBUG: unconditional dismiss on any downward swipe > 30px
-      if (e.translationY > 30) {
-        runOnJS(console.log)('DISMISS TRIGGERED');
-        runOnJS(onClose)();
-        return;
-      }
-
       const s = scale.value;
 
       if (s <= 1) {
-        // Swipe left/right
-        const shouldNext = e.velocityX < -SWIPE_VELOCITY || e.translationX < -SWIPE_THRESHOLD;
-        const shouldPrev = e.velocityX > SWIPE_VELOCITY || e.translationX > SWIPE_THRESHOLD;
+        const vx = e.velocityX;
+        const vy = e.velocityY;
+        const tx = e.translationX;
+        const ty = e.translationY;
+
+        // 下拉关闭: 向下滑 30px+ 且不是水平滑
+        if (ty > 30 && ty > Math.abs(tx)) {
+          runOnJS(onClose)();
+          return;
+        }
+
+        // 左右切换：速度或位移达到阈值
+        const shouldNext = vx < -SWIPE_VELOCITY || tx < -SWIPE_THRESHOLD;
+        const shouldPrev = vx > SWIPE_VELOCITY || tx > SWIPE_THRESHOLD;
 
         if (shouldNext && currentIdx.value < total - 1) {
           goToIndex(currentIdx.value + 1);
@@ -294,9 +290,10 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
     });
 
   // ── Gesture composition ──
-  const composed = Gesture.Simultaneous(
-    Gesture.Exclusive(doubleTap, pan),
-    pinch,
+  // doubleTap takes priority; pan+pinch handle everything else
+  const composed = Gesture.Exclusive(
+    doubleTap,
+    Gesture.Simultaneous(pan, pinch),
   );
 
   // ── Animated styles ──
