@@ -242,11 +242,11 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   // Delete account
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteConfirmUsername, setDeleteConfirmUsername] = useState('');
+  // ═══════════════════════════════════════════════════════════════
   // Sticky header on scroll (matches web)
   // ═══════════════════════════════════════════════════════════════
-  // Native-driver scroll animation — transforms on UI thread, zero JS cost
-  // ═══════════════════════════════════════════════════════════════
   const FREEZE_POINT = 92;
+  const COVER_H = 260;
   const scrollYAnim = useRef(new Animated.Value(0)).current;
   // Cover slides up 0→-FREEZE_POINT, clamped
   const coverTranslateY = scrollYAnim.interpolate({
@@ -254,17 +254,17 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     outputRange: [0, -FREEZE_POINT],
     extrapolate: 'clamp',
   });
-  // Pull-down stretch: sqrt-damped translateY (approximated piecewise)
-  const pullDownTY = scrollYAnim.interpolate({
-    inputRange: [-400, -200, -100, -50, -20, 0],
-    outputRange: [89.4, 63.2, 44.7, 31.6, 20, 0],
+  // Pull-down: container height grows → image fills → natural zoom
+  const coverHeight = scrollYAnim.interpolate({
+    inputRange: [-200, 0],
+    outputRange: [COVER_H + 200, COVER_H],
     extrapolateLeft: 'extend',
     extrapolateRight: 'clamp',
   });
-  // Pull-down stretch: sqrt-damped scaleY
-  const pullDownScale = scrollYAnim.interpolate({
+  // Pull-down: slight translateY to keep content anchored (sqrt-damped)
+  const pullDownTY = scrollYAnim.interpolate({
     inputRange: [-400, -200, -100, -50, -20, 0],
-    outputRange: [1.813, 1.575, 1.406, 1.287, 1.182, 1],
+    outputRange: [89.4, 63.2, 44.7, 31.6, 20, 0],
     extrapolateLeft: 'extend',
     extrapolateRight: 'clamp',
   });
@@ -775,6 +775,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       <Animated.View
         style={{
           position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5,
+          height: coverHeight, overflow: 'hidden' as any,
           transform: [{ translateY: coverTranslateY }],
         }}
       >
@@ -812,7 +813,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                 position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
                 opacity: coverFade,
                 // Pull-down stretch: native driver, no JS cost
-                transform: [{ translateY: pullDownTY }, { scaleY: pullDownScale }],
+                transform: [{ translateY: pullDownTY }],
               },
             ]}
           />
@@ -822,7 +823,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         {blurIntensity > 0 && (
           <Animated.View style={{
             position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-            transform: [{ translateY: pullDownTY }, { scaleY: pullDownScale }],
+            transform: [{ translateY: pullDownTY }],
           }}>
             <BlurView
               intensity={blurIntensity}
