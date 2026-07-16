@@ -289,11 +289,8 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
       }
     });
 
-  // ── Gesture composition ──
-  const composed = Gesture.Simultaneous(
-    Gesture.Exclusive(doubleTap, pan),
-    pinch,
-  );
+  // ── Gesture composition ── (DEBUG: bare pan only)
+  const composed = pan;
 
   // ── Animated styles ──
   const listStyle = useAnimatedStyle(() => ({
