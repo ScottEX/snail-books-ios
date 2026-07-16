@@ -67,7 +67,7 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
         </Animated.View>
 
         {/* Header: close + counter */}
-        <View style={[styles.header, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
+        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
           <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
             <Text style={styles.closeTxt}>✕</Text>
           </TouchableOpacity>
@@ -196,6 +196,7 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
 
   // ── Pan (translate + edge swipe + pull-down dismiss) ──
   const pan = Gesture.Pan()
+    .averageTouches(true)
     .onStart(() => {
       'worklet';
       savedTx.value = translateX.value;
@@ -248,9 +249,9 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
         const tx = e.translationX;
         const ty = e.translationY;
 
-        // 下拉关闭
+        // 下拉关闭: setTimeout 延迟让手势收尾, 避免 Modal dismiss 时 crash
         if (ty > 80 && Math.abs(tx) < 60) {
-          runOnJS(() => { console.log('IMAGE_PREVIEW_DISMISS'); requestAnimationFrame(() => onClose()); })();
+          runOnJS(() => { setTimeout(() => onClose(), 150); })();
           return;
         }
 
@@ -289,9 +290,9 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
       }
     });
 
-  // Race: first to activate wins. pan/pinch/doubleTap don't block each other.
-  // pan activates ~10px → beats doubleTap timeout → swipe/zoom responsive
-  // doubleTap activates on 2nd tap → beats pan (no movement) → zoom toggle
+  // ── Gesture composition ──
+  // Race: first to activate wins. pan activates ~10px → responsive swipe/zoom.
+  // doubleTap activates on 2nd tap (no movement) → zoom toggle.
   const composed = Gesture.Race(
     doubleTap,
     Gesture.Simultaneous(pan, pinch),
@@ -310,12 +311,9 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
     ],
   }));
 
-  const bgStyle = useAnimatedStyle(() => {
-    const op = bgOpacity.value;
-    // DEBUG: flash red when vertical drag detected (bg fading = onUpdate vertical path reached)
-    if (op < 0.95) return { backgroundColor: 'rgba(255,0,0,0.6)' };
-    return { backgroundColor: `rgba(0,0,0,${op})` };
-  });
+  const bgStyle = useAnimatedStyle(() => ({
+    backgroundColor: `rgba(0,0,0,${bgOpacity.value})`,
+  }));
 
   const isVisible = useAnimatedStyle(() => ({
     display: Math.abs(index - currentIdx.value) <= 1 ? 'flex' : 'none',
@@ -329,7 +327,7 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
       )}
 
       {/* Image container (horizontal layout) */}
-      <Animated.View style={[styles.itemWrap, { left: index * W }, listStyle]}>
+      <Animated.View style={[styles.itemWrap, { left: index * W }, listStyle, isVisible]}>
         <GestureDetector gesture={composed}>
           <Animated.View style={[styles.imageWrap, imageStyle]}>
             <Image
