@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, Dimensions,
   StatusBar, TouchableOpacity, Modal,
@@ -36,17 +36,42 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
   const currentIdx = useSharedValue(initialIdx);
   const [renderIdx, setRenderIdx] = useState(initialIdx);
   const listOffsetX = useSharedValue(-initialIdx * W);
+  const [internalVisible, setInternalVisible] = useState(false);
+
+  // Sync external visible → show Modal; close is a one-way animation
+  useEffect(() => {
+    if (visible) setInternalVisible(true);
+  }, [visible]);
+
+  const handleDismiss = useCallback(() => {
+    setInternalVisible(false); // triggers native dismiss animation
+  }, []);
+
+  const handleDismissComplete = useCallback(() => {
+    // Called by onDismiss after native animation finishes and GestureHandler is torn down
+    onClose();
+  }, [onClose]);
 
   const syncRenderIdx = useCallback((idx: number) => { setRenderIdx(idx); }, []);
 
+  // Reset on open
+  useEffect(() => {
+    if (visible) {
+      currentIdx.value = initialIdx;
+      listOffsetX.value = -initialIdx * W;
+      setRenderIdx(initialIdx);
+    }
+  }, [visible, initialIdx]);
+
   return (
     <Modal
-      visible={visible}
+      visible={internalVisible}
       transparent
       animationType="fade"
       statusBarTranslucent
       presentationStyle="overFullScreen"
-      onRequestClose={onClose}
+      onDismiss={handleDismissComplete}
+      onRequestClose={handleDismiss}
     >
       <StatusBar hidden />
       <GestureHandlerRootView style={styles.root}>
@@ -60,7 +85,7 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
               currentIdx={currentIdx}
               listOffsetX={listOffsetX}
               total={images.length}
-              onClose={onClose}
+              onClose={handleDismiss}
               onIndexChange={syncRenderIdx}
             />
           ))}
@@ -68,7 +93,7 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
 
         {/* Header: close + counter */}
         <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-          <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.closeBtn} onPress={handleDismiss} activeOpacity={0.7}>
             <Text style={styles.closeTxt}>✕</Text>
           </TouchableOpacity>
           <Text style={styles.counter}>
@@ -249,9 +274,9 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
         const tx = e.translationX;
         const ty = e.translationY;
 
-        // 下拉关闭: setTimeout 延迟让手势收尾, 避免 Modal dismiss 时 crash
+        // 下拉关闭
         if (ty > 80 && Math.abs(tx) < 60) {
-          runOnJS(() => { setTimeout(() => onClose(), 150); })();
+          runOnJS(onClose)();
           return;
         }
 
