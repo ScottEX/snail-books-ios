@@ -308,9 +308,12 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
     ],
   }));
 
-  const bgStyle = useAnimatedStyle(() => ({
-    backgroundColor: `rgba(0,0,0,${bgOpacity.value})`,
-  }));
+  const bgStyle = useAnimatedStyle(() => {
+    const op = bgOpacity.value;
+    // DEBUG: flash red when vertical drag detected (bg fading = onUpdate vertical path reached)
+    if (op < 0.95) return { backgroundColor: 'rgba(255,0,0,0.6)' };
+    return { backgroundColor: `rgba(0,0,0,${op})` };
+  });
 
   const isVisible = useAnimatedStyle(() => ({
     display: Math.abs(index - currentIdx.value) <= 1 ? 'flex' : 'none',
