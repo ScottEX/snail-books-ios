@@ -274,7 +274,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const blurPending = useRef(0);
   // Memoize Animated.event handler — scrollYAnim ref is stable
   const scrollAnimatedHandler = useRef(
-    Animated.event([{ nativeEvent: { contentOffset: { y: scrollYAnim } } }], { useNativeDriver: true })
+    Animated.event([{ nativeEvent: { contentOffset: { y: scrollYAnim } } }], { useNativeDriver: false })
   ).current;
   const computeBlur = (y: number) =>
     y > 0 ? Math.min(y / 2, 10) : 0;
