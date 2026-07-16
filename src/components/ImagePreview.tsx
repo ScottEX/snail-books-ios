@@ -45,6 +45,7 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
       transparent
       animationType="fade"
       statusBarTranslucent
+      presentationStyle="overFullScreen"
       onRequestClose={onClose}
     >
       <StatusBar hidden />
@@ -243,8 +244,12 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
       const s = scale.value;
 
       if (s <= 1) {
-        // Pull-down dismiss
-        if (e.translationY > 80 && Math.abs(e.translationX) < 60) {
+        // Pull-down dismiss: Y displacement > 80 OR fast downward fling,
+        // AND not an obvious horizontal swipe
+        const ty = e.translationY;
+        const isVerticalSwipe = Math.abs(ty) > Math.abs(e.translationX) * 1.2;
+        const shouldDismiss = (ty > 80 || e.velocityY > 500) && isVerticalSwipe;
+        if (shouldDismiss) {
           runOnJS(onClose)();
           return;
         }
