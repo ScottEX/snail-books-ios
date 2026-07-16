@@ -250,7 +250,7 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
 
         // 下拉关闭: 向下滑 30px+ 且不是水平滑
         if (ty > 30 && ty > Math.abs(tx)) {
-          runOnJS(onClose)();
+          runOnJS(() => { requestAnimationFrame(() => onClose()); })();
           return;
         }
 
@@ -290,10 +290,9 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
     });
 
   // ── Gesture composition ──
-  // doubleTap takes priority; pan+pinch handle everything else
-  const composed = Gesture.Exclusive(
-    doubleTap,
-    Gesture.Simultaneous(pan, pinch),
+  const composed = Gesture.Simultaneous(
+    Gesture.Exclusive(doubleTap, pan),
+    pinch,
   );
 
   // ── Animated styles ──
