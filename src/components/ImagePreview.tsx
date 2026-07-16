@@ -67,7 +67,7 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
         </Animated.View>
 
         {/* Header: close + counter */}
-        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <View style={[styles.header, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
           <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
             <Text style={styles.closeTxt}>✕</Text>
           </TouchableOpacity>
@@ -327,7 +327,7 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
       )}
 
       {/* Image container (horizontal layout) */}
-      <Animated.View style={[styles.itemWrap, { left: index * W }, listStyle, isVisible]}>
+      <Animated.View style={[styles.itemWrap, { left: index * W }, listStyle]}>
         <GestureDetector gesture={composed}>
           <Animated.View style={[styles.imageWrap, imageStyle]}>
             <Image
