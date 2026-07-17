@@ -274,11 +274,9 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
         const tx = e.translationX;
         const ty = e.translationY;
 
-        // 下拉关闭: 背景淡出 200ms → 回调关 Modal
+        // 下拉关闭
         if (ty > 80 && Math.abs(tx) < 60) {
-          bgOpacity.value = withTiming(0, { duration: 200 }, (finished) => {
-            if (finished) runOnJS(onClose)();
-          });
+          runOnJS(onClose)();
           return;
         }
 
