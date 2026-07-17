@@ -40,8 +40,14 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
   const [internalVisible, setInternalVisible] = useState(false);
 
   useEffect(() => {
-    if (visible) setInternalVisible(true);
-  }, [visible]);
+    if (visible) {
+      // Reset shared values BEFORE Modal renders
+      currentIdx.value = initialIdx;
+      listOffsetX.value = -initialIdx * W;
+      setRenderIdx(initialIdx);
+      setInternalVisible(true);
+    }
+  }, [visible, initialIdx]);
 
   const handleDismiss = useCallback(() => {
     setInternalVisible(false);
@@ -55,7 +61,6 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
 
   return (
     <Modal
-      key={`preview-${initialIdx}`}
       visible={internalVisible}
       transparent
       animationType="fade"
