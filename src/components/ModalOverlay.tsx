@@ -124,11 +124,12 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, childr
           Animated.timing(fade, { toValue: 0, duration: 200, useNativeDriver: true }),
         ]).start(() => { setShow(false); onClosed?.(); });
       } else if (animation === 'slideUpScale') {
+        const d = outDuration;
         Animated.parallel([
-          backOut,
-          Animated.timing(slide, { toValue: 500, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
-          Animated.timing(scale, { toValue: 0.96, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
-          Animated.timing(fade, { toValue: 0, duration: 220, useNativeDriver: false }),
+          d != null ? Animated.timing(back, { toValue: 0, duration: d, useNativeDriver: false }) : backOut,
+          Animated.timing(slide, { toValue: 500, duration: d ?? 280, useNativeDriver: false }),
+          Animated.timing(scale, { toValue: 0.96, duration: d ?? 280, useNativeDriver: false }),
+          Animated.timing(fade, { toValue: 0, duration: d != null ? Math.round(d * 0.73) : 220, useNativeDriver: false }),
         ]).start(() => { setShow(false); onClosed?.(); });
       } else if (animation === 'stagger') {
         Animated.parallel([
@@ -138,9 +139,10 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, childr
           Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: false }),
         ]).start(() => { setShow(false); onClosed?.(); });
       } else if (animation === 'iosSheet') {
+        const d = outDuration;
         Animated.parallel([
-          backOut,
-          Animated.timing(slide, { toValue: 500, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+          d != null ? Animated.timing(back, { toValue: 0, duration: d, useNativeDriver: false }) : backOut,
+          Animated.timing(slide, { toValue: 500, duration: d ?? 300, useNativeDriver: true }),
         ]).start(() => { setShow(false); onClosed?.(); });
       } else {
         Animated.parallel([
