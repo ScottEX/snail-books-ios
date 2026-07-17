@@ -69,7 +69,7 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
       onRequestClose={handleDismiss}
     >
       <StatusBar hidden />
-      <GestureHandlerRootView style={styles.root}>
+      <GestureHandlerRootView key={initialIdx} style={styles.root}>
         {/* Image list */}
         <Animated.View style={styles.list}>
           {images.map((uri, index) => (
