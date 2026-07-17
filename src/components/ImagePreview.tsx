@@ -38,12 +38,14 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
   const [renderIdx, setRenderIdx] = useState(initialIdx);
   const listOffsetX = useSharedValue(-initialIdx * W);
   const [internalVisible, setInternalVisible] = useState(false);
+  const [openCount, setOpenCount] = useState(0);
 
   useEffect(() => {
     if (visible) {
       currentIdx.value = initialIdx;
       listOffsetX.value = -initialIdx * W;
       setRenderIdx(initialIdx);
+      setOpenCount(c => c + 1);
       setInternalVisible(true);
     }
   }, [visible, initialIdx]);
@@ -69,12 +71,12 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
       onRequestClose={handleDismiss}
     >
       <StatusBar hidden />
-      <GestureHandlerRootView style={styles.root}>
+      <GestureHandlerRootView key={openCount} style={styles.root}>
         {/* Image list */}
         <Animated.View style={styles.list}>
           {images.map((uri, index) => (
             <ImageItem
-              key={`${initialIdx}-${uri}-${index}`}
+              key={`${uri}-${index}`}
               uri={uri}
               index={index}
               currentIdx={currentIdx}
