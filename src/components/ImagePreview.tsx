@@ -8,7 +8,7 @@ import { Image } from 'expo-image';
 import Animated, {
   useSharedValue, useAnimatedStyle,
   withSpring, withTiming, withDelay,
-  runOnJS, clamp, interpolate, Extrapolation,
+  runOnJS, runOnUI, clamp, interpolate, Extrapolation,
   Easing,
 } from 'react-native-reanimated';
 import {
@@ -41,11 +41,16 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
 
   useEffect(() => {
     if (visible) {
-      // Reset shared values BEFORE Modal renders
-      currentIdx.value = initialIdx;
-      listOffsetX.value = -initialIdx * W;
-      setRenderIdx(initialIdx);
-      setInternalVisible(true);
+      // 先 UI 线程设值, 再 JS 线程渲染 → 杜绝闪现
+      runOnUI(() => {
+        'worklet';
+        currentIdx.value = initialIdx;
+        listOffsetX.value = -initialIdx * W;
+        runOnJS(() => {
+          setRenderIdx(initialIdx);
+          setInternalVisible(true);
+        })();
+      })();
     }
   }, [visible, initialIdx]);
 
