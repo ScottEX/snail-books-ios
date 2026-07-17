@@ -7,8 +7,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Image } from 'expo-image';
 import Animated, {
   useSharedValue, useAnimatedStyle,
-  withSpring, withTiming, withDelay,
-  runOnJS, runOnUI, clamp, interpolate, Extrapolation,
+  withSpring, withTiming,
+  runOnJS, clamp, interpolate, Extrapolation,
   Easing,
 } from 'react-native-reanimated';
 import {
