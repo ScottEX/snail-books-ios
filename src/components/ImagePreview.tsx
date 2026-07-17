@@ -384,7 +384,7 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
   }));
 
   const bgStyle = useAnimatedStyle(() => ({
-    backgroundColor: `rgba(0,0,0,${bgOpacity.value * 0.95})`,
+    backgroundColor: `rgba(0,0,0,${bgOpacity.value * 0.5})`,
   }));
 
   return (
@@ -409,7 +409,7 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000' },
+  root: { flex: 1 },
   list: { flex: 1, flexDirection: 'row', position: 'relative' },
   itemWrap: {
     position: 'absolute',
