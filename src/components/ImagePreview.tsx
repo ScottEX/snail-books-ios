@@ -274,9 +274,12 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
         const tx = e.translationX;
         const ty = e.translationY;
 
-        // 下拉关闭
+        // 下拉关闭: UI 线程动画滑出 → 延迟 JS 线程关闭
         if (ty > 80 && Math.abs(tx) < 60) {
-          runOnJS(onClose)();
+          translateY.value = withTiming(H * 0.5, { duration: 250 });
+          bgOpacity.value = withTiming(0, { duration: 250 });
+          scale.value = withTiming(0.92, { duration: 250 });
+          runOnJS(() => { setTimeout(() => onClose(), 260); })();
           return;
         }
 
