@@ -1,13 +1,15 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, Dimensions,
   StatusBar, TouchableOpacity, Modal,
 } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Image } from 'expo-image';
 import Animated, {
   useSharedValue, useAnimatedStyle,
   withSpring, withTiming, runOnJS,
   clamp, interpolate, Extrapolation,
+  Easing,
 } from 'react-native-reanimated';
 import {
   GestureDetector, Gesture,
@@ -35,19 +37,34 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
   const currentIdx = useSharedValue(initialIdx);
   const [renderIdx, setRenderIdx] = useState(initialIdx);
   const listOffsetX = useSharedValue(-initialIdx * W);
+  const [internalVisible, setInternalVisible] = useState(false);
+
+  useEffect(() => {
+    if (visible) setInternalVisible(true);
+  }, [visible]);
+
+  const handleDismiss = useCallback(() => {
+    setInternalVisible(false);
+  }, []);
+
+  const handleDismissComplete = useCallback(() => {
+    onClose();
+  }, [onClose]);
 
   const syncRenderIdx = useCallback((idx: number) => { setRenderIdx(idx); }, []);
 
   return (
     <Modal
-      visible={visible}
+      visible={internalVisible}
       transparent
       animationType="fade"
       statusBarTranslucent
-      onRequestClose={onClose}
+      presentationStyle="overFullScreen"
+      onDismiss={handleDismissComplete}
+      onRequestClose={handleDismiss}
     >
       <StatusBar hidden />
-      <View style={styles.root}>
+      <GestureHandlerRootView style={styles.root}>
         {/* Image list */}
         <Animated.View style={styles.list}>
           {images.map((uri, index) => (
@@ -58,7 +75,7 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
               currentIdx={currentIdx}
               listOffsetX={listOffsetX}
               total={images.length}
-              onClose={onClose}
+              onClose={handleDismiss}
               onIndexChange={syncRenderIdx}
             />
           ))}
@@ -66,7 +83,7 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
 
         {/* Header: close + counter */}
         <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-          <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.closeBtn} onPress={handleDismiss} activeOpacity={0.7}>
             <Text style={styles.closeTxt}>✕</Text>
           </TouchableOpacity>
           <Text style={styles.counter}>
@@ -83,7 +100,7 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
             ))}
           </View>
         )}
-      </View>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
@@ -108,6 +125,9 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
   const savedTx = useSharedValue(0);
   const savedTy = useSharedValue(0);
   const bgOpacity = useSharedValue(1);
+  const dragY = useSharedValue(0);         // 下拉位移
+  const dragScale = useSharedValue(1);     // 拖动时图片缩小
+  const isClosing = useSharedValue(false); // 防止关闭动画中途打断
 
   const getMaxTranslate = (s: number) => {
     'worklet';
@@ -139,6 +159,18 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
     listOffsetX.value = withSpring(-clamped * W, SPRING_CFG);
     runOnJS(onIndexChange)(clamped);
   };
+
+  // ── Entrance animation (index === 0 only, shared bg view) ──
+  useEffect(() => {
+    if (index === 0) {
+      dragY.value = 60;
+      dragScale.value = 0.88;
+      bgOpacity.value = 0;
+      dragY.value = withSpring(0, { damping: 26, stiffness: 240 });
+      dragScale.value = withSpring(1, { damping: 26, stiffness: 240 });
+      bgOpacity.value = withTiming(1, { duration: 220 });
+    }
+  }, []);
 
   // ── Double tap (scale 1 ↔ 2.5) ──
   const doubleTap = Gesture.Tap()
@@ -206,21 +238,29 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
       const { x: maxX, y: maxY } = getMaxTranslate(s);
 
       if (s <= 1) {
-        // scale=1: horizontal swipe switches images
-        const baseOffset = -currentIdx.value * W;
-        let nextOffset = baseOffset + e.translationX;
+        const tx = e.translationX;
+        const ty = e.translationY;
 
-        // Damping at boundaries
-        const isFirst = currentIdx.value === 0 && e.translationX > 0;
-        const isLast = currentIdx.value === total - 1 && e.translationX < 0;
-        if (isFirst || isLast) {
-          nextOffset = baseOffset + e.translationX * 0.25;
+        // 只有明显向下拖（Y > X * 1.2）时才进入下拉关闭模式
+        const isDraggingDown = !isClosing.value && ty > 0 && ty > Math.abs(tx) * 1.2;
+
+        if (isDraggingDown) {
+          dragY.value = ty;
+          dragScale.value = interpolate(ty, [0, 300], [1, 0.75], Extrapolation.CLAMP);
+          bgOpacity.value = interpolate(ty, [0, 250], [1, 0], Extrapolation.CLAMP);
+        } else {
+          const baseOffset = -currentIdx.value * W;
+          let nextOffset = baseOffset + e.translationX;
+          const isFirst = currentIdx.value === 0 && e.translationX > 0;
+          const isLast = currentIdx.value === total - 1 && e.translationX < 0;
+          if (isFirst || isLast) {
+            nextOffset = baseOffset + e.translationX * 0.25;
+          }
+          listOffsetX.value = nextOffset;
+          dragY.value = 0;
+          dragScale.value = 1;
+          bgOpacity.value = 1;
         }
-        listOffsetX.value = nextOffset;
-
-        // Vertical drag → fade background
-        const absY = Math.abs(e.translationY);
-        bgOpacity.value = interpolate(absY, [0, 200], [1, 0.4], Extrapolation.CLAMP);
       } else {
         // scale>1: pan within zoomed image
         const rawTx = savedTx.value + e.translationX;
@@ -242,15 +282,37 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
       const s = scale.value;
 
       if (s <= 1) {
-        // Pull-down dismiss
-        if (e.translationY > 80 && Math.abs(e.translationX) < 60) {
-          runOnJS(onClose)();
+        const vx = e.velocityX;
+        const vy = e.velocityY;
+        const tx = e.translationX;
+        const ty = e.translationY;
+
+        const isDraggingDown = ty > 0 && ty > Math.abs(tx) * 1.2;
+
+        if (isDraggingDown) {
+          const shouldClose = vy > 800 || ty > H * 0.25;
+
+          if (shouldClose) {
+            isClosing.value = true;
+            const duration = Math.max(180, Math.min(320, 1000 / (vy / 100)));
+            dragY.value = withTiming(H, {
+              duration,
+              easing: Easing.bezier(0.25, 0.1, 0.4, 1),
+            });
+            dragScale.value = withTiming(0.6, { duration });
+            bgOpacity.value = withTiming(0, { duration: duration * 0.8 });
+            runOnJS(onClose)();
+          } else {
+            dragY.value = withSpring(0, { velocity: vy, damping: 28, stiffness: 260, mass: 0.8 });
+            dragScale.value = withSpring(1, { damping: 28, stiffness: 260 });
+            bgOpacity.value = withTiming(1, { duration: 200 });
+          }
           return;
         }
 
         // Swipe left/right
-        const shouldNext = e.velocityX < -SWIPE_VELOCITY || e.translationX < -SWIPE_THRESHOLD;
-        const shouldPrev = e.velocityX > SWIPE_VELOCITY || e.translationX > SWIPE_THRESHOLD;
+        const shouldNext = vx < -SWIPE_VELOCITY || tx < -SWIPE_THRESHOLD;
+        const shouldPrev = vx > SWIPE_VELOCITY || tx > SWIPE_THRESHOLD;
 
         if (shouldNext && currentIdx.value < total - 1) {
           goToIndex(currentIdx.value + 1);
@@ -260,6 +322,8 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
           listOffsetX.value = withSpring(-currentIdx.value * W, SPRING_CFG);
         }
         bgOpacity.value = withTiming(1, { duration: 200 });
+        dragY.value = withSpring(0, { damping: 28, stiffness: 260 });
+        dragScale.value = withSpring(1, { damping: 28, stiffness: 260 });
       } else {
         // scale>1: snap back + edge swipe to next page
         const { x: maxX } = getMaxTranslate(s);
@@ -284,9 +348,11 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
     });
 
   // ── Gesture composition ──
-  const composed = Gesture.Simultaneous(
-    Gesture.Exclusive(doubleTap, pan),
-    pinch,
+  // Race: first to activate wins. pan activates ~10px → responsive swipe/zoom.
+  // doubleTap activates on 2nd tap (no movement) → zoom toggle.
+  const composed = Gesture.Race(
+    doubleTap,
+    Gesture.Simultaneous(pan, pinch),
   );
 
   // ── Animated styles ──
@@ -297,8 +363,8 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
   const imageStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: translateX.value },
-      { translateY: translateY.value },
-      { scale: scale.value },
+      { translateY: translateY.value + dragY.value },
+      { scale: scale.value * dragScale.value },
     ],
   }));
 
