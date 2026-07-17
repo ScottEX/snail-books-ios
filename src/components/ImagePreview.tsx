@@ -9,6 +9,7 @@ import Animated, {
   useSharedValue, useAnimatedStyle,
   withSpring, withTiming, runOnJS,
   clamp, interpolate, Extrapolation,
+  Easing,
 } from 'react-native-reanimated';
 import {
   GestureDetector, Gesture,
@@ -135,6 +136,9 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
   const savedTx = useSharedValue(0);
   const savedTy = useSharedValue(0);
   const bgOpacity = useSharedValue(1);
+  const dragY = useSharedValue(0);         // 下拉位移
+  const dragScale = useSharedValue(1);     // 拖动时图片缩小
+  const isClosing = useSharedValue(false); // 防止关闭动画中途打断
 
   const getMaxTranslate = (s: number) => {
     'worklet';
@@ -166,6 +170,18 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
     listOffsetX.value = withSpring(-clamped * W, SPRING_CFG);
     runOnJS(onIndexChange)(clamped);
   };
+
+  // ── Entrance animation (index === 0 only, shared bg view) ──
+  useEffect(() => {
+    if (index === 0) {
+      dragY.value = 60;
+      dragScale.value = 0.88;
+      bgOpacity.value = 0;
+      dragY.value = withSpring(0, { damping: 26, stiffness: 240 });
+      dragScale.value = withSpring(1, { damping: 26, stiffness: 240 });
+      bgOpacity.value = withTiming(1, { duration: 220 });
+    }
+  }, []);
 
   // ── Double tap (scale 1 ↔ 2.5) ──
   const doubleTap = Gesture.Tap()
@@ -233,21 +249,48 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
       const { x: maxX, y: maxY } = getMaxTranslate(s);
 
       if (s <= 1) {
-        // scale=1: horizontal swipe switches images
-        const baseOffset = -currentIdx.value * W;
-        let nextOffset = baseOffset + e.translationX;
+        const tx = e.translationX;
+        const ty = e.translationY;
 
-        // Damping at boundaries
-        const isFirst = currentIdx.value === 0 && e.translationX > 0;
-        const isLast = currentIdx.value === total - 1 && e.translationX < 0;
-        if (isFirst || isLast) {
-          nextOffset = baseOffset + e.translationX * 0.25;
+        // 只有明显向下拖（Y > X * 1.2）时才进入下拉关闭模式
+        const isDraggingDown = !isClosing.value && ty > 0 && ty > Math.abs(tx) * 1.2;
+
+        if (isDraggingDown) {
+          // 图片跟手位移
+          dragY.value = ty;
+
+          // 图片随下拉缩小：最多缩到 0.75
+          dragScale.value = interpolate(
+            ty,
+            [0, 300],
+            [1, 0.75],
+            Extrapolation.CLAMP,
+          );
+
+          // 背景随下拉渐隐
+          bgOpacity.value = interpolate(
+            ty,
+            [0, 250],
+            [1, 0],
+            Extrapolation.CLAMP,
+          );
+
+          // 下拉时不切换图片
+        } else {
+          // 正常水平切换
+          const baseOffset = -currentIdx.value * W;
+          let nextOffset = baseOffset + e.translationX;
+          const isFirst = currentIdx.value === 0 && e.translationX > 0;
+          const isLast = currentIdx.value === total - 1 && e.translationX < 0;
+          if (isFirst || isLast) {
+            nextOffset = baseOffset + e.translationX * 0.25;
+          }
+          listOffsetX.value = nextOffset;
+
+          dragY.value = 0;
+          dragScale.value = 1;
+          bgOpacity.value = 1;
         }
-        listOffsetX.value = nextOffset;
-
-        // Vertical drag → fade background
-        const absY = Math.abs(e.translationY);
-        bgOpacity.value = interpolate(absY, [0, 200], [1, 0.4], Extrapolation.CLAMP);
       } else {
         // scale>1: pan within zoomed image
         const rawTx = savedTx.value + e.translationX;
@@ -274,9 +317,45 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
         const tx = e.translationX;
         const ty = e.translationY;
 
-        // 下拉关闭
-        if (ty > 80 && Math.abs(tx) < 60) {
-          runOnJS(onClose)();
+        const isDraggingDown = ty > 0 && ty > Math.abs(tx) * 1.2;
+
+        if (isDraggingDown) {
+          // 判断是否触发关闭: 速度 > 800 或 距离 > 屏幕 1/4
+          const shouldClose = vy > 800 || ty > H * 0.25;
+
+          if (shouldClose) {
+            isClosing.value = true;
+
+            // 根据速度计算飞出时长
+            const duration = Math.max(180, Math.min(320, 1000 / (vy / 100)));
+
+            dragY.value = withTiming(H, {
+              duration,
+              easing: Easing.bezier(0.25, 0.1, 0.4, 1),
+            });
+
+            dragScale.value = withTiming(0.6, { duration });
+
+            bgOpacity.value = withTiming(0, { duration: duration * 0.8 });
+
+            runOnJS(onClose)();
+          } else {
+            // 回弹: 带速度的 spring
+            dragY.value = withSpring(0, {
+              velocity: vy,
+              damping: 28,
+              stiffness: 260,
+              mass: 0.8,
+            });
+
+            dragScale.value = withSpring(1, {
+              damping: 28,
+              stiffness: 260,
+            });
+
+            bgOpacity.value = withTiming(1, { duration: 200 });
+          }
+
           return;
         }
 
@@ -292,6 +371,8 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
           listOffsetX.value = withSpring(-currentIdx.value * W, SPRING_CFG);
         }
         bgOpacity.value = withTiming(1, { duration: 200 });
+        dragY.value = withSpring(0, { damping: 28, stiffness: 260 });
+        dragScale.value = withSpring(1, { damping: 28, stiffness: 260 });
       } else {
         // scale>1: snap back + edge swipe to next page
         const { x: maxX } = getMaxTranslate(s);
@@ -331,8 +412,8 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
   const imageStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: translateX.value },
-      { translateY: translateY.value },
-      { scale: scale.value },
+      { translateY: translateY.value + dragY.value },
+      { scale: scale.value * dragScale.value },
     ],
   }));
 
