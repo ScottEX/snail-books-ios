@@ -126,8 +126,8 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, childr
       } else if (animation === 'slideUpScale') {
         Animated.parallel([
           backOut,
-          Animated.timing(slide, { toValue: 500, duration: 280, easing: Easing.bezier(0.4, 0, 1, 1), useNativeDriver: false }),
-          Animated.timing(scale, { toValue: 0.96, duration: 280, easing: Easing.bezier(0.4, 0, 1, 1), useNativeDriver: false }),
+          Animated.timing(slide, { toValue: 500, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
+          Animated.timing(scale, { toValue: 0.96, duration: 280, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
           Animated.timing(fade, { toValue: 0, duration: 220, useNativeDriver: false }),
         ]).start(() => { setShow(false); onClosed?.(); });
       } else if (animation === 'stagger') {
@@ -140,7 +140,7 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, childr
       } else if (animation === 'iosSheet') {
         Animated.parallel([
           backOut,
-          Animated.timing(slide, { toValue: 500, duration: 300, easing: Easing.bezier(0.4, 0, 1, 1), useNativeDriver: true }),
+          Animated.timing(slide, { toValue: 500, duration: 300, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
         ]).start(() => { setShow(false); onClosed?.(); });
       } else {
         Animated.parallel([
