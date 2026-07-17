@@ -153,16 +153,14 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
   const dragScale = useSharedValue(1);
   const isClosing = useSharedValue(false);
 
-  // ── Entrance animation (index 0 only) ──
+  // ── Entrance animation ──
   useEffect(() => {
-    if (index === 0) {
-      dragY.value = 60;
-      dragScale.value = 0.88;
-      bgOpacity.value = 0;
-      dragY.value = withDelay(50, withSpring(0, { damping: 26, stiffness: 240 }));
-      dragScale.value = withDelay(50, withSpring(1, { damping: 26, stiffness: 240 }));
-      bgOpacity.value = withDelay(50, withTiming(1, { duration: 220 }));
-    }
+    dragY.value = 60;
+    dragScale.value = 0.88;
+    bgOpacity.value = 0;
+    dragY.value = withDelay(50, withSpring(0, { damping: 26, stiffness: 240 }));
+    dragScale.value = withDelay(50, withSpring(1, { damping: 26, stiffness: 240 }));
+    bgOpacity.value = withDelay(50, withTiming(1, { duration: 220 }));
   }, []);
 
   const getMaxTranslate = (s: number) => {
