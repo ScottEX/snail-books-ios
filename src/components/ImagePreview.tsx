@@ -384,7 +384,7 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
   }));
 
   const bgStyle = useAnimatedStyle(() => ({
-    backgroundColor: `rgba(0,0,0,${bgOpacity.value})`,
+    backgroundColor: `rgba(0,0,0,${bgOpacity.value * 0.95})`,
   }));
 
   return (
