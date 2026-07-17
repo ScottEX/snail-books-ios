@@ -367,8 +367,10 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
           resetZoom();
           goToIndex(currentIdx.value - 1);
         } else {
-          translateX.value = withSpring(clamped.x, SPRING_CFG);
-          translateY.value = withSpring(clamped.y, SPRING_CFG);
+          const inertiaX = e.velocityX * 0.4;
+          const inertiaY = e.velocityY * 0.4;
+          translateX.value = withSpring(clamped.x, { ...SPRING_CFG, velocity: inertiaX });
+          translateY.value = withSpring(clamped.y, { ...SPRING_CFG, velocity: inertiaY });
           savedTx.value = clamped.x;
           savedTy.value = clamped.y;
         }
