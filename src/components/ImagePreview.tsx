@@ -7,8 +7,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Image } from 'expo-image';
 import Animated, {
   useSharedValue, useAnimatedStyle,
-  withSpring, withTiming, runOnJS,
-  clamp, interpolate, Extrapolation,
+  withSpring, withTiming, withDelay,
+  runOnJS, clamp, interpolate, Extrapolation,
   Easing,
 } from 'react-native-reanimated';
 import {
@@ -77,6 +77,7 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
               total={images.length}
               onClose={handleDismiss}
               onIndexChange={syncRenderIdx}
+              visible={visible}
             />
           ))}
         </Animated.View>
@@ -115,9 +116,10 @@ interface ItemProps {
   total: number;
   onClose: () => void;
   onIndexChange: (idx: number) => void;
+  visible: boolean;
 }
 
-function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onIndexChange }: ItemProps) {
+function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onIndexChange, visible }: ItemProps) {
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -160,17 +162,17 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
     runOnJS(onIndexChange)(clamped);
   };
 
-  // ── Entrance animation (index === 0 only, shared bg view) ──
+  // ── Entrance animation ──
   useEffect(() => {
-    if (index === 0) {
+    if (visible) {
       dragY.value = 60;
       dragScale.value = 0.88;
       bgOpacity.value = 0;
-      dragY.value = withSpring(0, { damping: 26, stiffness: 240 });
-      dragScale.value = withSpring(1, { damping: 26, stiffness: 240 });
-      bgOpacity.value = withTiming(1, { duration: 220 });
+      dragY.value = withDelay(50, withSpring(0, { damping: 26, stiffness: 240 }));
+      dragScale.value = withDelay(50, withSpring(1, { damping: 26, stiffness: 240 }));
+      bgOpacity.value = withDelay(50, withTiming(1, { duration: 220 }));
     }
-  }, []);
+  }, [visible]);
 
   // ── Double tap (scale 1 ↔ 2.5) ──
   const doubleTap = Gesture.Tap()
