@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions, useWindowDimensions,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Modal, Dimensions, useWindowDimensions,
 } from 'react-native';
 import CustomActionSheet, { ActionItem } from '../components/CustomActionSheet';
 import AppTextInput from '../components/AppTextInput';
@@ -929,14 +929,16 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       />
 
       {/* ═══ DRAWER (create/edit) ═══ */}
-      <ModalOverlay
+      <Modal
         visible={drawerOpen}
-        onClose={closeDrawer}
-        animation="slideUpScale"
-        overlayStyle={bottomSheetOverlay}
-        contentStyle={{ alignItems: 'stretch', justifyContent: 'flex-end' }}
+        transparent
+        animationType="slide"
+        onRequestClose={closeDrawer}
+        onDismiss={closeDrawer}
       >
-        <ReAnimated.View style={[drawerPushStyle, styles.drawer, { backgroundColor: c.surface, maxHeight: Dimensions.get('window').height * 0.806 }]}>
+        <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} onPress={closeDrawer} activeOpacity={1} />
+          <ReAnimated.View style={[drawerPushStyle, styles.drawer, { backgroundColor: c.surface, maxHeight: Dimensions.get('window').height * 0.806 }]}>
             <View style={[styles.drawerHead, { backgroundColor: c.primary, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 14, paddingHorizontal: 20, paddingBottom: 14 }]}>
               <SheetHeader title={editingId ? t('invRecEditTitle') : t('invRecAddTitle')} onClose={closeDrawer} />
             </View>
@@ -1147,7 +1149,8 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
               );
             })()}
         </ReAnimated.View>
-      </ModalOverlay>
+          </View>
+      </Modal>
 
       <CustomActionSheet
         visible={showBatchPicker}
