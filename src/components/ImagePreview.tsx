@@ -43,6 +43,15 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
     if (visible) setInternalVisible(true);
   }, [visible]);
 
+  // Reset shared values when opening with new index
+  useEffect(() => {
+    if (visible) {
+      currentIdx.value = initialIdx;
+      listOffsetX.value = -initialIdx * W;
+      setRenderIdx(initialIdx);
+    }
+  }, [visible, initialIdx]);
+
   const handleDismiss = useCallback(() => {
     setInternalVisible(false);
   }, []);
