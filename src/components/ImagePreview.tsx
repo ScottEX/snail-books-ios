@@ -69,12 +69,12 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
       onRequestClose={handleDismiss}
     >
       <StatusBar hidden />
-      <GestureHandlerRootView key={initialIdx} style={styles.root}>
+      <GestureHandlerRootView style={styles.root}>
         {/* Image list */}
         <Animated.View style={styles.list}>
           {images.map((uri, index) => (
             <ImageItem
-              key={uri + index}
+              key={`${initialIdx}-${uri}-${index}`}
               uri={uri}
               index={index}
               currentIdx={currentIdx}
@@ -370,10 +370,6 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
     backgroundColor: `rgba(0,0,0,${bgOpacity.value})`,
   }));
 
-  const isVisible = useAnimatedStyle(() => ({
-    display: Math.abs(index - currentIdx.value) <= 1 ? 'flex' : 'none',
-  }));
-
   return (
     <>
       {/* Background layer (follows pull-down opacity) */}
@@ -382,7 +378,7 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
       )}
 
       {/* Image container (horizontal layout) */}
-      <Animated.View style={[styles.itemWrap, { left: index * W }, listStyle, isVisible]}>
+      <Animated.View style={[styles.itemWrap, { left: index * W }, listStyle]}>
         <GestureDetector gesture={composed}>
           <Animated.View style={[styles.imageWrap, imageStyle]}>
             <Image
