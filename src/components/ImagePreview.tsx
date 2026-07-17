@@ -84,11 +84,22 @@ function ContentView({ images, initialIdx, onClose }: {
   const currentIdx = useSharedValue(initialIdx);
   const listOffsetX = useSharedValue(-initialIdx * W);
   const [renderIdx, setRenderIdx] = useState(initialIdx);
+  const closeAnim = useSharedValue(0);
 
   const syncRenderIdx = useCallback((idx: number) => { setRenderIdx(idx); }, []);
 
+  const handleClose = useCallback(() => {
+    closeAnim.value = withTiming(1, { duration: 250 });
+    setTimeout(onClose, 260);
+  }, [onClose]);
+
+  const contentStyle = useAnimatedStyle(() => ({
+    opacity: 1 - closeAnim.value,
+    transform: [{ translateY: closeAnim.value * 30 }],
+  }));
+
   return (
-    <>
+    <Animated.View style={[{ flex: 1 }, contentStyle]}>
       <StatusBar hidden />
       {/* Image list */}
       <Animated.View style={styles.list}>
@@ -108,7 +119,7 @@ function ContentView({ images, initialIdx, onClose }: {
 
       {/* Header: close + counter */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.closeBtn} onPress={handleClose} activeOpacity={0.7}>
           <Text style={styles.closeTxt}>✕</Text>
         </TouchableOpacity>
         <Text style={styles.counter}>
@@ -125,7 +136,7 @@ function ContentView({ images, initialIdx, onClose }: {
           ))}
         </View>
       )}
-    </>
+    </Animated.View>
   );
 }
 
