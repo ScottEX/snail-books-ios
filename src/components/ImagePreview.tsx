@@ -33,22 +33,15 @@ interface Props {
 }
 
 export default function ImagePreview({ images, initialIdx = 0, visible, onClose }: Props) {
-  const insets = useSafeAreaInsets();
-  const currentIdx = useSharedValue(initialIdx);
-  const [renderIdx, setRenderIdx] = useState(initialIdx);
-  const listOffsetX = useSharedValue(-initialIdx * W);
   const [internalVisible, setInternalVisible] = useState(false);
   const [openCount, setOpenCount] = useState(0);
 
   useEffect(() => {
     if (visible) {
-      currentIdx.value = initialIdx;
-      listOffsetX.value = -initialIdx * W;
-      setRenderIdx(initialIdx);
       setOpenCount(c => c + 1);
       setInternalVisible(true);
     }
-  }, [visible, initialIdx]);
+  }, [visible]);
 
   const handleDismiss = useCallback(() => {
     setInternalVisible(false);
@@ -57,8 +50,6 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
   const handleDismissComplete = useCallback(() => {
     onClose();
   }, [onClose]);
-
-  const syncRenderIdx = useCallback((idx: number) => { setRenderIdx(idx); }, []);
 
   return (
     <Modal
@@ -70,46 +61,71 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
       onDismiss={handleDismissComplete}
       onRequestClose={handleDismiss}
     >
-      <StatusBar hidden />
-      <GestureHandlerRootView key={openCount} style={styles.root}>
-        {/* Image list */}
-        <Animated.View style={styles.list}>
-          {images.map((uri, index) => (
-            <ImageItem
-              key={`${uri}-${index}`}
-              uri={uri}
-              index={index}
-              currentIdx={currentIdx}
-              listOffsetX={listOffsetX}
-              total={images.length}
-              onClose={handleDismiss}
-              onIndexChange={syncRenderIdx}
-              visible={visible}
-            />
-          ))}
-        </Animated.View>
-
-        {/* Header: close + counter */}
-        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-          <TouchableOpacity style={styles.closeBtn} onPress={handleDismiss} activeOpacity={0.7}>
-            <Text style={styles.closeTxt}>✕</Text>
-          </TouchableOpacity>
-          <Text style={styles.counter}>
-            {renderIdx + 1} / {images.length}
-          </Text>
-          <View style={{ width: 40 }} />
-        </View>
-
-        {/* Dots */}
-        {images.length > 1 && (
-          <View style={[styles.dots, { paddingBottom: insets.bottom + 12 }]}>
-            {images.map((_, i) => (
-              <View key={i} style={[styles.dot, i === renderIdx && styles.dotActive]} />
-            ))}
-          </View>
-        )}
+      <GestureHandlerRootView style={styles.root}>
+        <ContentView
+          key={openCount}
+          images={images}
+          initialIdx={initialIdx}
+          onClose={handleDismiss}
+        />
       </GestureHandlerRootView>
     </Modal>
+  );
+}
+
+// ─── Content (keyed for fresh shared values on each open) ──────────────────────
+
+function ContentView({ images, initialIdx, onClose }: {
+  images: string[];
+  initialIdx: number;
+  onClose: () => void;
+}) {
+  const insets = useSafeAreaInsets();
+  const currentIdx = useSharedValue(initialIdx);
+  const listOffsetX = useSharedValue(-initialIdx * W);
+  const [renderIdx, setRenderIdx] = useState(initialIdx);
+
+  const syncRenderIdx = useCallback((idx: number) => { setRenderIdx(idx); }, []);
+
+  return (
+    <>
+      <StatusBar hidden />
+      {/* Image list */}
+      <Animated.View style={styles.list}>
+        {images.map((uri, index) => (
+          <ImageItem
+            key={`${uri}-${index}`}
+            uri={uri}
+            index={index}
+            currentIdx={currentIdx}
+            listOffsetX={listOffsetX}
+            total={images.length}
+            onClose={onClose}
+            onIndexChange={syncRenderIdx}
+          />
+        ))}
+      </Animated.View>
+
+      {/* Header: close + counter */}
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
+          <Text style={styles.closeTxt}>✕</Text>
+        </TouchableOpacity>
+        <Text style={styles.counter}>
+          {renderIdx + 1} / {images.length}
+        </Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      {/* Dots */}
+      {images.length > 1 && (
+        <View style={[styles.dots, { paddingBottom: insets.bottom + 12 }]}>
+          {images.map((_, i) => (
+            <View key={i} style={[styles.dot, i === renderIdx && styles.dotActive]} />
+          ))}
+        </View>
+      )}
+    </>
   );
 }
 
@@ -123,10 +139,9 @@ interface ItemProps {
   total: number;
   onClose: () => void;
   onIndexChange: (idx: number) => void;
-  visible: boolean;
 }
 
-function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onIndexChange, visible }: ItemProps) {
+function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onIndexChange }: ItemProps) {
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -134,9 +149,9 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
   const savedTx = useSharedValue(0);
   const savedTy = useSharedValue(0);
   const bgOpacity = useSharedValue(1);
-  const dragY = useSharedValue(0);         // 下拉位移
-  const dragScale = useSharedValue(1);     // 拖动时图片缩小
-  const isClosing = useSharedValue(false); // 防止关闭动画中途打断
+  const dragY = useSharedValue(0);
+  const dragScale = useSharedValue(1);
+  const isClosing = useSharedValue(false);
 
   const getMaxTranslate = (s: number) => {
     'worklet';
@@ -168,9 +183,6 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
     listOffsetX.value = withSpring(-clamped * W, SPRING_CFG);
     runOnJS(onIndexChange)(clamped);
   };
-
-  // ── Entrance animation (disabled for testing flash) ──
-  // useEffect(() => { ... }, [visible]);
 
   // ── Double tap (scale 1 ↔ 2.5) ──
   const doubleTap = Gesture.Tap()
@@ -241,7 +253,6 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
         const tx = e.translationX;
         const ty = e.translationY;
 
-        // 只有明显向下拖（Y > X * 1.2）时才进入下拉关闭模式
         const isDraggingDown = !isClosing.value && ty > 0 && ty > Math.abs(tx) * 1.2;
 
         if (isDraggingDown) {
@@ -262,11 +273,9 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
           bgOpacity.value = 1;
         }
       } else {
-        // scale>1: pan within zoomed image
         const rawTx = savedTx.value + e.translationX;
         const rawTy = savedTy.value + e.translationY;
 
-        // Damping beyond boundaries
         if (rawTx > maxX) {
           translateX.value = maxX + (rawTx - maxX) * OVERSCALE_DAMPING;
         } else if (rawTx < -maxX) {
@@ -310,7 +319,6 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
           return;
         }
 
-        // Swipe left/right
         const shouldNext = vx < -SWIPE_VELOCITY || tx < -SWIPE_THRESHOLD;
         const shouldPrev = vx > SWIPE_VELOCITY || tx > SWIPE_THRESHOLD;
 
@@ -325,7 +333,6 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
         dragY.value = withSpring(0, { damping: 28, stiffness: 260 });
         dragScale.value = withSpring(1, { damping: 28, stiffness: 260 });
       } else {
-        // scale>1: snap back + edge swipe to next page
         const { x: maxX } = getMaxTranslate(s);
         const clamped = clampTranslate(translateX.value, translateY.value, s);
 
@@ -348,8 +355,6 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
     });
 
   // ── Gesture composition ──
-  // Race: first to activate wins. pan activates ~10px → responsive swipe/zoom.
-  // doubleTap activates on 2nd tap (no movement) → zoom toggle.
   const composed = Gesture.Race(
     doubleTap,
     Gesture.Simultaneous(pan, pinch),
@@ -374,12 +379,9 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
 
   return (
     <>
-      {/* Background layer (follows pull-down opacity) */}
       {index === 0 && (
         <Animated.View style={[StyleSheet.absoluteFill, bgStyle]} pointerEvents="none" />
       )}
-
-      {/* Image container (horizontal layout) */}
       <Animated.View style={[styles.itemWrap, { left: index * W }, listStyle]}>
         <GestureDetector gesture={composed}>
           <Animated.View style={[styles.imageWrap, imageStyle]}>
