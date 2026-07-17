@@ -131,11 +131,11 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, childr
           linear
             ? Animated.timing(slide, { toValue: 500, duration: d, useNativeDriver: false })
             : Animated.timing(slide, { toValue: 500, duration: 280, easing: Easing.bezier(0.4, 0, 1, 1), useNativeDriver: false }),
-          linear
-            ? Animated.timing(scale, { toValue: 0.96, duration: d, useNativeDriver: false })
-            : Animated.timing(scale, { toValue: 0.96, duration: 280, easing: Easing.bezier(0.4, 0, 1, 1), useNativeDriver: false }),
+          !linear
+            ? Animated.timing(scale, { toValue: 0.96, duration: 280, easing: Easing.bezier(0.4, 0, 1, 1), useNativeDriver: false })
+            : null,
           Animated.timing(fade, { toValue: 0, duration: linear ? d : 220, useNativeDriver: false }),
-        ]).start(() => { setShow(false); onClosed?.(); });
+        ].filter(Boolean) as any).start(() => { setShow(false); onClosed?.(); });
       } else if (animation === 'stagger') {
         Animated.parallel([
           backOut,
