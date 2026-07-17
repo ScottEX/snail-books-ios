@@ -1213,6 +1213,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
       {/* ── Order Drawer (slide up + scale) ── */}
       <ModalOverlay
         visible={showDrawer}
+        outDuration={300}
         onClose={handleDrawerClose}
         animation="slideUpScale"
         overlayStyle={bottomSheetOverlay as any}
