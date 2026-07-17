@@ -571,12 +571,10 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
 
   /* ── Preview handlers ── */
   const handlePreviewExisting = (index: number) => {
-    setDrawerOpen(false);
     openPreview(dExistingFilePath.map(p => api.getInvoiceFileUrl(p)), index);
   };
 
   const handlePreviewNew = (index: number) => {
-    setDrawerOpen(false);
     openPreview(dFiles.map(f => f.uri), index);
   };
 
