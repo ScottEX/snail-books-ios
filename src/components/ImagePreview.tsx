@@ -7,8 +7,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Image } from 'expo-image';
 import Animated, {
   useSharedValue, useAnimatedStyle,
-  withSpring, withTiming, runOnJS,
-  clamp, interpolate, Extrapolation,
+  withSpring, withTiming, withDelay,
+  runOnJS, clamp, interpolate, Extrapolation,
   Easing,
 } from 'react-native-reanimated';
 import {
@@ -33,36 +33,23 @@ interface Props {
 }
 
 export default function ImagePreview({ images, initialIdx = 0, visible, onClose }: Props) {
-  const insets = useSafeAreaInsets();
-  const currentIdx = useSharedValue(initialIdx);
-  const [renderIdx, setRenderIdx] = useState(initialIdx);
-  const listOffsetX = useSharedValue(-initialIdx * W);
   const [internalVisible, setInternalVisible] = useState(false);
+  const [openCount, setOpenCount] = useState(0);
 
-  // Sync external visible → show Modal; close is a one-way animation
   useEffect(() => {
-    if (visible) setInternalVisible(true);
+    if (visible) {
+      setOpenCount(c => c + 1);
+      setInternalVisible(true);
+    }
   }, [visible]);
 
   const handleDismiss = useCallback(() => {
-    setInternalVisible(false); // triggers native dismiss animation
+    setInternalVisible(false);
   }, []);
 
   const handleDismissComplete = useCallback(() => {
-    // Called by onDismiss after native animation finishes and GestureHandler is torn down
     onClose();
   }, [onClose]);
-
-  const syncRenderIdx = useCallback((idx: number) => { setRenderIdx(idx); }, []);
-
-  // Reset on open
-  useEffect(() => {
-    if (visible) {
-      currentIdx.value = initialIdx;
-      listOffsetX.value = -initialIdx * W;
-      setRenderIdx(initialIdx);
-    }
-  }, [visible, initialIdx]);
 
   return (
     <Modal
@@ -74,45 +61,71 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
       onDismiss={handleDismissComplete}
       onRequestClose={handleDismiss}
     >
-      <StatusBar hidden />
       <GestureHandlerRootView style={styles.root}>
-        {/* Image list */}
-        <Animated.View style={styles.list}>
-          {images.map((uri, index) => (
-            <ImageItem
-              key={uri + index}
-              uri={uri}
-              index={index}
-              currentIdx={currentIdx}
-              listOffsetX={listOffsetX}
-              total={images.length}
-              onClose={handleDismiss}
-              onIndexChange={syncRenderIdx}
-            />
-          ))}
-        </Animated.View>
-
-        {/* Header: close + counter */}
-        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-          <TouchableOpacity style={styles.closeBtn} onPress={handleDismiss} activeOpacity={0.7}>
-            <Text style={styles.closeTxt}>✕</Text>
-          </TouchableOpacity>
-          <Text style={styles.counter}>
-            {renderIdx + 1} / {images.length}
-          </Text>
-          <View style={{ width: 40 }} />
-        </View>
-
-        {/* Dots */}
-        {images.length > 1 && (
-          <View style={[styles.dots, { paddingBottom: insets.bottom + 12 }]}>
-            {images.map((_, i) => (
-              <View key={i} style={[styles.dot, i === renderIdx && styles.dotActive]} />
-            ))}
-          </View>
-        )}
+        <ContentView
+          key={openCount}
+          images={images}
+          initialIdx={initialIdx}
+          onClose={handleDismiss}
+        />
       </GestureHandlerRootView>
     </Modal>
+  );
+}
+
+// ─── Content (keyed for fresh shared values on each open) ──────────────────────
+
+function ContentView({ images, initialIdx, onClose }: {
+  images: string[];
+  initialIdx: number;
+  onClose: () => void;
+}) {
+  const insets = useSafeAreaInsets();
+  const currentIdx = useSharedValue(initialIdx);
+  const listOffsetX = useSharedValue(-initialIdx * W);
+  const [renderIdx, setRenderIdx] = useState(initialIdx);
+
+  const syncRenderIdx = useCallback((idx: number) => { setRenderIdx(idx); }, []);
+
+  return (
+    <>
+      <StatusBar hidden />
+      {/* Image list */}
+      <Animated.View style={styles.list}>
+        {images.map((uri, index) => (
+          <ImageItem
+            key={`${uri}-${index}`}
+            uri={uri}
+            index={index}
+            currentIdx={currentIdx}
+            listOffsetX={listOffsetX}
+            total={images.length}
+            onClose={onClose}
+            onIndexChange={syncRenderIdx}
+          />
+        ))}
+      </Animated.View>
+
+      {/* Header: close + counter */}
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
+          <Text style={styles.closeTxt}>✕</Text>
+        </TouchableOpacity>
+        <Text style={styles.counter}>
+          {renderIdx + 1} / {images.length}
+        </Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      {/* Dots */}
+      {images.length > 1 && (
+        <View style={[styles.dots, { paddingBottom: insets.bottom + 12 }]}>
+          {images.map((_, i) => (
+            <View key={i} style={[styles.dot, i === renderIdx && styles.dotActive]} />
+          ))}
+        </View>
+      )}
+    </>
   );
 }
 
@@ -136,9 +149,19 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
   const savedTx = useSharedValue(0);
   const savedTy = useSharedValue(0);
   const bgOpacity = useSharedValue(1);
-  const dragY = useSharedValue(0);         // 下拉位移
-  const dragScale = useSharedValue(1);     // 拖动时图片缩小
-  const isClosing = useSharedValue(false); // 防止关闭动画中途打断
+  const dragY = useSharedValue(0);
+  const dragScale = useSharedValue(1);
+  const isClosing = useSharedValue(false);
+
+  // ── Entrance animation ──
+  useEffect(() => {
+    dragY.value = 60;
+    dragScale.value = 0.88;
+    bgOpacity.value = 0;
+    dragY.value = withDelay(50, withSpring(0, { damping: 26, stiffness: 240 }));
+    dragScale.value = withDelay(50, withSpring(1, { damping: 26, stiffness: 240 }));
+    bgOpacity.value = withDelay(50, withTiming(1, { duration: 220 }));
+  }, []);
 
   const getMaxTranslate = (s: number) => {
     'worklet';
@@ -170,18 +193,6 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
     listOffsetX.value = withSpring(-clamped * W, SPRING_CFG);
     runOnJS(onIndexChange)(clamped);
   };
-
-  // ── Entrance animation (index === 0 only, shared bg view) ──
-  useEffect(() => {
-    if (index === 0) {
-      dragY.value = 60;
-      dragScale.value = 0.88;
-      bgOpacity.value = 0;
-      dragY.value = withSpring(0, { damping: 26, stiffness: 240 });
-      dragScale.value = withSpring(1, { damping: 26, stiffness: 240 });
-      bgOpacity.value = withTiming(1, { duration: 220 });
-    }
-  }, []);
 
   // ── Double tap (scale 1 ↔ 2.5) ──
   const doubleTap = Gesture.Tap()
@@ -252,32 +263,13 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
         const tx = e.translationX;
         const ty = e.translationY;
 
-        // 只有明显向下拖（Y > X * 1.2）时才进入下拉关闭模式
         const isDraggingDown = !isClosing.value && ty > 0 && ty > Math.abs(tx) * 1.2;
 
         if (isDraggingDown) {
-          // 图片跟手位移
           dragY.value = ty;
-
-          // 图片随下拉缩小：最多缩到 0.75
-          dragScale.value = interpolate(
-            ty,
-            [0, 300],
-            [1, 0.75],
-            Extrapolation.CLAMP,
-          );
-
-          // 背景随下拉渐隐
-          bgOpacity.value = interpolate(
-            ty,
-            [0, 250],
-            [1, 0],
-            Extrapolation.CLAMP,
-          );
-
-          // 下拉时不切换图片
+          dragScale.value = interpolate(ty, [0, 300], [1, 0.75], Extrapolation.CLAMP);
+          bgOpacity.value = interpolate(ty, [0, 250], [1, 0], Extrapolation.CLAMP);
         } else {
-          // 正常水平切换
           const baseOffset = -currentIdx.value * W;
           let nextOffset = baseOffset + e.translationX;
           const isFirst = currentIdx.value === 0 && e.translationX > 0;
@@ -286,17 +278,14 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
             nextOffset = baseOffset + e.translationX * 0.25;
           }
           listOffsetX.value = nextOffset;
-
           dragY.value = 0;
           dragScale.value = 1;
           bgOpacity.value = 1;
         }
       } else {
-        // scale>1: pan within zoomed image
         const rawTx = savedTx.value + e.translationX;
         const rawTy = savedTy.value + e.translationY;
 
-        // Damping beyond boundaries
         if (rawTx > maxX) {
           translateX.value = maxX + (rawTx - maxX) * OVERSCALE_DAMPING;
         } else if (rawTx < -maxX) {
@@ -320,46 +309,26 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
         const isDraggingDown = ty > 0 && ty > Math.abs(tx) * 1.2;
 
         if (isDraggingDown) {
-          // 判断是否触发关闭: 速度 > 800 或 距离 > 屏幕 1/4
           const shouldClose = vy > 800 || ty > H * 0.25;
 
           if (shouldClose) {
             isClosing.value = true;
-
-            // 根据速度计算飞出时长
             const duration = Math.max(180, Math.min(320, 1000 / (vy / 100)));
-
             dragY.value = withTiming(H, {
               duration,
               easing: Easing.bezier(0.25, 0.1, 0.4, 1),
             });
-
             dragScale.value = withTiming(0.6, { duration });
-
             bgOpacity.value = withTiming(0, { duration: duration * 0.8 });
-
             runOnJS(onClose)();
           } else {
-            // 回弹: 带速度的 spring
-            dragY.value = withSpring(0, {
-              velocity: vy,
-              damping: 28,
-              stiffness: 260,
-              mass: 0.8,
-            });
-
-            dragScale.value = withSpring(1, {
-              damping: 28,
-              stiffness: 260,
-            });
-
+            dragY.value = withSpring(0, { velocity: vy, damping: 28, stiffness: 260, mass: 0.8 });
+            dragScale.value = withSpring(1, { damping: 28, stiffness: 260 });
             bgOpacity.value = withTiming(1, { duration: 200 });
           }
-
           return;
         }
 
-        // 左右切换：速度或位移达到阈值
         const shouldNext = vx < -SWIPE_VELOCITY || tx < -SWIPE_THRESHOLD;
         const shouldPrev = vx > SWIPE_VELOCITY || tx > SWIPE_THRESHOLD;
 
@@ -374,7 +343,6 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
         dragY.value = withSpring(0, { damping: 28, stiffness: 260 });
         dragScale.value = withSpring(1, { damping: 28, stiffness: 260 });
       } else {
-        // scale>1: snap back + edge swipe to next page
         const { x: maxX } = getMaxTranslate(s);
         const clamped = clampTranslate(translateX.value, translateY.value, s);
 
@@ -397,8 +365,6 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
     });
 
   // ── Gesture composition ──
-  // Race: first to activate wins. pan activates ~10px → responsive swipe/zoom.
-  // doubleTap activates on 2nd tap (no movement) → zoom toggle.
   const composed = Gesture.Race(
     doubleTap,
     Gesture.Simultaneous(pan, pinch),
@@ -418,22 +384,15 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
   }));
 
   const bgStyle = useAnimatedStyle(() => ({
-    backgroundColor: `rgba(0,0,0,${bgOpacity.value})`,
-  }));
-
-  const isVisible = useAnimatedStyle(() => ({
-    display: Math.abs(index - currentIdx.value) <= 1 ? 'flex' : 'none',
+    backgroundColor: `rgba(0,0,0,${bgOpacity.value * 0.95})`,
   }));
 
   return (
     <>
-      {/* Background layer (follows pull-down opacity) */}
       {index === 0 && (
         <Animated.View style={[StyleSheet.absoluteFill, bgStyle]} pointerEvents="none" />
       )}
-
-      {/* Image container (horizontal layout) */}
-      <Animated.View style={[styles.itemWrap, { left: index * W }, listStyle, isVisible]}>
+      <Animated.View style={[styles.itemWrap, { left: index * W }, listStyle]}>
         <GestureDetector gesture={composed}>
           <Animated.View style={[styles.imageWrap, imageStyle]}>
             <Image
@@ -450,7 +409,7 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000' },
+  root: { flex: 1 },
   list: { flex: 1, flexDirection: 'row', position: 'relative' },
   itemWrap: {
     position: 'absolute',

@@ -243,15 +243,12 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteConfirmUsername, setDeleteConfirmUsername] = useState('');
   // Sticky header on scroll (matches web)
-  // ═══════════════════════════════════════════════════════════════
-  // Native-driver scroll animation — transforms on UI thread, zero JS cost
-  // ═══════════════════════════════════════════════════════════════
   const FREEZE_POINT = 92;
   const scrollYAnim = useRef(new Animated.Value(0)).current;
-  // Cover slides up 0→-FREEZE_POINT, clamped
+  // Cover slides up when scrolling past cover, stays at top on pull-down
   const coverTranslateY = scrollYAnim.interpolate({
-    inputRange: [0, FREEZE_POINT],
-    outputRange: [0, -FREEZE_POINT],
+    inputRange: [-200, 0, FREEZE_POINT],
+    outputRange: [0, 0, -FREEZE_POINT],
     extrapolate: 'clamp',
   });
   // Pull-down stretch: sqrt-damped translateY (approximated piecewise)
@@ -261,7 +258,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     extrapolateLeft: 'extend',
     extrapolateRight: 'clamp',
   });
-  // Pull-down stretch: sqrt-damped scaleY
+  // Pull-down stretch: uniform scale (zooms image, not just Y-stretch)
   const pullDownScale = scrollYAnim.interpolate({
     inputRange: [-400, -200, -100, -50, -20, 0],
     outputRange: [1.813, 1.575, 1.406, 1.287, 1.182, 1],
@@ -277,7 +274,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const blurPending = useRef(0);
   // Memoize Animated.event handler — scrollYAnim ref is stable
   const scrollAnimatedHandler = useRef(
-    Animated.event([{ nativeEvent: { contentOffset: { y: scrollYAnim } } }])
+    Animated.event([{ nativeEvent: { contentOffset: { y: scrollYAnim } } }], { useNativeDriver: false })
   ).current;
   const computeBlur = (y: number) =>
     y > 0 ? Math.min(y / 2, 10) : 0;
@@ -812,7 +809,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                 position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
                 opacity: coverFade,
                 // Pull-down stretch: native driver, no JS cost
-                transform: [{ translateY: pullDownTY }, { scaleY: pullDownScale }],
+                transform: [{ translateY: pullDownTY }, { scale: pullDownScale }],
               },
             ]}
           />
@@ -822,7 +819,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         {blurIntensity > 0 && (
           <Animated.View style={{
             position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-            transform: [{ translateY: pullDownTY }, { scaleY: pullDownScale }],
+            transform: [{ translateY: pullDownTY }, { scale: pullDownScale }],
           }}>
             <BlurView
               intensity={blurIntensity}
