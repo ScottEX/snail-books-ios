@@ -934,6 +934,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       <ModalOverlay
         visible={drawerOpen}
         onClose={closeDrawer}
+        outDuration={300}
         animation="iosSheet"
         overlayStyle={bottomSheetOverlay}
         contentStyle={{ alignItems: 'stretch', justifyContent: 'flex-end' }}
