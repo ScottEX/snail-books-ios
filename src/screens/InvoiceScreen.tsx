@@ -296,7 +296,6 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
 
   // Drawer (create/edit)
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerKey, setDrawerKey] = useState(0);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [dType, setDType] = useState<InvType>('general');
   const [dAmount, setDAmount] = useState('');
@@ -503,7 +502,6 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
 
   /* ── Drawer open/close ── */
   const openDrawer = (forEdit?: InvoiceRecord, preSelectBatchId?: number | null) => {
-    setDrawerKey(k => k + 1);
     setEditingId(forEdit ? forEdit.id : null);
     setDType(forEdit ? (forEdit.type as InvType) : 'general');
     setDAmount(forEdit ? String(forEdit.amount) : '');
@@ -938,7 +936,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
         overlayStyle={bottomSheetOverlay}
         contentStyle={{ alignItems: 'stretch', justifyContent: 'flex-end' }}
       >
-        <ReAnimated.View key={drawerKey} style={[drawerPushStyle, styles.drawer, { backgroundColor: c.surface, maxHeight: Dimensions.get('window').height * 0.806 }]}>
+        <ReAnimated.View style={[drawerPushStyle, styles.drawer, { backgroundColor: c.surface, maxHeight: Dimensions.get('window').height * 0.806 }]}>
             <View style={[styles.drawerHead, { backgroundColor: c.primary, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 14, paddingHorizontal: 20, paddingBottom: 14 }]}>
               <SheetHeader title={editingId ? t('invRecEditTitle') : t('invRecAddTitle')} onClose={closeDrawer} />
             </View>
