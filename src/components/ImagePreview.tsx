@@ -41,16 +41,10 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
 
   useEffect(() => {
     if (visible) {
-      // 先 UI 线程设值, 再 JS 线程渲染 → 杜绝闪现
-      runOnUI(() => {
-        'worklet';
-        currentIdx.value = initialIdx;
-        listOffsetX.value = -initialIdx * W;
-        runOnJS(() => {
-          setRenderIdx(initialIdx);
-          setInternalVisible(true);
-        })();
-      })();
+      currentIdx.value = initialIdx;
+      listOffsetX.value = -initialIdx * W;
+      setRenderIdx(initialIdx);
+      setInternalVisible(true);
     }
   }, [visible, initialIdx]);
 
@@ -173,17 +167,8 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
     runOnJS(onIndexChange)(clamped);
   };
 
-  // ── Entrance animation ──
-  useEffect(() => {
-    if (visible) {
-      dragY.value = 60;
-      dragScale.value = 0.88;
-      bgOpacity.value = 0;
-      dragY.value = withDelay(50, withSpring(0, { damping: 26, stiffness: 240 }));
-      dragScale.value = withDelay(50, withSpring(1, { damping: 26, stiffness: 240 }));
-      bgOpacity.value = withDelay(50, withTiming(1, { duration: 220 }));
-    }
-  }, [visible]);
+  // ── Entrance animation (disabled for testing flash) ──
+  // useEffect(() => { ... }, [visible]);
 
   // ── Double tap (scale 1 ↔ 2.5) ──
   const doubleTap = Gesture.Tap()
