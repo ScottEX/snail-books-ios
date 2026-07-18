@@ -16,7 +16,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DatePickerModal from '../components/DatePickerModal';
 import HistoryHeader from '../components/HistoryHeader';
 import { parseImages } from '../utils/parseImages';
-import ImagePreview, { measureThumbLayout } from '../components/ImagePreview';
+import ImagePreview, { measureThumbLayout, resolveThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useSwipeBack } from '../hooks/useSwipeBack';
@@ -100,10 +100,11 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
   const { preview, openPreview, closePreview } = useImagePreview();
   const thumbRefs = useRef<Record<string, any>>({});
 
-  const handleThumbPreview = useCallback((key: string, images: string[], j: number) => {
-    const ref = thumbRefs.current[key];
-    if (!ref) { openPreview(images, j); return; }
-    measureThumbLayout(ref, (layout) => openPreview(images, j, layout));
+  const handleThumbPreview = useCallback((recordId: string | number, images: string[], j: number) => {
+    const resolver: ThumbLayoutResolver = (idx, cb) => resolveThumbLayout(thumbRefs.current[`${recordId}-${idx}`], cb);
+    const ref = thumbRefs.current[`${recordId}-${j}`];
+    if (!ref) { openPreview(images, j, undefined, resolver); return; }
+    measureThumbLayout(ref, (layout) => openPreview(images, j, layout, resolver));
   }, [openPreview]);
 
   const toggleCat = (cat: string) => {
@@ -220,7 +221,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
               <TouchableOpacity
                 key={j}
                 ref={el => { thumbRefs.current[`${e.id}-${j}`] = el; }}
-                onPress={() => handleThumbPreview(`${e.id}-${j}`, previewImgsList.map((u: string) => resolveAssetUrl(u) || u), j)}
+                onPress={() => handleThumbPreview(e.id, previewImgsList.map((u: string) => resolveAssetUrl(u) || u), j)}
                 activeOpacity={0.7}
                 delayPressIn={80}
               >
@@ -372,6 +373,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         initialIdx={preview?.idx ?? 0}
         visible={preview !== null}
         thumbLayout={preview?.layout}
+        getThumbLayout={preview?.getLayout}
         onClose={closePreview}
       />
       {ToastHost}

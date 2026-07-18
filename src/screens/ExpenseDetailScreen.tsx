@@ -25,7 +25,7 @@ import HistoryHeader from '../components/HistoryHeader';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { PickedImage } from '../utils/imagePicker';
 import { parseImages } from '../utils/parseImages';
-import ImagePreview, { measureThumbLayout, ThumbLayout } from '../components/ImagePreview';
+import ImagePreview, { measureThumbLayout, resolveThumbLayout, ThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 import { Image as ExpoImage } from 'expo-image';
 import { useImagePreview } from '../hooks/useImagePreview';
 import ReceiptUpload from '../components/ReceiptUpload';
@@ -96,9 +96,10 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
   const viewThumbRefs = useRef<(any | null)[]>([]);
 
   const handleViewPreview = useCallback((images: string[], i: number) => {
+    const resolver: ThumbLayoutResolver = (idx, cb) => resolveThumbLayout(viewThumbRefs.current[idx], cb);
     const ref = viewThumbRefs.current[i];
-    if (!ref) { openPreview(images, i); return; }
-    measureThumbLayout(ref, (layout) => openPreview(images, i, layout));
+    if (!ref) { openPreview(images, i, undefined, resolver); return; }
+    measureThumbLayout(ref, (layout) => openPreview(images, i, layout, resolver));
   }, [openPreview]);
 
   const [category, setCategory] = useState(expense?.category || 'daily');
@@ -437,7 +438,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
               onRemoveNew={removeNewFile}
               getPreviewUrl={(f: PickedImage) => f.uri}
               maxThumbSize={thumbSize}
-              onPreviewExisting={(i: number, layout?: ThumbLayout) => openPreview(resolvedPreviews, i, layout)}
+              onPreviewExisting={(i: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => openPreview(resolvedPreviews, i, layout, getLayout)}
             />
             <View style={{ height: 100 }} />
           </View>
@@ -506,6 +507,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
         initialIdx={preview?.idx ?? 0}
         visible={preview !== null}
         thumbLayout={preview?.layout}
+        getThumbLayout={preview?.getLayout}
         onClose={closePreview}
       />
 

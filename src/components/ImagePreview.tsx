@@ -36,12 +36,28 @@ export interface ThumbLayout {
   height: number;
 }
 
+/** 关闭时按当前页解析对应缩略图坐标；量不到回调 null */
+export type ThumbLayoutResolver = (index: number, cb: (layout: ThumbLayout | null) => void) => void;
+
 /** 测量某个 View 的屏幕坐标，用于共享元素进出场 */
 export function measureThumbLayout(ref: any, cb: (layout: ThumbLayout) => void) {
   if (!ref || typeof ref.measureInWindow !== 'function') return;
   ref.measureInWindow((x: number, y: number, width: number, height: number) => {
     if (width > 0 && height > 0) cb({ x, y, width, height });
   });
+}
+
+/** 关闭时解析缩略图坐标：ref 失效或已滚出屏幕 → null */
+export function resolveThumbLayout(ref: any, cb: (layout: ThumbLayout | null) => void) {
+  if (!ref || typeof ref.measureInWindow !== 'function') { cb(null); return; }
+  try {
+    ref.measureInWindow((x: number, y: number, width: number, height: number) => {
+      const onScreen = width > 0 && height > 0 && y + height > 0 && y < H;
+      cb(onScreen ? { x, y, width, height } : null);
+    });
+  } catch {
+    cb(null);
+  }
 }
 
 interface Props {
@@ -51,9 +67,11 @@ interface Props {
   onClose: () => void;
   /** 被点击缩略图的屏幕坐标；有则走「原位展开/缩回」动画 */
   thumbLayout?: ThumbLayout | null;
+  /** 关闭时按当前页解析缩略图坐标（滑到其他图后缩回当前那张） */
+  getThumbLayout?: ThumbLayoutResolver | null;
 }
 
-export default function ImagePreview({ images, initialIdx = 0, visible, onClose, thumbLayout }: Props) {
+export default function ImagePreview({ images, initialIdx = 0, visible, onClose, thumbLayout, getThumbLayout }: Props) {
   const [internalVisible, setInternalVisible] = useState(false);
   const [openCount, setOpenCount] = useState(0);
 
@@ -88,6 +106,7 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose,
           images={images}
           initialIdx={initialIdx}
           thumbLayout={thumbLayout ?? null}
+          getThumbLayout={getThumbLayout ?? null}
           onClose={handleDismiss}
         />
       </GestureHandlerRootView>
@@ -97,10 +116,11 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose,
 
 // ─── Content (keyed for fresh shared values on each open) ──────────────────────
 
-function ContentView({ images, initialIdx, thumbLayout, onClose }: {
+function ContentView({ images, initialIdx, thumbLayout, getThumbLayout, onClose }: {
   images: string[];
   initialIdx: number;
   thumbLayout: ThumbLayout | null;
+  getThumbLayout: ThumbLayoutResolver | null;
   onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
@@ -141,36 +161,51 @@ function ContentView({ images, initialIdx, thumbLayout, onClose }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── 关闭：缩回最初点击的缩略图 ──
-  const closeToThumb = useCallback((velocity = 0) => {
-    if (closing.value || !hasThumb) return;
-    closing.value = true;
-    const t = thumbLayout!;
-    uiOpacity.value = withTiming(0, { duration: 80 });
-    bgOpacity.value = withTiming(0, { duration: 260 });
-    const cfg = { ...EXIT_CFG, velocity };
-    animX.value = withSpring(t.x, cfg);
-    animY.value = withSpring(t.y, cfg);
-    animW.value = withSpring(t.width, cfg);
-    animH.value = withSpring(t.height, cfg);
-    animRadius.value = withTiming(8, { duration: 240 });
-    setTimeout(onClose, 320);
-  }, [onClose, thumbLayout, hasThumb]);
-
-  // ── 兜底关闭（无缩略图坐标）：淡出 + 下移 ──
-  const handleCloseFallback = useCallback(() => {
+  // ── 关闭执行：有坐标缩回缩略图，无坐标淡出 ──
+  const runClose = useCallback((t: ThumbLayout | null, velocity: number) => {
     if (closing.value) return;
     closing.value = true;
-    uiOpacity.value = withTiming(0, { duration: 120 });
-    bgOpacity.value = withTiming(0, { duration: 240 });
-    closeAnim.value = withTiming(1, { duration: 250 });
-    setTimeout(onClose, 260);
+    if (t) {
+      uiOpacity.value = withTiming(0, { duration: 80 });
+      bgOpacity.value = withTiming(0, { duration: 260 });
+      const cfg = { ...EXIT_CFG, velocity };
+      animX.value = withSpring(t.x, cfg);
+      animY.value = withSpring(t.y, cfg);
+      animW.value = withSpring(t.width, cfg);
+      animH.value = withSpring(t.height, cfg);
+      animRadius.value = withTiming(8, { duration: 240 });
+      setTimeout(onClose, 320);
+    } else {
+      uiOpacity.value = withTiming(0, { duration: 120 });
+      bgOpacity.value = withTiming(0, { duration: 240 });
+      closeAnim.value = withTiming(1, { duration: 250 });
+      setTimeout(onClose, 260);
+    }
   }, [onClose]);
 
+  // ── 关闭入口：优先缩回「当前正在看的」那张，量不到兜底最初点击的 ──
+  const closeToThumb = useCallback((velocity = 0) => {
+    if (closing.value) return;
+    const fallback = hasThumb ? thumbLayout : null;
+    if (getThumbLayout) {
+      let done = false;
+      const timer = setTimeout(() => {
+        if (!done) { done = true; runClose(fallback, velocity); }
+      }, 120);
+      getThumbLayout(currentIdx.value, (layout) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        runClose(layout ?? fallback, velocity);
+      });
+    } else {
+      runClose(fallback, velocity);
+    }
+  }, [getThumbLayout, hasThumb, thumbLayout, runClose]);
+
   const handleClose = useCallback(() => {
-    if (hasThumb) closeToThumb(0);
-    else handleCloseFallback();
-  }, [hasThumb, closeToThumb, handleCloseFallback]);
+    closeToThumb(0);
+  }, [closeToThumb]);
 
   // 下拉关闭（手势在 UI 线程，回 JS 触发）
   const handlePullClose = useCallback((vy: number) => {

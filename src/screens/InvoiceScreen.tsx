@@ -18,7 +18,7 @@ import ReceiptUpload from '../components/ReceiptUpload';
 import ExpenseNoteInput from '../components/ExpenseNoteInput';
 import SubmitButton from '../components/SubmitButton';
 import TrashIcon from '../components/icons/TrashIcon';
-import ImagePreview, { ThumbLayout } from '../components/ImagePreview';
+import ImagePreview, { ThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 import { useServerDate } from '../hooks/useServerDate';
@@ -568,12 +568,12 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   }, [dBatchId]);
 
   /* ── Preview handlers ── */
-  const handlePreviewExisting = (index: number, layout?: ThumbLayout) => {
-    openPreview(dExistingFilePath.map(p => api.getInvoiceFileUrl(p)), index, layout);
+  const handlePreviewExisting = (index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
+    openPreview(dExistingFilePath.map(p => api.getInvoiceFileUrl(p)), index, layout, getLayout);
   };
 
-  const handlePreviewNew = (index: number, layout?: ThumbLayout) => {
-    openPreview(dFiles.map(f => f.uri), index, layout);
+  const handlePreviewNew = (index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
+    openPreview(dFiles.map(f => f.uri), index, layout, getLayout);
   };
 
   const handleClosePreview = () => {
@@ -1166,6 +1166,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       initialIdx={preview?.idx ?? 0}
       visible={preview !== null}
       thumbLayout={preview?.layout}
+      getThumbLayout={preview?.getLayout}
       onClose={handleClosePreview}
     />
     </>

@@ -14,7 +14,7 @@ import { FONTS } from '../theme';
 import { MODAL_CARD_RADIUS } from '../sharedStyles';
 import ConfirmModal from '../components/ConfirmModal';
 import ModalOverlay from '../components/ModalOverlay';
-import ImagePreview, { measureThumbLayout } from '../components/ImagePreview';
+import ImagePreview, { measureThumbLayout, resolveThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
 import { formatDate } from '../utils/format';
 import TrashIcon from '../components/icons/TrashIcon';
@@ -83,9 +83,10 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
   const thumbRefs = useRef<(any | null)[]>([]);
 
   const handleThumbPreview = useCallback((images: string[], i: number) => {
+    const resolver: ThumbLayoutResolver = (idx, cb) => resolveThumbLayout(thumbRefs.current[idx], cb);
     const ref = thumbRefs.current[i];
-    if (!ref) { openPreview(images, i); return; }
-    measureThumbLayout(ref, (layout) => openPreview(images, i, layout));
+    if (!ref) { openPreview(images, i, undefined, resolver); return; }
+    measureThumbLayout(ref, (layout) => openPreview(images, i, layout, resolver));
   }, [openPreview]);
   const [cur, setCur] = useState<BatchRecord | null>(batch);
   useEffect(() => { setCur(batch); }, [batch]);
@@ -381,6 +382,7 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
           initialIdx={previewData.idx}
           visible={true}
           thumbLayout={previewData.layout}
+          getThumbLayout={previewData.getLayout}
           onClose={closePreview}
         />
       )}

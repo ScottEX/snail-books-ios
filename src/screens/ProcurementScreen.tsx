@@ -34,7 +34,7 @@ import PlusIcon from '../components/icons/PlusIcon';
 import { fmtDecInput } from '../utils/numbers';
 import type { PickedImage } from '../utils/imagePicker';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import ImagePreview, { measureThumbLayout } from '../components/ImagePreview';
+import ImagePreview, { measureThumbLayout, resolveThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
 
 type SubTab = 'new' | 'history' | 'products';
@@ -362,10 +362,11 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   const { preview, openPreview, closePreview } = useImagePreview();
   const histThumbRefs = useRef<Record<string, any>>({});
 
-  const handleHistPreview = useCallback((key: string, images: string[], i: number) => {
-    const ref = histThumbRefs.current[key];
-    if (!ref) { openPreview(images, i); return; }
-    measureThumbLayout(ref, (layout) => openPreview(images, i, layout));
+  const handleHistPreview = useCallback((batchId: string | number, images: string[], i: number) => {
+    const resolver: ThumbLayoutResolver = (idx, cb) => resolveThumbLayout(histThumbRefs.current[`${batchId}-${idx}`], cb);
+    const ref = histThumbRefs.current[`${batchId}-${i}`];
+    if (!ref) { openPreview(images, i, undefined, resolver); return; }
+    measureThumbLayout(ref, (layout) => openPreview(images, i, layout, resolver));
   }, [openPreview]);
 
   const [stats, setStats] = useState<ProcStats>({ total_spent: 0, total_income: 0, batch_count: 0, margin_pct: 0 });
@@ -1086,7 +1087,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                         <TouchableOpacity
                           key={i}
                           ref={el => { histThumbRefs.current[`${batch.id}-${i}`] = el; }}
-                          onPress={() => handleHistPreview(`${batch.id}-${i}`, fullImgs.map((u: string) => resolveAssetUrl(u) || u), i)}
+                          onPress={() => handleHistPreview(batch.id, fullImgs.map((u: string) => resolveAssetUrl(u) || u), i)}
                           activeOpacity={0.7}
                         >
                           <Image source={{ uri: resolveAssetUrl(img) || img }}
@@ -1528,6 +1529,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
       initialIdx={preview?.idx ?? 0}
       visible={preview !== null}
       thumbLayout={preview?.layout}
+      getThumbLayout={preview?.getLayout}
       onClose={closePreview}
     />
     </>
