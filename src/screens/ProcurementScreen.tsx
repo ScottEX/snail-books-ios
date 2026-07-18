@@ -10,6 +10,7 @@ import { t } from '../i18n';
 import { trPayment, payKey } from '../i18nHelpers';
 import { api, resolveAssetUrl } from '../api/client';
 import { useTheme, withAlpha, ThemeColors, FONTS } from '../theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { bottomSheetOverlay, MODAL_CARD_RADIUS } from '../sharedStyles';
 import SheetHeader from '../components/SheetHeader';
 import { usePaginatedList } from '../hooks/usePaginatedList';
@@ -292,6 +293,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   const { colors: c } = useTheme();
   const sd = useServerDate();
   const styles = useMemo(() => getStyles(c), [c]);
+  const insets = useSafeAreaInsets();
 
   // Drawer keyboard push
   const { height: screenH } = useWindowDimensions();
@@ -697,6 +699,17 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
   const onPendingEditConsumedRef = useRef(onPendingEditConsumed);
   useEffect(() => { onPendingEditConsumedRef.current = onPendingEditConsumed; }, [onPendingEditConsumed]);
+
+  // popTo('Main', { editBatch }) returns to the ALREADY-MOUNTED screen, so
+  // loadProducts (mount-only) never re-fires. Watch the prop directly and
+  // open the edit drawer when a pending edit arrives. Guard against the
+  // double-open race with loadProducts' own pendingEdit consumption.
+  useEffect(() => {
+    if (pendingEditBatch) {
+      openEditBatch(pendingEditBatch);
+      onPendingEditConsumedRef.current?.();
+    }
+  }, [pendingEditBatch]);
 
   const confirmDeleteBatch = async () => {
     if (!delBatchRef.current) return;
@@ -1294,9 +1307,9 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
               placeholder={`${t('procNoteHintPhone')}\n${t('procNoteHintAddress')}`}
             />
           </ScrollView>
-          <View style={styles.drawerFooter}>
+          <View style={[styles.drawerFooter, { paddingBottom: Math.max(insets.bottom - 6, 6) }]}>
             <View style={{ flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const }}>
-              <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: c.primary }}>{t('procTotal')}：¥{cartTotal.toFixed(2)}</Text>
+              <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: c.primary }}>{t('procTotal')}：￥{cartTotal.toFixed(2)}</Text>
               <SubmitButton
                 onPress={submitOrder}
                 loading={submitting}
@@ -1461,14 +1474,14 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
               </View>
             )}
             </Animated.View>
-            <Animated.View style={{
+            <Animated.View style={[{
               opacity: anims[2],
               transform: [{ translateY: anims[2].interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
-            }}>
+            }]}>
             {!(itemsModalIsCart && itemsModalView === 'products') ? (
               <>
                 {!editingBatchSettled && (
-                <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 18, paddingBottom: 32, paddingTop: 4 }}>
+                <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 18, paddingBottom: 12, paddingTop: 4 }}>
                   <TouchableOpacity
                     style={{ flex: 1, paddingVertical: 12, borderRadius: 8, backgroundColor: withAlpha(c.primary, 0.08), alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6 }}
                     onPress={() => setItemsModalView('products')}
@@ -1486,7 +1499,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
               </>
             ) : (
               <TouchableOpacity
-                style={{ marginHorizontal: 16, marginBottom: 32, marginTop: 4, paddingVertical: 12, borderRadius: 8, backgroundColor: c.primary, alignItems: 'center' }}
+                style={{ marginHorizontal: 16, marginBottom: 12, marginTop: 4, paddingVertical: 12, borderRadius: 8, backgroundColor: c.primary, alignItems: 'center' }}
                 onPress={() => setItemsModalView('items')}
               >
                 <Text style={{ fontSize: FONTS.body.size, fontWeight: '600', color: c.surface }}>{t('done') || '完成'}</Text>

@@ -146,7 +146,7 @@ function ProcurementDetailRoute() {
     <ProcurementDetailScreen
       batch={batch}
       onBack={() => navigation.goBack()}
-      onEdit={() => navigation.navigate('Main', { editBatch: batch })}
+      onEdit={() => navigation.popTo('Main', { editBatch: batch })}
       onPreview={(id: number, num: number, supplier?: string) =>
         navigation.navigate('PdfPreview', { id, number: num, supplier })}
     />
@@ -188,10 +188,11 @@ export default function RootStack({ onLogout }: { onLogout: () => void }) {
         screenOptions={{
           headerShown: false,
           // iOS-native push transitions + interactive edge swipe-back.
-          // fullScreenGestureEnabled lets the swipe start anywhere on screen
-          // (matches the old custom swipe-back, but native & interactive).
+          // NOTE: keep this as the default left-edge gesture — fullScreenGestureEnabled
+          // hijacks horizontal swipes inside content (history lists/charts) and
+          // caused accidental pops on ExpenseHistory / DailyHistory / ReconHistory.
           gestureEnabled: true,
-          fullScreenGestureEnabled: true,
+          fullScreenGestureEnabled: false,
         }}
       >
         <Stack.Screen name="Main">

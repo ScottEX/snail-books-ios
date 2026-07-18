@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet,
-  Image, Switch, Modal, ActivityIndicator, useWindowDimensions, Animated,
+  View, Text, TouchableOpacity, StyleSheet,
+  Image, Switch, Modal, ActivityIndicator, useWindowDimensions,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Defs, LinearGradient as SVGGradient, Stop, Rect } from 'react-native-svg';
@@ -30,7 +30,7 @@ import { cacheBackground } from '../utils/backgroundCache';
 import { modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
 import { isBiometricAvailable, saveCredential, promptBiometric, getCredential } from '../utils/biometric';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
-import ReAnimated, { useAnimatedStyle } from 'react-native-reanimated';
+import ReAnimated, { useAnimatedStyle, useSharedValue, useAnimatedScrollHandler, interpolate, Extrapolation, withTiming, withSpring, cancelAnimation } from 'react-native-reanimated';
 
 interface Props {
   onBack: () => void;
@@ -243,48 +243,56 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [deleteConfirmUsername, setDeleteConfirmUsername] = useState('');
   // Sticky header on scroll (matches web)
   const FREEZE_POINT = 92;
-  const scrollYAnim = useRef(new Animated.Value(0)).current;
+  // ── Scroll-driven cover animation — all on UI thread via Reanimated ──
+  const scrollY = useSharedValue(0);
+  // Pull-down displacement: direct sqrt damping while dragging,
+  // spring rebound on release (decoupled from the scroll view's bounce curve)
+  const pullD = useSharedValue(0);
+  const dragging = useSharedValue(false);
+  const scrollHandler = useAnimatedScrollHandler({
+    onBeginDrag: () => {
+      dragging.value = true;
+      cancelAnimation(pullD);
+    },
+    onScroll: (e) => {
+      scrollY.value = e.contentOffset.y;
+      if (dragging.value) {
+        const y = e.contentOffset.y;
+        pullD.value = y < 0 ? Math.sqrt(-y) * 4.472 : 0;
+      }
+    },
+    onEndDrag: () => {
+      dragging.value = false;
+      pullD.value = withSpring(0, { damping: 13, stiffness: 170, mass: 0.9 });
+    },
+  });
   // Cover slides up when scrolling past cover, stays at top on pull-down
-  const coverTranslateY = scrollYAnim.interpolate({
-    inputRange: [-200, 0, FREEZE_POINT],
-    outputRange: [0, 0, -FREEZE_POINT],
-    extrapolate: 'clamp',
+  const coverStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: interpolate(scrollY.value, [-200, 0, FREEZE_POINT], [0, 0, -FREEZE_POINT], Extrapolation.CLAMP) }],
+  }));
+  // Pull-down stretch: true sqrt damping + uniform scale (was piecewise approx)
+  const coverFade = useSharedValue(0);
+  const coverLoaded = useRef(false);
+  useEffect(() => {
+    coverLoaded.current = false;
+    coverFade.value = 0;
+  }, [coverUrl]);
+  const coverImgStyle = useAnimatedStyle(() => {
+    // Clamp tiny spring overshoot so scale never dips below 1 (no edge gap)
+    const d = Math.max(pullD.value, 0);
+    return {
+      opacity: coverFade.value,
+      transform: [{ translateY: d }, { scale: 1 + d / 110 }],
+    };
   });
-  // Pull-down stretch: sqrt-damped translateY (approximated piecewise)
-  const pullDownTY = scrollYAnim.interpolate({
-    inputRange: [-400, -200, -100, -50, -20, 0],
-    outputRange: [89.4, 63.2, 44.7, 31.6, 20, 0],
-    extrapolateLeft: 'extend',
-    extrapolateRight: 'clamp',
-  });
-  // Pull-down stretch: uniform scale (zooms image, not just Y-stretch)
-  const pullDownScale = scrollYAnim.interpolate({
-    inputRange: [-400, -200, -100, -50, -20, 0],
-    outputRange: [1.813, 1.575, 1.406, 1.287, 1.182, 1],
-    extrapolateLeft: 'extend',
-    extrapolateRight: 'clamp',
-  });
-  // ═══════════════════════════════════════════════════════════════
-  // Blur intensity — still needs JS state (expo-blur doesn't support Animated)
-  // Updated via Animated.event listener, throttled via RAF
-  // ═══════════════════════════════════════════════════════════════
-  const [blurIntensity, setBlurInt] = useState(0);
-  const blurRaf = useRef<number | null>(null);
-  const blurPending = useRef(0);
-  // Memoize Animated.event handler — scrollYAnim ref is stable
-  const scrollAnimatedHandler = useRef(
-    Animated.event([{ nativeEvent: { contentOffset: { y: scrollYAnim } } }], { useNativeDriver: false })
-  ).current;
-  const computeBlur = (y: number) =>
-    y > 0 ? Math.min(y / 2, 10) : 0;
-
-  // ── Cover image fade-in ──
-    const coverFade = useRef(new Animated.Value(0)).current;
-    const coverLoaded = useRef(false);
-    useEffect(() => {
-      coverLoaded.current = false;
-      coverFade.setValue(0);
-    }, [coverUrl]);
+  // Blur overlay fades in as you scroll up — opacity-only, no re-renders
+  const blurOverlayStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [0, 20], [0, 1], Extrapolation.CLAMP),
+  }));
+  // Cover overlay UI (更换封面 button + avatar) rides along with pull-down stretch
+  const coverFollowStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: Math.max(pullD.value, 0) }],
+  }));
 
     // Modal keyboard push
   const { height: screenH, width: screenW } = useWindowDimensions();
@@ -767,11 +775,10 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         <Text style={[st.navTitle, { color: '#fff' }]}>{t('editProfile')}</Text>
       </View>
       {/* ── Cover — absolutely positioned, slides up 92px then freezes ── */}
-      <Animated.View
-        style={{
+      <ReAnimated.View
+        style={[{
           position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5,
-          transform: [{ translateY: coverTranslateY }],
-        }}
+        }, coverStyle]}
       >
         <TouchableOpacity
         style={st.coverWrap}
@@ -792,71 +799,54 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
         {/* Cover image — fades in on top of gradient, 300ms crossfade */}
         {coverUrl ? (
-          <Animated.Image
+          <ReAnimated.Image
             key={coverUrl}
             source={{ uri: coverUrl }}
             onLoad={() => {
               if (coverLoaded.current) return;
               coverLoaded.current = true;
-              Animated.timing(coverFade, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+              coverFade.value = withTiming(1, { duration: 300 });
             }}
-            blurRadius={blurIntensity}
             style={[
               st.coverImg,
-              {
-                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-                opacity: coverFade,
-                // Pull-down stretch: native driver, no JS cost
-                transform: [{ translateY: pullDownTY }, { scale: pullDownScale }],
-              },
+              { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+              coverImgStyle,
             ]}
           />
         ) : null}
 
-        {/* Pull-down blur overlay */}
-        {blurIntensity > 0 && (
-          <Animated.View style={{
-            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-            transform: [{ translateY: pullDownTY }, { scale: pullDownScale }],
-          }}>
-            <BlurView
-              intensity={blurIntensity}
-              tint="dark"
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-            />
-          </Animated.View>
-        )}
+        {/* Scroll-up blur overlay — always mounted, opacity animated on UI thread */}
+        <ReAnimated.View
+          pointerEvents="none"
+          style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, blurOverlayStyle]}>
+          <BlurView
+            intensity={10}
+            tint="dark"
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          />
+        </ReAnimated.View>
 
-        {/* "更换封面" button */}
-        <View style={st.coverOverlay}>
+        {/* "更换封面" button — follows pull-down stretch */}
+        <ReAnimated.View style={[st.coverOverlay, coverFollowStyle]}>
           <CameraIcon color="#fff" size={14} strokeWidth={2} />
           <Text style={st.coverOverlayText}>{uploadingCover ? '...' : t('editCover') || '更换封面'}</Text>
-        </View>
+        </ReAnimated.View>
 
-        {/* Avatar — overlaps cover bottom */}
-        <TouchableOpacity onPress={handleAvatarPress} style={st.avatarFloat} activeOpacity={0.8} disabled={uploadingAvatar}>
-          {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={st.avatar} />
-          ) : (
-            <Image source={{ uri: resolveAssetUrl('/img/logo.jpg') || '/img/logo.jpg' }} style={st.avatar} />
-          )}
-        </TouchableOpacity>
+        {/* Avatar — overlaps cover bottom, follows pull-down stretch */}
+        <ReAnimated.View style={[st.avatarFloat, coverFollowStyle]}>
+          <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.8} disabled={uploadingAvatar}>
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={st.avatar} />
+            ) : (
+              <Image source={{ uri: resolveAssetUrl('/img/logo.jpg') || '/img/logo.jpg' }} style={st.avatar} />
+            )}
+          </TouchableOpacity>
+        </ReAnimated.View>
       </TouchableOpacity>
-      </Animated.View>
-      <ScrollView style={st.scroll} showsVerticalScrollIndicator={false}
+      </ReAnimated.View>
+      <ReAnimated.ScrollView style={st.scroll} showsVerticalScrollIndicator={false}
         bounces={true} alwaysBounceVertical={true}
-        onScroll={(e: any) => {
-          scrollAnimatedHandler(e);
-          blurPending.current = e.nativeEvent.contentOffset.y;
-          if (blurRaf.current === null) {
-            blurRaf.current = requestAnimationFrame(() => {
-              blurRaf.current = null;
-              setBlurInt(computeBlur(blurPending.current));
-            });
-          }
-        }}
-        onScrollEndDrag={(e: any) => setBlurInt(computeBlur(e.nativeEvent.contentOffset.y))}
-        onMomentumScrollEnd={(e: any) => setBlurInt(computeBlur(e.nativeEvent.contentOffset.y))}
+        onScroll={scrollHandler}
         scrollEventThrottle={16}>
         {/* Spacer — keeps content below the absolutely-positioned cover */}
         <View style={{ height: 260 }} />
@@ -1075,7 +1065,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
             </Text>
           </View>
         ) : null}
-      </ScrollView>
+      </ReAnimated.ScrollView>
 
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
 
