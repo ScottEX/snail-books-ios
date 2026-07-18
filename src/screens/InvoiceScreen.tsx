@@ -1094,9 +1094,10 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                   <AppTextInput
                     style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
                     value={dInvoiceNo}
-                    onChangeText={(v) => setDInvoiceNo(v.replace(/[^a-zA-Z0-9]/g, ''))}
-                    placeholder="NO.2026060001"
+                    onChangeText={(v) => setDInvoiceNo(v.replace(/[^\d]/g, '').slice(0, 20))}
+                    placeholder="20260600000001"
                     placeholderTextColor={c.textSub}
+                    keyboardType="numeric"
                   />
                 </View>
               )}
