@@ -24,6 +24,24 @@ const normalizeMime = (mimeType: string | null | undefined): string => {
   return UTI_TO_MIME[mimeType] ?? mimeType;
 };
 
+/** Derive a backend-safe file extension from the normalized MIME type.
+ *  iOS HEIC picks keep a .heic fileName which the backend rejects;
+ *  expo transcodes to JPEG when quality < 1, so the MIME is the source of truth. */
+const MIME_TO_EXT: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/gif': '.gif',
+  'image/webp': '.webp',
+  'image/heic': '.jpg',
+  'image/heif': '.jpg',
+  'image/tiff': '.jpg',
+};
+const safeName = (fileName: string | null | undefined, mime: string, fallback: string): string => {
+  const ext = MIME_TO_EXT[mime] ?? '.jpg';
+  const base = (fileName ?? fallback).replace(/\.[^.]+$/, '');
+  return base + ext;
+};
+
 /**
  * Open the system image library and let the user pick one or more images.
  * Returns normalized { uri, type, name, size } — same shape as a web File
@@ -48,14 +66,17 @@ export async function pickImages(opts: { multiple?: boolean } = {}): Promise<Pic
   });
 
   if (result.canceled) return [];
-  return result.assets.map(a => ({
-    uri: a.uri,
-    type: normalizeMime(a.mimeType),
-    name: a.fileName ?? `image-${Date.now()}.jpg`,
-    size: a.fileSize ?? 0,
-    width: a.width,
-    height: a.height,
-  }));
+  return result.assets.map(a => {
+    const type = normalizeMime(a.mimeType);
+    return {
+      uri: a.uri,
+      type,
+      name: safeName(a.fileName, type, `image-${Date.now()}`),
+      size: a.fileSize ?? 0,
+      width: a.width,
+      height: a.height,
+    };
+  });
 }
 
 /**
@@ -70,10 +91,11 @@ export async function takePhoto(): Promise<PickedImage | null> {
   });
   if (result.canceled) return null;
   const a = result.assets[0];
+  const type = normalizeMime(a.mimeType);
   return {
     uri: a.uri,
-    type: normalizeMime(a.mimeType),
-    name: a.fileName ?? `photo-${Date.now()}.jpg`,
+    type,
+    name: safeName(a.fileName, type, `photo-${Date.now()}`),
     size: a.fileSize ?? 0,
     width: a.width,
     height: a.height,
