@@ -503,14 +503,14 @@ export const api = {
   uploadInvoiceFile: async (id: number, file: { uri: string; type?: string; name?: string }) => {
     const form = new FormData();
     form.append('file', file as any);
-    const resp = await fetch(API_BASE + `/api/invoice-records/${id}/upload`, {
+    const resp = await fetch(API_BASE + `/api/invoice-records/${id}/file`, {
       method: 'POST',
       headers: headers(),
       body: form,
       credentials: 'include' as RequestCredentials,
     });
-    if (!resp.ok) throw new Error('Upload failed');
-    return resp.json() as Promise<{ status: string; file_path: string; file_type: string; file_size: number }>;
+    if (!resp.ok) throw new Error(`Upload failed (${resp.status})`);
+    return resp.json() as Promise<{ status: string; file_path: string; thumb_path?: string; file_type: string; file_size: number }>;
   },
   getInvoiceFileUrl: (filePath: string, thumb?: boolean) => {
     if (thumb) {

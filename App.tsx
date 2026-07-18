@@ -4,7 +4,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar, StyleSheet } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import LoginScreen from './src/screens/LoginScreen';
-import HomeScreen from './src/screens/HomeScreen';
+import RootStack from './src/navigation/RootStack';
+import { NavigationContainer } from '@react-navigation/native';
 import SessionKickedModal from './src/components/SessionKickedModal';
 import { ErrorBoundary } from './src/components/CrashCatcher';
 import { ThemeProvider } from './src/theme';
@@ -117,7 +118,11 @@ export default function App() {
           <ThemeProvider key={appKey}>
             <StatusBar barStyle="light-content" />
             {page === 'login' && <LoginScreen onLogin={goHome} />}
-            {page === 'home' && <HomeScreen onLogout={goLogin} />}
+            {page === 'home' && (
+              <NavigationContainer>
+                <RootStack onLogout={goLogin} />
+              </NavigationContainer>
+            )}
           </ThemeProvider>
         </ErrorBoundary>
       </LangProvider>

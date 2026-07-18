@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import HomeBackground from '../components/HomeBackground';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, StatusBar } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { t, getLang } from '../i18n';
@@ -13,7 +14,6 @@ import DatePickerModal from '../components/DatePickerModal';
 import HistoryHeader from '../components/HistoryHeader';
 import FilterPanel from '../components/FilterPanel';
 import DateErrorHint from '../components/DateErrorHint';
-import { useSwipeBack } from '../hooks/useSwipeBack';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 interface Props { onBack: () => void }
@@ -51,7 +51,6 @@ const fmtDate = (d: string) => {
 export default function DailyRevenueHistory({ onBack }: Props) {
   const { colors } = useTheme();
   const sd = useServerDate();
-  const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   const [showFilter, setShowFilter] = useState(false);
@@ -105,7 +104,8 @@ export default function DailyRevenueHistory({ onBack }: Props) {
   const todayISO = sd.today;
 
   return (
-    <View style={styles.root} {...swipeBack}>
+    <View style={styles.root}>
+      <HomeBackground />
       <StatusBar barStyle="dark-content" />
       <HistoryHeader
         onBack={onBack}

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
   Image, useWindowDimensions,
@@ -25,11 +25,10 @@ import HistoryHeader from '../components/HistoryHeader';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { PickedImage } from '../utils/imagePicker';
 import { parseImages } from '../utils/parseImages';
-import ImagePreview from '../components/ImagePreview';
+import ImagePreview, { measureThumbLayout, resolveThumbLayout, ThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 import { Image as ExpoImage } from 'expo-image';
 import { useImagePreview } from '../hooks/useImagePreview';
 import ReceiptUpload from '../components/ReceiptUpload';
-import { useSwipeBack } from '../hooks/useSwipeBack';
 import { useServerDate } from '../hooks/useServerDate';
 
 /* ── Date helpers ── */
@@ -81,7 +80,6 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
   const contentStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: Math.max(keyboardHeight.value, pushCapSV.value) }],
   }));
-  const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(c), [c]);
   const thumbSize = (w - 16 * 2 - 8 * 3) / 4;
 
@@ -93,6 +91,14 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
   const [deleteError, setDeleteError] = useState('');
   const { showToast, ToastHost } = useToast();
   const { preview, openPreview, closePreview } = useImagePreview();
+  const viewThumbRefs = useRef<(any | null)[]>([]);
+
+  const handleViewPreview = useCallback((images: string[], i: number) => {
+    const resolver: ThumbLayoutResolver = (idx, cb) => resolveThumbLayout(viewThumbRefs.current[idx], cb);
+    const ref = viewThumbRefs.current[i];
+    if (!ref) { openPreview(images, i, undefined, resolver); return; }
+    measureThumbLayout(ref, (layout) => openPreview(images, i, layout, resolver));
+  }, [openPreview]);
 
   const [category, setCategory] = useState(expense?.category || 'daily');
   const [account, setAccount] = useState(expense?.account || 'payWechat');
@@ -226,7 +232,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
 
   return (
     <ReAnimated.View style={[{ flex: 1 }, contentStyle]}>
-    <View style={styles.container} {...swipeBack}>
+    <View style={styles.container}>
       <HistoryHeader
         onBack={onBack}
         title={t('expDetail')}
@@ -335,7 +341,8 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
                     return (
                     <TouchableOpacity
                       key={`v-${i}`}
-                      onPress={() => openPreview(resolvedPreviews, i)}
+                      ref={el => { viewThumbRefs.current[i] = el; }}
+                      onPress={() => handleViewPreview(resolvedPreviews, i)}
                       activeOpacity={0.8}
                     >
                       <Image source={{ uri: resolvedUrl }} style={[styles.thumb, { width: thumbSize, height: thumbSize }]} />
@@ -429,7 +436,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
               onRemoveNew={removeNewFile}
               getPreviewUrl={(f: PickedImage) => f.uri}
               maxThumbSize={thumbSize}
-              onPreviewExisting={(i: number) => openPreview(resolvedPreviews, i)}
+              onPreviewExisting={(i: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => openPreview(resolvedPreviews, i, layout, getLayout)}
             />
             <View style={{ height: 100 }} />
           </View>
@@ -497,6 +504,8 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
         images={preview?.images ?? []}
         initialIdx={preview?.idx ?? 0}
         visible={preview !== null}
+        thumbLayout={preview?.layout}
+        getThumbLayout={preview?.getLayout}
         onClose={closePreview}
       />
 

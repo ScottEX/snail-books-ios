@@ -24,20 +24,11 @@ import ThemePickerModal from '../components/ThemePickerModal';
 import LogoutConfirmModal from '../components/LogoutConfirmModal';
 import BgCropModal from '../components/BgCropModal';
 import { cacheBackground, getCachedLocalPath, getOrDownloadBackground, clearBackgroundCache } from '../utils/backgroundCache';
-import SlideScreen from '../components/SlideScreen';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { onAvatarChanged } from '../navigation/RootStack';
 import PartnerScreen from './PartnerScreen';
 import ProcurementScreen from './ProcurementScreen';
 import ExpenseScreen from './ExpenseScreen';
-import ReconHistoryScreen from './ReconHistoryScreen';
-import ExpenseHistoryScreen from './ExpenseHistoryScreen';
-import DailyRevenueHistory from './DailyRevenueHistory';
-import ProfileScreen from './ProfileScreen';
-import UserManagementScreen from './UserManagementScreen';
-import UserDetailScreen from './UserDetailScreen';
-import InvoiceScreen from './InvoiceScreen';
-import ProcurementDetailScreen from './ProcurementDetailScreen';
-import ExpenseDetailScreen from './ExpenseDetailScreen';
-import PdfPreviewPage from './PdfPreviewPage';
 import ChartsPanel from './ChartsPanel';
 import { modalCardAnimation, modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
 import { toDec2Comma } from '../utils/numbers';
@@ -296,30 +287,24 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const openModal = (show: () => void) => { show(); modalAnim.setValue(-300); modalFade.setValue(0); Animated.parallel([Animated.spring(modalAnim,{toValue:0,useNativeDriver:true,bounciness:4,speed:14}),Animated.timing(modalFade,{toValue:1,duration:200,useNativeDriver:true})]).start(); };
   const closeModal = (hide: () => void) => { Animated.parallel([Animated.timing(modalAnim,{toValue:-300,duration:180,useNativeDriver:true}),Animated.timing(modalFade,{toValue:0,duration:180,useNativeDriver:true})]).start(()=>hide()); };
 
-  // ── Sub-screen slide state ──
-  const [showReconHistory, setShowReconHistory] = useState(false);
-  const [showExpenseHistory, setShowExpenseHistory] = useState(false);
-  const [showDailyHistory, setShowDailyHistory] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
-  const [showUserMgmt, setShowUserMgmt] = useState(false);
-  const [showUserDetail, setShowUserDetail] = useState<any | null>(null);
-  const [showInvoice, setShowInvoice] = useState<{ filterBatchId?: number | null } | null>(null);
-  const [showProcurementDetail, setShowProcurementDetail] = useState<any | null>(null);
-  const [showExpenseDetail, setShowExpenseDetail] = useState<any | null>(null);
-  const [showPdfPreview, setShowPdfPreview] = useState<{ id: number; number: number; supplier?: string } | null>(null);
+  // ── Sub-screens are now React Navigation stack routes (see src/navigation/RootStack.tsx) ──
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const [pendingEditBatch, setPendingEditBatch] = useState<any | null>(null);
-  const isHome = useMemo(() =>
-    !showExpenseHistory && !showDailyHistory && !showReconHistory && !showProfile &&
-    !showUserMgmt && !showUserDetail && !showInvoice && !showProcurementDetail &&
-    !showExpenseDetail && !showPdfPreview,
-    [showExpenseHistory, showDailyHistory, showReconHistory, showProfile,
-     showUserMgmt, showUserDetail, showInvoice, showProcurementDetail,
-     showExpenseDetail, showPdfPreview]
-  );
-  const [expenseRefreshKey, setExpenseRefreshKey] = useState(0);
-  const [userRefreshKey, setUserRefreshKey] = useState(0);
-  const [reviewedUserId, setReviewedUserId] = useState<number | null>(null);
-  const [profileRefreshKey, setProfileRefreshKey] = useState(0);
+  // Main content is always "home" — stack screens cover it natively
+  const isHome = true;
+
+  // ProcurementDetail "编辑" → popTo Main with editBatch param → open edit drawer
+  useEffect(() => {
+    const b = route.params?.editBatch;
+    if (b) {
+      setPendingEditBatch(b);
+      navigation.setParams({ editBatch: undefined });
+    }
+  }, [route.params?.editBatch]);
+
+  // ProfileScreen avatar upload → reload header avatar
+  useEffect(() => onAvatarChanged(() => loadAvatar()), []);
 
   // ── Data state for chart / supply / partner ──
   const [chartMonthly, setChartMonthly] = useState<any>(null);
@@ -539,88 +524,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
       />
       <View style={[styles.bgOverlay, { opacity: bgOpacity }]} />
 
-      {/* History slide-overs */}
-      <SlideScreen visible={showExpenseHistory} onClose={() => setShowExpenseHistory(false)}>
-        {(onBack) => <ExpenseHistoryScreen onBack={onBack} refreshKey={expenseRefreshKey} onExpDetail={(e: any) => setShowExpenseDetail(e)} onInvoice={(batchId) => setShowInvoice({ filterBatchId: batchId })} />}
-      </SlideScreen>
-      <SlideScreen visible={showDailyHistory} onClose={() => setShowDailyHistory(false)}>
-        {(onBack) => <DailyRevenueHistory onBack={onBack} />}
-      </SlideScreen>
-      <SlideScreen visible={showReconHistory} onClose={() => setShowReconHistory(false)}>
-        {(onBack) => <ReconHistoryScreen onBack={onBack} />}
-      </SlideScreen>
-
-      {/* Profile / Invoice / User Management slide-overs (full-page sub-screens) */}
-      <SlideScreen visible={showProfile} onClose={() => setShowProfile(false)} stackIndex={0}>
-        {(onBack) => (
-          <ProfileScreen
-            onBack={onBack}
-            onLogout={onLogout}
-            onAvatarChange={loadAvatar}
-            onManageUsers={() => { setTimeout(() => setShowUserMgmt(true), 250); }}
-            refreshKey={profileRefreshKey}
-          />
-        )}
-      </SlideScreen>
-      <SlideScreen visible={!!showInvoice} onClose={() => setShowInvoice(null)}>
-        {(onBack) => <InvoiceScreen onBack={onBack} filterBatchId={showInvoice?.filterBatchId ?? null} />}
-      </SlideScreen>
-      <SlideScreen visible={showUserMgmt} onClose={() => setShowUserMgmt(false)} stackIndex={1}>
-        {(onBack) => <UserManagementScreen
-          key={userRefreshKey}
-          onBack={onBack}
-          reviewedUserId={reviewedUserId}
-          onSelectUser={async (u) => {
-            if (!u.reviewed) {
-              try { await api.admin.markReviewed(u.id); } catch {}
-              setReviewedUserId(u.id);
-            }
-            setShowUserDetail(u);
-          }}
-        />}
-      </SlideScreen>
-      <SlideScreen visible={!!showUserDetail} onClose={() => { setShowUserDetail(null); setReviewedUserId(null); setProfileRefreshKey(k => k + 1); }} stackIndex={2}>
-        {(onBack) => showUserDetail ? (
-          <UserDetailScreen
-            user={showUserDetail}
-            onBack={onBack}
-            onChanged={() => { setUserRefreshKey(k => k + 1); }}
-          />
-        ) : null}
-      </SlideScreen>
-      <SlideScreen visible={!!showProcurementDetail} onClose={() => setShowProcurementDetail(null)}>
-        {(onBack) => showProcurementDetail ? (
-          <ProcurementDetailScreen
-            batch={showProcurementDetail}
-            onBack={onBack}
-            onEdit={() => {
-              setPendingEditBatch(showProcurementDetail);
-              onBack();
-            }}
-            onPreview={(id, num, supplier) => { setShowPdfPreview({ id, number: num, supplier }); }}
-          />
-        ) : null}
-      </SlideScreen>
-      <SlideScreen visible={!!showExpenseDetail} onClose={() => setShowExpenseDetail(null)}>
-        {(onBack) => showExpenseDetail ? (
-          <ExpenseDetailScreen
-            expense={showExpenseDetail}
-            onBack={onBack}
-            onEdited={() => { setExpenseRefreshKey(k => k + 1); }}
-            onDeleted={() => { setExpenseRefreshKey(k => k + 1); }}
-          />
-        ) : null}
-      </SlideScreen>
-      <SlideScreen visible={!!showPdfPreview} onClose={() => setShowPdfPreview(null)}>
-        {(onBack) => showPdfPreview ? (
-          <PdfPreviewPage
-            batchId={showPdfPreview.id}
-            batchNumber={showPdfPreview.number}
-            supplier={showPdfPreview.supplier}
-            onBack={onBack}
-          />
-        ) : null}
-      </SlideScreen>
+      {/* Sub-screens are React Navigation stack routes — no SlideScreen overlays here */}
 
       <View style={[styles.root, { paddingTop: insets.top }]}>
         {/* Header — fixed frosted-glass bar matching web (zIndex 200,
@@ -637,7 +541,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           <View style={styles.headerInner}>
             <TouchableOpacity
               style={styles.headerLeft}
-              onPress={() => openModal(() => setShowProfile(true))}
+              onPress={() => navigation.navigate('Profile')}
               activeOpacity={0.6}
             >
               <Image
@@ -681,16 +585,16 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             (aligns with web HomeScreen.tsx which also hoists partner/supply out). */}
         {isHome && tab === 'expense' ? (
           <ExpenseScreen
-            onReconHistory={() => setShowReconHistory(true)}
-            onExpenseHistory={() => { setShowExpenseHistory(true); setExpenseRefreshKey(k => k + 1); }}
+            onReconHistory={() => navigation.navigate('ReconHistory')}
+            onExpenseHistory={() => navigation.navigate('ExpenseHistory')}
           />
         ) : isHome && tab === 'partner' ? (
           <View style={styles.page}>
-            <PartnerScreen onBack={() => setTab('list')} onProfile={() => openModal(() => setShowProfile(true))} onInvoice={() => setShowInvoice({})} refreshKey={partnerRefreshKey} />
+            <PartnerScreen onBack={() => setTab('list')} onProfile={() => navigation.navigate('Profile')} onInvoice={() => navigation.navigate('Invoice', {})} refreshKey={partnerRefreshKey} />
           </View>
         ) : isHome && tab === 'supply' ? (
           <ProcurementScreen
-            onProcurementDetail={(batch) => setShowProcurementDetail(batch)}
+            onProcurementDetail={(batch) => navigation.navigate('ProcurementDetail', { batch })}
             pendingEditBatch={pendingEditBatch}
             onPendingEditConsumed={() => setPendingEditBatch(null)}
           />
@@ -724,7 +628,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
               revMarkedClosed={revMarkedClosed} setRevMarkedClosed={setRevMarkedClosed}
               revSaving={revSaving} submitDailyRev={submitDailyRev}
               yesterdayRev={yesterdayRev} weekRev={weekRev} last7Records={last7Records}
-              onShowDailyHistory={() => setShowDailyHistory(true)}
+              onShowDailyHistory={() => navigation.navigate('DailyHistory')}
             />
           ) : tab === 'chart' ? (
             <ChartTabContent

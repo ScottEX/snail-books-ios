@@ -1,4 +1,5 @@
 import React from 'react';
+import HomeBackground from '../components/HomeBackground';
 import { View, Text, TouchableOpacity, FlatList, ScrollView, StyleSheet, ActivityIndicator, Image, StatusBar } from 'react-native';
 
 
@@ -12,14 +13,13 @@ import EmptyState from '../components/EmptyState';
 import { useToast } from '../hooks/useToast';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DatePickerModal from '../components/DatePickerModal';
 import HistoryHeader from '../components/HistoryHeader';
 import { parseImages } from '../utils/parseImages';
-import ImagePreview from '../components/ImagePreview';
+import ImagePreview, { measureThumbLayout, resolveThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { useSwipeBack } from '../hooks/useSwipeBack';
 import FilterPanel from '../components/FilterPanel';
 
 /* ── Helpers ── */
@@ -70,7 +70,6 @@ interface Props {
 
 export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, refreshKey }: Props) {
   const { colors } = useTheme();
-  const swipeBack = useSwipeBack(onBack);
   const st = useMemo(() => getSt(colors), [colors]);
   const sd = useServerDate();
   const currentUser = getCurrentUser();
@@ -98,6 +97,14 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
   }, [sd.ready, appliedFrom, appliedTo, sd.today, sd.offset]);
   const [datePickTarget, setDatePickTarget] = useState<'from' | 'to' | null>(null);
   const { preview, openPreview, closePreview } = useImagePreview();
+  const thumbRefs = useRef<Record<string, any>>({});
+
+  const handleThumbPreview = useCallback((recordId: string | number, images: string[], j: number) => {
+    const resolver: ThumbLayoutResolver = (idx, cb) => resolveThumbLayout(thumbRefs.current[`${recordId}-${idx}`], cb);
+    const ref = thumbRefs.current[`${recordId}-${j}`];
+    if (!ref) { openPreview(images, j, undefined, resolver); return; }
+    measureThumbLayout(ref, (layout) => openPreview(images, j, layout, resolver));
+  }, [openPreview]);
 
   const toggleCat = (cat: string) => {
     setFilCats(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
@@ -210,7 +217,13 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         {resolvedImgs.length > 0 && (
           <View style={st.imgThumbs}>
             {resolvedImgs.map((url: string, j: number) => (
-              <TouchableOpacity key={j} onPress={() => openPreview(previewImgsList.map((u: string) => resolveAssetUrl(u) || u), j)} activeOpacity={0.7} delayPressIn={80}>
+              <TouchableOpacity
+                key={j}
+                ref={el => { thumbRefs.current[`${e.id}-${j}`] = el; }}
+                onPress={() => handleThumbPreview(e.id, previewImgsList.map((u: string) => resolveAssetUrl(u) || u), j)}
+                activeOpacity={0.7}
+                delayPressIn={80}
+              >
                 <Image source={{ uri: url }} style={st.thumbImg} />
               </TouchableOpacity>
             ))}
@@ -219,12 +232,13 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
       </View>
       </View>
     </TouchableOpacity>
-  ); }, [colors, st, onExpDetail, onInvoice, currentUser]);
+  ); }, [colors, st, onExpDetail, onInvoice, currentUser, handleThumbPreview]);
 
   const CATEGORIES = ['daily', 'rent', 'salary', 'goods'];
 
   return (
-    <View style={st.root} {...swipeBack}>
+    <View style={st.root}>
+      <HomeBackground />
       <StatusBar barStyle="dark-content" />
       <HistoryHeader
         onBack={onBack}
@@ -358,6 +372,8 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         images={preview?.images ?? []}
         initialIdx={preview?.idx ?? 0}
         visible={preview !== null}
+        thumbLayout={preview?.layout}
+        getThumbLayout={preview?.getLayout}
         onClose={closePreview}
       />
       {ToastHost}

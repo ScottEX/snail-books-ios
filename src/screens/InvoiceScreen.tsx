@@ -18,9 +18,8 @@ import ReceiptUpload from '../components/ReceiptUpload';
 import ExpenseNoteInput from '../components/ExpenseNoteInput';
 import SubmitButton from '../components/SubmitButton';
 import TrashIcon from '../components/icons/TrashIcon';
-import ImagePreview from '../components/ImagePreview';
+import ImagePreview, { ThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
-import { useSwipeBack } from '../hooks/useSwipeBack';
 import { useServerDate } from '../hooks/useServerDate';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BANK_ICON_MAP, DefaultBankIcon } from '../components/BankIcons';
@@ -238,7 +237,6 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const { colors: c } = useTheme();
   const sd = useServerDate();
   const insets = useSafeAreaInsets();
-  const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(c), [c]);
 
   // Drawer keyboard push
@@ -296,7 +294,6 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
 
   // Drawer (create/edit)
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerKey, setDrawerKey] = useState(0);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [dType, setDType] = useState<InvType>('general');
   const [dAmount, setDAmount] = useState('');
@@ -503,7 +500,6 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
 
   /* ── Drawer open/close ── */
   const openDrawer = (forEdit?: InvoiceRecord, preSelectBatchId?: number | null) => {
-    setDrawerKey(k => k + 1);
     setEditingId(forEdit ? forEdit.id : null);
     setDType(forEdit ? (forEdit.type as InvType) : 'general');
     setDAmount(forEdit ? String(forEdit.amount) : '');
@@ -570,14 +566,12 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   }, [dBatchId]);
 
   /* ── Preview handlers ── */
-  const handlePreviewExisting = (index: number) => {
-    setDrawerOpen(false);
-    openPreview(dExistingFilePath.map(p => api.getInvoiceFileUrl(p)), index);
+  const handlePreviewExisting = (index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
+    openPreview(dExistingFilePath.map(p => api.getInvoiceFileUrl(p)), index, layout, getLayout);
   };
 
-  const handlePreviewNew = (index: number) => {
-    setDrawerOpen(false);
-    openPreview(dFiles.map(f => f.uri), index);
+  const handlePreviewNew = (index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
+    openPreview(dFiles.map(f => f.uri), index, layout, getLayout);
   };
 
   const handleClosePreview = () => {
@@ -587,7 +581,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
 
   return (
     <>
-      <View style={styles.root} {...swipeBack}>
+      <View style={styles.root}>
       {/* ═══ ENTRY CARD ═══ */}
       <View
         style={[styles.entryCard, { backgroundColor: '#D15F6C', paddingTop: insets.top }]}
@@ -936,11 +930,12 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       <ModalOverlay
         visible={drawerOpen}
         onClose={closeDrawer}
-        animation="iosSheet"
+        animation="stagger"
+        staggerCount={3}
         overlayStyle={bottomSheetOverlay}
         contentStyle={{ alignItems: 'stretch', justifyContent: 'flex-end' }}
       >
-        <ReAnimated.View key={drawerKey} style={[drawerPushStyle, styles.drawer, { backgroundColor: c.surface, maxHeight: Dimensions.get('window').height * 0.806 }]}>
+        <ReAnimated.View style={[drawerPushStyle, styles.drawer, { backgroundColor: c.surface, maxHeight: Dimensions.get('window').height * 0.806 }]}>
             <View style={[styles.drawerHead, { backgroundColor: c.primary, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 14, paddingHorizontal: 20, paddingBottom: 14 }]}>
               <SheetHeader title={editingId ? t('invRecEditTitle') : t('invRecAddTitle')} onClose={closeDrawer} />
             </View>
@@ -1097,9 +1092,10 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                   <AppTextInput
                     style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
                     value={dInvoiceNo}
-                    onChangeText={(v) => setDInvoiceNo(v.replace(/[^a-zA-Z0-9]/g, ''))}
-                    placeholder="NO.2026060001"
+                    onChangeText={(v) => setDInvoiceNo(v.replace(/[^\d]/g, '').slice(0, 20))}
+                    placeholder="20260600000001"
                     placeholderTextColor={c.textSub}
+                    keyboardType="numeric"
                   />
                 </View>
               )}
@@ -1167,6 +1163,8 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       images={preview?.images ?? []}
       initialIdx={preview?.idx ?? 0}
       visible={preview !== null}
+      thumbLayout={preview?.layout}
+      getThumbLayout={preview?.getLayout}
       onClose={handleClosePreview}
     />
     </>

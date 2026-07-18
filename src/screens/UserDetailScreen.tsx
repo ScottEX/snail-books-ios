@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import HomeBackground from '../components/HomeBackground';
 import {
   View,
   Text,
@@ -24,7 +25,6 @@ import Toast from '../components/Toast';
 import AdminHeader from '../components/AdminHeader';
 import CloseButton from '../components/CloseButton';
 import { getCurrentUserId } from '../utils/storage';
-import { useSwipeBack } from '../hooks/useSwipeBack';
 
 interface UserData {
   id: number;
@@ -111,7 +111,6 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
   const safeTop = insets.top;
   const isSelf = String(user.id) === (getCurrentUserId() || '');
   const lang = getLang();
-  const swipeBack = useSwipeBack(onBack);
   const s = useMemo(() => getStyles(c), [c]);
 
   const [detail, setDetail] = useState<UserData | null>(null);
@@ -277,7 +276,8 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       : `将于 ${graceDateStr} 永久删除 · ${graceInitiator}发起`;
 
   return (
-    <View style={s.container} {...swipeBack}>
+    <View style={s.container}>
+      <HomeBackground />
       <AdminHeader safeTop={safeTop} onBack={onBack} title={t('userDetail')} />
 
       {/* Body */}

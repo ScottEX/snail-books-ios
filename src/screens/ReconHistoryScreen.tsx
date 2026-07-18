@@ -1,4 +1,5 @@
 import React from 'react';
+import HomeBackground from '../components/HomeBackground';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Animated, PanResponder, StatusBar, Dimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Svg, { Path, Line } from 'react-native-svg';
@@ -30,16 +31,6 @@ function monthsBetween(from: string, to: string): number {
   return m;
 }
 
-/** Swipe-right-from-left-edge to go back. Native PanResponder version. */
-function useSwipeBack(onBack: () => void) {
-  const pan = useRef(PanResponder.create({
-    onMoveShouldSetPanResponder: (_, gs) =>
-      gs.dx > 15 && Math.abs(gs.dy) < 15 && gs.moveX < 36,
-    onPanResponderRelease: (_, gs) => { if (gs.dx > 80) onBack(); },
-  })).current;
-  return pan.panHandlers;
-}
-
 function ReconEmptyIcon({ color }: { color: string }) {
   return (
     <Svg width={48} height={48} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
@@ -53,7 +44,6 @@ interface Props { onBack: () => void }
 
 export default function ReconHistoryScreen({ onBack }: Props) {
   const sd = useServerDate();
-  const swipeBack = useSwipeBack(onBack);
 
   const [selected, setSelected] = useState<any>(null);
   const selectedRef = useRef<any>(null);
@@ -201,7 +191,8 @@ export default function ReconHistoryScreen({ onBack }: Props) {
   const closeFilter = () => { setShowFilter(false); setShowUserPick(false); };
 
   return (
-    <View style={st.root} {...swipeBack}>
+    <View style={st.root}>
+      <HomeBackground />
       <StatusBar barStyle="dark-content" />
       <HistoryHeader
         onBack={onBack}

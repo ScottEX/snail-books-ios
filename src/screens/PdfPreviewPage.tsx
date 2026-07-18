@@ -8,7 +8,6 @@ import Svg, { Path, Polyline, Rect, Circle, Line } from 'react-native-svg';
 import { t, getLang } from '../i18n';
 import { useTheme, ThemeColors } from '../theme';
 import { API_BASE } from '../api/client';
-import { useSwipeBack } from '../hooks/useSwipeBack';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 function BackArrowSvg() {
@@ -52,7 +51,6 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const safeTop = insets.top;
-  const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(colors), [colors]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -168,7 +166,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
   const isActionLoading = actionLoading !== null;
 
   return (
-    <View style={styles.root} {...swipeBack}>
+    <View style={styles.root}>
       <BlurView
         intensity={70}
         tint="regular"
