@@ -28,7 +28,6 @@ import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { pickImages } from '../utils/imagePicker';
 import { cacheBackground } from '../utils/backgroundCache';
 import { modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
-import { useSwipeBack } from '../hooks/useSwipeBack';
 import { isBiometricAvailable, saveCredential, promptBiometric, getCredential } from '../utils/biometric';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import ReAnimated, { useAnimatedStyle } from 'react-native-reanimated';
@@ -305,7 +304,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
   const st = useMemo(() => getStyles(colors), [colors]);
   const mo = useMemo(() => getMo(colors), [colors]);
-  const swipeBack = useSwipeBack(onBack);
 
   // ── Loaders ──
   const loadAvatar = async () => {
@@ -755,7 +753,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   };
 
   return (
-    <View style={st.root} {...swipeBack}>
+    <View style={st.root}>
       {/* Nav bar — always visible, fixed at top */}
       <View
         style={[

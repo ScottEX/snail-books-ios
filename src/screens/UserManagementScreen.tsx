@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import HomeBackground from '../components/HomeBackground';
 import {
   View,
   Text,
@@ -20,7 +21,6 @@ import EmptyState from '../components/EmptyState';
 import Toast from '../components/Toast';
 import AdminHeader from '../components/AdminHeader';
 import AnimatedDropdown from '../components/AnimatedDropdown';
-import { useSwipeBack } from '../hooks/useSwipeBack';
 
 interface UserItem {
   id: number;
@@ -87,7 +87,6 @@ function lastDayOfMonth(y: number, m: number): string {
 export default function UserManagementScreen({ onBack, onSelectUser, reviewedUserId }: Props) {
   const { colors: c } = useTheme();
   const sd = useServerDate();
-  const swipeBack = useSwipeBack(onBack);
   const s = useMemo(() => getStyles(c), [c]);
   const insets = useSafeAreaInsets();
   const safeTop = insets.top;
@@ -240,7 +239,8 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
     : t('registrationTime');
 
   return (
-    <View style={s.container} {...swipeBack}>
+    <View style={s.container}>
+      <HomeBackground />
       <AdminHeader safeTop={safeTop} onBack={onBack} title={t('userManagement')} />
 
       {/* Body */}

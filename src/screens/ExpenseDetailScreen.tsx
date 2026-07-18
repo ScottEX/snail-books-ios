@@ -29,7 +29,6 @@ import ImagePreview, { measureThumbLayout, resolveThumbLayout, ThumbLayout, Thum
 import { Image as ExpoImage } from 'expo-image';
 import { useImagePreview } from '../hooks/useImagePreview';
 import ReceiptUpload from '../components/ReceiptUpload';
-import { useSwipeBack } from '../hooks/useSwipeBack';
 import { useServerDate } from '../hooks/useServerDate';
 
 /* ── Date helpers ── */
@@ -81,7 +80,6 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
   const contentStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: Math.max(keyboardHeight.value, pushCapSV.value) }],
   }));
-  const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(c), [c]);
   const thumbSize = (w - 16 * 2 - 8 * 3) / 4;
 
@@ -234,7 +232,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
 
   return (
     <ReAnimated.View style={[{ flex: 1 }, contentStyle]}>
-    <View style={styles.container} {...swipeBack}>
+    <View style={styles.container}>
       <HistoryHeader
         onBack={onBack}
         title={t('expDetail')}

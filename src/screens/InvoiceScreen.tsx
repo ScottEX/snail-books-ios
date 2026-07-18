@@ -20,7 +20,6 @@ import SubmitButton from '../components/SubmitButton';
 import TrashIcon from '../components/icons/TrashIcon';
 import ImagePreview, { ThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
-import { useSwipeBack } from '../hooks/useSwipeBack';
 import { useServerDate } from '../hooks/useServerDate';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BANK_ICON_MAP, DefaultBankIcon } from '../components/BankIcons';
@@ -238,7 +237,6 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const { colors: c } = useTheme();
   const sd = useServerDate();
   const insets = useSafeAreaInsets();
-  const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(c), [c]);
 
   // Drawer keyboard push
@@ -583,7 +581,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
 
   return (
     <>
-      <View style={styles.root} {...swipeBack}>
+      <View style={styles.root}>
       {/* ═══ ENTRY CARD ═══ */}
       <View
         style={[styles.entryCard, { backgroundColor: '#D15F6C', paddingTop: insets.top }]}

@@ -2,6 +2,7 @@ import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
   Image, Switch, StatusBar,
 } from 'react-native';
+import HomeBackground from '../components/HomeBackground';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Line } from 'react-native-svg';
@@ -9,7 +10,6 @@ import { t } from '../i18n';
 import { trCategory, trPayment } from '../i18nHelpers';
 import { api, resolveAssetUrl } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
-import { useSwipeBack } from '../hooks/useSwipeBack';
 import { FONTS } from '../theme';
 import { MODAL_CARD_RADIUS } from '../sharedStyles';
 import ConfirmModal from '../components/ConfirmModal';
@@ -74,7 +74,6 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
   const insets = useSafeAreaInsets();
   const safeTop = insets.top;
   const headerHeight = safeTop + 42;
-  const swipeBack = useSwipeBack(onBack);
   const styles = useMemo(() => getStyles(c), [c]);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -96,7 +95,8 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
 
   if (!cur) {
     return (
-      <View style={styles.container} {...swipeBack}>
+      <View style={styles.container}>
+        <HomeBackground />
         <BlurView
           intensity={70}
           tint="regular"
@@ -177,7 +177,8 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
   const paymentLabel = trPayment(cur.payment_method);
 
   return (
-    <View style={styles.container} {...swipeBack}>
+    <View style={styles.container}>
+      <HomeBackground />
       <BlurView
         intensity={70}
         tint="regular"

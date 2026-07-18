@@ -1,4 +1,5 @@
 import React from 'react';
+import HomeBackground from '../components/HomeBackground';
 import { View, Text, TouchableOpacity, FlatList, ScrollView, StyleSheet, ActivityIndicator, Image, StatusBar } from 'react-native';
 
 
@@ -19,7 +20,6 @@ import { parseImages } from '../utils/parseImages';
 import ImagePreview, { measureThumbLayout, resolveThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { useSwipeBack } from '../hooks/useSwipeBack';
 import FilterPanel from '../components/FilterPanel';
 
 /* ── Helpers ── */
@@ -70,7 +70,6 @@ interface Props {
 
 export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, refreshKey }: Props) {
   const { colors } = useTheme();
-  const swipeBack = useSwipeBack(onBack);
   const st = useMemo(() => getSt(colors), [colors]);
   const sd = useServerDate();
   const currentUser = getCurrentUser();
@@ -238,7 +237,8 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
   const CATEGORIES = ['daily', 'rent', 'salary', 'goods'];
 
   return (
-    <View style={st.root} {...swipeBack}>
+    <View style={st.root}>
+      <HomeBackground />
       <StatusBar barStyle="dark-content" />
       <HistoryHeader
         onBack={onBack}
