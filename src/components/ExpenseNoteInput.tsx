@@ -10,9 +10,10 @@ interface Props {
   placeholder?: string;
   label?: string;
   onFocus?: () => void;
+  onBlur?: () => void;
 }
 
-export default function ExpenseNoteInput({ value, onChangeText, placeholder, label, onFocus }: Props) {
+export default function ExpenseNoteInput({ value, onChangeText, placeholder, label, onFocus, onBlur }: Props) {
   const { colors: c } = useTheme();
 
   return (
@@ -35,6 +36,7 @@ export default function ExpenseNoteInput({ value, onChangeText, placeholder, lab
         value={value}
         onChangeText={onChangeText}
         onFocus={onFocus}
+        onBlur={onBlur}
         placeholder={placeholder || t('notePlaceholder')}
         placeholderTextColor={c.textSub}
         multiline

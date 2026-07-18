@@ -35,6 +35,9 @@ interface Props {
     chartSwitchPie: string;
     chartSwitchBar: string;
     chartSwitchHint: string;
+    chartXAxis: string;
+    chartXAxisDay: string;
+    chartYAxis: string;
   };
 }
 
@@ -137,7 +140,6 @@ export default function ChartWebView(props: Props) {
         domStorageEnabled
         setSupportMultipleWindows={false}
         originWhitelist={['*']}
-        opaque={false}
         injectedJavaScript={`document.querySelector('html').style.backgroundColor='transparent';true;`}
         onLoadEnd={() => setLoaded(true)}
         onMessage={onMessage}
