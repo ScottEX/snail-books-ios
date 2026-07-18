@@ -24,15 +24,36 @@ const SWIPE_VELOCITY = 400;
 const SWIPE_THRESHOLD = W * 0.3;
 
 const SPRING_CFG = { damping: 32, stiffness: 280, mass: 0.8 };
+// 进出场容器 spring（文档参数）
+const ENTER_CFG = { damping: 30, stiffness: 260, mass: 0.9 };
+const EXIT_CFG = { damping: 32, stiffness: 280, mass: 0.85 };
+
+/** 缩略图在屏幕上的位置/尺寸 */
+export interface ThumbLayout {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** 测量某个 View 的屏幕坐标，用于共享元素进出场 */
+export function measureThumbLayout(ref: any, cb: (layout: ThumbLayout) => void) {
+  if (!ref || typeof ref.measureInWindow !== 'function') return;
+  ref.measureInWindow((x: number, y: number, width: number, height: number) => {
+    if (width > 0 && height > 0) cb({ x, y, width, height });
+  });
+}
 
 interface Props {
   images: string[];
   initialIdx?: number;
   visible: boolean;
   onClose: () => void;
+  /** 被点击缩略图的屏幕坐标；有则走「原位展开/缩回」动画 */
+  thumbLayout?: ThumbLayout | null;
 }
 
-export default function ImagePreview({ images, initialIdx = 0, visible, onClose }: Props) {
+export default function ImagePreview({ images, initialIdx = 0, visible, onClose, thumbLayout }: Props) {
   const [internalVisible, setInternalVisible] = useState(false);
   const [openCount, setOpenCount] = useState(0);
 
@@ -55,7 +76,7 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
     <Modal
       visible={internalVisible}
       transparent
-      animationType="fade"
+      animationType="none"
       statusBarTranslucent
       presentationStyle="overFullScreen"
       onDismiss={handleDismissComplete}
@@ -66,6 +87,7 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
           key={openCount}
           images={images}
           initialIdx={initialIdx}
+          thumbLayout={thumbLayout ?? null}
           onClose={handleDismiss}
         />
       </GestureHandlerRootView>
@@ -75,50 +97,148 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose 
 
 // ─── Content (keyed for fresh shared values on each open) ──────────────────────
 
-function ContentView({ images, initialIdx, onClose }: {
+function ContentView({ images, initialIdx, thumbLayout, onClose }: {
   images: string[];
   initialIdx: number;
+  thumbLayout: ThumbLayout | null;
   onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const currentIdx = useSharedValue(initialIdx);
   const listOffsetX = useSharedValue(-initialIdx * W);
   const [renderIdx, setRenderIdx] = useState(initialIdx);
-  const closeAnim = useSharedValue(0);
+
+  const hasThumb = !!thumbLayout && thumbLayout.width > 0 && thumbLayout.height > 0;
+
+  // ── 容器矩形（从缩略图位置展开到全屏 / 缩回） ──
+  const animX = useSharedValue(hasThumb ? thumbLayout!.x : 0);
+  const animY = useSharedValue(hasThumb ? thumbLayout!.y : 0);
+  const animW = useSharedValue(hasThumb ? thumbLayout!.width : W);
+  const animH = useSharedValue(hasThumb ? thumbLayout!.height : H);
+  const animRadius = useSharedValue(hasThumb ? 8 : 0);
+
+  const bgOpacity = useSharedValue(0);
+  const uiOpacity = useSharedValue(0);
+  const closeAnim = useSharedValue(0); // 无缩略图时的兜底关闭
+  const closing = useSharedValue(false);
 
   const syncRenderIdx = useCallback((idx: number) => { setRenderIdx(idx); }, []);
 
-  const handleClose = useCallback(() => {
+  // ── 进场 ──
+  useEffect(() => {
+    if (hasThumb) {
+      animX.value = withSpring(0, ENTER_CFG);
+      animY.value = withSpring(0, ENTER_CFG);
+      animW.value = withSpring(W, ENTER_CFG);
+      animH.value = withSpring(H, ENTER_CFG);
+      animRadius.value = withTiming(0, { duration: 220 });
+      bgOpacity.value = withTiming(1, { duration: 200 });
+      uiOpacity.value = withDelay(120, withTiming(1, { duration: 180 }));
+    } else {
+      bgOpacity.value = withDelay(50, withTiming(1, { duration: 220 }));
+      uiOpacity.value = withDelay(50, withTiming(1, { duration: 220 }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── 关闭：缩回最初点击的缩略图 ──
+  const closeToThumb = useCallback((velocity = 0) => {
+    if (closing.value || !hasThumb) return;
+    closing.value = true;
+    const t = thumbLayout!;
+    uiOpacity.value = withTiming(0, { duration: 80 });
+    bgOpacity.value = withTiming(0, { duration: 260 });
+    const cfg = { ...EXIT_CFG, velocity };
+    animX.value = withSpring(t.x, cfg);
+    animY.value = withSpring(t.y, cfg);
+    animW.value = withSpring(t.width, cfg);
+    animH.value = withSpring(t.height, cfg);
+    animRadius.value = withTiming(8, { duration: 240 });
+    setTimeout(onClose, 320);
+  }, [onClose, thumbLayout, hasThumb]);
+
+  // ── 兜底关闭（无缩略图坐标）：淡出 + 下移 ──
+  const handleCloseFallback = useCallback(() => {
+    if (closing.value) return;
+    closing.value = true;
+    uiOpacity.value = withTiming(0, { duration: 120 });
+    bgOpacity.value = withTiming(0, { duration: 240 });
     closeAnim.value = withTiming(1, { duration: 250 });
     setTimeout(onClose, 260);
   }, [onClose]);
 
-  const contentStyle = useAnimatedStyle(() => ({
+  const handleClose = useCallback(() => {
+    if (hasThumb) closeToThumb(0);
+    else handleCloseFallback();
+  }, [hasThumb, closeToThumb, handleCloseFallback]);
+
+  // 下拉关闭（手势在 UI 线程，回 JS 触发）
+  const handlePullClose = useCallback((vy: number) => {
+    closeToThumb(vy);
+  }, [closeToThumb]);
+
+  // ── 动画样式 ──
+  const containerStyle = useAnimatedStyle(() => ({
+    position: 'absolute',
+    left: animX.value,
+    top: animY.value,
+    width: animW.value,
+    height: animH.value,
+    borderRadius: animRadius.value,
+    overflow: 'hidden',
+  }));
+
+  // 列表随容器居中：容器小于全屏时，当前图保持居中可见
+  const listStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: listOffsetX.value + (animW.value - W) / 2 },
+      { translateY: (animH.value - H) / 2 },
+    ],
+  }));
+
+  const bgStyle = useAnimatedStyle(() => ({
+    backgroundColor: `rgba(0,0,0,${bgOpacity.value * 0.95})`,
+  }));
+
+  const uiStyle = useAnimatedStyle(() => ({
+    opacity: uiOpacity.value,
+  }));
+
+  const fallbackCloseStyle = useAnimatedStyle(() => ({
     opacity: 1 - closeAnim.value,
     transform: [{ translateY: closeAnim.value * 30 }],
   }));
 
   return (
-    <Animated.View style={[{ flex: 1 }, contentStyle]}>
+    <Animated.View style={[{ flex: 1 }, fallbackCloseStyle]}>
       <StatusBar hidden />
-      {/* Image list */}
-      <Animated.View style={styles.list}>
-        {images.map((uri, index) => (
-          <ImageItem
-            key={`${uri}-${index}`}
-            uri={uri}
-            index={index}
-            currentIdx={currentIdx}
-            listOffsetX={listOffsetX}
-            total={images.length}
-            onClose={onClose}
-            onIndexChange={syncRenderIdx}
-          />
-        ))}
+      {/* 黑色背景 */}
+      <Animated.View style={[StyleSheet.absoluteFill, bgStyle]} pointerEvents="none" />
+
+      {/* 图片容器：位置/尺寸动画化 */}
+      <Animated.View style={containerStyle}>
+        <Animated.View style={[styles.list, listStyle]}>
+          {images.map((uri, index) => (
+            <ImageItem
+              key={`${uri}-${index}`}
+              uri={uri}
+              index={index}
+              currentIdx={currentIdx}
+              listOffsetX={listOffsetX}
+              total={images.length}
+              bgOpacity={bgOpacity}
+              hasThumb={hasThumb}
+              animateEntrance={!hasThumb}
+              onClose={onClose}
+              onPullClose={handlePullClose}
+              onIndexChange={syncRenderIdx}
+            />
+          ))}
+        </Animated.View>
       </Animated.View>
 
       {/* Header: close + counter */}
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <Animated.View style={[styles.header, { paddingTop: insets.top + 8 }, uiStyle]}>
         <TouchableOpacity style={styles.closeBtn} onPress={handleClose} activeOpacity={0.7}>
           <Text style={styles.closeTxt}>✕</Text>
         </TouchableOpacity>
@@ -126,15 +246,15 @@ function ContentView({ images, initialIdx, onClose }: {
           {renderIdx + 1} / {images.length}
         </Text>
         <View style={{ width: 40 }} />
-      </View>
+      </Animated.View>
 
       {/* Dots */}
       {images.length > 1 && (
-        <View style={[styles.dots, { paddingBottom: insets.bottom + 12 }]}>
+        <Animated.View style={[styles.dots, { paddingBottom: insets.bottom + 12 }, uiStyle]} pointerEvents="none">
           {images.map((_, i) => (
             <View key={i} style={[styles.dot, i === renderIdx && styles.dotActive]} />
           ))}
-        </View>
+        </Animated.View>
       )}
     </Animated.View>
   );
@@ -148,30 +268,33 @@ interface ItemProps {
   currentIdx: Animated.SharedValue<number>;
   listOffsetX: Animated.SharedValue<number>;
   total: number;
+  bgOpacity: Animated.SharedValue<number>;
+  hasThumb: boolean;
+  animateEntrance: boolean;
   onClose: () => void;
+  onPullClose: (vy: number) => void;
   onIndexChange: (idx: number) => void;
 }
 
-function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onIndexChange }: ItemProps) {
+function ImageItem({ uri, index, currentIdx, listOffsetX, total, bgOpacity, hasThumb, animateEntrance, onClose, onPullClose, onIndexChange }: ItemProps) {
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const savedScale = useSharedValue(1);
   const savedTx = useSharedValue(0);
   const savedTy = useSharedValue(0);
-  const bgOpacity = useSharedValue(1);
   const dragY = useSharedValue(0);
   const dragScale = useSharedValue(1);
   const isClosing = useSharedValue(false);
 
-  // ── Entrance animation ──
+  // ── 兜底入场（无缩略图坐标时）：从下方弹入 ──
   useEffect(() => {
+    if (!animateEntrance) return;
     dragY.value = 60;
     dragScale.value = 0.88;
-    bgOpacity.value = 0;
     dragY.value = withDelay(50, withSpring(0, { damping: 26, stiffness: 240 }));
     dragScale.value = withDelay(50, withSpring(1, { damping: 26, stiffness: 240 }));
-    bgOpacity.value = withDelay(50, withTiming(1, { duration: 220 }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getMaxTranslate = (s: number) => {
@@ -324,14 +447,21 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
 
           if (shouldClose) {
             isClosing.value = true;
-            const duration = Math.max(180, Math.min(320, 1000 / (vy / 100)));
-            dragY.value = withTiming(H, {
-              duration,
-              easing: Easing.bezier(0.25, 0.1, 0.4, 1),
-            });
-            dragScale.value = withTiming(0.6, { duration });
-            bgOpacity.value = withTiming(0, { duration: duration * 0.8 });
-            runOnJS(onClose)();
+            if (hasThumb) {
+              // 缩回最初点击的缩略图：图片先回中，容器带速度弹回
+              dragY.value = withSpring(0, { ...EXIT_CFG, velocity: vy });
+              dragScale.value = withSpring(1, EXIT_CFG);
+              runOnJS(onPullClose)(vy);
+            } else {
+              const duration = Math.max(180, Math.min(320, 1000 / (vy / 100)));
+              dragY.value = withTiming(H, {
+                duration,
+                easing: Easing.bezier(0.25, 0.1, 0.4, 1),
+              });
+              dragScale.value = withTiming(0.6, { duration });
+              bgOpacity.value = withTiming(0, { duration: duration * 0.8 });
+              runOnJS(onClose)();
+            }
           } else {
             dragY.value = withSpring(0, { velocity: vy, damping: 28, stiffness: 260, mass: 0.8 });
             dragScale.value = withSpring(1, { damping: 28, stiffness: 260 });
@@ -384,10 +514,6 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
   );
 
   // ── Animated styles ──
-  const listStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: listOffsetX.value }],
-  }));
-
   const imageStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: translateX.value },
@@ -396,34 +522,25 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, onClose, onInde
     ],
   }));
 
-  const bgStyle = useAnimatedStyle(() => ({
-    backgroundColor: `rgba(0,0,0,${bgOpacity.value * 0.95})`,
-  }));
-
   return (
-    <>
-      {index === 0 && (
-        <Animated.View style={[StyleSheet.absoluteFill, bgStyle]} pointerEvents="none" />
-      )}
-      <Animated.View style={[styles.itemWrap, { left: index * W }, listStyle]}>
-        <GestureDetector gesture={composed}>
-          <Animated.View style={[styles.imageWrap, imageStyle]}>
-            <Image
-              source={uri}
-              style={styles.image}
-              contentFit="contain"
-              cachePolicy="disk"
-            />
-          </Animated.View>
-        </GestureDetector>
-      </Animated.View>
-    </>
+    <Animated.View style={[styles.itemWrap, { left: index * W }]}>
+      <GestureDetector gesture={composed}>
+        <Animated.View style={[styles.imageWrap, imageStyle]}>
+          <Image
+            source={uri}
+            style={styles.image}
+            contentFit="contain"
+            cachePolicy="disk"
+          />
+        </Animated.View>
+      </GestureDetector>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  list: { flex: 1, flexDirection: 'row', position: 'relative' },
+  list: { flex: 1, position: 'relative' },
   itemWrap: {
     position: 'absolute',
     width: W, height: H,

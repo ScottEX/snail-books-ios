@@ -14,13 +14,13 @@ import { FONTS } from '../theme';
 import { MODAL_CARD_RADIUS } from '../sharedStyles';
 import ConfirmModal from '../components/ConfirmModal';
 import ModalOverlay from '../components/ModalOverlay';
-import ImagePreview from '../components/ImagePreview';
+import ImagePreview, { measureThumbLayout } from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
 import { formatDate } from '../utils/format';
 import TrashIcon from '../components/icons/TrashIcon';
 import { getCurrentUser } from '../utils/storage';
 import { parseImages } from '../utils/parseImages';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface BatchItem {
   name?: string;
@@ -80,6 +80,13 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState('');
   const { preview: previewData, openPreview, closePreview } = useImagePreview();
+  const thumbRefs = useRef<(any | null)[]>([]);
+
+  const handleThumbPreview = useCallback((images: string[], i: number) => {
+    const ref = thumbRefs.current[i];
+    if (!ref) { openPreview(images, i); return; }
+    measureThumbLayout(ref, (layout) => openPreview(images, i, layout));
+  }, [openPreview]);
   const [cur, setCur] = useState<BatchRecord | null>(batch);
   useEffect(() => { setCur(batch); }, [batch]);
   const [settling, setSettling] = useState(false);
@@ -299,7 +306,13 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
             <Text style={styles.sectionTitle}>{t('procImages')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {thumbImgs.map((img: string, i: number) => (
-                <TouchableOpacity key={i} onPress={() => openPreview(images.length ? images : resolvedThumbImgs, i)} activeOpacity={0.8} style={{ marginRight: 8 }}>
+                <TouchableOpacity
+                  key={i}
+                  ref={el => { thumbRefs.current[i] = el; }}
+                  onPress={() => handleThumbPreview(images.length ? images : resolvedThumbImgs, i)}
+                  activeOpacity={0.8}
+                  style={{ marginRight: 8 }}
+                >
                   <Image source={{ uri: resolveAssetUrl(img) || img }} style={[styles.thumb, { marginRight: 0 }]} />
                 </TouchableOpacity>
               ))}
@@ -367,6 +380,7 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
           images={previewData.images}
           initialIdx={previewData.idx}
           visible={true}
+          thumbLayout={previewData.layout}
           onClose={closePreview}
         />
       )}

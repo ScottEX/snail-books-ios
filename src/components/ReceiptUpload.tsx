@@ -6,6 +6,7 @@ import { FONTS } from '../theme';
 import { t } from '../i18n';
 import { useCallback, useRef, useState } from 'react';
 import { pickImages, PickedImage } from '../utils/imagePicker';
+import { measureThumbLayout, ThumbLayout } from './ImagePreview';
 
 /** File-like type — on RN we use { uri, type, name } from expo-image-picker. */
 type PickedFile = PickedImage;
@@ -24,9 +25,9 @@ interface Props {
   /** Label text override (default: 凭证上传) */
   label?: string;
   /** Optional callback when an existing thumbnail is tapped (for preview) */
-  onPreviewExisting?: (index: number) => void;
+  onPreviewExisting?: (index: number, layout?: ThumbLayout) => void;
   /** Optional callback when a new file thumbnail is tapped (for preview) */
-  onPreviewNew?: (index: number) => void;
+  onPreviewNew?: (index: number, layout?: ThumbLayout) => void;
   /** Show * required indicator on label */
   required?: boolean;
 }
@@ -55,6 +56,22 @@ export default function ReceiptUpload({
   const [containerWidth, setContainerWidth] = useState(0);
   const [showMaxHint, setShowMaxHint] = useState(false);
   const busyRef = useRef(false);
+  const existingThumbRefs = useRef<(any | null)[]>([]);
+  const newThumbRefs = useRef<(any | null)[]>([]);
+
+  const handlePreviewExisting = useCallback((i: number) => {
+    if (!onPreviewExisting) return;
+    const ref = existingThumbRefs.current[i];
+    if (!ref) { onPreviewExisting(i); return; }
+    measureThumbLayout(ref, (layout) => onPreviewExisting(i, layout));
+  }, [onPreviewExisting]);
+
+  const handlePreviewNew = useCallback((i: number) => {
+    if (!onPreviewNew) return;
+    const ref = newThumbRefs.current[i];
+    if (!ref) { onPreviewNew(i); return; }
+    measureThumbLayout(ref, (layout) => onPreviewNew(i, layout));
+  }, [onPreviewNew]);
 
   const onLayout = useCallback((e: LayoutChangeEvent) => {
     const w = e.nativeEvent.layout.width;
@@ -145,7 +162,8 @@ export default function ReceiptUpload({
         {existingImages.map((url: string, i: number) => (
           <View key={`existing-${i}`} style={{ position: 'relative' }}>
             <TouchableOpacity
-              onPress={() => onPreviewExisting?.(i)}
+              ref={el => { existingThumbRefs.current[i] = el; }}
+              onPress={() => handlePreviewExisting(i)}
               activeOpacity={onPreviewExisting ? 0.7 : 1}
               disabled={!onPreviewExisting}
             >
@@ -176,7 +194,8 @@ export default function ReceiptUpload({
         {newFiles.map((file: PickedFile, i: number) => (
           <View key={`new-${i}`} style={{ position: 'relative' }}>
             <TouchableOpacity
-              onPress={() => onPreviewNew?.(i)}
+              ref={el => { newThumbRefs.current[i] = el; }}
+              onPress={() => handlePreviewNew(i)}
               activeOpacity={onPreviewNew ? 0.7 : 1}
               disabled={!onPreviewNew}
             >

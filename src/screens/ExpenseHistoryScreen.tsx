@@ -12,11 +12,11 @@ import EmptyState from '../components/EmptyState';
 import { useToast } from '../hooks/useToast';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DatePickerModal from '../components/DatePickerModal';
 import HistoryHeader from '../components/HistoryHeader';
 import { parseImages } from '../utils/parseImages';
-import ImagePreview from '../components/ImagePreview';
+import ImagePreview, { measureThumbLayout } from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useSwipeBack } from '../hooks/useSwipeBack';
@@ -98,6 +98,13 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
   }, [sd.ready, appliedFrom, appliedTo, sd.today, sd.offset]);
   const [datePickTarget, setDatePickTarget] = useState<'from' | 'to' | null>(null);
   const { preview, openPreview, closePreview } = useImagePreview();
+  const thumbRefs = useRef<Record<string, any>>({});
+
+  const handleThumbPreview = useCallback((key: string, images: string[], j: number) => {
+    const ref = thumbRefs.current[key];
+    if (!ref) { openPreview(images, j); return; }
+    measureThumbLayout(ref, (layout) => openPreview(images, j, layout));
+  }, [openPreview]);
 
   const toggleCat = (cat: string) => {
     setFilCats(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
@@ -210,7 +217,13 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         {resolvedImgs.length > 0 && (
           <View style={st.imgThumbs}>
             {resolvedImgs.map((url: string, j: number) => (
-              <TouchableOpacity key={j} onPress={() => openPreview(previewImgsList.map((u: string) => resolveAssetUrl(u) || u), j)} activeOpacity={0.7} delayPressIn={80}>
+              <TouchableOpacity
+                key={j}
+                ref={el => { thumbRefs.current[`${e.id}-${j}`] = el; }}
+                onPress={() => handleThumbPreview(`${e.id}-${j}`, previewImgsList.map((u: string) => resolveAssetUrl(u) || u), j)}
+                activeOpacity={0.7}
+                delayPressIn={80}
+              >
                 <Image source={{ uri: url }} style={st.thumbImg} />
               </TouchableOpacity>
             ))}
@@ -219,7 +232,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
       </View>
       </View>
     </TouchableOpacity>
-  ); }, [colors, st, onExpDetail, onInvoice, currentUser]);
+  ); }, [colors, st, onExpDetail, onInvoice, currentUser, handleThumbPreview]);
 
   const CATEGORIES = ['daily', 'rent', 'salary', 'goods'];
 
@@ -358,6 +371,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         images={preview?.images ?? []}
         initialIdx={preview?.idx ?? 0}
         visible={preview !== null}
+        thumbLayout={preview?.layout}
         onClose={closePreview}
       />
       {ToastHost}
