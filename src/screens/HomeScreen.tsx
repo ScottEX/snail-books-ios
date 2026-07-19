@@ -13,6 +13,7 @@ import * as FileSystem from 'expo-file-system';
 import { useTheme, withAlpha, ThemeColors, DEFAULT_THEME_ID } from '../theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FONTS } from '../theme';
+import GlassCard from '../components/GlassCard';
 import { getCurrentUserId } from '../utils/storage';
 import { useServerDate } from '../hooks/useServerDate';
 import { fmtDecInput, toDec2 } from '../utils/numbers';
@@ -955,14 +956,8 @@ function DailyRevenueView(p: DailyRevProps) {
   return (
     <View style={{ paddingBottom: 100 }}>
       <View style={{ paddingTop: 4 }}>
-        {/* ── Daily revenue entry card (liquid glass — web parity) ── */}
-        <View style={styles.revCard}>
-          <BlurView
-            intensity={70}
-            tint="regular"
-            style={[StyleSheet.absoluteFillObject, { borderRadius: 14 }]}
-            pointerEvents="none"
-          />
+        {/* ── Daily revenue entry card (GlassCard — iOS 26 glass effect) ── */}
+        <GlassCard style={{ marginHorizontal: 16, padding: 18, marginBottom: 12 }} tint="warm" thickness="regular">
           <View style={styles.revHeaderRow}>
             <View style={styles.revTitleGroup}>
               <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.textMain} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -1092,7 +1087,7 @@ function DailyRevenueView(p: DailyRevProps) {
               <Text style={styles.revWeekVal}>¥{toDec2(p.weekRev?.jd_revenue)}</Text>
             </View>
           </View>
-        </View>
+        </GlassCard>
 
         {/* ── Last 7 days records ── */}
         <View style={{ marginTop: 20 }}>
