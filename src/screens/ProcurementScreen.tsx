@@ -5,6 +5,7 @@ import {
   ActionSheetIOS,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
+import GlassCard from '../components/GlassCard';
 import Svg, { Path, Circle, Line, Text as SvgText } from 'react-native-svg';
 import { t } from '../i18n';
 import { trPayment, payKey } from '../i18nHelpers';
@@ -776,14 +777,8 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   return (
     <>
       <View style={styles.container}>
-      {/* ── Frosted Glass Block ── */}
-      <View style={styles.frostedBlock}>
-        <BlurView
-          intensity={40}
-          tint="regular"
-          style={[StyleSheet.absoluteFill, { borderRadius: 16 }]}
-          pointerEvents="none"
-        />
+      {/* ── Glass card block ── */}
+      <GlassCard tint="none" thickness="regular" style={{ marginTop: 4, padding: 0 }}>
         <View style={styles.headerSection}>
           <View style={styles.headerTop}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -854,7 +849,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
             <Text style={styles.subTabCount}>{products.length}</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </GlassCard>
 
       {/* ── New Order ── */}
       {subTab === 'new' && (
