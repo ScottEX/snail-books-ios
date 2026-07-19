@@ -535,7 +535,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         {isHome && <View style={styles.header}>
           <BlurView
             intensity={85}
-            tint="light"
+            tint="regular"
             style={StyleSheet.absoluteFillObject}
             pointerEvents="none"
           />
