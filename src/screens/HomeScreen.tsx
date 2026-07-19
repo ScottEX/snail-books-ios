@@ -539,6 +539,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             style={StyleSheet.absoluteFillObject}
             pointerEvents="none"
           />
+          {/* Warm saturation overlay — approximates CSS saturate(200%) */}
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,248,235,0.10)' }]} pointerEvents="none" />
           <View style={styles.headerInner}>
             <TouchableOpacity
               style={styles.headerLeft}
