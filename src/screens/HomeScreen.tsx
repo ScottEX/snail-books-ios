@@ -959,8 +959,8 @@ function DailyRevenueView(p: DailyRevProps) {
         {/* ── Daily revenue entry card ── */}
         <View style={{ marginHorizontal: 16, borderRadius: 16, overflow: 'hidden', marginBottom: 12 }}>
           <BlurView
-            intensity={24}
-            tint="light"
+            intensity={70}
+            tint="regular"
             style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
