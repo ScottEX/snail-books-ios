@@ -534,7 +534,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             visible while the panels scroll under it. */}
         {isHome && <View style={styles.header}>
           <BlurView
-            intensity={90}
+            intensity={80}
             tint="systemMaterialLight"
             style={StyleSheet.absoluteFillObject}
             pointerEvents="none"
