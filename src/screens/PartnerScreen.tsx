@@ -451,17 +451,17 @@ export default function PartnerScreen({ onBack, onProfile, onInvoice, refreshKey
                   const disabled = divRoundNum <= min;
                   const btn = { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' } as const;
                   return (<>
-                    <Text style={{ fontSize: 14, color: colors.textSub }}>{prefix}</Text>
+                    <Text style={{ fontSize: FONTS.sub.size, color: colors.textSub }}>{prefix}</Text>
                     <TouchableOpacity onPress={() => setDivRoundNum(n => Math.max(min, n - 1))} disabled={disabled}
                       style={{ ...btn, backgroundColor: disabled ? 'transparent' : colors.bg, borderWidth: 1, borderColor: disabled ? 'transparent' : colors.primary, opacity: disabled ? 0.25 : 1 }}>
                       <MinusIcon color={colors.primary} size={12} />
                     </TouchableOpacity>
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: colors.textMain, minWidth: 18, textAlign: 'center' }}>{divRoundNum}</Text>
+                    <Text style={{ fontSize: FONTS.sub.size, fontWeight: '600', color: colors.textMain, minWidth: 18, textAlign: 'center' }}>{divRoundNum}</Text>
                     <TouchableOpacity onPress={() => setDivRoundNum(n => n + 1)}
                       style={{ ...btn, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.primary }}>
                       <PlusIcon color={colors.primary} size={12} />
                     </TouchableOpacity>
-                    <Text style={{ fontSize: 14, color: colors.textSub }}>{suffix}</Text>
+                    <Text style={{ fontSize: FONTS.sub.size, color: colors.textSub }}>{suffix}</Text>
                   </>);
                 })()}
               </View>
@@ -495,7 +495,7 @@ export default function PartnerScreen({ onBack, onProfile, onInvoice, refreshKey
         visible={showDelete !== null}
         title={t('confirmDeleteRecord')}
         message={deleteError ? (
-          <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'center' }}>{deleteError}</Text>
+          <Text style={{ color: colors.danger, fontSize: FONTS.micro.size, textAlign: 'center' }}>{deleteError}</Text>
         ) : (
           <>{t('willDelete')}<Text style={{ fontWeight: '600', color: colors.primary }}>{translateDividendNote(showDelete, grouped[showDelete ?? '']?.[0]?.date)}</Text>{t('allDividendRecords')}</>
         )}
@@ -695,7 +695,7 @@ const getS = (colors: ThemeColors) => StyleSheet.create({
   avatar: { width: 48, height: 48, borderRadius: 24 },
   avatarPlaceholder: { backgroundColor: withAlpha(colors.primary, 0.12), justifyContent: 'center', alignItems: 'center' },
   avatarRing: { borderWidth: 1.5, borderColor: colors.bg, borderStyle: 'dashed' as any },
-  avatarInitial: { fontSize: 16, fontWeight: '600', color: colors.primary },
+  avatarInitial: { fontSize: FONTS.body.size, fontWeight: '600', color: colors.primary },
   camBadge: {
     position: 'absolute', bottom: -2, right: -2, width: 22, height: 22,
     backgroundColor: colors.primary, borderRadius: 11,
@@ -711,7 +711,7 @@ const getS = (colors: ThemeColors) => StyleSheet.create({
   statIconBg: { width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   statLabel: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight, letterSpacing: 0.3 },
   statValue: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain, marginTop: 2 },
-  statGreen: { fontSize: 10, color: '#1EE69F', fontWeight: FONTS.micro.weight, marginTop: 2 },
+  statGreen: { fontSize: FONTS.tiny.size, color: '#1EE69F', fontWeight: FONTS.micro.weight, marginTop: 2 },
   statSub: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight, marginTop: 2 },
   dividendBtn: { backgroundColor: colors.primary, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12 },
   dividendBtnText: { color: colors.surface, fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight },
@@ -724,7 +724,7 @@ const getS = (colors: ThemeColors) => StyleSheet.create({
   partnerName: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub },
   partnerPct: { fontSize: FONTS.micro.size, color: colors.textSub },
   paidBadge: { backgroundColor: withAlpha(colors.success, 0.18), borderRadius: 100, paddingHorizontal: 8, paddingVertical: 2 },
-  paidBadgeText: { fontSize: 10, fontWeight: FONTS.microBold.weight, color: '#1EE69F' },
+  paidBadgeText: { fontSize: FONTS.tiny.size, fontWeight: FONTS.microBold.weight, color: '#1EE69F' },
   partnerDataRow: { flexDirection: 'row', gap: 4 },
   partnerDataCell: { flex: 1, alignItems: 'center' },
   dataLabel: { fontSize: FONTS.micro.size, color: colors.textSub },

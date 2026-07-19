@@ -963,7 +963,7 @@ export default function ExpenseScreen({
                   <DateErrorHint trigger={feeDate.error} message={t('errDateFuture')} color={colors.danger} />
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                  <Text style={{ fontSize: 10, color: colors.danger }}>负数</Text>
+                  <Text style={{ fontSize: FONTS.tiny.size, color: colors.danger }}>负数</Text>
                   <Switch value={negativeMode} onValueChange={setNegativeMode}
                     trackColor={{ false: colors.secondary, true: withAlpha(colors.danger, 0.4) }}
                     thumbColor={negativeMode ? colors.danger : colors.surface}

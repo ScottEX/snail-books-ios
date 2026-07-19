@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system';
 import Svg, { Path, Polyline, Rect, Circle, Line } from 'react-native-svg';
 import { t, getLang } from '../i18n';
-import { useTheme, ThemeColors } from '../theme';
+import { useTheme, ThemeColors, FONTS } from '../theme';
 import { API_BASE } from '../api/client';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -287,8 +287,7 @@ const getStyles = (c: ThemeColors) => {
   },
   title: {
     flex: 1,
-    fontSize: 15,
-    fontWeight: '600' as const,
+    fontSize: FONTS.sub.size,
     color: '#000',
   },
   webviewWrap: { flex: 1, backgroundColor: c.bg },
@@ -300,7 +299,7 @@ const getStyles = (c: ThemeColors) => {
     zIndex: 5,
   },
   loadingSec: {
-    fontSize: 36,
+    fontSize: FONTS.sub.size,
     fontWeight: '800' as const,
     color: c.primary,
     marginTop: 4,
@@ -309,12 +308,12 @@ const getStyles = (c: ThemeColors) => {
     flex: 1, alignItems: 'center', justifyContent: 'center',
     padding: 40, gap: 12,
   },
-  errorTitle: { fontSize: 16, fontWeight: '600', color: c.textMain },
-  errorMsg: { fontSize: 13, color: c.textSub, textAlign: 'center' },
+  errorTitle: { fontSize: FONTS.body.size, fontWeight: '600', color: c.textMain },
+  errorMsg: { fontSize: FONTS.small.size, color: c.textSub, textAlign: 'center' },
   retryBtn: {
     paddingHorizontal: 28, paddingVertical: 10,
     borderRadius: 8, backgroundColor: c.primary,
   },
-  retryBtnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
+  retryBtnText: { fontSize: FONTS.small.size, fontWeight: '600', color: '#fff' },
 });
 };

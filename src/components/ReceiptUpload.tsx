@@ -155,7 +155,7 @@ export default function ReceiptUpload({
             <Path d="M12 5v14M5 12h14" />
           </Svg>
           {totalItems === 1 && (
-            <Text style={{ fontSize: 10, color: c.textSub, marginTop: 4 }}>{label || t('uploadImage')}</Text>
+            <Text style={{ fontSize: FONTS.tiny.size, color: c.textSub, marginTop: 4 }}>{label || t('uploadImage')}</Text>
           )}
         </TouchableOpacity>
         )}
@@ -171,8 +171,8 @@ export default function ReceiptUpload({
             >
             {isPdfUrl(url) ? (
               <View style={{ width: thumbSize, height: thumbSize, borderRadius: 8, backgroundColor: withAlpha(c.textMain, 0.06), alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-                <Text style={{ fontSize: 22 }}>📄</Text>
-                <Text style={{ fontSize: 9, color: c.textSub }}>PDF</Text>
+                <Text style={{ fontSize: FONTS.xlarge.size }}>📄</Text>
+                <Text style={{ fontSize: FONTS.tiny.size, color: c.textSub }}>PDF</Text>
               </View>
             ) : (
               <Image source={{ uri: url }} style={{ width: thumbSize, height: thumbSize, borderRadius: 8 }} />
@@ -203,14 +203,14 @@ export default function ReceiptUpload({
             >
             {isPdfFile(file) ? (
               <View style={{ width: thumbSize, height: thumbSize, borderRadius: 8, backgroundColor: withAlpha(c.textMain, 0.06), alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-                <Text style={{ fontSize: 22 }}>📄</Text>
-                <Text style={{ fontSize: 9, color: c.textSub }}>PDF</Text>
+                <Text style={{ fontSize: FONTS.xlarge.size }}>📄</Text>
+                <Text style={{ fontSize: FONTS.tiny.size, color: c.textSub }}>PDF</Text>
               </View>
             ) : getPreviewUrl ? (
               <Image source={{ uri: getPreviewUrl(file) }} style={{ width: thumbSize, height: thumbSize, borderRadius: 8 }} />
             ) : (
               <View style={{ width: thumbSize, height: thumbSize, borderRadius: 8, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: 10, color: c.textSub }} numberOfLines={2}>{file.name}</Text>
+                <Text style={{ fontSize: FONTS.tiny.size, color: c.textSub }} numberOfLines={2}>{file.name}</Text>
               </View>
             )}
             </TouchableOpacity>

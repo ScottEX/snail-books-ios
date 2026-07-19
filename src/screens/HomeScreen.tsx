@@ -722,23 +722,23 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
       <ModalOverlay visible={showBgPreview && bgCropResult !== ''} onClose={() => { bgRecropRef.current = false; setShowBgPreview(false); }} onClosed={() => { if (bgRecropRef.current) { bgRecropRef.current = false; setShowBgCrop(true); setBgCropResult(''); } else { setBgCropSrc(''); setBgCropResult(''); } }} animation="springScale" backdropColor="rgba(8,8,12,0.92)">
         <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: MODAL_CARD_RADIUS, padding: 24, width: 360, alignItems: 'center', gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' as any }}>
             <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(27,122,74,0.2)', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 20, color: '#1B7A4A' }}>✓</Text>
+              <Text style={{ fontSize: FONTS.large.size, color: '#1B7A4A' }}>✓</Text>
             </View>
-            <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>{t('bgUpdated') || '背景已更新'}</Text>
+            <Text style={{ fontSize: FONTS.sub.size, fontWeight: '600', color: '#fff' }}>{t('bgUpdated') || '背景已更新'}</Text>
             <Image source={{ uri: bgCropResult }} style={{ width: 130, height: 280, borderRadius: 4, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' }} resizeMode="cover" />
-            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{t('bgResultHint') || '点击确认后将从照片中直接选取'}</Text>
+            <Text style={{ fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.4)' }}>{t('bgResultHint') || '点击确认后将从照片中直接选取'}</Text>
             <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
               <TouchableOpacity
                 style={{ flex: 1, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center' }}
                 onPress={() => { bgRecropRef.current = true; setShowBgPreview(false); }}>
-                <Text style={{ fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.7)' }}>{t('recrop') || '再编辑'}</Text>
+                <Text style={{ fontSize: FONTS.small.size, fontWeight: '500', color: 'rgba(255,255,255,0.7)' }}>{t('recrop') || '再编辑'}</Text>
               </TouchableOpacity>
               <SubmitButton
                 onPress={handleBgUpload}
                 loading={bgUploading}
                 label={t('confirmUse') || '确认使用'}
                 style={{ flex: 2, padding: 12, borderRadius: 10, backgroundColor: '#5B5BD6', alignItems: 'center' }}
-                textStyle={{ fontSize: 13, fontWeight: '600', color: '#fff' }}
+                textStyle={{ fontSize: FONTS.small.size, fontWeight: '600', color: '#fff' }}
               />
             </View>
           </View>
@@ -1113,7 +1113,7 @@ function DailyRevenueView(p: DailyRevProps) {
 
           {p.last7Records.length === 0 ? (
             <View style={styles.rev7Empty}>
-              <Text style={{ color: colors.textSub, fontSize: 14 }}>...</Text>
+              <Text style={{ color: colors.textSub, fontSize: FONTS.sub.size }}>...</Text>
             </View>
           ) : (
             p.last7Records.map((rec: any, i: number) => (
@@ -1344,7 +1344,7 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   // BG settings modal extras
   opacityChip: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: colors.bg, alignItems: 'center', borderWidth: 1, borderColor: 'transparent' },
   opacityChipActive: { backgroundColor: withAlpha(colors.primary, 0.12), borderColor: colors.primary },
-  opacityChipText: { fontSize: 11, color: colors.textSub, fontWeight: '600' },
+  opacityChipText: { fontSize: FONTS.nano.size, color: colors.textSub, fontWeight: '600' },
   opacityChipTextActive: { color: colors.primary },
   themePickerItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12, marginBottom: 8, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.secondary },
 
@@ -1431,7 +1431,7 @@ const getMo = (colors: ThemeColors) => StyleSheet.create({
     paddingHorizontal: 20, paddingVertical: 14,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
-  title: { fontSize: 14, fontWeight: '700', color: colors.surface },
+  title: { fontSize: FONTS.sub.size, fontWeight: '700', color: colors.surface },
   close: { ...modalClose },
   body: { padding: 24, gap: 18 } as any,
   btnRow: { flexDirection: 'row', gap: 12, marginTop: 0 },

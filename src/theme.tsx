@@ -217,6 +217,7 @@ export const FONTS = {
   tiny:     { size: Math.round(10 * S), weight: '500' as const, color: 'textSub'  as const },
   amount:   { size: Math.round(24 * S), weight: '700' as const, color: 'textMain' as const },
   display:  { size: Math.round(36 * S), weight: '700' as const, color: 'textMain' as const },
+  stamp:    { size: Math.round(42 * S), weight: '700' as const, color: 'textMain' as const },
   xlarge:   { size: Math.round(22 * S), weight: '600' as const, color: 'textMain' as const },
   large:    { size: Math.round(20 * S), weight: '600' as const, color: 'textMain' as const },
 } as const;

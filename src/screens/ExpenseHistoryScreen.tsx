@@ -168,7 +168,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
                 activeOpacity={0.7}
                 style={{ paddingHorizontal: 6, paddingVertical: 1, borderRadius: 5, backgroundColor: e.invoice_status === 'done' ? withAlpha(colors.success, 0.12) : withAlpha(colors.warning, 0.12) }}
               >
-                <Text style={{ fontSize: 10, fontWeight: '600', color: e.invoice_status === 'done' ? colors.success : colors.warning }}>
+                <Text style={{ fontSize: FONTS.tiny.size, fontWeight: '600', color: e.invoice_status === 'done' ? colors.success : colors.warning }}>
                   {e.invoice_status === 'done' ? t('invRecStatusDone') : t('invRecStatusPending')}
                 </Text>
               </TouchableOpacity>
@@ -178,7 +178,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
                 activeOpacity={0.7}
                 style={{ paddingHorizontal: 6, paddingVertical: 1, borderRadius: 5, backgroundColor: withAlpha(colors.primary, 0.10) }}
               >
-                <Text style={{ fontSize: 10, fontWeight: '600', color: colors.primary }}>
+                <Text style={{ fontSize: FONTS.tiny.size, fontWeight: '600', color: colors.primary }}>
                   {t('invToInvoice')}
                 </Text>
               </TouchableOpacity>
@@ -249,8 +249,8 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
 
       {/* Filter — dark glass via FilterPanel (BlurView inside) */}
       <FilterPanel visible={showFilter} onClose={() => setShowFilter(false)}>
-        {rangeInvalid && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right' }}>{t('errDateRange')}</Text>}
-        {rangeTooLong && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right' }}>{t('errDateRangeTooLong')}</Text>}
+        {rangeInvalid && <Text style={{ color: colors.danger, fontSize: FONTS.micro.size, textAlign: 'right' }}>{t('errDateRange')}</Text>}
+        {rangeTooLong && <Text style={{ color: colors.danger, fontSize: FONTS.micro.size, textAlign: 'right' }}>{t('errDateRangeTooLong')}</Text>}
         <View style={st.filterField}>
           <Text style={st.filterLabel}>{t('expenseDate')}</Text>
           <View style={st.filterDateRange}>
@@ -405,7 +405,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   amount: { fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: colors.danger },
   expAmountWrap: { position: 'relative' as any },
   expSealWrap: { position: 'absolute' as any, top: -24, right: 0 },
-  filledBy: { fontSize: 10, color: colors.textSub, marginTop: 2 },
+  filledBy: { fontSize: FONTS.tiny.size, color: colors.textSub, marginTop: 2 },
   rowBottom: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   dateText: { fontSize: FONTS.sub.size, color: colors.textSub, flexShrink: 0 },
   note: { fontSize: FONTS.sub.size, color: colors.textSub, flex: 1, textAlign: 'right', overflow: 'hidden' },
