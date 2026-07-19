@@ -754,9 +754,9 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         maxDate={td}
         title={t('billDate') || '选择日期'}
       />
-      <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
     </View>
-    </View>
+    <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
+  </View>
   );
 }
 
