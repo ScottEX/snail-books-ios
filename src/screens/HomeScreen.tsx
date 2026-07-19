@@ -683,7 +683,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                     }
                   }}
                 >
-                  <Animated.View style={[styles.navIconWrap, active && styles.navIconWrapActive, { transform: [{ scale: navScaleAnims[i] }] }]}>
+                  {active && <Animated.View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.06)' }} />}
+                  <Animated.View style={[styles.navIconWrap, { transform: [{ scale: navScaleAnims[i] }] }]}>
                     {icon(c)}
                   </Animated.View>
                 </TouchableOpacity>
@@ -1330,9 +1331,8 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
     position: 'absolute', left: 12, right: 12, top: 0, height: 1,
     backgroundColor: 'rgba(255,255,255,0.20)',
   },
-  navItem: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  navIconWrap: { width: 48, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  navIconWrapActive: { backgroundColor: withAlpha(colors.textMain, 0.1) },
+  navItem: { flex: 1, alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 22, marginHorizontal: 2 },
+  navIconWrap: { alignItems: 'center', justifyContent: 'center' },
 
   // BG settings modal extras
   opacityChip: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: colors.bg, alignItems: 'center', borderWidth: 1, borderColor: 'transparent' },
