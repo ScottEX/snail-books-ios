@@ -487,7 +487,6 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   useEffect(() => { loadProducts(); loadStats(); }, [loadProducts, loadStats]);
 
   useEffect(() => {
-    if (pendingEditBatch) return;
     api.getCart().then((data: any) => {
       if (Array.isArray(data)) {
         const map: Record<number, number> = {};
