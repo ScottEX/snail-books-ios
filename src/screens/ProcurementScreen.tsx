@@ -778,7 +778,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
     <>
       <View style={styles.container}>
       {/* ── Glass card block ── */}
-      <GlassCard tint="none" thickness="thick" style={{ marginTop: 4, padding: 0 }}>
+      <GlassCard tint="none" thickness="regular" style={{ marginTop: 4, padding: 0 }}>
         <View style={styles.headerSection}>
           <View style={styles.headerTop}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
