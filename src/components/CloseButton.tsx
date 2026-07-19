@@ -1,5 +1,6 @@
 import { Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { modalClose } from '../sharedStyles';
+import { FONTS } from '../theme';
 
 interface CloseButtonProps {
   onPress: () => void;
@@ -9,7 +10,7 @@ interface CloseButtonProps {
 
 const circleS = StyleSheet.create({
   btn: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
-  text: { color: 'rgba(255,255,255,0.7)', fontSize: 16, lineHeight: 20 },
+  text: { color: 'rgba(255,255,255,0.7)', fontSize: FONTS.body.size, lineHeight: 20 },
 });
 
 export default function CloseButton({ onPress, variant = 'plain' }: CloseButtonProps) {

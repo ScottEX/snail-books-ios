@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import ModalOverlay from './ModalOverlay';
+import { FONTS } from '../theme';
 import { t, getLang } from '../i18n';
 
 interface Props {
@@ -69,14 +70,14 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
         />
         <View style={styles.footer}>
           <TouchableOpacity style={styles.footerBtn} onPress={() => setDraft(value)}>
-            <Text style={{ color: 'rgba(0,0,0,0.88)', fontSize: 16, fontWeight: '500' }}>{getLang().startsWith('en') ? 'Reset' : '重置'}</Text>
+            <Text style={{ color: 'rgba(0,0,0,0.88)', fontSize: FONTS.body.size, fontWeight: '500' }}>{getLang().startsWith('en') ? 'Reset' : '重置'}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.footerBtn, (!isValid(draft) || isFuture(draft)) && { opacity: 0.3 }]}
             disabled={!isValid(draft) || !!isFuture(draft)}
             onPress={() => { onSelect(draft); onClose(); }}
           >
-            <Text style={{ color: '#0A84FF', fontSize: 16, fontWeight: '700' }}>{t('confirm') || '确定'}</Text>
+            <Text style={{ color: '#0A84FF', fontSize: FONTS.body.size, fontWeight: '700' }}>{t('confirm') || '确定'}</Text>
           </TouchableOpacity>
         </View>
       </View>

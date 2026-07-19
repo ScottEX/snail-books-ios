@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Image } from 'expo-image';
+import { FONTS } from '../theme';
 import Animated, {
   useSharedValue, useAnimatedStyle,
   withSpring, withTiming, withDelay,
@@ -597,8 +598,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.4)',
     alignItems: 'center', justifyContent: 'center',
   },
-  closeTxt: { color: '#fff', fontSize: 14, fontWeight: '500' },
-  counter: { color: 'rgba(255,255,255,0.85)', fontSize: 14, fontWeight: '500' },
+  closeTxt: { color: '#fff', fontSize: FONTS.sub.size, fontWeight: '500' },
+  counter: { color: 'rgba(255,255,255,0.85)', fontSize: FONTS.sub.size, fontWeight: '500' },
   dots: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     flexDirection: 'row', justifyContent: 'center', gap: 6,
