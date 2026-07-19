@@ -593,11 +593,13 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             <PartnerScreen onBack={() => setTab('list')} onProfile={() => navigation.navigate('Profile')} onInvoice={() => navigation.navigate('Invoice', {})} refreshKey={partnerRefreshKey} />
           </View>
         ) : isHome && tab === 'supply' ? (
+          <View style={styles.page}>
           <ProcurementScreen
             onProcurementDetail={(batch) => navigation.navigate('ProcurementDetail', { batch })}
             pendingEditBatch={pendingEditBatch}
             onPendingEditConsumed={() => setPendingEditBatch(null)}
           />
+          </View>
         ) : isHome && (
         <>
         {/* 收支总览玻璃卡片：固定顶部不滚动 */}
