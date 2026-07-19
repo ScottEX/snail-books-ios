@@ -881,9 +881,9 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
       {/* ── New Order ── */}
       {subTab === 'new' && (
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, paddingBottom: cartCount > 0 ? 80 : 0 }}>
           {productsLoading ? (
-            <ScrollView style={{ flex: 1, marginBottom: cartCount > 0 ? 130 : 0 }} contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
               {[...Array(8)].map((_, i) => (
                 <View key={i} style={{ marginBottom: 12 }}>
                   <View style={{ width: 56, height: 12, backgroundColor: withAlpha(c.textSub, 0.08), borderRadius: 4, marginLeft: 18, marginBottom: 8 }} />
@@ -909,7 +909,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
               ))}
             </ScrollView>
           ) : (
-          <ScrollView style={{ flex: 1, marginBottom: cartCount > 0 ? 130 : 0 }} contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
             {groupedProducts.map(([sup, items]) => (
               <View key={sup}>
                 <Text style={styles.sectionHead}>{supplierLabel(sup)}</Text>
