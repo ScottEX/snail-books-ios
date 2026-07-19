@@ -172,7 +172,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   subTabOn: { backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 10 },
   subTabText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: '#000' },
   subTabTextOn: { color: c.primary, fontWeight: FONTS.subBold.weight },
-  subTabCount: { fontSize: 10, fontWeight: '600' as any, color: '#000', backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, minWidth: 18, textAlign: 'center' as any, overflow: 'hidden' as const },
+  subTabCount: { fontSize: FONTS.micro.size, fontWeight: '600' as any, color: '#000', backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, minWidth: 18, textAlign: 'center' as any, overflow: 'hidden' as const },
   subTabCountOn: { color: c.primary },
 
   sectionHead: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 4, fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: c.primary, textTransform: 'uppercase' as const, letterSpacing: 1 },
