@@ -96,11 +96,8 @@ function ProfileRoute() {
 function UserManagementRoute() {
   const navigation = useNavigation<any>();
   const [reviewedUserId, setReviewedUserId] = useState<number | null>(null);
-  // Remount on re-focus so edits made in UserDetail are reflected
-  const remountKey = useFocusRefreshKey();
   return (
     <UserManagementScreen
-      key={remountKey}
       onBack={() => navigation.goBack()}
       reviewedUserId={reviewedUserId}
       onSelectUser={async (u) => {
