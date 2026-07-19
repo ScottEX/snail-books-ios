@@ -51,6 +51,7 @@ export default function App() {
       lastExpireAt.current = now;
       loginConfirmedAt.current = 0;
       expiring.current = true;
+      try { if (typeof window !== 'undefined') (window as any).__expiring = true; } catch {}
       setKickedVisible(true);
     };
     const unsubKicked = onSessionKicked(handleExpire);

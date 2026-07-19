@@ -22,6 +22,8 @@ export default function Toast({ message, visible, onDismiss, duration = 3000 }: 
   useEffect(() => { onDismissRef.current = onDismiss; }, [onDismiss]);
 
   useEffect(() => {
+    // Suppress toast during session expiry — auth calls flood with 401 errors
+    try { if (typeof window !== 'undefined' && (window as any).__expiring) return; } catch {}
     if (visible && message) {
       setShow(true);
       const outer = setTimeout(() => {
