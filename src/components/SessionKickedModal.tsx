@@ -27,13 +27,14 @@ function readStoredColors(): ThemeColors {
 /** Standardized "your account was signed in elsewhere" modal.
  *  Triggered by the api client when a 401 with code=session_kicked is received.
  *  Single confirm button + ✕ close. */
-export default function SessionKickedModal() {
+export default function SessionKickedModal({ visible: propVisible, onConfirm }: { visible?: boolean; onConfirm?: () => void }) {
   const [colors, setColors] = useState<ThemeColors>(readStoredColors);
   const styles = getStyles(colors);
-  const [visible, setVisible] = useState(false);
+  const [kickedVisible, setKickedVisible] = useState(false);
+  const visible = kickedVisible || !!propVisible;
 
   useEffect(() => {
-    return onSessionKicked(() => setVisible(true));
+    return onSessionKicked(() => setKickedVisible(true));
   }, []);
 
   useEffect(() => {
@@ -43,7 +44,8 @@ export default function SessionKickedModal() {
   }, [visible]);
 
   const handleClose = () => {
-    setVisible(false);
+    setKickedVisible(false);
+    onConfirm?.();
   };
 
   return (

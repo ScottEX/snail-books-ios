@@ -32,6 +32,7 @@ export default function App() {
   const [appKey, setAppKey] = useState(0);
   const [ready, setReady] = useState(false);
   const lastExpireAt = useRef(0);
+  const [kickedVisible, setKickedVisible] = useState(false);
 
   useEffect(() => {
     initStorageCache().then(() => {
@@ -47,10 +48,10 @@ export default function App() {
       const now = Date.now();
       if (now - lastExpireAt.current < 1500) return;
       lastExpireAt.current = now;
-      setPage((p) => {
-        if (p !== 'login') setAppKey((k) => k + 1);
-        return 'login';
-      });
+      // Bump appKey to force ThemeProvider remount (fresh theme) if not
+      // already on login page; stay on current page, show modal instead.
+      if (pageRef.current !== 'login') setAppKey((k) => k + 1);
+      setKickedVisible(true);
     };
     const unsubKicked = onSessionKicked(handleExpire);
     const unsubChange = onUserChange(() => {
@@ -113,7 +114,7 @@ export default function App() {
     <SafeAreaProvider>
       <KeyboardProvider>
         <LangProvider>
-        <SessionKickedModal />
+        <SessionKickedModal visible={kickedVisible} onConfirm={() => { setKickedVisible(false); setPage('login'); }} />
         <ErrorBoundary>
           <ThemeProvider key={appKey}>
             <StatusBar barStyle="light-content" />
