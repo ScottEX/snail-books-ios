@@ -651,8 +651,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                 to the rounded pill shape by overflow:hidden on the
                 bottomNav container. */}
             <BlurView
-              intensity={70}
-              tint="regular"
+              intensity={24}
+              tint="light"
               style={[StyleSheet.absoluteFillObject, { borderRadius: 28 }]}
               pointerEvents="none"
             />
