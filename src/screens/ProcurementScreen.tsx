@@ -306,6 +306,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
     } catch { return 1; }
   });
   const styles = useMemo(() => getStyles(c, bgOpacity), [c, bgOpacity]);
+  const dimColor = bgOpacity === 1 ? c.surface : c.textSub;
   const insets = useSafeAreaInsets();
 
   // Drawer keyboard push
@@ -831,7 +832,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
             <TextInput
               style={styles.searchInput}
               placeholder={subTab === 'history' ? t('procSearchHistory') : subTab === 'products' ? t('procSearchProducts') : t('procSearchPlaceholder')}
-              placeholderTextColor={c.textSub}
+              placeholderTextColor={dimColor}
               value={search} onChangeText={setSearch}
             />
             {search !== '' && (
@@ -1386,7 +1387,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                     value={productPickerSearch}
                     onChangeText={setProductPickerSearch}
                     placeholder={t('procSearchProducts')}
-                    placeholderTextColor={c.textSub}
+                    placeholderTextColor={dimColor}
                     style={{
                       paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, fontSize: FONTS.sub.size,
                       color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.04),
