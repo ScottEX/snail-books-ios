@@ -1389,7 +1389,7 @@ const getStyles = (colors: ThemeColors, headerColor: string, bgOpacity: number) 
   revSubmitText: { fontSize: FONTS.subBold.size, color: colors.surface, fontWeight: FONTS.subBold.weight },
   revWeekRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, paddingHorizontal: 4 },
   revWeekLabel: { fontSize: FONTS.micro.size, color: dimColor, marginBottom: 2 },
-  revWeekVal: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: dimColor },
+  revWeekVal: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain },
 
   // Last 7 days
   revHistoryHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, marginHorizontal: 16 },
