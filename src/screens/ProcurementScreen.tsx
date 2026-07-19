@@ -779,8 +779,8 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
       {/* ── Frosted card block ── */}
       <View style={{ marginTop: 4, borderRadius: 16, overflow: 'hidden' }}>
         <BlurView
-          intensity={50}
-          tint="light"
+          intensity={70}
+          tint="regular"
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
