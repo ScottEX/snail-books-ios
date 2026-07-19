@@ -1350,6 +1350,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
         }}
         animation="stagger"
         staggerCount={3}
+        outDuration={0}
         overlayStyle={{ justifyContent: 'center', padding: 0, alignItems: 'stretch' } as any}
         contentStyle={{ alignItems: 'stretch' } as any}
       >

@@ -137,11 +137,12 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, childr
           Animated.timing(fade, { toValue: 0, duration: linear ? d : 220, useNativeDriver: false }),
         ].filter(Boolean) as any).start(() => { setShow(false); onClosed?.(); });
       } else if (animation === 'stagger') {
+        const d = outDuration;
         Animated.parallel([
-          backOut,
-          Animated.timing(slide, { toValue: 40, duration: 220, easing: Easing.bezier(0.4, 0, 1, 1), useNativeDriver: false }),
-          Animated.timing(scale, { toValue: 0.97, duration: 220, useNativeDriver: false }),
-          Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: false }),
+          d != null ? Animated.timing(back, { toValue: 0, duration: d, useNativeDriver: false }) : backOut,
+          d != null ? Animated.timing(slide, { toValue: 40, duration: d, useNativeDriver: false }) : Animated.timing(slide, { toValue: 40, duration: 220, easing: Easing.bezier(0.4, 0, 1, 1), useNativeDriver: false }),
+          d != null ? Animated.timing(scale, { toValue: 0.97, duration: d, useNativeDriver: false }) : Animated.timing(scale, { toValue: 0.97, duration: 220, useNativeDriver: false }),
+          Animated.timing(fade, { toValue: 0, duration: d ?? 180, useNativeDriver: false }),
         ]).start(() => { setShow(false); onClosed?.(); });
       } else if (animation === 'iosSheet') {
         const d = outDuration;
