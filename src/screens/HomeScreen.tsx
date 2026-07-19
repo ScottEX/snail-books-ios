@@ -534,7 +534,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             visible while the panels scroll under it. */}
         {isHome && <View style={styles.header}>
           <BlurView
-            intensity={85}
+            intensity={70}
             tint="regular"
             style={StyleSheet.absoluteFillObject}
             pointerEvents="none"
@@ -652,7 +652,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                 to the rounded pill shape by overflow:hidden on the
                 bottomNav container. */}
             <BlurView
-              intensity={75}
+              intensity={70}
               tint="regular"
               style={[StyleSheet.absoluteFillObject, { borderRadius: 28 }]}
               pointerEvents="none"
