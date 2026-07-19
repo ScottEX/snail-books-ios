@@ -140,7 +140,7 @@ const sortByOrder = (a: string, b: string) => {
 // Styles
 // ═══════════════════════════════════════════════
 const getStyles = (c: ThemeColors, bgOpacity: number) => {
-  const dimColor = bgOpacity === 1 ? c.surface : c.textSub;
+  const dimColor = bgOpacity > 0.5 ? c.surface : c.textSub;
   return StyleSheet.create({
   container: { flex: 1, position: 'relative' as const, paddingHorizontal: 16 },
 
@@ -306,7 +306,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
     } catch { return 1; }
   });
   const styles = useMemo(() => getStyles(c, bgOpacity), [c, bgOpacity]);
-  const dimColor = bgOpacity === 1 ? c.surface : c.textSub;
+  const dimColor = bgOpacity > 0.5 ? c.surface : c.textSub;
   const insets = useSafeAreaInsets();
 
   // Drawer keyboard push
