@@ -164,7 +164,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   filterRow: { flexDirection: 'row' as const, gap: 6, marginTop: 8 },
   filterChip: { paddingHorizontal: 13, paddingVertical: 5, borderRadius: 20, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.12) },
   filterChipOn: { backgroundColor: c.primary, borderColor: c.primary },
-  filterChipText: { fontSize: FONTS.micro.size, color: c.textSub },
+  filterChipText: { fontSize: FONTS.micro.size, color: '#000' },
   filterChipTextOn: { color: c.surface },
 
   subTabRow: { flexDirection: 'row' as const, borderTopWidth: 0, marginHorizontal: 4, paddingTop: 2, marginBottom: 6 },
