@@ -849,7 +849,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                         <FaceIDIcon color="rgba(255,255,255,0.85)" />
                       </TouchableOpacity>
                     </Animated.View>
-                    <Text style={{ fontSize: 18, fontWeight: '500', color: 'rgba(255,255,255,0.8)', marginBottom: 16 }}>{username}</Text>
+                    <Text style={{ fontSize: FONTS.h2.size, fontWeight: '500', color: 'rgba(255,255,255,0.8)', marginBottom: 16 }}>{username}</Text>
                     <TouchableOpacity onPress={() => { setFaceMode(false); setMsg(''); setMsgKey(''); }}>
                       <Text style={{ fontSize: FONTS.micro.size, color: colors.primary }}>{t('usePasswordLogin') || '使用密码登录'}</Text>
                     </TouchableOpacity>
@@ -908,7 +908,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                       </TouchableOpacity>
                       {pwdHasFaceID && !!keychainUser ? (
                         <TouchableOpacity onPress={switchToFaceMode}>
-                          <Text style={{ fontSize: 14, color: colors.primary }}>{t('faceIDLogin') || '面容登录'}</Text>
+                          <Text style={{ fontSize: FONTS.sub.size, color: colors.primary }}>{t('faceIDLogin') || '面容登录'}</Text>
                         </TouchableOpacity>
                       ) : null}
                       <TouchableOpacity onPress={() => { setStep('forgot'); setEmail(''); setPassword(''); reset(); }}>
@@ -1149,7 +1149,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.18, shadowRadius: 20,
   },
-  subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.7)', marginTop: 6, letterSpacing: 1 },
+  subtitle: { fontSize: FONTS.sub.size, color: 'rgba(255,255,255,0.7)', marginTop: 6, letterSpacing: 1 },
   langRow: { flexDirection: 'row', gap: 4, marginTop: 12 },
   langBtn: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.4)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   langActive: { color: colors.surface, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 6, overflow: 'hidden' as const },
@@ -1159,7 +1159,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   msgBox: { paddingVertical: 4, marginBottom: 8 },
   msgOk: {},
   msgErr: {},
-  msgText: { fontSize: 14, fontWeight: '500', textAlign: 'left' },
+  msgText: { fontSize: FONTS.sub.size, fontWeight: '500', textAlign: 'left' },
   msgOkText: { color: colors.success },
   msgErrText: { color: colors.danger },
   tabRow: {
@@ -1195,7 +1195,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center', alignItems: 'center',
   },
-  faceHint: { fontSize: 14, color: 'rgba(255,255,255,0.6)', marginBottom: 8 },
+  faceHint: { fontSize: FONTS.sub.size, color: 'rgba(255,255,255,0.6)', marginBottom: 8 },
   textInput: {
     backgroundColor: 'rgba(255,255,255,0.10)', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12,
     fontSize: FONTS.body.size, color: colors.surface,
@@ -1219,22 +1219,22 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     width: 16, height: 16, borderRadius: 4, borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.5)', justifyContent: 'center', alignItems: 'center',
   },
-  checkmark: { fontSize: 14, color: colors.surface, fontWeight: '700' },
-  rememberText: { fontSize: 14, color: 'rgba(255,255,255,0.6)' },
+  checkmark: { fontSize: FONTS.sub.size, color: colors.surface, fontWeight: '700' },
+  rememberText: { fontSize: FONTS.sub.size, color: 'rgba(255,255,255,0.6)' },
   forgotText: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginTop: 8 },
   disabledText: { opacity: 0.3 },
   infoText: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 20 },
   infoStrong: { fontWeight: '700', color: colors.surface },
-  verifyTitle: { fontSize: 16, fontWeight: '700', color: colors.surface, textAlign: 'center', marginBottom: 12 },
-  verifyBody: { fontSize: 14, color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 20 },
+  verifyTitle: { fontSize: FONTS.body.size, fontWeight: '700', color: colors.surface, textAlign: 'center', marginBottom: 12 },
+  verifyBody: { fontSize: FONTS.sub.size, color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 20 },
   verifyEmail: { fontWeight: '700', color: colors.surface },
-  verifyHint: { fontSize: 14, color: 'rgba(255,255,255,0.45)', textAlign: 'center', lineHeight: 18 },
+  verifyHint: { fontSize: FONTS.sub.size, color: 'rgba(255,255,255,0.45)', textAlign: 'center', lineHeight: 18 },
   verifyLink: { color: colors.primary, fontWeight: '500' },
   devCodeCard: {
     backgroundColor: withAlpha(colors.warning, 0.15), borderRadius: 12, padding: 16,
     alignItems: 'center', borderWidth: 1, borderColor: withAlpha(colors.warning, 0.3),
   },
-  devCodeLabel: { fontSize: 14, color: colors.warning, fontWeight: '500', marginBottom: 8 },
+  devCodeLabel: { fontSize: FONTS.sub.size, color: colors.warning, fontWeight: '500', marginBottom: 8 },
   devCodeValue: { fontSize: 26, fontWeight: '700', color: colors.surface, letterSpacing: 8 },
-  copyright: { fontSize: 14, color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: 20 },
+  copyright: { fontSize: FONTS.sub.size, color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: 20 },
 });

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StatusBar, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Svg, { Path } from 'react-native-svg';
+import { FONTS } from '../theme';
 
 // ── SVG icon shared between UserManagementScreen and UserDetailScreen ──
 function BackArrowSvg() {
@@ -75,7 +76,7 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
-    fontSize: 15,
+    fontSize: FONTS.sub.size,
     fontWeight: '600' as const,
     color: '#000',
   },
