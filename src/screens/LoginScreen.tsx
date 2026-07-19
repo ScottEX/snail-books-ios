@@ -1235,6 +1235,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center', borderWidth: 1, borderColor: withAlpha(colors.warning, 0.3),
   },
   devCodeLabel: { fontSize: FONTS.sub.size, color: colors.warning, fontWeight: '500', marginBottom: 8 },
-  devCodeValue: { fontSize: 26, fontWeight: '700', color: colors.surface, letterSpacing: 8 },
+  devCodeValue: { fontSize: FONTS.amount.size, fontWeight: '700', color: colors.surface, letterSpacing: 8 },
   copyright: { fontSize: FONTS.sub.size, color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: 20 },
 });
