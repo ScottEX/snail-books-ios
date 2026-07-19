@@ -37,6 +37,13 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, childr
   );
 
   useEffect(() => {
+    // Stop any in-progress animations to prevent conflicts on fast open/close
+    back.stopAnimation();
+    slide.stopAnimation();
+    scale.stopAnimation();
+    fade.stopAnimation();
+    staggerAnims.forEach(a => a.stopAnimation());
+
     if (visible) {
       setShow(true);
       back.setValue(0);

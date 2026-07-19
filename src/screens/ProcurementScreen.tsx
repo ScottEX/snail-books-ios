@@ -335,18 +335,21 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   const [editPriceVal, setEditPriceVal] = useState('');
 
   const [showDrawer, setShowDrawer] = useState(false);
+  const drawerCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleDrawerClose = () => {
+    if (drawerCloseTimer.current) { clearTimeout(drawerCloseTimer.current); drawerCloseTimer.current = null; }
     setShowDrawer(false);
     onDrawerClose?.();
-    setTimeout(() => {
-    if (editingBatchId !== null) {
-      setEditingBatchId(null); setEditingBatchNumber(0);
-      setEditingBatchSettled(false); setCartUnitPrices({});
-      setExistingImageUrls([]); setExistingThumbUrls([]);
-      setEditSnapshot(null);
-      setCart({}); setReceipts([]); setOrderNote('');
-      setOrderDate(sd.today); setPayMethod('payWechat');
-    }
+    drawerCloseTimer.current = setTimeout(() => {
+      if (editingBatchId !== null) {
+        setEditingBatchId(null); setEditingBatchNumber(0);
+        setEditingBatchSettled(false); setCartUnitPrices({});
+        setExistingImageUrls([]); setExistingThumbUrls([]);
+        setEditSnapshot(null);
+        setCart({}); setReceipts([]); setOrderNote('');
+        setOrderDate(sd.today); setPayMethod('payWechat');
+      }
+      drawerCloseTimer.current = null;
     }, 300);
   };
   const [orderDate, setOrderDate] = useState('');
@@ -682,6 +685,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   };
 
   const openEditBatch = (batch: BatchRecord) => {
+    if (drawerCloseTimer.current) { clearTimeout(drawerCloseTimer.current); drawerCloseTimer.current = null; }
     setEditingBatchId(batch.id);
     setEditingBatchNumber(batch.batch_number);
     setOrderDate(batch.date);
