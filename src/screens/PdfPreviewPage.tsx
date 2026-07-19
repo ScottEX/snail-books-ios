@@ -168,8 +168,8 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
   return (
     <View style={styles.root}>
       <BlurView
-        intensity={70}
-        tint="regular"
+        intensity={24}
+        tint="light"
         style={{
           position: 'absolute',
           top: 0,
@@ -264,7 +264,7 @@ const getStyles = (c: ThemeColors) => {
     return `rgba(${r},${g},${b},${op})`;
   };
   return StyleSheet.create({
-  root: { flex: 1 },
+  root: { flex: 1, backgroundColor: '#fff' },
   backBtn: {
     width: 36,
     height: 36,
