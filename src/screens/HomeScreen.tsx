@@ -231,7 +231,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   // sits on the image alone → white. When the bg has any transparency
   // (≤ 0.99), the bgOverlay is partial and the image darkens, so
   // text flips to black for legibility.
-  const headerColor = bgOpacity === 1 ? '#FFFFFF' : '#000000';
+  const headerColor = bgOpacity > 0.5 ? '#FFFFFF' : '#000000';
   const setBgOpacityPersist = (v: number) => {
     setBgOpacity(v);
     try { localStorage.setItem(opacityKey, String(v)); } catch {}
@@ -479,7 +479,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     } catch (e: any) { setToast(t('toastSubmitFailed') || e?.message); }
     setRevSaving(false);
   };
-  const styles = useMemo(() => getStyles(colors, headerColor), [colors, headerColor]);
+  const styles = useMemo(() => getStyles(colors, headerColor, bgOpacity), [colors, headerColor, bgOpacity]);
   const switchLang = (l: string) => {
     setLang(l);
     // Refetch any API-sourced labels that were captured at load time
@@ -505,7 +505,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
 
   return (
     <View style={styles.container}>
-    <StatusBar barStyle={bgOpacity === 1 ? 'light-content' : 'dark-content'} />
+    <StatusBar barStyle={bgOpacity > 0.5 ? 'light-content' : 'dark-content'} />
     <View style={styles.inner}>
       {/* Two-layer background (mirrors web). Base layer = bundled
           bg.jpg, always at bgOpacity. Top layer = the user's custom
@@ -1268,7 +1268,9 @@ function IconPartner({ c }: { c: string }) {
 
 /* ── Styles ────────────────────────────────────────────────────────── */
 
-const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.create({
+const getStyles = (colors: ThemeColors, headerColor: string, bgOpacity: number) => {
+  const dimColor = bgOpacity > 0.5 ? colors.surface : colors.textSub;
+  return StyleSheet.create({
   // Mirrors web HomeScreen.tsx — container > inner wrapper.
   // container = flex: 1 (full screen); inner = flex: 1, alignSelf: 'center',
   // width: '100%', position: 'relative' (anchors absolute SlideScreens).
@@ -1386,8 +1388,8 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   revSubmitBtn: { backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   revSubmitText: { fontSize: FONTS.subBold.size, color: colors.surface, fontWeight: FONTS.subBold.weight },
   revWeekRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, paddingHorizontal: 4 },
-  revWeekLabel: { fontSize: FONTS.micro.size, color: colors.textSub, marginBottom: 2 },
-  revWeekVal: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain },
+  revWeekLabel: { fontSize: FONTS.micro.size, color: dimColor, marginBottom: 2 },
+  revWeekVal: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: dimColor },
 
   // Last 7 days
   revHistoryHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, marginHorizontal: 16 },
@@ -1415,6 +1417,7 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   rev7CardNote: { borderTopWidth: 0.5, borderTopColor: colors.secondary, paddingTop: 8, marginTop: 4 },
   rev7CardNoteText: { fontSize: FONTS.micro.size, color: colors.textSub, lineHeight: 16 },
 });
+};
 
 const getMo = (colors: ThemeColors) => StyleSheet.create({
   backdrop: {
