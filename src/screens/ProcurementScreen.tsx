@@ -170,7 +170,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   subTabRow: { flexDirection: 'row' as const, borderTopWidth: 0, marginHorizontal: 4, paddingTop: 2, marginBottom: 6 },
   subTab: { flex: 1, flexDirection: 'row' as const, gap: 4, paddingVertical: 10, alignItems: 'center' as const, justifyContent: 'center' as const },
   subTabOn: { backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 10 },
-  subTabText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: c.textSub },
+  subTabText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: '#000' },
   subTabTextOn: { color: c.primary, fontWeight: FONTS.subBold.weight },
   subTabCount: { fontSize: 10, fontWeight: '600' as any, color: c.textSub, backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, minWidth: 18, textAlign: 'center' as any, overflow: 'hidden' as const },
 
