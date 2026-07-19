@@ -594,20 +594,20 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
     setEditingPrice(null);
   };
 
-  const handleAddFiles = async (files: PickedImage[]) => {
+  const handleAddFiles = useCallback(async (files: PickedImage[]) => {
     const newFiles: PickedImage[] = [];
     for (const f of files) {
       if (receipts.some(r => r.uri === f.uri)) continue;
       newFiles.push(f);
     }
     setReceipts(prev => [...prev, ...newFiles]);
-  };
+  }, [receipts]);
 
-  const handleRemoveNewFile = (i: number) => {
+  const handleRemoveNewFile = useCallback((i: number) => {
     setReceipts(prev => prev.filter((_, idx) => idx !== i));
-  };
+  }, []);
 
-  const getPreviewUrl = (file: PickedImage) => file.uri || '';
+  const getPreviewUrl = useCallback((file: PickedImage) => file.uri || '', []);
 
   const submitOrder = async () => {
     if (cartItems.length === 0) return;
@@ -744,10 +744,15 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
     }
   };
 
-  const removeExistingImage = (i: number) => {
+  const removeExistingImage = useCallback((i: number) => {
     setExistingImageUrls(prev => prev.filter((_, idx) => idx !== i));
     setExistingThumbUrls(prev => prev.filter((_, idx) => idx !== i));
-  };
+  }, []);
+
+  const resolvedExistingImages = useMemo(
+    () => existingImageUrls.map(u => resolveAssetUrl(u) || u),
+    [existingImageUrls]
+  );
 
   const resetOrder = () => {
     closeSlideModal(() => { setShowSuccess(false); setOrderDate(sd.today); setPayMethod('payWechat'); setOrderNote(''); setReceipts([]); });
@@ -1292,7 +1297,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
             <View style={{ marginTop: 12 }}>
               <ReceiptUpload
-                existingImages={existingImageUrls.map(u => resolveAssetUrl(u) || u)}
+                existingImages={resolvedExistingImages}
                 newFiles={receipts}
                 onAdd={handleAddFiles}
                 onRemoveExisting={removeExistingImage}
@@ -1350,7 +1355,6 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
         }}
         animation="stagger"
         staggerCount={3}
-        outDuration={120}
         overlayStyle={{ justifyContent: 'center', padding: 0, alignItems: 'stretch' } as any}
         contentStyle={{ alignItems: 'stretch' } as any}
       >

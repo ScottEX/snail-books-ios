@@ -105,12 +105,6 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, childr
         ]).start();
       }
     } else if (show) {
-      // Instant close — web-like, no animation
-      if (outDuration === 0) {
-        setShow(false);
-        onClosed?.();
-        return;
-      }
       const backOut = Animated.sequence([
         Animated.delay(50),
         Animated.timing(back, { toValue: 0, duration: 200, useNativeDriver: false }),
