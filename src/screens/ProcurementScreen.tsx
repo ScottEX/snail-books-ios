@@ -224,7 +224,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
   sectionLabel: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textSub, marginBottom: 6 },
   itemsBtnText: { fontSize: FONTS.sub.size, color: c.textMain, fontWeight: FONTS.sub.weight },
 
-  itemsModalCard: { backgroundColor: c.surface, borderRadius: MODAL_CARD_RADIUS, overflow: 'hidden' as const, display: 'flex' as any, flexDirection: 'column' as any },
+  itemsModalCard: { backgroundColor: c.surface, borderRadius: MODAL_CARD_RADIUS, overflow: 'hidden' as const, display: 'flex' as any, flexDirection: 'column' as any, paddingBottom: 12 },
   itemsModalBodyWrap: { paddingTop: 12, paddingBottom: 4 },
   itemsRow: { flexDirection: 'row' as const, alignItems: 'center' as const, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: withAlpha(c.textMain, 0.06) },
   itemsRowLast: { borderBottomWidth: 0 },
@@ -1406,7 +1406,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                   />
                 </View>
                 <View style={styles.itemsModalBodyWrap}>
-                  <ScrollView style={{ paddingHorizontal: 18, maxHeight: Math.max(120, Dimensions.get('window').height * 0.6 - 180) }} showsVerticalScrollIndicator={false}>
+                  <ScrollView style={{ paddingHorizontal: 18, maxHeight: Math.max(120, Dimensions.get('window').height * 0.6 - 192) }} showsVerticalScrollIndicator={false}>
                     {products
                       .filter(p => !productPickerSearch || p.name.includes(productPickerSearch) || (p.supplier || '').includes(productPickerSearch))
                       .map((p, idx, arr) => {
@@ -1448,7 +1448,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
             ) : (
               <View>
                 <View style={styles.itemsModalBodyWrap}>
-                  <ScrollView style={{ paddingHorizontal: 18, maxHeight: Math.max(120, Dimensions.get('window').height * 0.6 - 180) }} showsVerticalScrollIndicator={false}>
+                  <ScrollView style={{ paddingHorizontal: 18, maxHeight: Math.max(120, Dimensions.get('window').height * 0.6 - 192) }} showsVerticalScrollIndicator={false}>
                     {cartItems.length === 0 ? (
                       <View style={{ padding: 24, alignItems: 'center' }}>
                         <Text style={{ color: c.textSub, fontSize: FONTS.micro.size }}>—</Text>
