@@ -111,10 +111,7 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, childr
         onClosed?.();
         return;
       }
-      const backOut = Animated.sequence([
-        Animated.delay(50),
-        Animated.timing(back, { toValue: 0, duration: 200, useNativeDriver: false }),
-      ]);
+      const backOut = Animated.timing(back, { toValue: 0, duration: 120, useNativeDriver: false });
       if (animation === 'springScale') {
         const d = outDuration;
         Animated.parallel([
