@@ -533,8 +533,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             visible while the panels scroll under it. */}
         {isHome && <View style={styles.header}>
           <BlurView
-            intensity={70}
-            tint="systemUltraThinMaterialLight"
+            intensity={24}
+            tint="light"
             style={StyleSheet.absoluteFillObject}
             pointerEvents="none"
           />
@@ -548,7 +548,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                 source={avatarUrl ? { uri: avatarUrl } : LOGO_IMAGE}
                 style={styles.headerAvatar}
               />
-              <Text style={styles.headerUser}>{usr}</Text>
+              <Text style={[styles.headerUser, { color: headerColor }]}>{usr}</Text>
             </TouchableOpacity>
             <View style={styles.headerRight}>
               <TouchableOpacity
@@ -556,7 +556,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 style={styles.headerBtn}
               >
-                <Text style={styles.headerLink}>{t('bgSettings')}</Text>
+                <Text style={[styles.headerLink, { color: headerColor }]}>{t('bgSettings')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setShowLogoutModal(true)}
@@ -573,7 +573,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                     hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
                     style={styles.langBtnTouch}
                   >
-                    <Text style={[styles.langBtn, lang === l && styles.langActive]}>{label}</Text>
+                    <Text style={[styles.langBtn, { color: headerColor }, lang === l && styles.langActive]}>{label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -651,8 +651,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                 to the rounded pill shape by overflow:hidden on the
                 bottomNav container. */}
             <BlurView
-              intensity={75}
-              tint="systemUltraThinMaterialLight"
+              intensity={24}
+              tint="light"
               style={[StyleSheet.absoluteFillObject, { borderRadius: 28 }]}
               pointerEvents="none"
             />
@@ -666,7 +666,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
               // Active icon colour matches web's NavIcon* helpers —
               // colors.navActiveColor (per-theme soft tint) for active,
               // not colors.textMain which was too high-contrast.
-              const c = active ? colors.navActiveColor : colors.textSub;
+              const c = active ? colors.navActiveColor : '#000000';
               return (
                 <TouchableOpacity
                   key={id}
@@ -682,7 +682,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                     }
                   }}
                 >
-                  <Animated.View style={[styles.navIconWrap, active && styles.navIconWrapActive, { transform: [{ scale: navScaleAnims[i] }] }]}>
+                  {active && <Animated.View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.06)' }} />}
+                  <Animated.View style={[styles.navIconWrap, { transform: [{ scale: navScaleAnims[i] }] }]}>
                     {icon(c)}
                   </Animated.View>
                 </TouchableOpacity>
@@ -754,9 +755,9 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         maxDate={td}
         title={t('billDate') || '选择日期'}
       />
-      <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
     </View>
-    </View>
+    <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
+  </View>
   );
 }
 
@@ -955,14 +956,15 @@ function DailyRevenueView(p: DailyRevProps) {
   return (
     <View style={{ paddingBottom: 100 }}>
       <View style={{ paddingTop: 4 }}>
-        {/* ── Daily revenue entry card (liquid glass — web parity) ── */}
-        <View style={styles.revCard}>
+        {/* ── Daily revenue entry card ── */}
+        <View style={{ marginHorizontal: 16, borderRadius: 16, overflow: 'hidden', marginBottom: 12 }}>
           <BlurView
-            intensity={70}
-            tint="regular"
-            style={[StyleSheet.absoluteFillObject, { borderRadius: 14 }]}
+            intensity={24}
+            tint="light"
+            style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
+          <View style={{ padding: 18 }}>
           <View style={styles.revHeaderRow}>
             <View style={styles.revTitleGroup}>
               <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.textMain} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
@@ -1091,6 +1093,7 @@ function DailyRevenueView(p: DailyRevProps) {
               <Text style={styles.revWeekLabel}>{t('revWeekJD')}</Text>
               <Text style={styles.revWeekVal}>¥{toDec2(p.weekRev?.jd_revenue)}</Text>
             </View>
+          </View>
           </View>
         </View>
 
@@ -1286,7 +1289,7 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   // no backdrop-filter). Sits in the normal flow (after the root's
   // insets.top padding) so the notch isn't covered.
   header: {
-    zIndex: 200, overflow: 'hidden',
+    zIndex: 200,
     paddingLeft: 16, paddingRight: 16, paddingVertical: 8,
     borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.10)',
   },
@@ -1335,9 +1338,8 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
     position: 'absolute', left: 12, right: 12, top: 0, height: 1,
     backgroundColor: 'rgba(255,255,255,0.20)',
   },
-  navItem: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  navIconWrap: { width: 48, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  navIconWrapActive: { backgroundColor: withAlpha(colors.textMain, 0.1) },
+  navItem: { flex: 1, alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 22, marginHorizontal: 2 },
+  navIconWrap: { alignItems: 'center', justifyContent: 'center' },
 
   // BG settings modal extras
   opacityChip: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: colors.bg, alignItems: 'center', borderWidth: 1, borderColor: 'transparent' },

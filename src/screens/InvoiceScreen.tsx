@@ -179,6 +179,7 @@ interface InvoiceRecord {
   email: string;
   status: InvStatus;
   file_path?: string;
+  file_thumb_paths?: string;
   file_type?: string;
   file_size?: number;
   note?: string;
@@ -313,6 +314,8 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const batchBtnRef = useRef<any>(null);
   const [dFiles, setDFiles] = useState<PickedImage[]>([]);
   const [dExistingFilePath, setDExistingFilePath] = useState<string[]>([]);
+  // Existing thumb paths (128×128 thumbnails for display) — mirrors web
+  const [dExistingThumbPaths, setDExistingThumbPaths] = useState<string[]>([]);
 
   // Delete confirm
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
@@ -470,12 +473,17 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       let rid: number;
       if (editingId) {
         const uploadedPaths: string[] = [];
+        const uploadedThumbPaths: string[] = [];
         for (const f of dFiles) {
           const res: any = await api.uploadInvoiceFile(editingId, f);
-          if (res?.file_path) uploadedPaths.push(res.file_path);
+          if (res?.file_path) {
+            uploadedPaths.push(res.file_path);
+            uploadedThumbPaths.push(res.thumb_path || res.file_path);
+          }
         }
         const finalFilePath = JSON.stringify([...dExistingFilePath, ...uploadedPaths]);
-        await api.updateInvoiceRecord(editingId, { ...payload, file_path: finalFilePath });
+        const finalThumbPath = JSON.stringify([...dExistingThumbPaths, ...uploadedThumbPaths]);
+        await api.updateInvoiceRecord(editingId, { ...payload, file_path: finalFilePath, file_thumb_paths: finalThumbPath });
         rid = editingId;
       } else {
         const res: any = await api.createInvoiceRecord(payload);
@@ -490,6 +498,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       setEditingId(null);
       setDFiles([]);
       setDExistingFilePath([]);
+      setDExistingThumbPaths([]);
       await loadRecords();
     } catch (e: any) {
       showToast('⚠️ ' + (e?.message || t('errNetworkError')));
@@ -510,6 +519,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
     setDBatchId(forEdit ? (forEdit.procurement_batch_id ?? null) : (preSelectBatchId ?? null));
     setDFiles([]);
     setDExistingFilePath(forEdit ? parseFilePaths(forEdit.file_path) : []);
+    setDExistingThumbPaths(forEdit ? parseFilePaths(forEdit.file_thumb_paths) : []);
     setDrawerOpen(true);
 
     // Fetch batch list
@@ -538,6 +548,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       setDStatus('pending');
       setDInvoiceNo('');
       setDExistingFilePath([]);
+      setDExistingThumbPaths([]);
       setDFiles([]);
     }, 250);
   };
@@ -1104,10 +1115,12 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
               {dStatus === 'done' && (
                 <View style={{ marginBottom: 8 }}>
                   <ReceiptUpload
-                    existingImages={editingId && dExistingFilePath.length > 0 ? dExistingFilePath.map(p => api.getInvoiceFileUrl(p, true)) : []}
+                    existingImages={editingId && dExistingFilePath.length > 0
+                      ? (dExistingThumbPaths.length === dExistingFilePath.length ? dExistingThumbPaths : dExistingFilePath).map(p => api.getInvoiceFileUrl(p))
+                      : []}
                     newFiles={dFiles}
                     onAdd={(files: PickedImage[]) => setDFiles(prev => [...prev, ...files])}
-                    onRemoveExisting={(i: number) => { setDExistingFilePath(prev => prev.filter((_, j) => j !== i)); }}
+                    onRemoveExisting={(i: number) => { setDExistingFilePath(prev => prev.filter((_, j) => j !== i)); setDExistingThumbPaths(prev => prev.filter((_, j) => j !== i)); }}
                     onRemoveNew={(i: number) => setDFiles(dFiles.filter((_, j) => j !== i))}
                     getPreviewUrl={(f: PickedImage) => f.uri}
                     label={t('invUploadInvoice') as string}

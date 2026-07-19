@@ -32,6 +32,8 @@ export default function App() {
   const [appKey, setAppKey] = useState(0);
   const [ready, setReady] = useState(false);
   const lastExpireAt = useRef(0);
+  const [kickedVisible, setKickedVisible] = useState(false);
+  const expiring = useRef(false);
 
   useEffect(() => {
     initStorageCache().then(() => {
@@ -47,13 +49,14 @@ export default function App() {
       const now = Date.now();
       if (now - lastExpireAt.current < 1500) return;
       lastExpireAt.current = now;
-      setPage((p) => {
-        if (p !== 'login') setAppKey((k) => k + 1);
-        return 'login';
-      });
+      loginConfirmedAt.current = 0;
+      expiring.current = true;
+      try { if (typeof window !== 'undefined') (window as any).__expiring = true; } catch {}
+      setKickedVisible(true);
     };
     const unsubKicked = onSessionKicked(handleExpire);
     const unsubChange = onUserChange(() => {
+      if (expiring.current) return;
       try { setPage(localStorage.getItem('user') ? 'home' : 'login'); } catch {}
       lastExpireAt.current = Date.now();
     });
@@ -113,7 +116,7 @@ export default function App() {
     <SafeAreaProvider>
       <KeyboardProvider>
         <LangProvider>
-        <SessionKickedModal />
+        <SessionKickedModal visible={kickedVisible} onConfirm={() => { setKickedVisible(false); expiring.current = false; setPage('login'); }} />
         <ErrorBoundary>
           <ThemeProvider key={appKey}>
             <StatusBar barStyle="light-content" />

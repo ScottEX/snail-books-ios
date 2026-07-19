@@ -306,6 +306,23 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       const bgDataUri = await api.getUserBackgroundUri(user).catch(() => null);
       if (bgDataUri) {
         const oldBg = (() => { try { return localStorage.getItem(`bg-image-${user}`) || ''; } catch { return ''; } })();
+        // Content-compare with the cached file: if the server returned the
+        // exact same image, reuse the cached URI. setBgUrl with the SAME
+        // string → React bails out → no re-render, no fade retrigger, no
+        // default-bg flash on logout remount. Guard: must read the REAL
+        // file — if it was evicted by iOS cache cleanup or is unreadable,
+        // fall through to the normal write path (never skip blindly, or
+        // the bg would stay default until the image next changes).
+        const newBase64 = bgDataUri.split(',')[1] || '';
+        if (oldBg.startsWith('file://') && newBase64) {
+          try {
+            const cachedBase64 = await FileSystem.readAsStringAsync(oldBg, { encoding: FileSystem.EncodingType.Base64 });
+            if (cachedBase64 === newBase64) {
+              setBgUrl(oldBg);
+              return;
+            }
+          } catch {}
+        }
         const fileUri = await saveDataUri(bgDataUri, 'bg', oldBg);
         const url = fileUri || bgDataUri;
         await Image.prefetch(url);

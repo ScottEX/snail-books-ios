@@ -123,12 +123,13 @@ async function authFetch<T = any>(url: string, options?: RequestInit): Promise<T
       if (body?.message) kickMsg = body.message;
     } catch {}
     localStorage.removeItem('user');
-    _emitUserChange();
     if (kickCode === 'session_kicked') {
       _emitSessionKicked();
+      try { if (typeof window !== 'undefined') (window as any).__expiring = true; } catch {}
     }
+    _emitUserChange();
     try { onSessionExpired?.(); } catch {}
-    return Promise.reject(new Error(kickMsg || 'Unauthorized'));
+    return Promise.reject(new Error(kickCode ? '__EXPIRING__' : kickMsg || 'Unauthorized'));
   }
   if (resp.status === 403) {
     let isDisabled = false;

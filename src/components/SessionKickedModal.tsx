@@ -5,6 +5,7 @@ import { onSessionKicked } from '../api/client';
 import ModalOverlay from './ModalOverlay';
 import CloseButton from './CloseButton';
 import { useEffect, useState } from 'react';
+import { MODAL_CARD_RADIUS } from '../sharedStyles';
 
 /**
  * Read the per-user theme id from localStorage and resolve it to
@@ -26,13 +27,14 @@ function readStoredColors(): ThemeColors {
 /** Standardized "your account was signed in elsewhere" modal.
  *  Triggered by the api client when a 401 with code=session_kicked is received.
  *  Single confirm button + ✕ close. */
-export default function SessionKickedModal() {
+export default function SessionKickedModal({ visible: propVisible, onConfirm }: { visible?: boolean; onConfirm?: () => void }) {
   const [colors, setColors] = useState<ThemeColors>(readStoredColors);
   const styles = getStyles(colors);
-  const [visible, setVisible] = useState(false);
+  const [kickedVisible, setKickedVisible] = useState(false);
+  const visible = kickedVisible || !!propVisible;
 
   useEffect(() => {
-    return onSessionKicked(() => setVisible(true));
+    return onSessionKicked(() => setKickedVisible(true));
   }, []);
 
   useEffect(() => {
@@ -42,11 +44,12 @@ export default function SessionKickedModal() {
   }, [visible]);
 
   const handleClose = () => {
-    setVisible(false);
+    setKickedVisible(false);
+    onConfirm?.();
   };
 
   return (
-    <ModalOverlay visible={visible} onClose={handleClose}>
+    <ModalOverlay visible={visible} onClose={handleClose} animation="blurMorph">
       <View style={styles.card}>
         <View style={styles.header}>
           <Text style={styles.title}>{t('sessionKickedTitle') || '账号已退出'}</Text>
@@ -67,7 +70,7 @@ export default function SessionKickedModal() {
 
 const getStyles = (c: ThemeColors) => StyleSheet.create({
   card: {
-    backgroundColor: c.surface, borderRadius: 16,
+    backgroundColor: c.surface, borderRadius: MODAL_CARD_RADIUS,
     width: 340, maxWidth: '90%', overflow: 'hidden',
   },
   header: {

@@ -151,7 +151,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   headerTitle: { fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: c.textMain },
   headerBadge: { backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 20, paddingHorizontal: 12, paddingVertical: 3 },
   headerBadgeText: { fontSize: FONTS.microBold.size, color: c.primary, fontWeight: FONTS.microBold.weight },
-  headerComingSoon: { fontSize: FONTS.micro.size, color: c.textSub },
+  headerComingSoon: { fontSize: FONTS.micro.size, color: '#000' },
   statRow: { flexDirection: 'row' as const, gap: 6 },
   statPill: { flex: 1, backgroundColor: withAlpha(c.textMain, 0.04), borderRadius: 10, padding: 10, alignItems: 'center' as const },
   statNum: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.textMain },
@@ -164,15 +164,16 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   filterRow: { flexDirection: 'row' as const, gap: 6, marginTop: 8 },
   filterChip: { paddingHorizontal: 13, paddingVertical: 5, borderRadius: 20, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.12) },
   filterChipOn: { backgroundColor: c.primary, borderColor: c.primary },
-  filterChipText: { fontSize: FONTS.micro.size, color: c.textSub },
+  filterChipText: { fontSize: FONTS.micro.size, color: '#000' },
   filterChipTextOn: { color: c.surface },
 
   subTabRow: { flexDirection: 'row' as const, borderTopWidth: 0, marginHorizontal: 4, paddingTop: 2, marginBottom: 6 },
   subTab: { flex: 1, flexDirection: 'row' as const, gap: 4, paddingVertical: 10, alignItems: 'center' as const, justifyContent: 'center' as const },
   subTabOn: { backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 10 },
-  subTabText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: c.textSub },
+  subTabText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: '#000' },
   subTabTextOn: { color: c.primary, fontWeight: FONTS.subBold.weight },
-  subTabCount: { fontSize: 10, fontWeight: '600' as any, color: c.textSub, backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, minWidth: 18, textAlign: 'center' as any, overflow: 'hidden' as const },
+  subTabCount: { fontSize: 10, fontWeight: '600' as any, color: '#000', backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, minWidth: 18, textAlign: 'center' as any, overflow: 'hidden' as const },
+  subTabCountOn: { color: c.primary },
 
   sectionHead: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 4, fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: c.primary, textTransform: 'uppercase' as const, letterSpacing: 1 },
   productCard: { marginHorizontal: 0, marginBottom: 6, backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06), overflow: 'hidden' as const },
@@ -776,12 +777,12 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   return (
     <>
       <View style={styles.container}>
-      {/* ── Frosted Glass Block ── */}
-      <View style={styles.frostedBlock}>
+      {/* ── Frosted card block ── */}
+      <View style={{ marginTop: 4, borderRadius: 16, overflow: 'hidden' }}>
         <BlurView
-          intensity={40}
-          tint="regular"
-          style={[StyleSheet.absoluteFill, { borderRadius: 16 }]}
+          intensity={24}
+          tint="light"
+          style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
         <View style={styles.headerSection}>
@@ -843,15 +844,15 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
         <View style={styles.subTabRow}>
           <TouchableOpacity activeOpacity={0.7} style={[styles.subTab, subTab === 'new' && styles.subTabOn]} onPress={() => setSubTab('new')}>
             <Text style={[styles.subTabText, subTab === 'new' && styles.subTabTextOn]}>{t('procNewOrder')}</Text>
-            <Text style={styles.subTabCount}>{products.length}</Text>
+            <Text style={[styles.subTabCount, subTab === 'new' && styles.subTabCountOn]}>{products.length}</Text>
           </TouchableOpacity>
           <TouchableOpacity activeOpacity={0.7} style={[styles.subTab, subTab === 'history' && styles.subTabOn]} onPress={() => setSubTab('history')}>
             <Text style={[styles.subTabText, subTab === 'history' && styles.subTabTextOn]}>{t('procHistory')}</Text>
-            <Text style={styles.subTabCount}>{histTotal}</Text>
+            <Text style={[styles.subTabCount, subTab === 'history' && styles.subTabCountOn]}>{histTotal}</Text>
           </TouchableOpacity>
           <TouchableOpacity activeOpacity={0.7} style={[styles.subTab, subTab === 'products' && styles.subTabOn]} onPress={() => setSubTab('products')}>
             <Text style={[styles.subTabText, subTab === 'products' && styles.subTabTextOn]}>{t('procProductMgmt')}</Text>
-            <Text style={styles.subTabCount}>{products.length}</Text>
+            <Text style={[styles.subTabCount, subTab === 'products' && styles.subTabCountOn]}>{products.length}</Text>
           </TouchableOpacity>
         </View>
       </View>
