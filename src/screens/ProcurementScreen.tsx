@@ -297,16 +297,17 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
 export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcurementDetail, pendingEditBatch, onPendingEditConsumed, onInvoice }: { onDrawerOpen?: () => void; onDrawerClose?: () => void; onProcurementDetail?: (batch: BatchRecord) => void; pendingEditBatch?: BatchRecord | null; onPendingEditConsumed?: () => void; onInvoice?: (batchId: number) => void }) {
   const { colors: c } = useTheme();
   const sd = useServerDate();
-  const [bgOpacity, setBgOpacity] = useState<number>(() => {
+  const readBgOpacity = (): number => {
     try {
       const uid = getCurrentUserId();
       const key = uid ? `bg-opacity-${uid}` : 'bg-opacity';
       const s = localStorage.getItem(key);
       return s !== null ? parseFloat(s) : 1;
     } catch { return 1; }
-  });
-  const styles = useMemo(() => getStyles(c, bgOpacity), [c, bgOpacity]);
+  };
+  const bgOpacity = readBgOpacity();
   const dimColor = bgOpacity > 0.5 ? c.surface : c.textSub;
+  const styles = useMemo(() => getStyles(c, bgOpacity), [c, bgOpacity]);
   const insets = useSafeAreaInsets();
 
   // Drawer keyboard push
