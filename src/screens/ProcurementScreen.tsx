@@ -158,7 +158,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
   statRow: { flexDirection: 'row' as const, gap: 6 },
   statPill: { flex: 1, backgroundColor: withAlpha(c.textMain, 0.04), borderRadius: 10, padding: 10, alignItems: 'center' as const },
   statNum: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.textMain },
-  statLbl: { fontSize: FONTS.micro.size, color: c.textSub, marginTop: 3 },
+  statLbl: { fontSize: FONTS.micro.size, color: dimColor, marginTop: 3 },
 
   searchSection: { paddingHorizontal: 18, paddingBottom: 8, borderTopWidth: 0 },
   searchRow: { position: 'relative' as const },
