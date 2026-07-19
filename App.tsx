@@ -51,9 +51,6 @@ export default function App() {
       lastExpireAt.current = now;
       loginConfirmedAt.current = 0;
       expiring.current = true;
-      // Bump appKey to force ThemeProvider remount (fresh theme) if not
-      // already on login page; stay on current page, show modal instead.
-      if (pageRef.current !== 'login') setAppKey((k) => k + 1);
       setKickedVisible(true);
     };
     const unsubKicked = onSessionKicked(handleExpire);
