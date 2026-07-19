@@ -123,10 +123,10 @@ async function authFetch<T = any>(url: string, options?: RequestInit): Promise<T
       if (body?.message) kickMsg = body.message;
     } catch {}
     localStorage.removeItem('user');
-    _emitUserChange();
     if (kickCode === 'session_kicked') {
       _emitSessionKicked();
     }
+    _emitUserChange();
     try { onSessionExpired?.(); } catch {}
     return Promise.reject(new Error(kickMsg || 'Unauthorized'));
   }
