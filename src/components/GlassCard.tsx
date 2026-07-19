@@ -148,7 +148,7 @@ function getGlassConfig(
 } {
   const baseAlpha = thickness === 'thin' ? 0.45
     : thickness === 'thick' ? 0.72
-    : 0.58;
+    : 0.65;
 
   const tintMap: Record<string, string> = {
     none: isDark ? 'rgba(255,255,255,' : 'rgba(255,255,255,',
