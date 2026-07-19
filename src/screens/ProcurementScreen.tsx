@@ -9,6 +9,7 @@ import Svg, { Path, Circle, Line, Text as SvgText } from 'react-native-svg';
 import { t } from '../i18n';
 import { trPayment, payKey } from '../i18nHelpers';
 import { api, resolveAssetUrl } from '../api/client';
+import { getCurrentUserId } from '../utils/storage';
 import { useTheme, withAlpha, ThemeColors, FONTS } from '../theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { bottomSheetOverlay, MODAL_CARD_RADIUS } from '../sharedStyles';
@@ -138,7 +139,9 @@ const sortByOrder = (a: string, b: string) => {
 // ═══════════════════════════════════════════════
 // Styles
 // ═══════════════════════════════════════════════
-const getStyles = (c: ThemeColors) => StyleSheet.create({
+const getStyles = (c: ThemeColors, bgOpacity: number) => {
+  const dimColor = bgOpacity === 1 ? c.surface : c.textSub;
+  return StyleSheet.create({
   container: { flex: 1, position: 'relative' as const, paddingHorizontal: 16 },
 
   frostedBlock: {
@@ -151,7 +154,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   headerTitle: { fontSize: FONTS.h2.size, fontWeight: FONTS.h2.weight, color: c.textMain },
   headerBadge: { backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 20, paddingHorizontal: 12, paddingVertical: 3 },
   headerBadgeText: { fontSize: FONTS.microBold.size, color: c.primary, fontWeight: FONTS.microBold.weight },
-  headerComingSoon: { fontSize: FONTS.micro.size, color: '#000' },
+  headerComingSoon: { fontSize: FONTS.micro.size, color: dimColor },
   statRow: { flexDirection: 'row' as const, gap: 6 },
   statPill: { flex: 1, backgroundColor: withAlpha(c.textMain, 0.04), borderRadius: 10, padding: 10, alignItems: 'center' as const },
   statNum: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.textMain },
@@ -164,15 +167,15 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   filterRow: { flexDirection: 'row' as const, gap: 6, marginTop: 8 },
   filterChip: { paddingHorizontal: 13, paddingVertical: 5, borderRadius: 20, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.12) },
   filterChipOn: { backgroundColor: c.primary, borderColor: c.primary },
-  filterChipText: { fontSize: FONTS.micro.size, color: '#000' },
+  filterChipText: { fontSize: FONTS.micro.size, color: dimColor },
   filterChipTextOn: { color: c.surface },
 
   subTabRow: { flexDirection: 'row' as const, borderTopWidth: 0, marginHorizontal: 4, paddingTop: 2, marginBottom: 6 },
   subTab: { flex: 1, flexDirection: 'row' as const, gap: 4, paddingVertical: 10, alignItems: 'center' as const, justifyContent: 'center' as const },
   subTabOn: { backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 10 },
-  subTabText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: '#000' },
+  subTabText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: dimColor },
   subTabTextOn: { color: c.primary, fontWeight: FONTS.subBold.weight },
-  subTabCount: { fontSize: FONTS.micro.size, fontWeight: '600' as any, color: '#000', backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, minWidth: 18, textAlign: 'center' as any, overflow: 'hidden' as const },
+  subTabCount: { fontSize: FONTS.micro.size, fontWeight: '600' as any, color: dimColor, backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, minWidth: 18, textAlign: 'center' as any, overflow: 'hidden' as const },
   subTabCountOn: { color: c.primary },
 
   sectionHead: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 4, fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: c.primary, textTransform: 'uppercase' as const, letterSpacing: 1 },
@@ -286,6 +289,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   loadingMore: { paddingVertical: 20, alignItems: 'center' as const },
   contentArea: { flex: 1, paddingBottom: 150 },
 });
+};
 
 // ═══════════════════════════════════════════════
 // Main Component
@@ -293,7 +297,15 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
 export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcurementDetail, pendingEditBatch, onPendingEditConsumed, onInvoice }: { onDrawerOpen?: () => void; onDrawerClose?: () => void; onProcurementDetail?: (batch: BatchRecord) => void; pendingEditBatch?: BatchRecord | null; onPendingEditConsumed?: () => void; onInvoice?: (batchId: number) => void }) {
   const { colors: c } = useTheme();
   const sd = useServerDate();
-  const styles = useMemo(() => getStyles(c), [c]);
+  const [bgOpacity, setBgOpacity] = useState<number>(() => {
+    try {
+      const uid = getCurrentUserId();
+      const key = uid ? `bg-opacity-${uid}` : 'bg-opacity';
+      const s = localStorage.getItem(key);
+      return s !== null ? parseFloat(s) : 1;
+    } catch { return 1; }
+  });
+  const styles = useMemo(() => getStyles(c, bgOpacity), [c, bgOpacity]);
   const insets = useSafeAreaInsets();
 
   // Drawer keyboard push
