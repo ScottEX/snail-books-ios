@@ -667,7 +667,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
               // Active icon colour matches web's NavIcon* helpers —
               // colors.navActiveColor (per-theme soft tint) for active,
               // not colors.textMain which was too high-contrast.
-              const c = active ? colors.navActiveColor : colors.textSub;
+              const c = active ? colors.navActiveColor : '#000000';
               return (
                 <TouchableOpacity
                   key={id}
