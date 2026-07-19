@@ -1281,7 +1281,7 @@ const getStyles = (colors: ThemeColors, headerColor: string) => StyleSheet.creat
   // no backdrop-filter). Sits in the normal flow (after the root's
   // insets.top padding) so the notch isn't covered.
   header: {
-    zIndex: 200, overflow: 'hidden',
+    zIndex: 200,
     paddingLeft: 16, paddingRight: 16, paddingVertical: 8,
     borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.10)',
   },
