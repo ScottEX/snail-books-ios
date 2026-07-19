@@ -173,6 +173,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   subTabText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: '#000' },
   subTabTextOn: { color: c.primary, fontWeight: FONTS.subBold.weight },
   subTabCount: { fontSize: 10, fontWeight: '600' as any, color: '#000', backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, minWidth: 18, textAlign: 'center' as any, overflow: 'hidden' as const },
+  subTabCountOn: { color: c.primary },
 
   sectionHead: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 4, fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: c.primary, textTransform: 'uppercase' as const, letterSpacing: 1 },
   productCard: { marginHorizontal: 0, marginBottom: 6, backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06), overflow: 'hidden' as const },
@@ -843,15 +844,15 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
         <View style={styles.subTabRow}>
           <TouchableOpacity activeOpacity={0.7} style={[styles.subTab, subTab === 'new' && styles.subTabOn]} onPress={() => setSubTab('new')}>
             <Text style={[styles.subTabText, subTab === 'new' && styles.subTabTextOn]}>{t('procNewOrder')}</Text>
-            <Text style={styles.subTabCount}>{products.length}</Text>
+            <Text style={[styles.subTabCount, subTab === 'new' && styles.subTabCountOn]}>{products.length}</Text>
           </TouchableOpacity>
           <TouchableOpacity activeOpacity={0.7} style={[styles.subTab, subTab === 'history' && styles.subTabOn]} onPress={() => setSubTab('history')}>
             <Text style={[styles.subTabText, subTab === 'history' && styles.subTabTextOn]}>{t('procHistory')}</Text>
-            <Text style={styles.subTabCount}>{histTotal}</Text>
+            <Text style={[styles.subTabCount, subTab === 'history' && styles.subTabCountOn]}>{histTotal}</Text>
           </TouchableOpacity>
           <TouchableOpacity activeOpacity={0.7} style={[styles.subTab, subTab === 'products' && styles.subTabOn]} onPress={() => setSubTab('products')}>
             <Text style={[styles.subTabText, subTab === 'products' && styles.subTabTextOn]}>{t('procProductMgmt')}</Text>
-            <Text style={styles.subTabCount}>{products.length}</Text>
+            <Text style={[styles.subTabCount, subTab === 'products' && styles.subTabCountOn]}>{products.length}</Text>
           </TouchableOpacity>
         </View>
       </View>
