@@ -653,7 +653,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                 bottomNav container. */}
             <BlurView
               intensity={75}
-              tint="systemUltraThinMaterialLight"
+              tint="regular"
               style={[StyleSheet.absoluteFillObject, { borderRadius: 28 }]}
               pointerEvents="none"
             />
