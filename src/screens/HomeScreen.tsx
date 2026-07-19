@@ -549,7 +549,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                 source={avatarUrl ? { uri: avatarUrl } : LOGO_IMAGE}
                 style={styles.headerAvatar}
               />
-              <Text style={styles.headerUser}>{usr}</Text>
+              <Text style={[styles.headerUser, { color: headerColor }]}>{usr}</Text>
             </TouchableOpacity>
             <View style={styles.headerRight}>
               <TouchableOpacity
@@ -557,7 +557,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 style={styles.headerBtn}
               >
-                <Text style={styles.headerLink}>{t('bgSettings')}</Text>
+                <Text style={[styles.headerLink, { color: headerColor }]}>{t('bgSettings')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setShowLogoutModal(true)}
@@ -574,7 +574,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                     hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
                     style={styles.langBtnTouch}
                   >
-                    <Text style={[styles.langBtn, lang === l && styles.langActive]}>{label}</Text>
+                    <Text style={[styles.langBtn, { color: headerColor }, lang === l && styles.langActive]}>{label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
