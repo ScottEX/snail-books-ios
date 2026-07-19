@@ -17,7 +17,7 @@ export const modalCardAnimation = {
 
 /** Modal close button (✕) — white at 70% opacity, light weight. Used on dark primary headers. */
 export const modalClose = {
-  fontSize: 18,
+  fontSize: FONTS.h2.size,
   color: 'rgba(255,255,255,0.7)',
   fontWeight: '300' as const,
 };
@@ -55,7 +55,7 @@ export const historyHeader = (colors: ThemeColors) => ({
     marginTop: -2, marginLeft: -1,
   },
   title: {
-    flex: 1, fontSize: 15, fontWeight: '600' as const, color: '#1A1410',
+    flex: 1, fontSize: FONTS.body.size, fontWeight: '600' as const, color: '#1A1410',
   },
   filterBtn: {
     width: 36, height: 36, borderRadius: 18,

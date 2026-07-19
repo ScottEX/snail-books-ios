@@ -116,8 +116,8 @@ export default function DailyRevenueHistory({ onBack }: Props) {
 
       <FilterPanel visible={showFilter} onClose={() => setShowFilter(false)}>
         <DateErrorHint trigger={filterDateError} message={t('errDateFuture')} color={colors.danger} />
-        {rangeInvalid && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right' }}>{t('errDateRange')}</Text>}
-        {rangeTooLong && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right' }}>{t('errDateRangeTooLong')}</Text>}
+        {rangeInvalid && <Text style={{ color: colors.danger, fontSize: FONTS.micro.size, textAlign: 'right' }}>{t('errDateRange')}</Text>}
+        {rangeTooLong && <Text style={{ color: colors.danger, fontSize: FONTS.micro.size, textAlign: 'right' }}>{t('errDateRangeTooLong')}</Text>}
         <View style={styles.filterField}>
           <Text style={styles.filterLabel}>{t('revenueDate')}</Text>
           <View style={styles.filterDateRange}>

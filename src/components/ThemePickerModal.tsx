@@ -38,7 +38,7 @@ function getStyles(colors: ThemeColors) {
       paddingHorizontal: 20, paddingVertical: 14,
       flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     },
-    title: { fontSize: 14, fontWeight: '700', color: colors.surface },
+    title: { fontSize: FONTS.sub.size, fontWeight: '700', color: colors.surface },
     body: { padding: 20, paddingTop: 16, gap: 0 } as any,
     hint: { fontSize: FONTS.micro.size, color: colors.textSub, lineHeight: 20 },
     btnRow: { flexDirection: 'row', gap: 10, marginTop: 18 } as any,
@@ -49,11 +49,11 @@ function getStyles(colors: ThemeColors) {
     bgBtnOutline: {
       borderWidth: 1, borderColor: colors.primary, backgroundColor: 'transparent',
     },
-    bgBtnOutlineText: { fontSize: 13, fontWeight: '600', color: colors.primary },
+    bgBtnOutlineText: { fontSize: FONTS.small.size, fontWeight: '600', color: colors.primary },
     bgBtnDanger: {
       borderWidth: 1, borderColor: colors.danger, backgroundColor: 'transparent',
     },
-    bgBtnDangerText: { fontSize: 13, fontWeight: '600', color: colors.danger },
+    bgBtnDangerText: { fontSize: FONTS.small.size, fontWeight: '600', color: colors.danger },
   });
 }
 

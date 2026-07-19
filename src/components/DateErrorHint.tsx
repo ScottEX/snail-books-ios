@@ -1,4 +1,5 @@
 import { Text } from 'react-native';
+import { FONTS } from '../theme';
 import { useEffect, useState } from 'react';
 
 /** Red error hint that auto-dismisses after 3000ms. Triggered by bumping `trigger`. */
@@ -16,5 +17,5 @@ export default function DateErrorHint({ trigger, message, color, textAlign = 'ri
     }
   }, [trigger]);
   if (!show) return null;
-  return <Text style={{ color, fontSize: 12, marginTop: 1, textAlign }}>{message}</Text>;
+  return <Text style={{ color, fontSize: FONTS.micro.size, marginTop: 1, textAlign }}>{message}</Text>;
 }

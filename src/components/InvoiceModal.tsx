@@ -144,13 +144,13 @@ const s = StyleSheet.create({
   title: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight },
   body: { padding: 24, gap: 14 },
   fieldRow: { gap: 4 },
-  label: { fontSize: 12, fontWeight: '500' },
+  label: { fontSize: FONTS.micro.size, fontWeight: '500' },
   input: {
-    fontSize: 14, paddingVertical: 10, paddingHorizontal: 12,
+    fontSize: FONTS.sub.size, paddingVertical: 10, paddingHorizontal: 12,
     borderRadius: 8, borderWidth: 1,
   } as any,
   saveBtn: {
     marginTop: 6, paddingVertical: 12, borderRadius: 10, alignItems: 'center',
   },
-  saveBtnText: { fontSize: 14, fontWeight: '600' },
+  saveBtnText: { fontSize: FONTS.sub.size, fontWeight: '600' },
 });

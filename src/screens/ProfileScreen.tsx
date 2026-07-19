@@ -1097,7 +1097,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                 style={{ backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 12, alignItems: 'center' }}
                 onPress={() => setShowAdminBlockModal(false)}
               >
-                <Text style={{ color: '#fff', fontSize: 15, fontWeight: 'bold' }}>{t('confirm')}</Text>
+                <Text style={{ color: '#fff', fontSize: FONTS.sub.size, fontWeight: 'bold' }}>{t('confirm')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1120,7 +1120,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                 style={{ backgroundColor: colors.primary, borderRadius: 10, paddingVertical: 12, alignItems: 'center' }}
                 onPress={() => setShowPartnerBlockModal(false)}
               >
-                <Text style={{ color: '#fff', fontSize: 15, fontWeight: 'bold' }}>{t('confirm')}</Text>
+                <Text style={{ color: '#fff', fontSize: FONTS.sub.size, fontWeight: 'bold' }}>{t('confirm')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1136,7 +1136,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               </TouchableOpacity>
             </View>
             <View style={mo.body}>
-              <Text style={{ color: colors.textMain, fontSize: 14, lineHeight: 22, marginBottom: 8 }}>
+              <Text style={{ color: colors.textMain, fontSize: FONTS.sub.size, lineHeight: 22, marginBottom: 8 }}>
                 {t('deleteAccountGraceNote')}
               </Text>
               <AppTextInput
@@ -1227,7 +1227,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                     {t('codeSent')}：{newEmail}
                   </Text>
                   <AppTextInput
-                    style={[mo.input, { textAlign: 'center', letterSpacing: 8, fontSize: 24, fontWeight: '700' }]}
+                    style={[mo.input, { textAlign: 'center', letterSpacing: 8, fontSize: FONTS.amount.size, fontWeight: '700' }]}
                     placeholder={t('enterCode')}
                     placeholderTextColor={colors.textSub}
                     value={emailCode}
@@ -1289,30 +1289,30 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       <ModalOverlay visible={showAvatarPreview && avatarCropResult !== ''} onClose={() => { avatarRecropRef.current = false; setShowAvatarPreview(false); }} onClosed={() => { if (avatarRecropRef.current) { avatarRecropRef.current = false; setShowAvatarCrop(true); setAvatarCropResult(''); } else { setAvatarCropSrc(''); setAvatarCropResult(''); } }} animation="springScale" backdropColor="rgba(8,8,12,0.92)">
         <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: MODAL_CARD_RADIUS, padding: 24, width: Math.min(screenW * 0.85, 320), alignItems: 'center', gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' as any }}>
             <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(27,122,74,0.2)', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 20, color: '#1B7A4A' }}>✓</Text>
+              <Text style={{ fontSize: FONTS.large.size, color: '#1B7A4A' }}>✓</Text>
             </View>
-            <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>{t('avatarUpdated')}</Text>
+            <Text style={{ fontSize: FONTS.sub.size, fontWeight: '600', color: '#fff' }}>{t('avatarUpdated')}</Text>
             <View style={{ flexDirection: 'row', gap: 16, alignItems: 'flex-end' }}>
               {[80, 48, 32].map(size => (
                 <View key={size} style={{ alignItems: 'center', gap: 6 }}>
                   <Image source={{ uri: avatarCropResult }} style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' }} />
-                  <Text style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: '500' }}>{size}px</Text>
+                  <Text style={{ fontSize: FONTS.tiny.size, color: 'rgba(255,255,255,0.4)', fontWeight: '500' }}>{size}px</Text>
                 </View>
               ))}
             </View>
-            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{t('avatarSizeHint')}</Text>
+            <Text style={{ fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.4)' }}>{t('avatarSizeHint')}</Text>
             <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
               <TouchableOpacity
                 style={{ flex: 1, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center' }}
                 onPress={() => { avatarRecropRef.current = true; setShowAvatarPreview(false); }}>
-                <Text style={{ fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.7)' }}>{t('recrop')}</Text>
+                <Text style={{ fontSize: FONTS.small.size, fontWeight: '500', color: 'rgba(255,255,255,0.7)' }}>{t('recrop')}</Text>
               </TouchableOpacity>
               <SubmitButton
                 onPress={handleAvatarUpload}
                 loading={uploadingAvatar}
                 label={t('confirmUse')}
                 style={{ flex: 2, padding: 12, borderRadius: 10, backgroundColor: '#5B5BD6', alignItems: 'center' }}
-                textStyle={{ fontSize: 13, fontWeight: '600', color: '#fff' }}
+                textStyle={{ fontSize: FONTS.small.size, fontWeight: '600', color: '#fff' }}
               />
             </View>
           </View>
@@ -1321,23 +1321,23 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       <ModalOverlay visible={showCoverPreview && coverCropResult !== ''} onClose={() => { coverRecropRef.current = false; setShowCoverPreview(false); }} onClosed={() => { if (coverRecropRef.current) { coverRecropRef.current = false; setShowCoverCrop(true); setCoverCropResult(''); } else { setCoverCropSrc(''); setCoverCropResult(''); } }} animation="springScale" backdropColor="rgba(8,8,12,0.92)">
         <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: MODAL_CARD_RADIUS, padding: 24, width: Math.min(screenW * 0.85, 360), alignItems: 'center', gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' as any }}>
             <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(27,122,74,0.2)', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 20, color: '#1B7A4A' }}>✓</Text>
+              <Text style={{ fontSize: FONTS.large.size, color: '#1B7A4A' }}>✓</Text>
             </View>
-            <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>{t('coverUpdated')}</Text>
+            <Text style={{ fontSize: FONTS.sub.size, fontWeight: '600', color: '#fff' }}>{t('coverUpdated')}</Text>
             <Image source={{ uri: coverCropResult }} style={{ width: Math.min(screenW * 0.7, 300), height: Math.round(Math.min(screenW * 0.7, 300) * (260 / screenW)), borderRadius: 4, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' }} resizeMode="cover" />
-            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{t('coverHint')}</Text>
+            <Text style={{ fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.4)' }}>{t('coverHint')}</Text>
             <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
               <TouchableOpacity
                 style={{ flex: 1, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center' }}
                 onPress={() => { coverRecropRef.current = true; setShowCoverPreview(false); }}>
-                <Text style={{ fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.7)' }}>{t('recrop')}</Text>
+                <Text style={{ fontSize: FONTS.small.size, fontWeight: '500', color: 'rgba(255,255,255,0.7)' }}>{t('recrop')}</Text>
               </TouchableOpacity>
               <SubmitButton
                 onPress={handleCoverUpload}
                 loading={uploadingCover}
                 label={t('confirmUse')}
                 style={{ flex: 2, padding: 12, borderRadius: 10, backgroundColor: '#5B5BD6', alignItems: 'center' }}
-                textStyle={{ fontSize: 13, fontWeight: '600', color: '#fff' }}
+                textStyle={{ fontSize: FONTS.small.size, fontWeight: '600', color: '#fff' }}
               />
             </View>
           </View>
@@ -1346,23 +1346,23 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       <ModalOverlay visible={showBgPreview && bgCropResult !== ''} onClose={() => { bgRecropRef.current = false; setShowBgPreview(false); }} onClosed={() => { if (bgRecropRef.current) { bgRecropRef.current = false; setShowBgCrop(true); setBgCropResult(''); } else { setBgCropSrc(''); setBgCropResult(''); } }} animation="springScale" backdropColor="rgba(8,8,12,0.92)">
         <View style={{ backgroundColor: 'rgba(28,28,32,0.95)', borderRadius: MODAL_CARD_RADIUS, padding: 24, width: 360, alignItems: 'center', gap: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', overflow: 'hidden' as any }}>
             <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(27,122,74,0.2)', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 20, color: '#1B7A4A' }}>✓</Text>
+              <Text style={{ fontSize: FONTS.large.size, color: '#1B7A4A' }}>✓</Text>
             </View>
-            <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>{t('bgUpdated') || '背景已更新'}</Text>
+            <Text style={{ fontSize: FONTS.sub.size, fontWeight: '600', color: '#fff' }}>{t('bgUpdated') || '背景已更新'}</Text>
             <Image source={{ uri: bgCropResult }} style={{ width: 130, height: 280, borderRadius: 4, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' }} resizeMode="cover" />
-            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{t('bgResultHint') || '点击确认后将从照片中直接选取'}</Text>
+            <Text style={{ fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.4)' }}>{t('bgResultHint') || '点击确认后将从照片中直接选取'}</Text>
             <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
               <TouchableOpacity
                 style={{ flex: 1, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center' }}
                 onPress={() => { bgRecropRef.current = true; setShowBgPreview(false); }}>
-                <Text style={{ fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.7)' }}>{t('recrop') || '再编辑'}</Text>
+                <Text style={{ fontSize: FONTS.small.size, fontWeight: '500', color: 'rgba(255,255,255,0.7)' }}>{t('recrop') || '再编辑'}</Text>
               </TouchableOpacity>
               <SubmitButton
                 onPress={handleBgUpload}
                 loading={uploadingCover}
                 label={t('confirmUse') || '确认使用'}
                 style={{ flex: 2, padding: 12, borderRadius: 10, backgroundColor: '#5B5BD6', alignItems: 'center' }}
-                textStyle={{ fontSize: 13, fontWeight: '600', color: '#fff' }}
+                textStyle={{ fontSize: FONTS.small.size, fontWeight: '600', color: '#fff' }}
               />
             </View>
           </View>
@@ -1378,7 +1378,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               </TouchableOpacity>
             </View>
             <View style={mo.body}>
-              <Text style={{ color: colors.textMain, fontSize: 14, lineHeight: 22, textAlign: 'center', marginBottom: 8 }}>
+              <Text style={{ color: colors.textMain, fontSize: FONTS.sub.size, lineHeight: 22, textAlign: 'center', marginBottom: 8 }}>
                 请输入密码以启用面容登录
               </Text>
               <AppTextInput
@@ -1468,7 +1468,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.35)',
     borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6,
   },
-  coverOverlayText: { fontSize: 12, fontWeight: '500', color: '#fff' },
+  coverOverlayText: { fontSize: FONTS.micro.size, fontWeight: '500', color: '#fff' },
   // Avatar
   avatarFloat: {
     position: 'absolute' as any, right: 20, bottom: -40, zIndex: 10,
@@ -1479,13 +1479,13 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   // Profile head
   profileHead: { paddingHorizontal: 20, paddingTop: 44, paddingBottom: 12 },
   profileName: { fontSize: FONTS.h1.size, fontWeight: FONTS.h1.weight, color: colors.textMain, letterSpacing: -0.2 },
-  profileEmail: { fontSize: 12, color: colors.textSub, marginTop: 4 },
+  profileEmail: { fontSize: FONTS.micro.size, color: colors.textSub, marginTop: 4 },
   signatureText: { fontSize: FONTS.micro.size, color: colors.textSub, marginTop: 6, transform: [{ skewX: '-8deg' }] },
   signatureEditRow: {
     flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 8,
   },
   signatureInput: {
-    flex: 1, fontSize: 13, color: colors.textMain,
+    flex: 1, fontSize: FONTS.small.size, color: colors.textMain,
     paddingVertical: 4, borderWidth: 0,
   } as any,
   // Cards & sections
@@ -1495,7 +1495,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   section: { paddingHorizontal: 20, marginTop: 12 },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 8 },
-  sectionTitleText: { fontSize: 12, fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase', color: colors.textSub },
+  sectionTitleText: { fontSize: FONTS.micro.size, fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase', color: colors.textSub },
   sectionTitleLine: { flex: 1, height: 1, backgroundColor: withAlpha(colors.textMain, 0.08) },
   // Icon rows
   iconRow: {
@@ -1513,8 +1513,8 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: withAlpha(colors.textMain, 0.05),
     paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
   },
-  badgeText: { fontSize: 13, fontWeight: '500', color: colors.textSub },
-  langBtn: { fontSize: 13, fontWeight: FONTS.micro.weight, color: colors.textSub },
+  badgeText: { fontSize: FONTS.small.size, fontWeight: '500', color: colors.textSub },
+  langBtn: { fontSize: FONTS.small.size, fontWeight: FONTS.micro.weight, color: colors.textSub },
   langBtnActive: { color: colors.primary, fontWeight: FONTS.microBold.weight },
   langCapsule: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   langCapsuleActive: { backgroundColor: withAlpha(colors.textMain, 0.08) },
@@ -1529,7 +1529,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.textMain, flex: 1,
   },
   authDesc: {
-    fontSize: 12, color: colors.textSub, lineHeight: 16, marginLeft: 42,
+    fontSize: FONTS.micro.size, color: colors.textSub, lineHeight: 16, marginLeft: 42,
   },
   capsuleRow: {
     flexDirection: 'row', gap: 8, marginTop: 4, marginBottom: 2, flexWrap: 'wrap', marginLeft: 42,
@@ -1543,14 +1543,14 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     borderColor: colors.primary,
     backgroundColor: withAlpha(colors.primary, 0.08),
   },
-  capsuleText: { fontSize: 13, color: colors.textSub, fontWeight: '500' },
+  capsuleText: { fontSize: FONTS.small.size, color: colors.textSub, fontWeight: '500' },
   capsuleTextActive: { color: colors.primary, fontWeight: '600' },
   unreviewedBadge: {
     backgroundColor: colors.danger, borderRadius: 10,
     minWidth: 20, height: 20, paddingHorizontal: 6,
     justifyContent: 'center', alignItems: 'center', marginLeft: 4,
   },
-  unreviewedBadgeText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  unreviewedBadgeText: { color: '#fff', fontSize: FONTS.micro.size, fontWeight: '700' },
   // Theme picker rows
   themeRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -1573,8 +1573,8 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingVertical: 32, paddingBottom: 48,
     paddingHorizontal: 24,
   },
-  stampPre: { fontSize: 13, color: colors.textSub, letterSpacing: 0.5, lineHeight: 48, textAlign: 'center' },
-  stampNum: { fontSize: 42, fontWeight: '700', fontStyle: 'italic' as any },
+  stampPre: { fontSize: FONTS.small.size, color: colors.textSub, letterSpacing: 0.5, lineHeight: 48, textAlign: 'center' },
+  stampNum: { fontSize: FONTS.stamp.size, fontWeight: '700', fontStyle: 'italic' as any },
 });
 
 const getMo = (colors: ThemeColors) => StyleSheet.create({
@@ -1591,7 +1591,7 @@ const getMo = (colors: ThemeColors) => StyleSheet.create({
     paddingHorizontal: 20, paddingVertical: 14,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
-  title: { fontSize: 14, fontWeight: '700', color: colors.surface },
+  title: { fontSize: FONTS.sub.size, fontWeight: '700', color: colors.surface },
   close: { ...modalClose },
   body: { padding: 24, gap: 18 } as any,
   input: {

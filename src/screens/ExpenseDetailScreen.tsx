@@ -361,14 +361,14 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
             <Text style={[styles.sectionTitle, { marginBottom: 4 }]}>{t('expTotalAmount')}</Text>
             <View style={{ alignItems: 'center', paddingVertical: 8 }}>
               <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
-                <Text style={{ fontSize: 20, fontWeight: '600', color: isRefundRecord ? c.success : amtColor, marginRight: 2, marginBottom: 4 }}>
+                <Text style={{ fontSize: FONTS.large.size, fontWeight: '600', color: isRefundRecord ? c.success : amtColor, marginRight: 2, marginBottom: 4 }}>
                   {isRefundRecord ? '+¥' : '-¥'}
                 </Text>
                 {expense?.procurement_batch_id ? (
-                  <Text style={{ fontSize: 36, fontWeight: '700', color: isRefundRecord ? c.success : c.textSub }}>{amount || '0.00'}</Text>
+                  <Text style={{ fontSize: FONTS.display.size, fontWeight: '700', color: isRefundRecord ? c.success : c.textSub }}>{amount || '0.00'}</Text>
                 ) : (
                   <AppTextInput
-                    style={{ fontSize: 36, fontWeight: '700', color: isRefundRecord ? c.success : amtColor, borderWidth: 0, backgroundColor: 'transparent', textAlign: 'left', padding: 0, flex: 0, width: 180 } as any}
+                    style={{ fontSize: FONTS.display.size, fontWeight: '700', color: isRefundRecord ? c.success : amtColor, borderWidth: 0, backgroundColor: 'transparent', textAlign: 'left', padding: 0, flex: 0, width: 180 } as any}
                     value={amount}
                     onChangeText={(v: string) => setAmount(fmtDecInput(v))}
                     onFocus={() => { cancelAnimation(pushCapSV); pushCapSV.value = expenseCapAmount; }}
@@ -534,7 +534,7 @@ const getStyles = (c: ThemeColors) =>
       borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.10)',
     },
     title: {
-      flex: 1, fontSize: 18, fontWeight: '700', color: c.textMain,
+      flex: 1, fontSize: FONTS.h2.size, fontWeight: '700', color: c.textMain,
     },
     actionBtn: {
       justifyContent: 'center', alignItems: 'center', padding: 4,
@@ -554,8 +554,8 @@ const getStyles = (c: ThemeColors) =>
       fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textSub,
       textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4,
     },
-    amountValue: { fontSize: 36, fontWeight: '700' },
-    amountSymbol: { fontSize: 20, fontWeight: '600', marginRight: 2, marginBottom: 2 },
+    amountValue: { fontSize: FONTS.display.size, fontWeight: '700' },
+    amountSymbol: { fontSize: FONTS.large.size, fontWeight: '600', marginRight: 2, marginBottom: 2 },
     amountUser: { alignItems: 'center', marginLeft: 12 },
     amountAvatar: { width: 36, height: 36, borderRadius: 18, marginBottom: 4, backgroundColor: withAlpha(c.textMain, 0.08) },
     amountUsername: { fontSize: FONTS.sub.size, fontWeight: '600', color: c.textMain, maxWidth: 100 },
@@ -599,7 +599,7 @@ const getStyles = (c: ThemeColors) =>
       backgroundColor: 'rgba(0,0,0,0.6)',
       justifyContent: 'center', alignItems: 'center',
     },
-    thumbRemoveText: { color: '#fff', fontSize: 16, fontWeight: '700', lineHeight: 18 },
+    thumbRemoveText: { color: '#fff', fontSize: FONTS.body.size, fontWeight: '700', lineHeight: 18 },
     addThumb: {
       borderRadius: 8, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.18),
       borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center',
@@ -608,9 +608,9 @@ const getStyles = (c: ThemeColors) =>
 
     editContainer: { gap: 14 },
     amountEditWrap: { alignItems: 'center', paddingVertical: 8 },
-    amountEditSymbol: { fontSize: 20, fontWeight: '600', marginRight: 2, marginBottom: 4 },
+    amountEditSymbol: { fontSize: FONTS.large.size, fontWeight: '600', marginRight: 2, marginBottom: 4 },
     amountEditValue: {
-      fontSize: 36, fontWeight: '700',
+      fontSize: FONTS.display.size, fontWeight: '700',
       borderWidth: 0, backgroundColor: 'transparent',
       textAlign: 'left', padding: 0, flex: 0, width: 180,
     },
@@ -643,5 +643,5 @@ const getStyles = (c: ThemeColors) =>
       backgroundColor: 'rgba(255,255,255,0.15)',
       justifyContent: 'center', alignItems: 'center',
     },
-    previewCloseText: { color: '#fff', fontSize: 22, fontWeight: '600', lineHeight: 24 },
+    previewCloseText: { color: '#fff', fontSize: FONTS.xlarge.size, fontWeight: '600', lineHeight: 24 },
   });

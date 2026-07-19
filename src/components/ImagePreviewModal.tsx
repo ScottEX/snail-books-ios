@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView, Image, useWindowDimensions } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { FONTS } from '../theme';
 
 interface Props {
   images: string[];
@@ -43,7 +44,7 @@ export default function ImagePreviewModal({ images, initialIdx = 0, visible, onC
           ))}
         </ScrollView>
         {images.length > 1 && (
-          <Text style={{ position: 'absolute', bottom: 60, alignSelf: 'center', color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>
+          <Text style={{ position: 'absolute', bottom: 60, alignSelf: 'center', color: 'rgba(255,255,255,0.6)', fontSize: FONTS.sub.size }}>
             {idx + 1} / {images.length}
           </Text>
         )}

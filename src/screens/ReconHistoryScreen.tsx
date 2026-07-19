@@ -204,8 +204,8 @@ export default function ReconHistoryScreen({ onBack }: Props) {
       {/* Filter — dark glass via FilterPanel (BlurView inside) */}
       <FilterPanel visible={showFilter} onClose={closeFilter}>
         <DateErrorHint trigger={filterDateError} message={t('errDateFuture')} color={colors.danger} />
-        {rangeInvalid && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right', marginTop: 2 }}>{t('errDateRange')}</Text>}
-        {rangeTooLong && <Text style={{ color: colors.danger, fontSize: 12, textAlign: 'right', marginTop: 2 }}>{t('errDateRangeTooLong')}</Text>}
+        {rangeInvalid && <Text style={{ color: colors.danger, fontSize: FONTS.micro.size, textAlign: 'right', marginTop: 2 }}>{t('errDateRange')}</Text>}
+        {rangeTooLong && <Text style={{ color: colors.danger, fontSize: FONTS.micro.size, textAlign: 'right', marginTop: 2 }}>{t('errDateRangeTooLong')}</Text>}
         <View style={st.filterField}>
           <Text style={st.filterLabel}>{t('reconDate')}</Text>
           <View style={st.filterDateRange}>

@@ -7,7 +7,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, useWindowDimensions, PanResponder, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Rect, Line, Path } from 'react-native-svg';
+import Svg, { Path, Rect, Line, Circle } from 'react-native-svg';
+import { FONTS } from '../theme';
 import * as ImageManipulator from 'expo-image-manipulator';
 const { FlipType } = ImageManipulator;
 import { t } from '../i18n';
@@ -393,27 +394,27 @@ export default function BgCropModal({ visible, src, onConfirm, onCancel, mode }:
 const styles = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, backgroundColor: 'rgba(8,8,12,0.92)', justifyContent: 'flex-start', alignItems: 'stretch' },
   header: { paddingHorizontal: 16, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontSize: 14, fontWeight: '600', color: '#fff', letterSpacing: -0.2 },
+  title: { fontSize: FONTS.sub.size, fontWeight: '600', color: '#fff', letterSpacing: -0.2 },
   closeBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
-  closeBtnText: { color: 'rgba(255,255,255,0.7)', fontSize: 16, lineHeight: 20 },
+  closeBtnText: { color: 'rgba(255,255,255,0.7)', fontSize: FONTS.body.size, lineHeight: 20 },
   stageArea: { flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', position: 'relative' },
   guideOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   pill: { position: 'absolute', bottom: 8, alignSelf: 'center', left: '50%', transform: [{ translateX: -75 }], backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, paddingVertical: 4, paddingHorizontal: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
-  pillText: { fontSize: 11, color: 'rgba(255,255,255,0.7)' },
+  pillText: { fontSize: FONTS.nano.size, color: 'rgba(255,255,255,0.7)' },
   toolbar: { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: 'rgba(0,0,0,0.6)', flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
   zoomRow: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
-  zoomEdge: { fontSize: 14, color: 'rgba(255,255,255,0.5)' },
-  zoomEdgeSmall: { fontSize: 11, color: 'rgba(255,255,255,0.5)' },
+  zoomEdge: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.5)' },
+  zoomEdgeSmall: { fontSize: FONTS.nano.size, color: 'rgba(255,255,255,0.5)' },
   divider: { width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 10 },
   toolBtn: { paddingVertical: 6, paddingHorizontal: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 5 },
-  toolIcon: { fontSize: 14, color: 'rgba(255,255,255,0.75)', fontWeight: '500' },
-  toolLabel: { fontSize: 11, color: 'rgba(255,255,255,0.75)', fontWeight: '500' },
+  toolIcon: { fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.75)', fontWeight: '500' },
+  toolLabel: { fontSize: FONTS.nano.size, color: 'rgba(255,255,255,0.75)', fontWeight: '500' },
   actions: { paddingTop: 10, paddingHorizontal: 16, paddingBottom: 12, backgroundColor: 'rgba(0,0,0,0.6)', flexDirection: 'row', gap: 10 },
   cancelBtn: { flex: 1, padding: 11, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
-  cancelBtnText: { fontSize: 14, fontWeight: '500', color: 'rgba(255,255,255,0.7)' },
+  cancelBtnText: { fontSize: FONTS.sub.size, fontWeight: '500', color: 'rgba(255,255,255,0.7)' },
   confirmBtn: { flex: 2, padding: 11, borderRadius: 12, backgroundColor: '#5B5BD6', justifyContent: 'center', alignItems: 'center', flexDirection: 'row' },
-  confirmBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
+  confirmBtnText: { fontSize: FONTS.sub.size, fontWeight: '600', color: '#fff' },
   checkBadge: { width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', marginRight: 6 },
-  checkBadgeText: { fontSize: 10, color: '#fff' },
-  errText: { fontSize: 12, color: '#ef4444', textAlign: 'center', paddingBottom: 8, fontWeight: '500' },
+  checkBadgeText: { fontSize: FONTS.tiny.size, color: '#fff' },
+  errText: { fontSize: FONTS.micro.size, color: '#ef4444', textAlign: 'center', paddingBottom: 8, fontWeight: '500' },
 });

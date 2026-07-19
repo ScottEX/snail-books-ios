@@ -69,7 +69,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     paddingHorizontal: 20, paddingVertical: 14,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
-  title: { fontSize: 14, fontWeight: '700', color: colors.surface },
+  title: { fontSize: FONTS.sub.size, fontWeight: '700', color: colors.surface },
   body: { padding: 24, alignItems: 'center', gap: 18 } as any,
   confirmText: { fontSize: FONTS.body.size, color: colors.textMain, textAlign: 'center' as any },
   btnRow: { flexDirection: 'row', gap: 12, width: '100%' },

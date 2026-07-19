@@ -1,5 +1,6 @@
 import React, { Component, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { FONTS } from '../theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CRASH_KEY = '__hermes_last_crash__';
@@ -113,10 +114,10 @@ function CrashScreen({ error, onRestart }: { error: Error; onRestart: () => void
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#1a1a2e', justifyContent: 'center', padding: 20 },
   card: { backgroundColor: '#16213e', borderRadius: 16, padding: 20, maxHeight: '80%' },
-  title: { color: '#e94560', fontSize: 20, fontWeight: '700', marginBottom: 12 },
-  label: { color: '#ccc', fontSize: 13, marginBottom: 4 },
+  title: { color: '#e94560', fontSize: FONTS.large.size, fontWeight: '700', marginBottom: 12 },
+  label: { color: '#ccc', fontSize: FONTS.small.size, marginBottom: 4 },
   scroll: { maxHeight: 300, marginBottom: 12 },
-  code: { color: '#ff6b6b', fontSize: 12, fontFamily: 'monospace', lineHeight: 18 },
-  codeDim: { color: '#888', fontSize: 11, fontFamily: 'monospace', lineHeight: 16, marginTop: 8 },
-  hint: { color: '#666', fontSize: 12, textAlign: 'center', marginTop: 12 },
+  code: { color: '#ff6b6b', fontSize: FONTS.micro.size, fontFamily: 'monospace', lineHeight: 18 },
+  codeDim: { color: '#888', fontSize: FONTS.nano.size, fontFamily: 'monospace', lineHeight: 16, marginTop: 8 },
+  hint: { color: '#666', fontSize: FONTS.micro.size, textAlign: 'center', marginTop: 12 },
 });

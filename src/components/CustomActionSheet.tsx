@@ -200,12 +200,12 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     borderBottomColor: 'rgba(0,0,0,0.08)',
   },
   title: {
-    fontSize: 14,
+    fontSize: FONTS.sub.size,
     fontWeight: '600',
     color: c.textMain,
   },
   message: {
-    fontSize: 12,
+    fontSize: FONTS.micro.size,
     color: c.textSub,
     marginTop: 2,
   },
@@ -236,7 +236,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     fontWeight: FONTS.sub.weight as any,
   },
   actionSublabel: {
-    fontSize: 12,
+    fontSize: FONTS.micro.size,
     color: c.textSub,
     marginTop: 1,
   },

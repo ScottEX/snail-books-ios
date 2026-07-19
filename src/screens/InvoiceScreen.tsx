@@ -767,7 +767,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 editable={isAdmin}
               />
               {bankLookupError !== '' && (
-                <Text style={{ fontSize: 11, color: c.danger, textAlign: 'right', paddingHorizontal: 16, paddingBottom: 8, marginTop: -6 }}>{bankLookupError}</Text>
+                <Text style={{ fontSize: FONTS.nano.size, color: c.danger, textAlign: 'right', paddingHorizontal: 16, paddingBottom: 8, marginTop: -6 }}>{bankLookupError}</Text>
               )}
             </View>
           </View>
@@ -987,7 +987,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
                   <Text
-                    style={{ fontSize: 14, color: dBatchId ? c.textMain : c.textSub }}
+                    style={{ fontSize: FONTS.sub.size, color: dBatchId ? c.textMain : c.textSub }}
                     numberOfLines={1}
                   >
                     {dBatchId
@@ -1240,7 +1240,7 @@ function EditableInfoRow({ icon, iconBg, label, value, colors, mono, onChange, e
             placeholderTextColor={colors.textSub}
             keyboardType={keyboardType as any}
           />
-          {err && <Text style={{ fontSize: 10, color: colors.danger, marginTop: 4 }}>{err}</Text>}
+          {err && <Text style={{ fontSize: FONTS.tiny.size, color: colors.danger, marginTop: 4 }}>{err}</Text>}
         </View>
         <TouchableOpacity style={styles.editBtn} onPress={commit}>
           <PencilSvg color={colors.primary} />
@@ -1274,9 +1274,9 @@ const getEirStyles = () => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, paddingHorizontal: 16, gap: 12 },
   icon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   body: { flex: 1, minWidth: 0 },
-  label: { fontSize: 11, marginBottom: 2 },
-  value: { fontSize: 13 },
-  valueInput: { fontSize: 13, fontWeight: '500', padding: 0 },
+  label: { fontSize: FONTS.nano.size, marginBottom: 2 },
+  value: { fontSize: FONTS.small.size },
+  valueInput: { fontSize: FONTS.small.size, fontWeight: '500', padding: 0 },
   editBtn: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
 });
 
@@ -1294,33 +1294,33 @@ const getStyles = (c: ThemeColors) =>
     },
     ecTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
     ecBackBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-    ecTitle: { flex: 1, color: '#fff', fontSize: 18, fontWeight: '600', letterSpacing: 0.3 },
+    ecTitle: { flex: 1, color: '#fff', fontSize: FONTS.h2.size, fontWeight: '600', letterSpacing: 0.3 },
     ecBtn: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
       backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
       borderRadius: 10, paddingVertical: 10, paddingHorizontal: 16, flexShrink: 0,
     },
-    ecBtnText: { color: '#fff', fontSize: 13, fontWeight: '500' },
+    ecBtnText: { color: '#fff', fontSize: FONTS.small.size, fontWeight: '500' },
     ecStats: { flexDirection: 'row', marginBottom: 16 },
     ecStat: { flex: 1, paddingHorizontal: 12, alignItems: 'center', borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.12)' },
-    ecStatNum: { color: '#fff', fontSize: 20, fontWeight: '600' },
-    ecStatLbl: { color: 'rgba(255,255,255,0.5)', fontSize: 10, marginTop: 2 },
+    ecStatNum: { color: '#fff', fontSize: FONTS.large.size, fontWeight: '600' },
+    ecStatLbl: { color: 'rgba(255,255,255,0.5)', fontSize: FONTS.tiny.size, marginTop: 2 },
 
     /* TABS */
     tabs: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 14, backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 10, padding: 3 },
     tab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },
     tabOn: { backgroundColor: c.primary, shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } },
-    tabText: { fontSize: 13, fontWeight: '500' },
+    tabText: { fontSize: FONTS.small.size, fontWeight: '500' },
 
     /* TIPS */
     tips: { marginHorizontal: 16, marginBottom: 14, borderRadius: 12, padding: 12, flexDirection: 'row', gap: 10, alignItems: 'flex-start', backgroundColor: withAlpha(c.warning, 0.08) },
-    tipsIcon: { fontSize: 15, marginTop: 1 },
-    tipsText: { fontSize: 12, lineHeight: 19, flex: 1, color: c.warning },
+    tipsIcon: { fontSize: FONTS.sub.size, marginTop: 1 },
+    tipsText: { fontSize: FONTS.micro.size, lineHeight: 19, flex: 1, color: c.warning },
 
     /* SECTIONS */
     section: { paddingHorizontal: 0, marginTop: 12 },
     sectionTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 8, paddingHorizontal: 16 },
-    sectionTitleText: { fontSize: 10, fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase', color: c.textSub },
+    sectionTitleText: { fontSize: FONTS.tiny.size, fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase', color: c.textSub },
     sectionTitleLine: { flex: 1, height: 1 },
 
     infoCard: { backgroundColor: c.surface, borderRadius: 12, overflow: 'hidden', marginHorizontal: 16 },
@@ -1329,16 +1329,16 @@ const getStyles = (c: ThemeColors) =>
     typeToggle: { flexDirection: 'row', gap: 6, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.secondary },
     typeChip: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8, borderWidth: 1.5 },
     typeChipActive: { backgroundColor: withAlpha(c.primary, 0.08), borderColor: c.primary },
-    typeChipText: { fontSize: 12, fontWeight: '500' },
+    typeChipText: { fontSize: FONTS.micro.size, fontWeight: '500' },
 
     saveBtn: { marginTop: 16, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
-    saveBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+    saveBtnText: { color: '#fff', fontSize: FONTS.sub.size, fontWeight: '600' },
 
     /* FILTERS */
     filterRow: { maxHeight: 40, marginBottom: 12 },
     filterRowContent: { gap: 6, alignItems: 'center', paddingHorizontal: 16 },
     filterChip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: c.secondary, backgroundColor: c.surface },
-    filterChipText: { fontSize: 12 },
+    filterChipText: { fontSize: FONTS.micro.size },
 
     /* INVOICE CARD */
     invCard: { marginHorizontal: 16, marginBottom: 12, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.secondary, overflow: 'hidden', position: 'relative' as any },
@@ -1347,41 +1347,41 @@ const getStyles = (c: ThemeColors) =>
     invBadge: { paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6, borderWidth: 1, flexShrink: 0, marginTop: 2 },
     invBadgeVat: { backgroundColor: withAlpha(c.primary, 0.08), borderColor: withAlpha(c.primary, 0.3) },
     invBadgeGeneral: { backgroundColor: withAlpha(c.info, 0.08), borderColor: withAlpha(c.info, 0.3) },
-    invBadgeText: { fontSize: 10, fontWeight: '600', letterSpacing: 0.6 },
+    invBadgeText: { fontSize: FONTS.tiny.size, fontWeight: '600', letterSpacing: 0.6 },
     invMain: { flex: 1, minWidth: 0 },
-    invCompany: { fontSize: 14, fontWeight: '600', color: c.textMain, marginBottom: 3 },
-    invTax: { fontSize: 11, color: c.textSub, marginBottom: 4 },
+    invCompany: { fontSize: FONTS.sub.size, fontWeight: '600', color: c.textMain, marginBottom: 3 },
+    invTax: { fontSize: FONTS.nano.size, color: c.textSub, marginBottom: 4 },
     invMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' as any },
-    invDate: { fontSize: 11, color: c.textSub },
-    invDot: { color: c.secondary, fontSize: 11 },
-    invNo: { fontSize: 10, color: c.textSub },
+    invDate: { fontSize: FONTS.nano.size, color: c.textSub },
+    invDot: { color: c.secondary, fontSize: FONTS.nano.size },
+    invNo: { fontSize: FONTS.tiny.size, color: c.textSub },
     invSealWrap: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     invBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
-    invAmount: { fontSize: 20, fontWeight: '700' },
-    invAmountLabel: { fontSize: 10, color: c.textSub, marginTop: 1 },
+    invAmount: { fontSize: FONTS.large.size, fontWeight: '700' },
+    invAmountLabel: { fontSize: FONTS.tiny.size, color: c.textSub, marginTop: 1 },
     invActions: { flexDirection: 'row', gap: 6 },
     invDelBtn: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
 
     empty: { alignItems: 'center', paddingVertical: 48 },
-    emptyText: { fontSize: 14, color: c.textSub },
+    emptyText: { fontSize: FONTS.sub.size, color: c.textSub },
 
     /* DRAWER */
     drawer: { width: '100%' as any, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' as any, paddingBottom: 16 },
     drawerHandle: { width: 36, height: 4, borderRadius: 2, marginTop: 12, alignSelf: 'center', backgroundColor: c.secondary },
     drawerHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 14, paddingBottom: 12 },
-    drawerTitle: { fontSize: 15, fontWeight: '600', color: c.textMain },
+    drawerTitle: { fontSize: FONTS.sub.size, fontWeight: '600', color: c.textMain },
     drawerBody: { paddingHorizontal: 20, paddingTop: 8 },
 
-    dLabel: { fontSize: 13, fontWeight: '500', color: c.textSub, marginBottom: 6, marginTop: 8 },
+    dLabel: { fontSize: FONTS.small.size, fontWeight: '500', color: c.textSub, marginBottom: 6, marginTop: 8 },
     dLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, marginTop: 8 },
-    dAutoFillLabel: { fontSize: 11, color: c.textSub, fontWeight: '400' },
+    dAutoFillLabel: { fontSize: FONTS.nano.size, color: c.textSub, fontWeight: '400' },
     dField: { marginBottom: 14 },
     dFieldHalf: { flex: 1, minWidth: 0 },
     dRow: { flexDirection: 'row', gap: 10 },
-    dInput: { width: '100%', paddingVertical: 11, paddingHorizontal: 14, borderWidth: 0, borderRadius: 10, fontSize: 14, color: c.textMain },
+    dInput: { width: '100%', paddingVertical: 11, paddingHorizontal: 14, borderWidth: 0, borderRadius: 10, fontSize: FONTS.sub.size, color: c.textMain },
     dAmountWrap: { position: 'relative' as any },
-    dAmountPrefix: { position: 'absolute' as any, left: 14, top: 14, fontSize: 14, fontWeight: '600' },
-    dAmountInput: { paddingLeft: 26, fontSize: 16, fontWeight: '700' },
+    dAmountPrefix: { position: 'absolute' as any, left: 14, top: 14, fontSize: FONTS.sub.size, fontWeight: '600' },
+    dAmountInput: { paddingLeft: 26, fontSize: FONTS.body.size, fontWeight: '700' },
     dTypeRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
     dTypeChip: { flex: 1, flexDirection: 'row', paddingVertical: 10, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
     dTypeChipText: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight },
@@ -1393,5 +1393,5 @@ const getStyles = (c: ThemeColors) =>
     },
 
     dSubmit: { paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginHorizontal: 20, marginBottom: 16, marginTop: 8 },
-    dSubmitText: { fontSize: 15, fontWeight: '600', color: '#fff' },
+    dSubmitText: { fontSize: FONTS.sub.size, fontWeight: '600', color: '#fff' },
   });

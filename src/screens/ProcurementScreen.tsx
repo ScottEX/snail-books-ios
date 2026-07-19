@@ -172,7 +172,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   subTabOn: { backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 10 },
   subTabText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: '#000' },
   subTabTextOn: { color: c.primary, fontWeight: FONTS.subBold.weight },
-  subTabCount: { fontSize: 10, fontWeight: '600' as any, color: '#000', backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, minWidth: 18, textAlign: 'center' as any, overflow: 'hidden' as const },
+  subTabCount: { fontSize: FONTS.micro.size, fontWeight: '600' as any, color: '#000', backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, minWidth: 18, textAlign: 'center' as any, overflow: 'hidden' as const },
   subTabCountOn: { color: c.primary },
 
   sectionHead: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 4, fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: c.primary, textTransform: 'uppercase' as const, letterSpacing: 1 },
@@ -780,8 +780,8 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
       {/* ── Frosted card block ── */}
       <View style={{ marginTop: 4, borderRadius: 16, overflow: 'hidden' }}>
         <BlurView
-          intensity={24}
-          tint="light"
+          intensity={75}
+          tint="regular"
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
@@ -1030,7 +1030,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                           activeOpacity={0.7}
                           style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: batch.invoice_status === 'done' ? withAlpha(c.success, 0.12) : withAlpha(c.warning, 0.12) }}
                         >
-                          <Text style={{ fontSize: 11, fontWeight: '600', color: batch.invoice_status === 'done' ? c.success : c.warning }}>
+                          <Text style={{ fontSize: FONTS.nano.size, fontWeight: '600', color: batch.invoice_status === 'done' ? c.success : c.warning }}>
                             {batch.invoice_status === 'done' ? t('invRecStatusDone') : t('invRecStatusPending')}
                           </Text>
                         </TouchableOpacity>
@@ -1040,7 +1040,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                           activeOpacity={0.7}
                           style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: withAlpha(c.primary, 0.10) }}
                         >
-                          <Text style={{ fontSize: 11, fontWeight: '600', color: c.primary }}>
+                          <Text style={{ fontSize: FONTS.nano.size, fontWeight: '600', color: c.primary }}>
                             {t('invToInvoice')}
                           </Text>
                         </TouchableOpacity>
