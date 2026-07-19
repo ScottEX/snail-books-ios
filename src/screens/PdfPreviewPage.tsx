@@ -168,8 +168,8 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
   return (
     <View style={styles.root}>
       <BlurView
-        intensity={70}
-        tint="regular"
+        intensity={24}
+        tint="light"
         style={{
           position: 'absolute',
           top: 0,
