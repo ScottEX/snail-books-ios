@@ -48,6 +48,7 @@ export default function App() {
       const now = Date.now();
       if (now - lastExpireAt.current < 1500) return;
       lastExpireAt.current = now;
+      loginConfirmedAt.current = 0;
       // Bump appKey to force ThemeProvider remount (fresh theme) if not
       // already on login page; stay on current page, show modal instead.
       if (pageRef.current !== 'login') setAppKey((k) => k + 1);
