@@ -16,7 +16,7 @@ import Svg, { Path, Circle } from 'react-native-svg';
 import { t, getLang } from '../i18n';
 import { API_BASE, resolveAssetUrl } from '../api/client';
 import { useServerDate } from '../hooks/useServerDate';
-import { useTheme, withAlpha, ThemeColors } from '../theme';
+import { useTheme, withAlpha, ThemeColors, FONTS } from '../theme';
 import EmptyState from '../components/EmptyState';
 import Toast from '../components/Toast';
 import AdminHeader from '../components/AdminHeader';
@@ -258,7 +258,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
           />
           {searchText !== '' && (
             <TouchableOpacity onPress={() => setSearchText('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={{ fontSize: 14, color: c.textSub, paddingHorizontal: 4 }}>✕</Text>
+              <Text style={{ fontSize: FONTS.sub.size, color: c.textSub, paddingHorizontal: 4 }}>✕</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -302,7 +302,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
         {/* User list */}
         <ScrollView style={s.list} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
           {loading ? (
-            <Text style={{ textAlign: 'center', color: c.textSub, marginTop: 40, fontSize: 13 }}>
+            <Text style={{ textAlign: 'center', color: c.textSub, marginTop: 40, fontSize: FONTS.small.size }}>
               {t('loading')}
             </Text>
           ) : users.length === 0 ? (
@@ -507,7 +507,7 @@ const getStyles = (c: ThemeColors) => {
       borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
     },
     searchInput: {
-      flex: 1, marginLeft: 8, fontSize: 14, color: c.textMain, paddingVertical: 0,
+      flex: 1, marginLeft: 8, fontSize: FONTS.sub.size, color: c.textMain, paddingVertical: 0,
     },
     // Filter row
     filterRow: {
@@ -520,14 +520,14 @@ const getStyles = (c: ThemeColors) => {
       borderRadius: 10, height: 40, paddingHorizontal: 12,
       borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
     },
-    filterChipText: { fontSize: 13, color: c.textSub, flex: 1 },
+    filterChipText: { fontSize: FONTS.small.size, color: c.textSub, flex: 1 },
     // Dropdown items
     dropItem: {
       flexDirection: 'row', alignItems: 'center', gap: 8,
       paddingVertical: 12, paddingHorizontal: 14,
       borderBottomWidth: 0.5, borderBottomColor: withAlpha(c.textMain, 0.06),
     },
-    dropItemText: { fontSize: 14, color: c.textMain },
+    dropItemText: { fontSize: FONTS.sub.size, color: c.textMain },
     statusDotSm: { width: 6, height: 6, borderRadius: 3 },
     // ── Date picker ──
     pickerRow: {
@@ -539,7 +539,7 @@ const getStyles = (c: ThemeColors) => {
       borderRadius: 8, backgroundColor: withAlpha(c.textMain, 0.04),
     },
     pickerBtnOn: { backgroundColor: c.primary },
-    pickerBtnText: { fontSize: 13, color: c.textMain },
+    pickerBtnText: { fontSize: FONTS.small.size, color: c.textMain },
     pickerBtnTextOn: { color: '#fff', fontWeight: '600' as any },
     monthGrid: {
       flexDirection: 'row', flexWrap: 'wrap', gap: 6,
@@ -551,7 +551,7 @@ const getStyles = (c: ThemeColors) => {
       backgroundColor: withAlpha(c.textMain, 0.04),
     },
     monthBtnOn: { backgroundColor: c.primary },
-    monthBtnText: { fontSize: 13, color: c.textMain },
+    monthBtnText: { fontSize: FONTS.small.size, color: c.textMain },
     monthBtnTextOn: { color: '#fff', fontWeight: '600' as any },
     quickRow: {
       flexDirection: 'row', gap: 6,
@@ -566,7 +566,7 @@ const getStyles = (c: ThemeColors) => {
     quickBtnOn: {
       backgroundColor: c.primary,
     },
-    quickBtnText: { fontSize: 12, color: c.textSub },
+    quickBtnText: { fontSize: FONTS.micro.size, color: c.textSub },
     quickBtnTextOn: { color: '#fff', fontWeight: '600' as any },
     dateActions: {
       flexDirection: 'row', justifyContent: 'flex-end', gap: 8,
@@ -577,7 +577,7 @@ const getStyles = (c: ThemeColors) => {
       backgroundColor: withAlpha(c.textMain, 0.06),
     },
     dateActionApply: { backgroundColor: c.primary },
-    dateActionText: { fontSize: 13, color: c.textMain },
+    dateActionText: { fontSize: FONTS.small.size, color: c.textMain },
     // List
     list: { flex: 1, paddingHorizontal: 16, paddingTop: 4 },
     userRow: {
@@ -589,20 +589,20 @@ const getStyles = (c: ThemeColors) => {
     },
     avatarWrap: { marginRight: 12 },
     avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.bg },
-    userName: { fontSize: 15, fontWeight: '600', color: c.textMain },
-    userEmail: { fontSize: 12, color: c.textSub, marginTop: 2 },
+    userName: { fontSize: FONTS.sub.size, fontWeight: '600', color: c.textMain },
+    userEmail: { fontSize: FONTS.micro.size, color: c.textSub, marginTop: 2 },
     newBadge: {
       backgroundColor: withAlpha(c.warning, 0.15),
       paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
     },
-    newBadgeText: { fontSize: 10, fontWeight: '700', color: c.warning },
+    newBadgeText: { fontSize: FONTS.tiny.size, fontWeight: '700', color: c.warning },
     statusBadge: {
       flexDirection: 'row', alignItems: 'center', gap: 5,
       paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6,
       marginRight: 8,
     },
     statusDot: { width: 6, height: 6, borderRadius: 3 },
-    statusText: { fontSize: 12, fontWeight: '500' },
+    statusText: { fontSize: FONTS.micro.size, fontWeight: '500' },
     // Footer
     footer: {
       paddingVertical: 12, paddingHorizontal: 16,
@@ -610,6 +610,6 @@ const getStyles = (c: ThemeColors) => {
       backgroundColor: c.surface,
       alignItems: 'center',
     },
-    footerText: { fontSize: 13, color: c.textSub },
+    footerText: { fontSize: FONTS.small.size, color: c.textSub },
   });
 };

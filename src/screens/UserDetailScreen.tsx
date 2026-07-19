@@ -291,7 +291,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
         </View>
       ) : !detail ? (
         <View style={{ flex: 1 }}>
-          <Text style={{ textAlign: 'center', color: c.textSub, marginTop: 60, fontSize: 13 }}>User not found</Text>
+          <Text style={{ textAlign: 'center', color: c.textSub, marginTop: 60, fontSize: FONTS.small.size }}>User not found</Text>
         </View>
       ) : (
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80, paddingTop: 12 }}>
@@ -359,7 +359,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
                 </View>
               )}
               {isGrace && (
-                <Text style={{ fontSize: 11, color: c.textSub, lineHeight: 16, marginTop: 4 }}>{graceHint}</Text>
+                <Text style={{ fontSize: FONTS.nano.size, color: c.textSub, lineHeight: 16, marginTop: 4 }}>{graceHint}</Text>
               )}
             </View>
           </View>
@@ -492,11 +492,11 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
                 </View>
                 {linkedPartnerId ? (
                   <TouchableOpacity onPress={() => setShowUnlinkConfirm(true)} disabled={saving} activeOpacity={0.7}>
-                    <Text style={{ color: c.danger, fontSize: 13, fontWeight: '500' }}>{t('unlinkPartner')}</Text>
+                    <Text style={{ color: c.danger, fontSize: FONTS.small.size, fontWeight: '500' }}>{t('unlinkPartner')}</Text>
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity onPress={() => { fetchPartnerList(); setShowPartnerPicker(true); }} disabled={saving} activeOpacity={0.7}>
-                    <Text style={{ color: c.primary, fontSize: 13, fontWeight: '500' }}>{t('linkPartner')}</Text>
+                    <Text style={{ color: c.primary, fontSize: FONTS.small.size, fontWeight: '500' }}>{t('linkPartner')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -578,7 +578,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       <Modal visible={showPartnerPicker} transparent animationType="fade" onRequestClose={() => setShowPartnerPicker(false)}>
         <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' }} activeOpacity={1} onPress={() => setShowPartnerPicker(false)}>
           <View style={{ backgroundColor: c.surface, borderRadius: 14, width: '80%', maxHeight: '60%', padding: 4 }} onStartShouldSetResponder={() => true}>
-            <Text style={{ fontSize: 14, fontWeight: '600', color: c.textMain, padding: 16, paddingBottom: 12 }}>{t('linkPartner')}</Text>
+            <Text style={{ fontSize: FONTS.sub.size, fontWeight: '600', color: c.textMain, padding: 16, paddingBottom: 12 }}>{t('linkPartner')}</Text>
             <ScrollView showsVerticalScrollIndicator={false}>
               {partnerList.map((p: any) => (
                 <TouchableOpacity
@@ -587,7 +587,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
                   onPress={() => handleLinkPartner(p.id, p.name)}
                   activeOpacity={0.6}
                 >
-                  <Text style={{ fontSize: 14, color: c.textMain }}>{p.name}</Text>
+                  <Text style={{ fontSize: FONTS.sub.size, color: c.textMain }}>{p.name}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -636,7 +636,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     paddingHorizontal: 20, paddingBottom: 20,
   },
   avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: c.bg, flexShrink: 0 },
-  avatarName: { fontSize: 18, fontWeight: '700', color: c.textMain, flex: 1 },
+  avatarName: { fontSize: FONTS.h2.size, fontWeight: '700', color: c.textMain, flex: 1 },
   actionBtn: {
     width: 36, height: 36, borderRadius: 18,
     justifyContent: 'center', alignItems: 'center',
@@ -646,24 +646,24 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6,
   },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusText: { fontSize: 12, fontWeight: '500' },
+  statusText: { fontSize: FONTS.micro.size, fontWeight: '500' },
   newBadge: {
     backgroundColor: withAlpha(c.warning, 0.15),
     paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4,
   },
-  newBadgeText: { fontSize: 10, fontWeight: '700', color: c.warning },
+  newBadgeText: { fontSize: FONTS.tiny.size, fontWeight: '700', color: c.warning },
   markReadBtn: {
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6,
     backgroundColor: withAlpha(c.primary, 0.1),
   },
-  markReadText: { fontSize: 12, fontWeight: '600', color: c.primary },
+  markReadText: { fontSize: FONTS.micro.size, fontWeight: '600', color: c.primary },
   roleBadge: {
     paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
   },
   section: { paddingHorizontal: 20, marginTop: 12 },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 8 },
   sectionTitleText: {
-    fontSize: 10, fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase', color: c.textSub,
+    fontSize: FONTS.tiny.size, fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase', color: c.textSub,
   },
   sectionTitleLine: { flex: 1, height: 1, backgroundColor: withAlpha(c.textMain, 0.08) },
   card: {
@@ -674,10 +674,10 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingVertical: 14, paddingHorizontal: 16, gap: 12,
   },
-  infoLabel: { fontSize: 14, color: c.textSub, flexShrink: 0 },
-  infoValue: { fontSize: 14, fontWeight: '500', color: c.textMain, textAlign: 'right' },
+  infoLabel: { fontSize: FONTS.sub.size, color: c.textSub, flexShrink: 0 },
+  infoValue: { fontSize: FONTS.sub.size, fontWeight: '500', color: c.textMain, textAlign: 'right' },
   editInput: {
-    flex: 1, fontSize: 14, fontWeight: '500', color: c.textMain,
+    flex: 1, fontSize: FONTS.sub.size, fontWeight: '500', color: c.textMain,
     textAlign: 'right', padding: 0, minWidth: 100,
   },
   divider: { height: 0.5, backgroundColor: withAlpha(c.textMain, 0.08), marginLeft: 16 },
@@ -685,8 +685,8 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     paddingVertical: 14, paddingHorizontal: 16, gap: 12,
   },
-  toggleLabel: { fontSize: 14, fontWeight: '500', color: c.textMain, marginBottom: 2 },
-  toggleHint: { fontSize: 12, color: c.textSub, lineHeight: 16 },
+  toggleLabel: { fontSize: FONTS.sub.size, fontWeight: '500', color: c.textMain, marginBottom: 2 },
+  toggleHint: { fontSize: FONTS.micro.size, color: c.textSub, lineHeight: 16 },
   roleList: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 6,
     paddingHorizontal: 16, paddingBottom: 12,
@@ -694,7 +694,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   roleItem: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
   },
-  roleItemText: { fontSize: 13 },
+  roleItemText: { fontSize: FONTS.small.size },
   /* Linked-partner delete hint modal */
   hintCard: {
     backgroundColor: c.surface, borderRadius: 16,
@@ -704,15 +704,15 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     backgroundColor: c.primary, paddingVertical: 14, paddingHorizontal: 20,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
-  hintTitle: { fontSize: 14, fontWeight: '700', color: c.surface },
+  hintTitle: { fontSize: FONTS.sub.size, fontWeight: '700', color: c.surface },
   hintBody: { padding: 24, gap: 18 },
   hintMsg: {
-    fontSize: 14, color: c.textSub, textAlign: 'center', lineHeight: 22,
+    fontSize: FONTS.sub.size, color: c.textSub, textAlign: 'center', lineHeight: 22,
     backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 12, padding: 12,
   },
   hintBtn: {
     width: '100%', paddingVertical: 12, borderRadius: 10,
     backgroundColor: c.primary, justifyContent: 'center', alignItems: 'center',
   },
-  hintBtnText: { fontSize: 14, fontWeight: '600', color: c.surface },
+  hintBtnText: { fontSize: FONTS.sub.size, fontWeight: '600', color: c.surface },
 });

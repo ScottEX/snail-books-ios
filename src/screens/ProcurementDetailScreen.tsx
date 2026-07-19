@@ -445,7 +445,7 @@ const getStyles = (c: ThemeColors) => {
     },
     title: {
       flex: 1,
-      fontSize: 15,
+      fontSize: FONTS.sub.size,
       fontWeight: '600' as const,
       color: '#000',
     },

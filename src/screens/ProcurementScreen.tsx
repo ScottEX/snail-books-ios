@@ -1030,7 +1030,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                           activeOpacity={0.7}
                           style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: batch.invoice_status === 'done' ? withAlpha(c.success, 0.12) : withAlpha(c.warning, 0.12) }}
                         >
-                          <Text style={{ fontSize: 11, fontWeight: '600', color: batch.invoice_status === 'done' ? c.success : c.warning }}>
+                          <Text style={{ fontSize: FONTS.nano.size, fontWeight: '600', color: batch.invoice_status === 'done' ? c.success : c.warning }}>
                             {batch.invoice_status === 'done' ? t('invRecStatusDone') : t('invRecStatusPending')}
                           </Text>
                         </TouchableOpacity>
@@ -1040,7 +1040,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                           activeOpacity={0.7}
                           style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: withAlpha(c.primary, 0.10) }}
                         >
-                          <Text style={{ fontSize: 11, fontWeight: '600', color: c.primary }}>
+                          <Text style={{ fontSize: FONTS.nano.size, fontWeight: '600', color: c.primary }}>
                             {t('invToInvoice')}
                           </Text>
                         </TouchableOpacity>
