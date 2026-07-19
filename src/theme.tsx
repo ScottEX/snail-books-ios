@@ -210,8 +210,11 @@ export const FONTS = {
   body:     { size: Math.round(16 * S), weight: '500' as const, color: 'textMain' as const },
   sub:      { size: Math.round(14 * S), weight: '500' as const, color: 'textSub'  as const },
   subBold:  { size: Math.round(14 * S), weight: '700' as const, color: 'textSub'  as const },
+  small:    { size: Math.round(13 * S), weight: '500' as const, color: 'textSub'  as const },
   micro:    { size: Math.round(12 * S), weight: '500' as const, color: 'textSub'  as const },
   microBold:{ size: Math.round(12 * S), weight: '700' as const, color: 'textSub'  as const },
+  nano:     { size: Math.round(11 * S), weight: '500' as const, color: 'textSub'  as const },
+  tiny:     { size: Math.round(10 * S), weight: '500' as const, color: 'textSub'  as const },
   amount:   { size: Math.round(24 * S), weight: '700' as const, color: 'textMain' as const },
 } as const;
 

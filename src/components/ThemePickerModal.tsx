@@ -49,11 +49,11 @@ function getStyles(colors: ThemeColors) {
     bgBtnOutline: {
       borderWidth: 1, borderColor: colors.primary, backgroundColor: 'transparent',
     },
-    bgBtnOutlineText: { fontSize: FONTS.sub.size, fontWeight: '600', color: colors.primary },
+    bgBtnOutlineText: { fontSize: FONTS.small.size, fontWeight: '600', color: colors.primary },
     bgBtnDanger: {
       borderWidth: 1, borderColor: colors.danger, backgroundColor: 'transparent',
     },
-    bgBtnDangerText: { fontSize: FONTS.sub.size, fontWeight: '600', color: colors.danger },
+    bgBtnDangerText: { fontSize: FONTS.small.size, fontWeight: '600', color: colors.danger },
   });
 }
 
