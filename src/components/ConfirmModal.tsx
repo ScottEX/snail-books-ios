@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme, ThemeColors, withAlpha } from '../theme';
 import { MODAL_CARD_RADIUS } from '../sharedStyles';
 import { FONTS } from '../theme';
 import { t } from '../i18n';
+import LoadingSpinner from './LoadingSpinner';
 import ModalOverlay from './ModalOverlay';
 import CloseButton from './CloseButton';
 
@@ -76,7 +77,7 @@ export default function ConfirmModal({
             </TouchableOpacity>
             <TouchableOpacity style={[styles.confirmBtn, { backgroundColor: btn }, loading && styles.btnDisabled]} onPress={onConfirm} disabled={loading}>
               {loading ? (
-                <ActivityIndicator size="small" color={c.surface} />
+                <LoadingSpinner label={false} size={16} color={c.surface} />
               ) : (
                 <Text style={styles.confirmText}>{confirmLabel || t('delete')}</Text>
               )}

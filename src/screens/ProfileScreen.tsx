@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  Image, Switch, Modal, ActivityIndicator, useWindowDimensions,
+  Image, Switch, Modal, useWindowDimensions,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Defs, LinearGradient as SVGGradient, Stop, Rect } from 'react-native-svg';
@@ -353,7 +353,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       if (typeof data?.enforce_single_session === 'number') {
         setEnforceSingleSession(data.enforce_single_session);
       }
-      if (typeof data?.session_timeout_hours === 'number' && [1, 2, 6, 24].includes(data.session_timeout_hours)) {
+      if (typeof data?.session_timeout_hours === 'number' && [1, 2, 6, 24, 72].includes(data.session_timeout_hours)) {
         setSessionTimeoutHours(data.session_timeout_hours);
       }
       if (data.partner_name) {
@@ -988,7 +988,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               <Text style={st.authLabel}>{t('sessionTimeoutLabel')}</Text>
             </View>
             <View style={st.capsuleRow}>
-              {[1, 2, 6, 24].map(h => {
+              {[1, 2, 6, 24, 72].map(h => {
                 const active = sessionTimeoutHours === h;
                 return (
                   <TouchableOpacity

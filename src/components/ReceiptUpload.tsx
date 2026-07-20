@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, LayoutChangeEvent, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, LayoutChangeEvent, Alert } from 'react-native';
+import { Image } from 'expo-image';
 import Svg, { Path } from 'react-native-svg';
 import { useTheme, withAlpha, REQUIRED_COLOR } from '../theme';
 import { FONTS } from '../theme';
@@ -38,7 +39,7 @@ const MAX_IMAGES = 9;
 const isPdfFile = (f: PickedFile) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '');
 const isPdfUrl = (url: string) => /\.pdf(\?|$)/i.test(url);
 
-export default function ReceiptUpload({
+export default React.memo(function ReceiptUpload({
   existingImages = [],
   newFiles = [],
   onAdd,
@@ -237,4 +238,4 @@ export default function ReceiptUpload({
       )}
     </View>
   );
-}
+});

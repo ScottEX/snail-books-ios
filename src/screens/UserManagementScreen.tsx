@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import HomeBackground from '../components/HomeBackground';
 import {
   View,
@@ -117,8 +118,8 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
   }, [sd.ready, sd.year]);
 
   // ── Fetch users with server-side filters ──
-  const fetchUsers = useCallback(async (sts: string, df: string, dt: string) => {
-    setLoading(true);
+  const fetchUsers = useCallback(async (sts: string, df: string, dt: string, silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const params = new URLSearchParams();
       if (sts) params.set('status', sts);
@@ -137,10 +138,15 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
         setTotal(data.total || 0);
       }
     } catch {}
-    setLoading(false);
+    if (!silent) setLoading(false);
   }, []);
-
+  
   useEffect(() => { fetchUsers('', '', ''); }, []);
+
+  // ── Refetch silently when screen regains focus (e.g. returning from UserDetail) ──
+  useFocusEffect(useCallback(() => {
+    fetchUsers(statusFilter, dateFrom, dateTo, true);
+  }, [statusFilter, dateFrom, dateTo, fetchUsers]));
 
   // ── Mark a specific user as reviewed locally (no full refresh) ──
   useEffect(() => {

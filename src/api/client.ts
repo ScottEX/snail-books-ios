@@ -53,8 +53,11 @@ export function resolveAssetUrl(url: string | null | undefined): string | null {
   return url;
 }
 
-// ── Idle timeout: 2 hours ──
-const IDLE_MS = 120 * 60_000;
+// ── Idle timeout: default 2h, overridable via setIdleTimeoutHours ──
+let IDLE_MS = 120 * 60_000;
+export function setIdleTimeoutHours(hours: number) {
+  if (hours > 0) IDLE_MS = hours * 60 * 60_000;
+}
 let lastActivity = Date.now();
 let idleTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -76,6 +79,7 @@ startIdleTimer();
 function bumpActivity() {
   lastActivity = Date.now();
 }
+export { bumpActivity };
 
 function headers(): Record<string, string> {
   const h: Record<string, string> = { 'X-Lang': getLang() };

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { StatusBar, StyleSheet } from 'react-native';
+import { StatusBar, StyleSheet, AppState } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import LoginScreen from './src/screens/LoginScreen';
 import RootStack from './src/navigation/RootStack';
@@ -10,7 +10,7 @@ import SessionKickedModal from './src/components/SessionKickedModal';
 import { ErrorBoundary } from './src/components/CrashCatcher';
 import { ThemeProvider } from './src/theme';
 import { LangProvider } from './src/i18n';
-import { onSessionKicked, onUserChange, setSessionExpiredHandler } from './src/api/client';
+import { onSessionKicked, onUserChange, setSessionExpiredHandler, setIdleTimeoutHours, api, bumpActivity } from './src/api/client';
 import { initStorageCache } from './src/platform';
 
 export default function App() {
@@ -35,6 +35,17 @@ export default function App() {
   const [kickedVisible, setKickedVisible] = useState(false);
   const expiring = useRef(false);
 
+  // Reset idle timer when the app returns to foreground — prevents premature
+  // logout when the user is actively using the app without making API calls.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        try { if (localStorage.getItem('user')) bumpActivity(); } catch {}
+      }
+    });
+    return () => { sub.remove(); };
+  }, []);
+
   useEffect(() => {
     initStorageCache().then(() => {
       try {
@@ -45,7 +56,18 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const handleExpire = () => {
+    const handleTimeout = () => {
+      // Idle timeout — silent redirect to login, same as web
+      const now = Date.now();
+      if (now - lastExpireAt.current < 1500) return;
+      lastExpireAt.current = now;
+      loginConfirmedAt.current = 0;
+      expiring.current = true;
+      try { if (typeof window !== 'undefined') (window as any).__expiring = true; } catch {}
+      setPage('login');
+    };
+    const handleKicked = () => {
+      // Kicked by another device — show modal
       const now = Date.now();
       if (now - lastExpireAt.current < 1500) return;
       lastExpireAt.current = now;
@@ -54,13 +76,13 @@ export default function App() {
       try { if (typeof window !== 'undefined') (window as any).__expiring = true; } catch {}
       setKickedVisible(true);
     };
-    const unsubKicked = onSessionKicked(handleExpire);
+    const unsubKicked = onSessionKicked(handleKicked);
     const unsubChange = onUserChange(() => {
       if (expiring.current) return;
       try { setPage(localStorage.getItem('user') ? 'home' : 'login'); } catch {}
       lastExpireAt.current = Date.now();
     });
-    setSessionExpiredHandler(handleExpire);
+    setSessionExpiredHandler(handleTimeout);
     return () => { unsubKicked(); unsubChange(); };
   }, []);
 
@@ -68,6 +90,12 @@ export default function App() {
     loginConfirmedAt.current = Date.now();
     setAppKey((k) => k + 1);
     setPage('home');
+    // Load user auth prefs (session_timeout_hours) and apply to idle timer
+    api.getAuthPrefs().then((data: any) => {
+      if (data?.session_timeout_hours && data.session_timeout_hours > 0) {
+        setIdleTimeoutHours(data.session_timeout_hours);
+      }
+    }).catch(() => {});
   }, []);
 
   const goLogin = useCallback(() => {

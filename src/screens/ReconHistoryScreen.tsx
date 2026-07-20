@@ -1,6 +1,6 @@
 import React from 'react';
 import HomeBackground from '../components/HomeBackground';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Animated, PanResponder, StatusBar, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, PanResponder, StatusBar, Dimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Svg, { Path, Line } from 'react-native-svg';
 import { t, getLang } from '../i18n';
@@ -284,7 +284,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
               {records.map(renderCard)}
               {hasMore && (
                 <View style={st.loadingMore}>
-                  <ActivityIndicator size="small" color={colors.primary} />
+                  <LoadingSpinner label={false} size={16} color={colors.primary} />
                   <Text style={st.loadingMoreText}>{t('loading')}...</Text>
                 </View>
               )}

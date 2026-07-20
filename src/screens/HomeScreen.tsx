@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
-  Animated, ImageBackground, Image, ActivityIndicator, StatusBar,
+  Animated, ImageBackground, Image, StatusBar,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
 import { t, getLang, langs, useLang } from '../i18n';
-import { api, resolveAssetUrl } from '../api/client';
+import { api, resolveAssetUrl, bumpActivity } from '../api/client';
 import * as FileSystem from 'expo-file-system';
 import { useTheme, withAlpha, ThemeColors, DEFAULT_THEME_ID } from '../theme';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -678,6 +678,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                         Animated.spring(navScaleAnims[i], { toValue: 0.85, useNativeDriver: true, speed: 30, bounciness: 6 }),
                         Animated.spring(navScaleAnims[i], { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 14 }),
                       ]).start();
+                      bumpActivity();
                       setTab(id);
                     }
                   }}

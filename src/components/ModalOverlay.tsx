@@ -37,6 +37,13 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, childr
   );
 
   useEffect(() => {
+    // Stop any in-progress animations to prevent conflicts on fast open/close
+    back.stopAnimation();
+    slide.stopAnimation();
+    scale.stopAnimation();
+    fade.stopAnimation();
+    staggerAnims.forEach(a => a.stopAnimation());
+
     if (visible) {
       setShow(true);
       back.setValue(0);
@@ -45,16 +52,16 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, childr
         slide.setValue(12);
         fade.setValue(0);
         Animated.parallel([
-          Animated.timing(back, { toValue: 1, duration: 300, useNativeDriver: false }),
-          Animated.spring(scale, { toValue: 1, useNativeDriver: false, bounciness: 8, speed: 14 }),
-          Animated.spring(slide, { toValue: 0, useNativeDriver: false, bounciness: 8, speed: 14 }),
-          Animated.timing(fade, { toValue: 1, duration: 250, useNativeDriver: false }),
+          Animated.timing(back, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.spring(scale, { toValue: 1, useNativeDriver: true, bounciness: 8, speed: 14 }),
+          Animated.spring(slide, { toValue: 0, useNativeDriver: true, bounciness: 8, speed: 14 }),
+          Animated.timing(fade, { toValue: 1, duration: 250, useNativeDriver: true }),
         ]).start();
       } else if (animation === 'blurMorph') {
         scale.setValue(1.04);
         fade.setValue(0);
         Animated.parallel([
-          Animated.timing(back, { toValue: 1, duration: 300, useNativeDriver: false }),
+          Animated.timing(back, { toValue: 1, duration: 300, useNativeDriver: true }),
           Animated.timing(scale, { toValue: 1, duration: 400, useNativeDriver: true }),
           Animated.timing(fade, { toValue: 1, duration: 350, useNativeDriver: true }),
         ]).start();
@@ -63,10 +70,10 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, childr
         scale.setValue(0.96);
         fade.setValue(0);
         Animated.parallel([
-          Animated.timing(back, { toValue: 1, duration: 300, useNativeDriver: false }),
-          Animated.timing(slide, { toValue: 0, duration: 420, easing: Easing.bezier(0.32, 0.94, 0.36, 1.02), useNativeDriver: false }),
-          Animated.timing(scale, { toValue: 1, duration: 420, easing: Easing.bezier(0.32, 0.94, 0.36, 1.02), useNativeDriver: false }),
-          Animated.timing(fade, { toValue: 1, duration: 300, useNativeDriver: false }),
+          Animated.timing(back, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(slide, { toValue: 0, duration: 420, easing: Easing.bezier(0.32, 0.94, 0.36, 1.02), useNativeDriver: true }),
+          Animated.timing(scale, { toValue: 1, duration: 420, easing: Easing.bezier(0.32, 0.94, 0.36, 1.02), useNativeDriver: true }),
+          Animated.timing(fade, { toValue: 1, duration: 300, useNativeDriver: true }),
         ]).start();
       } else if (animation === 'stagger') {
         slide.setValue(40);
@@ -74,16 +81,16 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, childr
         fade.setValue(0);
         staggerAnims.forEach(a => a.setValue(0));
         Animated.parallel([
-          Animated.timing(back, { toValue: 1, duration: 300, useNativeDriver: false }),
-          Animated.timing(slide, { toValue: 0, duration: 400, easing: Easing.bezier(0.22, 0.88, 0.4, 1), useNativeDriver: false }),
-          Animated.timing(scale, { toValue: 1, duration: 400, easing: Easing.bezier(0.22, 0.88, 0.4, 1), useNativeDriver: false }),
-          Animated.timing(fade, { toValue: 1, duration: 300, useNativeDriver: false }),
+          Animated.timing(back, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(slide, { toValue: 0, duration: 400, easing: Easing.bezier(0.22, 0.88, 0.4, 1), useNativeDriver: true }),
+          Animated.timing(scale, { toValue: 1, duration: 400, easing: Easing.bezier(0.22, 0.88, 0.4, 1), useNativeDriver: true }),
+          Animated.timing(fade, { toValue: 1, duration: 300, useNativeDriver: true }),
           Animated.sequence([
             Animated.delay(80),
             Animated.stagger(
               60,
               staggerAnims.map(a =>
-                Animated.timing(a, { toValue: 1, duration: 350, easing: Easing.bezier(0.22, 0.88, 0.4, 1), useNativeDriver: false }),
+                Animated.timing(a, { toValue: 1, duration: 350, easing: Easing.bezier(0.22, 0.88, 0.4, 1), useNativeDriver: true }),
               ),
             ),
           ]),
@@ -92,30 +99,30 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, childr
         slide.setValue(500);
         fade.setValue(1); // 纯位移，不淡入
         Animated.parallel([
-          Animated.timing(back, { toValue: 1, duration: 300, useNativeDriver: false }),
+          Animated.timing(back, { toValue: 1, duration: 300, useNativeDriver: true }),
           Animated.timing(slide, { toValue: 0, duration: 450, easing: Easing.bezier(0.2, 0.9, 0.25, 1), useNativeDriver: true }),
         ]).start();
       } else {
         slide.setValue(-300);
         fade.setValue(0);
         Animated.parallel([
-          Animated.timing(back, { toValue: 1, duration: 300, useNativeDriver: false }),
-          Animated.spring(slide, { toValue: 0, useNativeDriver: false, bounciness: 4, speed: 14 }),
-          Animated.timing(fade, { toValue: 1, duration: 200, useNativeDriver: false }),
+          Animated.timing(back, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.spring(slide, { toValue: 0, useNativeDriver: true, bounciness: 4, speed: 14 }),
+          Animated.timing(fade, { toValue: 1, duration: 200, useNativeDriver: true }),
         ]).start();
       }
     } else if (show) {
       const backOut = Animated.sequence([
         Animated.delay(50),
-        Animated.timing(back, { toValue: 0, duration: 200, useNativeDriver: false }),
+        Animated.timing(back, { toValue: 0, duration: 200, useNativeDriver: true }),
       ]);
       if (animation === 'springScale') {
         const d = outDuration;
         Animated.parallel([
-          d != null ? Animated.timing(back, { toValue: 0, duration: d, useNativeDriver: false }) : backOut,
-          Animated.timing(scale, { toValue: 0.92, duration: d ?? 220, useNativeDriver: false }),
-          Animated.timing(slide, { toValue: 8, duration: d ?? 220, useNativeDriver: false }),
-          Animated.timing(fade, { toValue: 0, duration: d ?? 180, useNativeDriver: false }),
+          d != null ? Animated.timing(back, { toValue: 0, duration: d, useNativeDriver: true }) : backOut,
+          Animated.timing(scale, { toValue: 0.92, duration: d ?? 220, useNativeDriver: true }),
+          Animated.timing(slide, { toValue: 8, duration: d ?? 220, useNativeDriver: true }),
+          Animated.timing(fade, { toValue: 0, duration: d ?? 180, useNativeDriver: true }),
         ]).start(() => { setShow(false); onClosed?.(); });
       } else if (animation === 'blurMorph') {
         Animated.parallel([
@@ -127,33 +134,34 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, childr
         const d = outDuration;
         const linear = d != null;
         Animated.parallel([
-          d != null ? Animated.timing(back, { toValue: 0, duration: d, useNativeDriver: false }) : backOut,
+          d != null ? Animated.timing(back, { toValue: 0, duration: d, useNativeDriver: true }) : backOut,
           linear
-            ? Animated.timing(slide, { toValue: 500, duration: d, useNativeDriver: false })
-            : Animated.timing(slide, { toValue: 500, duration: 280, easing: Easing.bezier(0.4, 0, 1, 1), useNativeDriver: false }),
+            ? Animated.timing(slide, { toValue: 500, duration: d, useNativeDriver: true })
+            : Animated.timing(slide, { toValue: 500, duration: 280, easing: Easing.bezier(0.4, 0, 1, 1), useNativeDriver: true }),
           !linear
-            ? Animated.timing(scale, { toValue: 0.96, duration: 280, easing: Easing.bezier(0.4, 0, 1, 1), useNativeDriver: false })
+            ? Animated.timing(scale, { toValue: 0.96, duration: 280, easing: Easing.bezier(0.4, 0, 1, 1), useNativeDriver: true })
             : null,
-          Animated.timing(fade, { toValue: 0, duration: linear ? d : 220, useNativeDriver: false }),
+          Animated.timing(fade, { toValue: 0, duration: linear ? d : 220, useNativeDriver: true }),
         ].filter(Boolean) as any).start(() => { setShow(false); onClosed?.(); });
       } else if (animation === 'stagger') {
+        const d = outDuration;
         Animated.parallel([
-          backOut,
-          Animated.timing(slide, { toValue: 40, duration: 220, easing: Easing.bezier(0.4, 0, 1, 1), useNativeDriver: false }),
-          Animated.timing(scale, { toValue: 0.97, duration: 220, useNativeDriver: false }),
-          Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: false }),
+          d != null ? Animated.timing(back, { toValue: 0, duration: d, useNativeDriver: true }) : backOut,
+          d != null ? Animated.timing(slide, { toValue: 40, duration: d, useNativeDriver: true }) : Animated.timing(slide, { toValue: 40, duration: 220, easing: Easing.bezier(0.4, 0, 1, 1), useNativeDriver: true }),
+          d != null ? Animated.timing(scale, { toValue: 0.97, duration: d, useNativeDriver: true }) : Animated.timing(scale, { toValue: 0.97, duration: 220, useNativeDriver: true }),
+          Animated.timing(fade, { toValue: 0, duration: d ?? 180, useNativeDriver: true }),
         ]).start(() => { setShow(false); onClosed?.(); });
       } else if (animation === 'iosSheet') {
         const d = outDuration;
         Animated.parallel([
-          d != null ? Animated.timing(back, { toValue: 0, duration: d, useNativeDriver: false }) : backOut,
+          d != null ? Animated.timing(back, { toValue: 0, duration: d, useNativeDriver: true }) : backOut,
           Animated.timing(slide, { toValue: 500, duration: d ?? 300, useNativeDriver: true }),
         ]).start(() => { setShow(false); onClosed?.(); });
       } else {
         Animated.parallel([
           backOut,
-          Animated.timing(slide, { toValue: -300, duration: 180, useNativeDriver: false }),
-          Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: false }),
+          Animated.timing(slide, { toValue: -300, duration: 180, useNativeDriver: true }),
+          Animated.timing(fade, { toValue: 0, duration: 180, useNativeDriver: true }),
         ]).start(() => { setShow(false); onClosed?.(); });
       }
     }

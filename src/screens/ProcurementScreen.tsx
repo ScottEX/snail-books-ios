@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   View, Text, TextInput, ScrollView, TouchableOpacity,
-  FlatList, Image, ActivityIndicator, StyleSheet, Animated, Dimensions, useWindowDimensions,
+  FlatList, Image, StyleSheet, Animated, Dimensions, useWindowDimensions,
   ActionSheetIOS,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
@@ -18,6 +18,7 @@ import { usePaginatedList } from '../hooks/usePaginatedList';
 import { useServerDate } from '../hooks/useServerDate';
 import ConfirmModal from "../components/ConfirmModal";
 import EmptyState from "../components/EmptyState";
+import LoadingSpinner from '../components/LoadingSpinner';
 import TextField from '../components/TextField';
 import ButtonPair from '../components/ButtonPair';
 import SubmitButton from '../components/SubmitButton';
@@ -224,7 +225,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
   sectionLabel: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textSub, marginBottom: 6 },
   itemsBtnText: { fontSize: FONTS.sub.size, color: c.textMain, fontWeight: FONTS.sub.weight },
 
-  itemsModalCard: { backgroundColor: c.surface, borderRadius: MODAL_CARD_RADIUS, overflow: 'hidden' as const, display: 'flex' as any, flexDirection: 'column' as any },
+  itemsModalCard: { backgroundColor: c.surface, borderRadius: MODAL_CARD_RADIUS, overflow: 'hidden' as const, display: 'flex' as any, flexDirection: 'column' as any, paddingBottom: 12 },
   itemsModalBodyWrap: { paddingTop: 12, paddingBottom: 4 },
   itemsRow: { flexDirection: 'row' as const, alignItems: 'center' as const, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: withAlpha(c.textMain, 0.06) },
   itemsRowLast: { borderBottomWidth: 0 },
@@ -335,18 +336,29 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   const [editPriceVal, setEditPriceVal] = useState('');
 
   const [showDrawer, setShowDrawer] = useState(false);
+  const drawerCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleDrawerClose = () => {
+    if (drawerCloseTimer.current) { clearTimeout(drawerCloseTimer.current); drawerCloseTimer.current = null; }
     setShowDrawer(false);
     onDrawerClose?.();
-    setTimeout(() => {
-    if (editingBatchId !== null) {
-      setEditingBatchId(null); setEditingBatchNumber(0);
-      setEditingBatchSettled(false); setCartUnitPrices({});
-      setExistingImageUrls([]); setExistingThumbUrls([]);
-      setEditSnapshot(null);
-      setCart({}); setReceipts([]); setOrderNote('');
-      setOrderDate(sd.today); setPayMethod('payWechat');
-    }
+    drawerCloseTimer.current = setTimeout(() => {
+      if (editingBatchId !== null) {
+        setEditingBatchId(null); setEditingBatchNumber(0);
+        setEditingBatchSettled(false); setCartUnitPrices({});
+        setExistingImageUrls([]); setExistingThumbUrls([]);
+        setEditSnapshot(null);
+        setReceipts([]); setOrderNote('');
+        setOrderDate(sd.today); setPayMethod('payWechat');
+        // Reload cart from server instead of clearing — preserves items user added before editing
+        api.getCart().then((data: any) => {
+          if (Array.isArray(data)) {
+            const map: Record<number, number> = {};
+            data.forEach((item: any) => { map[item.product_id] = item.quantity; });
+            setCart(map);
+          }
+        }).catch(() => { setCart({}); });
+      }
+      drawerCloseTimer.current = null;
     }, 300);
   };
   const [orderDate, setOrderDate] = useState('');
@@ -484,7 +496,6 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   useEffect(() => { loadProducts(); loadStats(); }, [loadProducts, loadStats]);
 
   useEffect(() => {
-    if (pendingEditBatch) return;
     api.getCart().then((data: any) => {
       if (Array.isArray(data)) {
         const map: Record<number, number> = {};
@@ -594,20 +605,20 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
     setEditingPrice(null);
   };
 
-  const handleAddFiles = async (files: PickedImage[]) => {
+  const handleAddFiles = useCallback(async (files: PickedImage[]) => {
     const newFiles: PickedImage[] = [];
     for (const f of files) {
       if (receipts.some(r => r.uri === f.uri)) continue;
       newFiles.push(f);
     }
     setReceipts(prev => [...prev, ...newFiles]);
-  };
+  }, [receipts]);
 
-  const handleRemoveNewFile = (i: number) => {
+  const handleRemoveNewFile = useCallback((i: number) => {
     setReceipts(prev => prev.filter((_, idx) => idx !== i));
-  };
+  }, []);
 
-  const getPreviewUrl = (file: PickedImage) => file.uri || '';
+  const getPreviewUrl = useCallback((file: PickedImage) => file.uri || '', []);
 
   const submitOrder = async () => {
     if (cartItems.length === 0) return;
@@ -639,11 +650,18 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
           setShowDrawer(false);
           onDrawerClose?.();
           setTimeout(() => {
-          setCart({}); setReceipts([]); setOrderNote('');
+          setReceipts([]); setOrderNote('');
           setExistingImageUrls([]); setExistingThumbUrls([]);
           setEditingBatchId(null); setEditingBatchNumber(0);
           setEditingBatchSettled(false); setCartUnitPrices({});
           setOrderDate(sd.today); setPayMethod('payWechat');
+          api.getCart().then((data: any) => {
+            if (Array.isArray(data)) {
+              const map: Record<number, number> = {};
+              data.forEach((item: any) => { map[item.product_id] = item.quantity; });
+              setCart(map);
+            }
+          }).catch(() => { setCart({}); });
           }, 300);
           setSuccessTotal(r.total); setSuccessBatch(editingBatchNumber);
           setSuccessIsEdit(true);
@@ -682,6 +700,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   };
 
   const openEditBatch = (batch: BatchRecord) => {
+    if (drawerCloseTimer.current) { clearTimeout(drawerCloseTimer.current); drawerCloseTimer.current = null; }
     setEditingBatchId(batch.id);
     setEditingBatchNumber(batch.batch_number);
     setOrderDate(batch.date);
@@ -744,10 +763,15 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
     }
   };
 
-  const removeExistingImage = (i: number) => {
+  const removeExistingImage = useCallback((i: number) => {
     setExistingImageUrls(prev => prev.filter((_, idx) => idx !== i));
     setExistingThumbUrls(prev => prev.filter((_, idx) => idx !== i));
-  };
+  }, []);
+
+  const resolvedExistingImages = useMemo(
+    () => existingImageUrls.map(u => resolveAssetUrl(u) || u),
+    [existingImageUrls]
+  );
 
   const resetOrder = () => {
     closeSlideModal(() => { setShowSuccess(false); setOrderDate(sd.today); setPayMethod('payWechat'); setOrderNote(''); setReceipts([]); });
@@ -875,7 +899,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
       {subTab === 'new' && (
         <View style={{ flex: 1 }}>
           {productsLoading ? (
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
               {[...Array(8)].map((_, i) => (
                 <View key={i} style={{ marginBottom: 12 }}>
                   <View style={{ width: 56, height: 12, backgroundColor: withAlpha(c.textSub, 0.08), borderRadius: 4, marginLeft: 18, marginBottom: 8 }} />
@@ -899,9 +923,10 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                   ))}
                 </View>
               ))}
+              <View style={{ height: 120 }} />
             </ScrollView>
           ) : (
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
             {groupedProducts.map(([sup, items]) => (
               <View key={sup}>
                 <Text style={styles.sectionHead}>{supplierLabel(sup)}</Text>
@@ -954,6 +979,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                 hint={t('procEmptyNewHint')}
               />
             )}
+            <View style={{ height: 120 }} />
           </ScrollView>
           )}
 
@@ -1131,7 +1157,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
           )}
           ListFooterComponent={hasMore ? (
             <View style={styles.loadingMore}>
-              <ActivityIndicator size="small" color={c.primary} />
+              <LoadingSpinner label={false} size={16} color={c.primary} />
             </View>
           ) : null}
         />
@@ -1290,9 +1316,9 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
             <PaymentMethodChips label={t('procPaymentMethod') as string} selected={payMethod} onSelect={(m) => setPayMethod(m as PayMethod)} />
 
-            <View style={{ marginTop: 12 }}>
+            <View style={{ marginTop: 12, opacity: showItemsModal ? 0 : 1 }}>
               <ReceiptUpload
-                existingImages={existingImageUrls.map(u => resolveAssetUrl(u) || u)}
+                existingImages={resolvedExistingImages}
                 newFiles={receipts}
                 onAdd={handleAddFiles}
                 onRemoveExisting={removeExistingImage}
@@ -1396,7 +1422,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                   />
                 </View>
                 <View style={styles.itemsModalBodyWrap}>
-                  <ScrollView style={{ paddingHorizontal: 18, maxHeight: Math.max(120, Dimensions.get('window').height * 0.6 - 180) }} showsVerticalScrollIndicator={false}>
+                  <ScrollView style={{ paddingHorizontal: 18, maxHeight: Math.max(120, Dimensions.get('window').height * 0.6 - 192) }} showsVerticalScrollIndicator={false}>
                     {products
                       .filter(p => !productPickerSearch || p.name.includes(productPickerSearch) || (p.supplier || '').includes(productPickerSearch))
                       .map((p, idx, arr) => {
@@ -1438,7 +1464,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
             ) : (
               <View>
                 <View style={styles.itemsModalBodyWrap}>
-                  <ScrollView style={{ paddingHorizontal: 18, maxHeight: Math.max(120, Dimensions.get('window').height * 0.6 - 180) }} showsVerticalScrollIndicator={false}>
+                  <ScrollView style={{ paddingHorizontal: 18, maxHeight: Math.max(120, Dimensions.get('window').height * 0.6 - 192) }} showsVerticalScrollIndicator={false}>
                     {cartItems.length === 0 ? (
                       <View style={{ padding: 24, alignItems: 'center' }}>
                         <Text style={{ color: c.textSub, fontSize: FONTS.micro.size }}>—</Text>
