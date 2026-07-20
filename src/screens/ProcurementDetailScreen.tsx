@@ -159,6 +159,11 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
       if (r?.status === 'ok' && r.batch) {
         setCur({ ...cur, ...r.batch });
         setShowSettleConfirm(false);
+        // Notify parent list so the settled state reflects without manual refresh
+        const onBatchChanged = (cur as any)?._onBatchChanged;
+        if (typeof onBatchChanged === 'function') {
+          onBatchChanged({ ...cur, ...r.batch });
+        }
       } else {
         setSettleError(r?.message || t('toastSubmitFailed'));
       }

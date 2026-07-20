@@ -1081,7 +1081,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       />
 
       {/* ══════ Admin block modal ══════ */}
-      <ModalOverlay visible={showAdminBlockModal} onClose={() => setShowAdminBlockModal(false)}>
+      <ModalOverlay visible={showAdminBlockModal} onClose={() => setShowAdminBlockModal(false)} animation="blurMorph">
           <View style={mo.card}>
             <View style={mo.header}>
               <Text style={mo.title}>{t('deleteAccount')}</Text>

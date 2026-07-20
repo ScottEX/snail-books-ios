@@ -400,7 +400,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
   const [stats, setStats] = useState<ProcStats>({ total_spent: 0, total_income: 0, batch_count: 0, margin_pct: 0 });
 
-  const { records: batches, total: histTotal, hasMore, loading: loadingHist, loadingMore, refresh, loadMore } = usePaginatedList<BatchRecord>({
+  const { records: batches, total: histTotal, hasMore, loading: loadingHist, loadingMore, refresh, loadMore, setRecords: setBatches } = usePaginatedList<BatchRecord>({
     fetcher: useCallback(async (pg: number, perPage: number) => {
       const data: any = await api.getProcurementBatches(pg, perPage);
       return { records: data?.records || [], total: data?.total || 0, total_all: data?.total_all, pages: data?.pages || 1 };
@@ -454,8 +454,12 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
     setShowItemsModal(true);
   };
 
+  const handleBatchChanged = useCallback((updatedBatch: BatchRecord) => {
+    setBatches(prev => prev.map(b => b.id === updatedBatch.id ? { ...b, ...updatedBatch } : b));
+  }, [setBatches]);
+
   const openHistoryDetail = (batch: BatchRecord) => {
-    onProcurementDetail?.(batch);
+    onProcurementDetail?.({ ...batch, _onBatchChanged: handleBatchChanged } as any);
   };
 
   const suppliers = useMemo(() => {

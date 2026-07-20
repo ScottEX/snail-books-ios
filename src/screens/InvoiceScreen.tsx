@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Dimensions, useWindowDimensions,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, useWindowDimensions,
 } from 'react-native';
 import CustomActionSheet, { ActionItem } from '../components/CustomActionSheet';
 import AppTextInput from '../components/AppTextInput';
@@ -260,6 +260,9 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const [orig, setOrig] = useState<InvoiceData>(EMPTY_INV);
   const [loaded, setLoaded] = useState(false);
   const [entryCardH, setEntryCardH] = useState(0);
+  const winHRef = useRef(screenH);
+  useEffect(() => { winHRef.current = screenH; }, [screenH]);
+  const drawerMaxH = entryCardH > 0 ? winHRef.current - entryCardH : undefined;
 
   // Admin check
   const [isAdmin, setIsAdmin] = useState(false);
@@ -946,7 +949,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
         overlayStyle={bottomSheetOverlay}
         contentStyle={{ alignItems: 'stretch', justifyContent: 'flex-end' }}
       >
-        <ReAnimated.View style={[drawerPushStyle, styles.drawer, { backgroundColor: c.surface, maxHeight: Dimensions.get('window').height * 0.806 }]}>
+        <ReAnimated.View style={[drawerPushStyle, styles.drawer, { backgroundColor: c.surface, maxHeight: drawerMaxH }]}>
             <View style={[styles.drawerHead, { backgroundColor: c.primary, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 14, paddingHorizontal: 20, paddingBottom: 14 }]}>
               <SheetHeader title={editingId ? t('invRecEditTitle') : t('invRecAddTitle')} onClose={closeDrawer} />
             </View>

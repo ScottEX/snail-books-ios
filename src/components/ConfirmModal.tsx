@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme, ThemeColors, withAlpha } from '../theme';
 import { MODAL_CARD_RADIUS } from '../sharedStyles';
@@ -43,8 +43,9 @@ export default function ConfirmModal({
 
   // Delay parent state reset until after close animation
   const [animVisible, setAnimVisible] = useState(false);
-  React.useEffect(() => {
+  useEffect(() => {
     if (visible) setAnimVisible(true);
+    else setAnimVisible(false);
   }, [visible]);
 
   const handleClose = useCallback(() => {
