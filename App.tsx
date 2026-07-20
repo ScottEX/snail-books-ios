@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { StatusBar, StyleSheet } from 'react-native';
+import { StatusBar, StyleSheet, AppState } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import LoginScreen from './src/screens/LoginScreen';
 import RootStack from './src/navigation/RootStack';
@@ -10,7 +10,7 @@ import SessionKickedModal from './src/components/SessionKickedModal';
 import { ErrorBoundary } from './src/components/CrashCatcher';
 import { ThemeProvider } from './src/theme';
 import { LangProvider } from './src/i18n';
-import { onSessionKicked, onUserChange, setSessionExpiredHandler, setIdleTimeoutHours, api } from './src/api/client';
+import { onSessionKicked, onUserChange, setSessionExpiredHandler, setIdleTimeoutHours, api, bumpActivity } from './src/api/client';
 import { initStorageCache } from './src/platform';
 
 export default function App() {
@@ -34,6 +34,17 @@ export default function App() {
   const lastExpireAt = useRef(0);
   const [kickedVisible, setKickedVisible] = useState(false);
   const expiring = useRef(false);
+
+  // Reset idle timer when the app returns to foreground — prevents premature
+  // logout when the user is actively using the app without making API calls.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        try { if (localStorage.getItem('user')) bumpActivity(); } catch {}
+      }
+    });
+    return () => { sub.remove(); };
+  }, []);
 
   useEffect(() => {
     initStorageCache().then(() => {

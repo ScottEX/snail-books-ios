@@ -79,6 +79,7 @@ startIdleTimer();
 function bumpActivity() {
   lastActivity = Date.now();
 }
+export { bumpActivity };
 
 function headers(): Record<string, string> {
   const h: Record<string, string> = { 'X-Lang': getLang() };
