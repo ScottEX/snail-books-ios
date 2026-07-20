@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   View, Text, TextInput, ScrollView, TouchableOpacity,
-  FlatList, Image, ActivityIndicator, StyleSheet, Animated, Dimensions, useWindowDimensions,
+  FlatList, Image, StyleSheet, Animated, Dimensions, useWindowDimensions,
   ActionSheetIOS,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
@@ -18,6 +18,7 @@ import { usePaginatedList } from '../hooks/usePaginatedList';
 import { useServerDate } from '../hooks/useServerDate';
 import ConfirmModal from "../components/ConfirmModal";
 import EmptyState from "../components/EmptyState";
+import LoadingSpinner from '../components/LoadingSpinner';
 import TextField from '../components/TextField';
 import ButtonPair from '../components/ButtonPair';
 import SubmitButton from '../components/SubmitButton';
@@ -1156,7 +1157,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
           )}
           ListFooterComponent={hasMore ? (
             <View style={styles.loadingMore}>
-              <ActivityIndicator size="small" color={c.primary} />
+              <LoadingSpinner label={false} size={16} color={c.primary} />
             </View>
           ) : null}
         />

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
-  Animated, ImageBackground, Image, ActivityIndicator, StatusBar,
+  Animated, ImageBackground, Image, StatusBar,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

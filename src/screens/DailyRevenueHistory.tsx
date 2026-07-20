@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import HomeBackground from '../components/HomeBackground';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, StatusBar } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { t, getLang } from '../i18n';
 import { api } from '../api/client';
@@ -216,7 +216,7 @@ export default function DailyRevenueHistory({ onBack }: Props) {
             ))}
             {hasMore && (
               <View style={styles.loadingMore}>
-                <ActivityIndicator size="small" color={colors.primary} />
+                <LoadingSpinner label={false} size={16} color={colors.primary} />
                 <Text style={styles.loadingMoreText}>{t('loading')}...</Text>
               </View>
             )}

@@ -9,10 +9,10 @@ import {
   Switch,
   Image,
   TextInput,
-  ActivityIndicator,
   Modal,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
+import LoadingSpinner from '../components/LoadingSpinner';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { t, getLang } from '../i18n';
@@ -286,7 +286,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       {loading ? (
         <View style={{ flex: 1 }}>
           <View style={{ paddingVertical: 60, alignItems: 'center' }}>
-            <ActivityIndicator color={c.primary} />
+            <LoadingSpinner />
           </View>
         </View>
       ) : !detail ? (

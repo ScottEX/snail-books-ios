@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  Image, Switch, Modal, ActivityIndicator, useWindowDimensions,
+  Image, Switch, Modal, useWindowDimensions,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Defs, LinearGradient as SVGGradient, Stop, Rect } from 'react-native-svg';
