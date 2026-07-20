@@ -33,7 +33,7 @@ export function usePaginatedList<T>({ fetcher, perPage = 10, autoLoad = true }: 
   const [total, setTotal] = useState(0);
   const [totalAll, setTotalAll] = useState(0);
   const [pages, setPages] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
