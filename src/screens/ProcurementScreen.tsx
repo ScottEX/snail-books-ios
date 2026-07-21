@@ -179,7 +179,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
   subTabCount: { fontSize: FONTS.micro.size, fontWeight: '600' as any, color: dimColor, backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, minWidth: 18, textAlign: 'center' as any, overflow: 'hidden' as const },
   subTabCountOn: { color: c.primary },
 
-  sectionHead: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 4, fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: c.primary, textTransform: 'uppercase' as const, letterSpacing: 1 },
+  sectionHead: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 4, fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: c.primary, textTransform: 'uppercase' as const, letterSpacing: 1 },
   productCard: { marginHorizontal: 0, marginBottom: 6, backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06), overflow: 'hidden' as const },
   productCardSel: { borderColor: c.primary, borderWidth: 1.5 },
   prodRow: { flexDirection: 'row' as const, alignItems: 'center' as const, paddingVertical: 10, paddingHorizontal: 18, gap: 10 },
@@ -257,7 +257,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
   modalDeleteBox: { backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 12, padding: 12, alignItems: 'center' as const },
   modalDeleteText: { fontSize: FONTS.micro.size, color: c.textSub, textAlign: 'center' as const },
 
-  historyList: { paddingVertical: 12, paddingBottom: 100 },
+  historyList: { paddingBottom: 100 },
   historyCard: { backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06), marginBottom: 10, overflow: 'hidden' as const },
   histHead: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, padding: 10, borderBottomWidth: 1, borderBottomColor: withAlpha(c.textMain, 0.05) },
   histNo: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: c.primary },
@@ -314,9 +314,17 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   // Drawer keyboard push
   const { height: screenH } = useWindowDimensions();
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const drawerCap = -screenH * 0.2;
+  const drawerCap = -screenH * 0.38;
+  const newOrderCap = -screenH * 0.25;
+  const productModalCap = -screenH * 0.1;
   const drawerPushStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: Math.max(keyboardHeight.value, drawerCap) }],
+  }));
+  const newOrderPushStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: Math.max(keyboardHeight.value, newOrderCap) }],
+  }));
+  const productModalPushStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: Math.max(keyboardHeight.value, productModalCap) }],
   }));
 
   const [subTab, setSubTab] = useState<SubTab>(() => {
@@ -901,7 +909,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
       {/* ── New Order ── */}
       {subTab === 'new' && (
-        <View style={{ flex: 1 }}>
+        <ReAnimated.View style={[newOrderPushStyle, { flex: 1, paddingTop: 8 }]}>
           {productsLoading ? (
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
               {[...Array(8)].map((_, i) => (
@@ -1012,12 +1020,13 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
               </TouchableOpacity>
             </View>
           )}
-        </View>
+        </ReAnimated.View>
       )}
 
       {/* ── History ── */}
       {subTab === 'history' && (
-        loadingHist || (search !== '' && searchLoading) ? (
+        <View style={{ flex: 1, paddingTop: 8 }}>
+        {loadingHist || (search !== '' && searchLoading) ? (
           <View style={styles.historyList}>
             {[...Array(10)].map((_, i) => (
               <View key={i} style={[styles.historyCard, { pointerEvents: 'none' as any }]}>
@@ -1165,7 +1174,9 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
             </View>
           ) : null}
         />
-      ))}
+      )}
+      </View>
+      )}
 
       {/* ── Product Mgmt ── */}
       {subTab === 'products' && (
@@ -1222,7 +1233,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
       {/* ── Product Modal (springScale) ── */}
       <ModalOverlay visible={showProductModal} onClose={() => setShowProductModal(false)} animation="springScale">
-        <View style={styles.modalCard}>
+        <ReAnimated.View style={[productModalPushStyle, styles.modalCard]}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{editingProduct ? t('procEditProduct') : t('procAddProduct')}</Text>
             <CloseButton onPress={() => setShowProductModal(false)} />
@@ -1256,7 +1267,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
               rightLoading={prodSaving}
             />
           </View>
-        </View>
+        </ReAnimated.View>
       </ModalOverlay>
 
       {/* ── Delete confirmation modal (product) ── */}

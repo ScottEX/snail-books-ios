@@ -357,7 +357,6 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         ListFooterComponent={hasMore ? (
           <View style={st.loadingMore}>
             <LoadingSpinner label={false} size={16} color={colors.primary} />
-            <Text style={st.loadingMoreText}>{t('loading')}...</Text>
           </View>
         ) : null}
       />
@@ -412,7 +411,6 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   imgThumbs: { flexDirection: 'row', gap: 6, marginTop: 4, flexWrap: 'wrap' },
   thumbImg: { width: 48, height: 48, borderRadius: 6, backgroundColor: colors.bg },
   loadingMore: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 16, gap: 8 },
-  loadingMoreText: { fontSize: FONTS.sub.size, color: colors.primary },
   /* Filter */
   filterField: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
   filterLabel: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: '#FFFFFF', width: 64, flexShrink: 0 },

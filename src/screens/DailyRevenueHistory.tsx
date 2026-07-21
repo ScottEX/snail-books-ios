@@ -217,7 +217,6 @@ export default function DailyRevenueHistory({ onBack }: Props) {
             {hasMore && (
               <View style={styles.loadingMore}>
                 <LoadingSpinner label={false} size={16} color={colors.primary} />
-                <Text style={styles.loadingMoreText}>{t('loading')}...</Text>
               </View>
             )}
           </>
