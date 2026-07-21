@@ -15,7 +15,9 @@
 //      mid 算法、moBody.input color、detail cell 字号、mo.close = modalClose
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Image, useWindowDimensions } from 'react-native';
+import ReAnimated, { useAnimatedStyle } from 'react-native-reanimated';
+import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path } from 'react-native-svg';
 import { t, useLang } from '../i18n';
@@ -96,6 +98,13 @@ export default function PartnerScreen({ onBack, onProfile, onInvoice, refreshKey
     getPartnerHistory,
   } = usePartnerData(showToast, refreshKey);
   const [showDividend, setShowDividend] = useState(false);
+  // Keyboard push for dividend modal
+  const { height: partnerScreenH } = useWindowDimensions();
+  const { height: partnerKeyboardH } = useReanimatedKeyboardAnimation();
+  const dividendModalCap = -partnerScreenH * 0.15;
+  const dividendPushStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: Math.max(partnerKeyboardH.value, dividendModalCap) }],
+  }));
   const [showDelete, setShowDelete] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
@@ -422,7 +431,7 @@ export default function PartnerScreen({ onBack, onProfile, onInvoice, refreshKey
 
       {/* ====== DIVIDEND MODAL ====== */}
       <ModalOverlay visible={showDividend} onClose={() => setShowDividend(false)} animation="springScale">
-        <View style={mo.modalCard} onStartShouldSetResponder={() => true}>
+        <ReAnimated.View style={[dividendPushStyle, mo.modalCard]} onStartShouldSetResponder={() => true}>
           <View style={mo.header}>
             <View>
               <Text style={mo.title}>{t('issueProportional')}</Text>
@@ -487,7 +496,7 @@ export default function PartnerScreen({ onBack, onProfile, onInvoice, refreshKey
               rightDisabled={!divAmount || parseFloat(divAmount) <= 0}
             />
           </View>
-        </View>
+        </ReAnimated.View>
       </ModalOverlay>
 
       {/* ====== DELETE MODAL ====== */}
