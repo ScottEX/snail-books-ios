@@ -263,6 +263,8 @@ export default React.memo(function ReceiptUpload({
           { label: t('takePhoto') || '拍照', onPress: handlePickFromCamera },
           { label: t('chooseFromLibrary') || '从相册选择', onPress: handlePickFromLibrary },
         ]}
+        dark
+        offsetY={220}
       />
     </View>
   );
