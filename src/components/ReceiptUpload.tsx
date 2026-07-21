@@ -96,7 +96,7 @@ export default React.memo(function ReceiptUpload({
     // 测量按钮位置，弹窗跟在其上方
     (pickBtnRef.current as any)?.measureInWindow?.((x: number, y: number, _w: number, h: number) => {
       setPickOffsetX(x || 16);
-      setPickOffsetY(Math.max((y || 100) - 110, 4));
+      setPickOffsetY(Math.max((y || 100) - 92, 4));
       setShowPickerSheet(true);
     }) || setShowPickerSheet(true);
   };
