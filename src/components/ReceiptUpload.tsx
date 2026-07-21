@@ -292,6 +292,7 @@ export default React.memo(function ReceiptUpload({
           },
         ]}
         dark
+        noOverlay
         offsetY={pickOffsetY}
         offsetX={pickOffsetX}
       />

@@ -26,10 +26,12 @@ interface Props {
   offsetX?: number;
   /** Dark BlurView style — matches 对账人 dropdown */
   dark?: boolean;
+  /** Hide backdrop overlay */
+  noOverlay?: boolean;
 }
 
 export default function CustomActionSheet({
-  visible, title, message, actions, onClose, offsetY = 0, offsetX = 0, dark = false,
+  visible, title, message, actions, onClose, offsetY = 0, offsetX = 0, dark = false, noOverlay = false,
 }: Props) {
   const { colors: c } = useTheme();
   const anim = useRef(new Animated.Value(0)).current;
@@ -71,7 +73,7 @@ export default function CustomActionSheet({
         onPress={handleClose}
       >
         <Animated.View
-          style={[st.overlay, { opacity: anim }]}
+          style={[st.overlay, { opacity: anim, backgroundColor: noOverlay ? 'transparent' : undefined }]}
         />
       </TouchableOpacity>
 
