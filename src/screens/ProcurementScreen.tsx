@@ -314,7 +314,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   // Drawer keyboard push
   const { height: screenH } = useWindowDimensions();
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const drawerCap = -screenH * 0.2;
+  const drawerCap = -screenH * 0.35;
   const drawerPushStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: Math.max(keyboardHeight.value, drawerCap) }],
   }));
