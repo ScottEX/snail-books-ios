@@ -1025,7 +1025,8 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
       {/* ── History ── */}
       {subTab === 'history' && (
-        loadingHist || (search !== '' && searchLoading) ? (
+        <View style={{ flex: 1, paddingTop: 8 }}>
+        {loadingHist || (search !== '' && searchLoading) ? (
           <View style={styles.historyList}>
             {[...Array(10)].map((_, i) => (
               <View key={i} style={[styles.historyCard, { pointerEvents: 'none' as any }]}>
@@ -1175,7 +1176,9 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
             </View>
           ) : null}
         />
-      ))}
+      )}
+      </View>
+      )}
 
       {/* ── Product Mgmt ── */}
       {subTab === 'products' && (
