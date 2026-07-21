@@ -581,6 +581,7 @@ const I18N: Record<string, Record<string, string>> = {
     uploadImage: '凭证上传',
     takePhoto: '拍照',
     chooseFromLibrary: '照片图库',
+    chooseFile: '选择文件',
     uploading: '上传中...',
     usePasswordLogin: '密码登录',
     useThisAvatar: '使用此头像',
@@ -1199,6 +1200,7 @@ const I18N: Record<string, Record<string, string>> = {
     uploadImage: '憑證上傳',
     takePhoto: '拍照',
     chooseFromLibrary: '照片圖庫',
+    chooseFile: '選擇檔案',
     uploading: '上傳中...',
     usePasswordLogin: '密碼登錄',
     useThisAvatar: '使用此頭像',
@@ -1806,6 +1808,7 @@ const I18N: Record<string, Record<string, string>> = {
     uploadImage: 'Upload Receipt',
     takePhoto: 'Take Photo',
     chooseFromLibrary: 'Photo Library',
+    chooseFile: 'Choose File',
     uploading: 'Uploading...',
     usePasswordLogin: 'Password Login',
     useThisAvatar: 'Use This Avatar',
@@ -1891,6 +1894,7 @@ export type I18nKey =
   | 'chartXAxis'
   | 'chartXAxisDay'
   | 'chartYAxis'
+  | 'chooseFile'
   | 'chooseFromLibrary'
   | 'chooseImage'
   | 'clear'

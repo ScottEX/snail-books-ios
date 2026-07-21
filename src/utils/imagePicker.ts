@@ -1,4 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 
 export interface PickedImage {
   uri: string;
@@ -100,4 +101,23 @@ export async function takePhoto(): Promise<PickedImage | null> {
     width: a.width,
     height: a.height,
   };
+}
+
+/**
+ * Open the system file picker for documents (PDF etc.).
+ */
+export async function pickFiles(): Promise<PickedImage[]> {
+  const result = await DocumentPicker.getDocumentAsync({
+    type: ['application/pdf', 'image/*'],
+    multiple: true,
+    copyToCacheDirectory: true,
+  });
+
+  if (result.canceled) return [];
+  return result.assets.map(a => ({
+    uri: a.uri,
+    type: a.mimeType ?? 'application/octet-stream',
+    name: a.name,
+    size: a.size ?? 0,
+  }));
 }

@@ -6,7 +6,7 @@ import { useTheme, withAlpha, REQUIRED_COLOR } from '../theme';
 import { FONTS } from '../theme';
 import { t } from '../i18n';
 import { useCallback, useRef, useState } from 'react';
-import { pickImages, takePhoto, PickedImage } from '../utils/imagePicker';
+import { pickImages, takePhoto, pickFiles, PickedImage } from '../utils/imagePicker';
 import CustomActionSheet from './CustomActionSheet';
 import { measureThumbLayout, resolveThumbLayout, ThumbLayout, ThumbLayoutResolver } from './ImagePreview';
 
@@ -128,6 +128,27 @@ export default React.memo(function ReceiptUpload({
       onAdd(slice);
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'Failed to pick images');
+    } finally {
+      busyRef.current = false;
+    }
+  }, [existingImages.length, newFiles.length, onAdd]);
+
+  const handlePickFiles = useCallback(async () => {
+    setShowPickerSheet(false);
+    if (busyRef.current) return;
+    busyRef.current = true;
+    try {
+      const available = MAX_IMAGES - existingImages.length - newFiles.length;
+      const picked = await pickFiles();
+      if (!picked || picked.length === 0) return;
+      const slice = picked.slice(0, available);
+      if (picked.length > available) {
+        setShowMaxHint(true);
+        setTimeout(() => setShowMaxHint(false), 3000);
+      }
+      onAdd(slice);
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Failed to pick files');
     } finally {
       busyRef.current = false;
     }
@@ -289,6 +310,17 @@ export default React.memo(function ReceiptUpload({
               </Svg>
             ),
             onPress: handlePickFromCamera,
+          },
+          {
+            label: t('chooseFile'),
+            icon: (
+              <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                <Path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <Path d="M14 2v6h6" />
+                <Path d="M16 13H8M16 17H8M10 9H8" />
+              </Svg>
+            ),
+            onPress: handlePickFiles,
           },
         ]}
         dark
