@@ -61,6 +61,9 @@ export default React.memo(function ReceiptUpload({
   const busyRef = useRef(false);
   const existingThumbRefs = useRef<(any | null)[]>([]);
   const newThumbRefs = useRef<(any | null)[]>([]);
+  const pickBtnRef = useRef<any>(null);
+  const [pickOffsetY, setPickOffsetY] = useState(0);
+  const [pickOffsetX, setPickOffsetX] = useState(0);
 
   const handlePreviewExisting = useCallback((i: number) => {
     if (!onPreviewExisting) return;
@@ -90,7 +93,12 @@ export default React.memo(function ReceiptUpload({
       setTimeout(() => setShowMaxHint(false), 3000);
       return;
     }
-    setShowPickerSheet(true);
+    // 测量按钮位置，弹窗跟在其下方
+    (pickBtnRef.current as any)?.measureInWindow?.((x: number, y: number, _w: number, h: number) => {
+      setPickOffsetX(x || 16);
+      setPickOffsetY((y || 200) + (h || 40) + 4);
+      setShowPickerSheet(true);
+    }) || setShowPickerSheet(true);
   };
 
   const handlePickFromCamera = useCallback(async () => {
@@ -160,6 +168,7 @@ export default React.memo(function ReceiptUpload({
         {/* Add button */}
         {!atMax && (
         <TouchableOpacity
+          ref={pickBtnRef}
           style={{
             width: thumbSize, height: thumbSize,
             borderRadius: 8,
@@ -264,7 +273,8 @@ export default React.memo(function ReceiptUpload({
           { label: t('chooseFromLibrary') || '从相册选择', onPress: handlePickFromLibrary },
         ]}
         dark
-        offsetY={220}
+        offsetY={pickOffsetY}
+        offsetX={pickOffsetX}
       />
     </View>
   );
