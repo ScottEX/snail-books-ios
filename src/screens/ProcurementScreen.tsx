@@ -316,11 +316,15 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const drawerCap = -screenH * 0.38;
   const newOrderCap = -screenH * 0.25;
+  const productModalCap = -screenH * 0.2;
   const drawerPushStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: Math.max(keyboardHeight.value, drawerCap) }],
   }));
   const newOrderPushStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: Math.max(keyboardHeight.value, newOrderCap) }],
+  }));
+  const productModalPushStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: Math.max(keyboardHeight.value, productModalCap) }],
   }));
 
   const [subTab, setSubTab] = useState<SubTab>(() => {
@@ -1226,7 +1230,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
       {/* ── Product Modal (springScale) ── */}
       <ModalOverlay visible={showProductModal} onClose={() => setShowProductModal(false)} animation="springScale">
-        <View style={styles.modalCard}>
+        <ReAnimated.View style={[productModalPushStyle, styles.modalCard]}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{editingProduct ? t('procEditProduct') : t('procAddProduct')}</Text>
             <CloseButton onPress={() => setShowProductModal(false)} />
@@ -1260,7 +1264,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
               rightLoading={prodSaving}
             />
           </View>
-        </View>
+        </ReAnimated.View>
       </ModalOverlay>
 
       {/* ── Delete confirmation modal (product) ── */}
