@@ -81,7 +81,7 @@ export default function CustomActionSheet({
       >
         <Animated.View
           style={[
-            dark ? { width: 160, alignSelf: 'flex-start' as const } : st.sheet,
+            dark ? { width: 180, alignSelf: 'flex-start' as const } : st.sheet,
             {
               marginTop: offsetY,
               marginLeft: offsetX,
@@ -99,16 +99,18 @@ export default function CustomActionSheet({
                 {actions.map((action, index) => (
                   <TouchableOpacity
                     key={index}
-                    style={{
+                    style={[{
                       paddingVertical: 10, paddingHorizontal: 12, marginHorizontal: 4,
                       marginTop: index === 0 ? 4 : 0,
                       marginBottom: index === actions.length - 1 ? 4 : 0,
                       borderRadius: 8,
                       backgroundColor: action.selected ? 'rgba(10,132,255,0.25)' : 'transparent',
-                    }}
+                      flexDirection: 'row' as any, alignItems: 'center' as any, gap: 8,
+                    }]}
                     onPress={() => { if (action.disabled) return; handleClose(); setTimeout(action.onPress, 250); }}
                     activeOpacity={0.6}
                   >
+                    {action.icon && <View style={{ width: 18, height: 18, alignItems: 'center', justifyContent: 'center' }}>{action.icon}</View>}
                     <Text style={{
                       fontSize: FONTS.sub.size,
                       color: action.selected ? '#0A84FF' : action.destructive ? '#FF453A' : '#FFFFFF',

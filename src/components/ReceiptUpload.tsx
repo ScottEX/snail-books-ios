@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, LayoutChangeEvent, Alert } from 'react-native';
 import { Image } from 'expo-image';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import { useTheme, withAlpha, REQUIRED_COLOR } from '../theme';
 import { FONTS } from '../theme';
 import { t } from '../i18n';
@@ -269,8 +269,27 @@ export default React.memo(function ReceiptUpload({
         visible={showPickerSheet}
         onClose={() => setShowPickerSheet(false)}
         actions={[
-          { label: t('takePhoto'), onPress: handlePickFromCamera },
-          { label: t('chooseFromLibrary'), onPress: handlePickFromLibrary },
+          {
+            label: t('takePhoto'),
+            icon: (
+              <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                <Path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                <Circle cx="12" cy="13" r="4" />
+              </Svg>
+            ),
+            onPress: handlePickFromCamera,
+          },
+          {
+            label: t('chooseFromLibrary'),
+            icon: (
+              <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                <Rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <Circle cx="8.5" cy="8.5" r="1.5" />
+                <Path d="M21 15l-5-5L5 21" />
+              </Svg>
+            ),
+            onPress: handlePickFromLibrary,
+          },
         ]}
         dark
         offsetY={pickOffsetY}
