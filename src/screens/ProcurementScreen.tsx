@@ -257,7 +257,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
   modalDeleteBox: { backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 12, padding: 12, alignItems: 'center' as const },
   modalDeleteText: { fontSize: FONTS.micro.size, color: c.textSub, textAlign: 'center' as const },
 
-  historyList: { paddingVertical: 12, paddingBottom: 100 },
+  historyList: { paddingTop: 8, paddingBottom: 100 },
   historyCard: { backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06), marginBottom: 10, overflow: 'hidden' as const },
   histHead: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, padding: 10, borderBottomWidth: 1, borderBottomColor: withAlpha(c.textMain, 0.05) },
   histNo: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: c.primary },
@@ -909,7 +909,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
       {/* ── New Order ── */}
       {subTab === 'new' && (
-        <ReAnimated.View style={[newOrderPushStyle, { flex: 1 }]}>
+        <ReAnimated.View style={[newOrderPushStyle, { flex: 1, paddingTop: 8 }]}>
           {productsLoading ? (
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
               {[...Array(8)].map((_, i) => (
