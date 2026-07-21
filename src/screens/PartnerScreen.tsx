@@ -101,7 +101,7 @@ export default function PartnerScreen({ onBack, onProfile, onInvoice, refreshKey
   // Keyboard push for dividend modal
   const { height: partnerScreenH } = useWindowDimensions();
   const { height: partnerKeyboardH } = useReanimatedKeyboardAnimation();
-  const dividendModalCap = -partnerScreenH * 0.15;
+  const dividendModalCap = -partnerScreenH * 0.1;
   const dividendPushStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: Math.max(partnerKeyboardH.value, dividendModalCap) }],
   }));
