@@ -63,6 +63,8 @@ export async function pickImages(opts: { multiple?: boolean } = {}): Promise<Pic
     allowsMultipleSelection: !!opts.multiple,
     quality: 0.85,
     selectionLimit: opts.multiple ? 10 : 1,
+    // iPad 上默认 POPOVER 无锚点会跑左上角，强制用整页展示
+    presentationStyle: ImagePicker.UIImagePickerPresentationStyle.PAGE_SHEET,
   });
 
   if (result.canceled) return [];
