@@ -1066,8 +1066,6 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
             data={filteredBatches}
             keyExtractor={item => String(item.id)}
             contentContainerStyle={styles.historyList}
-            contentInset={{ top: 8 }}
-            contentOffset={{ x: 0, y: -8 }}
             showsVerticalScrollIndicator={false}
             onEndReached={hasMore ? () => loadMore() : undefined}
             onEndReachedThreshold={0.4}
