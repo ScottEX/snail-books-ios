@@ -6,7 +6,8 @@ import { useTheme, withAlpha, REQUIRED_COLOR } from '../theme';
 import { FONTS } from '../theme';
 import { t } from '../i18n';
 import { useCallback, useRef, useState } from 'react';
-import { pickImages, PickedImage } from '../utils/imagePicker';
+import { pickImages, takePhoto, PickedImage } from '../utils/imagePicker';
+import CustomActionSheet from './CustomActionSheet';
 import { measureThumbLayout, resolveThumbLayout, ThumbLayout, ThumbLayoutResolver } from './ImagePreview';
 
 /** File-like type — on RN we use { uri, type, name } from expo-image-picker. */
@@ -56,6 +57,7 @@ export default React.memo(function ReceiptUpload({
   const [showTip, setShowTip] = useState(false);
   const [containerWidth, setContainerWidth] = useState(0);
   const [showMaxHint, setShowMaxHint] = useState(false);
+  const [showPickerSheet, setShowPickerSheet] = useState(false);
   const busyRef = useRef(false);
   const existingThumbRefs = useRef<(any | null)[]>([]);
   const newThumbRefs = useRef<(any | null)[]>([]);
@@ -81,16 +83,33 @@ export default React.memo(function ReceiptUpload({
     if (w > 0) setContainerWidth(w);
   }, []);
 
-  const handlePick = async () => {
+  const handlePick = () => {
+    const available = MAX_IMAGES - existingImages.length - newFiles.length;
+    if (available <= 0) {
+      setShowMaxHint(true);
+      setTimeout(() => setShowMaxHint(false), 3000);
+      return;
+    }
+    setShowPickerSheet(true);
+  };
+
+  const handlePickFromCamera = useCallback(async () => {
+    setShowPickerSheet(false);
+    try {
+      const photo = await takePhoto();
+      if (!photo) return;
+      onAdd([photo]);
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Failed to take photo');
+    }
+  }, [onAdd]);
+
+  const handlePickFromLibrary = useCallback(async () => {
+    setShowPickerSheet(false);
     if (busyRef.current) return;
     busyRef.current = true;
     try {
       const available = MAX_IMAGES - existingImages.length - newFiles.length;
-      if (available <= 0) {
-        setShowMaxHint(true);
-        setTimeout(() => setShowMaxHint(false), 3000);
-        return;
-      }
       const picked = await pickImages({ multiple: true });
       if (!picked || picked.length === 0) return;
       const slice = picked.slice(0, available);
@@ -104,7 +123,7 @@ export default React.memo(function ReceiptUpload({
     } finally {
       busyRef.current = false;
     }
-  };
+  }, [existingImages.length, newFiles.length, onAdd]);
 
   const atMax = existingImages.length + newFiles.length >= MAX_IMAGES;
   const totalItems = atMax ? existingImages.length + newFiles.length : 1 + existingImages.length + newFiles.length;
@@ -236,6 +255,15 @@ export default React.memo(function ReceiptUpload({
           最多{MAX_IMAGES}张
         </Text>
       )}
+
+      <CustomActionSheet
+        visible={showPickerSheet}
+        onClose={() => setShowPickerSheet(false)}
+        actions={[
+          { label: t('takePhoto') || '拍照', onPress: handlePickFromCamera },
+          { label: t('chooseFromLibrary') || '从相册选择', onPress: handlePickFromLibrary },
+        ]}
+      />
     </View>
   );
 });
