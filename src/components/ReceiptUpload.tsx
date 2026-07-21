@@ -93,10 +93,10 @@ export default React.memo(function ReceiptUpload({
       setTimeout(() => setShowMaxHint(false), 3000);
       return;
     }
-    // 测量按钮位置，弹窗跟在其下方
+    // 测量按钮位置，弹窗跟在其上方
     (pickBtnRef.current as any)?.measureInWindow?.((x: number, y: number, _w: number, h: number) => {
       setPickOffsetX(x || 16);
-      setPickOffsetY((y || 200) + (h || 40) + 4);
+      setPickOffsetY(Math.max((y || 100) - 90, 4));
       setShowPickerSheet(true);
     }) || setShowPickerSheet(true);
   };
