@@ -269,8 +269,8 @@ export default React.memo(function ReceiptUpload({
         visible={showPickerSheet}
         onClose={() => setShowPickerSheet(false)}
         actions={[
-          { label: '拍照', onPress: handlePickFromCamera },
-          { label: '从相册选择', onPress: handlePickFromLibrary },
+          { label: t('takePhoto'), onPress: handlePickFromCamera },
+          { label: t('chooseFromLibrary'), onPress: handlePickFromLibrary },
         ]}
         dark
         offsetY={pickOffsetY}

@@ -579,6 +579,8 @@ const I18N: Record<string, Record<string, string>> = {
     uploadFailedShort: '上传失败',
     uploadFileTip: '支持 jpg/png/webp/pdf，单张最大 10MB',
     uploadImage: '凭证上传',
+    takePhoto: '拍照',
+    chooseFromLibrary: '从相册选择',
     uploading: '上传中...',
     usePasswordLogin: '密码登录',
     useThisAvatar: '使用此头像',
@@ -1195,6 +1197,8 @@ const I18N: Record<string, Record<string, string>> = {
     uploadFailedShort: '上傳失敗',
     uploadFileTip: '支援 jpg/png/webp/pdf，單張最大 10MB',
     uploadImage: '憑證上傳',
+    takePhoto: '拍照',
+    chooseFromLibrary: '從相簿選擇',
     uploading: '上傳中...',
     usePasswordLogin: '密碼登錄',
     useThisAvatar: '使用此頭像',
@@ -1800,6 +1804,8 @@ const I18N: Record<string, Record<string, string>> = {
     uploadFailedShort: 'Upload failed',
     uploadFileTip: 'Supports jpg/png/webp/pdf, max 10MB per file',
     uploadImage: 'Upload Receipt',
+    takePhoto: 'Take Photo',
+    chooseFromLibrary: 'Choose from Library',
     uploading: 'Uploading...',
     usePasswordLogin: 'Password Login',
     useThisAvatar: 'Use This Avatar',
@@ -1885,6 +1891,7 @@ export type I18nKey =
   | 'chartXAxis'
   | 'chartXAxisDay'
   | 'chartYAxis'
+  | 'chooseFromLibrary'
   | 'chooseImage'
   | 'clear'
   | 'codeSent'
@@ -2395,6 +2402,7 @@ export type I18nKey =
   | 'tabExpense'
   | 'tabRecon'
   | 'tabRevenue'
+  | 'takePhoto'
   | 'tapForDetail'
   | 'taxId'
   | 'themeLabel'
