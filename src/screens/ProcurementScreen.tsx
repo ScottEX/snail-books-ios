@@ -315,8 +315,12 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   const { height: screenH } = useWindowDimensions();
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const drawerCap = -screenH * 0.38;
+  const newOrderCap = -screenH * 0.2;
   const drawerPushStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: Math.max(keyboardHeight.value, drawerCap) }],
+  }));
+  const newOrderPushStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: Math.max(keyboardHeight.value, newOrderCap) }],
   }));
 
   const [subTab, setSubTab] = useState<SubTab>(() => {
@@ -901,7 +905,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
       {/* ── New Order ── */}
       {subTab === 'new' && (
-        <View style={{ flex: 1 }}>
+        <ReAnimated.View style={[newOrderPushStyle, { flex: 1 }]}>
           {productsLoading ? (
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
               {[...Array(8)].map((_, i) => (
@@ -1012,7 +1016,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
               </TouchableOpacity>
             </View>
           )}
-        </View>
+        </ReAnimated.View>
       )}
 
       {/* ── History ── */}
