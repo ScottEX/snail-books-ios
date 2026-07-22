@@ -170,8 +170,13 @@ export default function ExpenseScreen({
     (async () => {
       const id = ++reconLoadId.current;
       try {
-        const data = await api.getReconciliations(365);
+        const resp = await api.getReconciliations(365, { include_cash_on_hand: '1' });
         if (id !== reconLoadId.current) return; // stale
+        // Backward compat: old backend returns array, new returns { records, cash_on_hand }
+        const data = Array.isArray(resp) ? resp : resp.records;
+        if (!Array.isArray(resp) && resp.cash_on_hand != null) {
+          setBusinessSummary((prev: any) => ({ ...prev, cash_on_hand: resp.cash_on_hand }));
+        }
         if (!data || data.length === 0) {
           updateRecon('cardBalance', ''); updateRecon('cashBalance', '');
           updateRecon('dineIn', ''); updateRecon('meituan', '');
