@@ -256,7 +256,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
         {loading && !error && (
           <View style={styles.loadingOverlay} pointerEvents="none">
             <LoadingSpinner
-              labelText={t('pdfGenerating')}
+              labelText={batchId > 0 ? t('pdfGenerating') : t('loading')}
               footer={<Text style={styles.loadingSec}>{introSec}s</Text>}
             />
           </View>
