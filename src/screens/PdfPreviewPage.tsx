@@ -42,12 +42,16 @@ function ImageDownloadSvg() {
 
 interface Props {
   batchId: number;
-  batchNumber: number;
+  batchNumber?: number;
   supplier?: string;
+  /** If provided, preview this file URL directly instead of fetching by batchId */
+  fileUrl?: string;
+  /** Custom title (used with fileUrl mode) */
+  title?: string;
   onBack: () => void;
 }
 
-export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack }: Props) {
+export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl, title: customTitle, onBack }: Props) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const safeTop = insets.top;
@@ -67,10 +71,11 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
     return () => clearInterval(id);
   }, [loading]);
 
-  const title = (t('procPdfTitle') as string).replace('{n}', String(batchNumber));
-  const pdfUrl = supplier
-    ? `${API_BASE}/api/procurement-batches/${batchId}/pdf?supplier=${encodeURIComponent(supplier)}`
-    : `${API_BASE}/api/procurement-batches/${batchId}/pdf`;
+  const title = customTitle || (t('procPdfTitle') as string).replace('{n}', String(batchNumber));
+  const pdfUrl = fileUrl
+    || (supplier
+      ? `${API_BASE}/api/procurement-batches/${batchId}/pdf?supplier=${encodeURIComponent(supplier)}`
+      : `${API_BASE}/api/procurement-batches/${batchId}/pdf`);
   const pngUrl = supplier
     ? `${API_BASE}/api/procurement-batches/${batchId}/png?supplier=${encodeURIComponent(supplier)}`
     : `${API_BASE}/api/procurement-batches/${batchId}/png`;

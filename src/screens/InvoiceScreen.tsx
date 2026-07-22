@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, useWindowDimensions, Linking,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, useWindowDimensions,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import CustomActionSheet, { ActionItem } from '../components/CustomActionSheet';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Line, Circle, Rect, Polyline, Text as SvgText } from 'react-native-svg';
@@ -331,6 +332,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const [toast, setToast] = useState('');
 
   const { preview, openPreview, closePreview } = useImagePreview();
+  const navigation = useNavigation<any>();
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -593,7 +595,12 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const handlePreviewExisting = (index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
     const path = dExistingFilePath[index];
     if (path && /\.pdf(\?|$)/i.test(path)) {
-      Linking.openURL(api.getInvoiceFileUrl(path));
+      navigation.navigate('PdfPreview', {
+        id: 0,
+        number: 0,
+        fileUrl: api.getInvoiceFileUrl(path),
+        title: path.split('/').pop() || 'PDF',
+      });
       return;
     }
     openPreview(dExistingFilePath.map(p => api.getInvoiceFileUrl(p)), index, layout, getLayout);
@@ -602,7 +609,12 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const handlePreviewNew = (index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
     const f = dFiles[index];
     if (f && (f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '') || /\.pdf$/i.test(f.uri || ''))) {
-      Linking.openURL(f.uri);
+      navigation.navigate('PdfPreview', {
+        id: 0,
+        number: 0,
+        fileUrl: f.uri,
+        title: f.name || 'PDF',
+      });
       return;
     }
     openPreview(dFiles.map(f => f.uri), index, layout, getLayout);
