@@ -599,7 +599,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
         id: 0,
         number: 0,
         fileUrl: api.getInvoiceFileUrl(path),
-        title: path.split('/').pop() || 'PDF',
+        title: t('invTitle'),
       });
       return;
     }
@@ -613,7 +613,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
         id: 0,
         number: 0,
         fileUrl: f.uri,
-        title: f.name || 'PDF',
+        title: t('invTitle'),
       });
       return;
     }
