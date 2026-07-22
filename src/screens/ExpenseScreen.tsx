@@ -534,16 +534,14 @@ export default function ExpenseScreen({
                           <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.expenseAmountColor }}>
                             {diff >= 0 ? '+' : '-'}¥
                           </Text>
-                          <Text style={{ fontSize: FONTS.h1.size + 4, fontWeight: FONTS.h1.weight, color: colors.expenseAmountColor }}>
-                            {toDec2Comma(Math.abs(diff))}
-                          </Text>
+                          <NumberTickerExt value={Math.abs(diff)} formatFn={toDec2Comma} style={{ fontSize: FONTS.h1.size + 4, fontWeight: FONTS.h1.weight, color: colors.expenseAmountColor }} />
                         </View>
                       </View>
                       {/* Sub-cards row: 账面余额 | 当前结余 (success / info tinted) */}
                       <View style={{ flexDirection: 'row', gap: 10 }}>
                         <View style={[st.subCard, { backgroundColor: withAlpha(colors.success, 0.15), borderColor: withAlpha(colors.success, 0.30) }]}>
                           <Text style={st.cardFieldLabel}>{t('bookBalance')}</Text>
-                          <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{'¥' + toDec2Comma((businessSummary && businessSummary.cash_on_hand) || 0)}</Text>
+                          <NumberTickerExt value={(businessSummary && businessSummary.cash_on_hand) || 0} formatFn={(v: number) => '¥' + toDec2Comma(v)} style={[st.cardFieldVal, { fontSize: FONTS.body.size }]} />
                         </View>
                         <View style={[st.subCard, { backgroundColor: withAlpha(colors.info, 0.15), borderColor: withAlpha(colors.info, 0.30) }]}>
                           <Text style={st.cardFieldLabel}>{t('currentBalance')}</Text>
