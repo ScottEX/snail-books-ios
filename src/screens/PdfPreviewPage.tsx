@@ -125,7 +125,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
   const handleDownload = useCallback(async () => {
     setActionLoading('download');
     try {
-      const fileName = `procurement_${batchId}_${lang}.pdf`;
+      const fileName = batchId ? `procurement_${batchId}_${lang}.pdf` : `${title}.pdf`;
       const localUri = cachedUriRef.current || `${FileSystem.cacheDirectory}${fileName}`;
       // If cache missed, download now with 15s timeout
       if (!pdfCached) {
@@ -151,7 +151,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
   const handleExportImage = useCallback(async () => {
     setActionLoading('images');
     try {
-      const fileName = `procurement_${batchId}.png`;
+      const fileName = batchId ? `procurement_${batchId}.png` : `${title}.png`;
       const localUri = `${FileSystem.cacheDirectory}${fileName}`;
       const dl = FileSystem.createDownloadResumable(pngUrl, localUri, { headers: { 'X-Lang': lang } });
       const timeout = setTimeout(() => dl.cancelAsync(), 15000);
