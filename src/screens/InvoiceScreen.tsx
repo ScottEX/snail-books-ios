@@ -637,13 +637,13 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   };
 
   const SCREEN_WIDTH = Dimensions.get('window').width;
-  const panResponder = useRef(PanResponder.create({
-    onMoveShouldSetPanResponder: (_, gs) => gs.dx > 10 && Math.abs(gs.dy) < Math.abs(gs.dx) && gs.moveX < 40,
+  const edgePanResponder = useRef(PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gs) => gs.dx > 5 && Math.abs(gs.dy) < Math.abs(gs.dx),
     onPanResponderMove: (_, gs) => {
       if (gs.dx > 0) slideAnim.setValue(gs.dx);
     },
     onPanResponderRelease: (_, gs) => {
-      if (gs.dx > 80 || gs.vx > 0.5) {
+      if (gs.dx > 60 || gs.vx > 0.3) {
         closePdf();
       } else {
         Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true }).start();
@@ -1243,12 +1243,17 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
     />
       {pdfAnimating && (
         <Modal visible transparent animationType="none" onRequestClose={closePdf}>
-          <Animated.View style={{ flex: 1, backgroundColor: c.bg, transform: [{ translateX: slideAnim }] }} {...panResponder.panHandlers}>
+          <Animated.View style={{ flex: 1, backgroundColor: c.bg, transform: [{ translateX: slideAnim }] }}>
             <PdfPreviewPage
               batchId={0}
               fileUrl={pdfPreviewUrl}
               title={pdfPreviewTitle}
               onBack={closePdf}
+            />
+            {/* Left-edge swipe-to-back strip — sits above WebView to catch gestures */}
+            <View
+              {...edgePanResponder.panHandlers}
+              style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 36, zIndex: 999 }}
             />
           </Animated.View>
         </Modal>
