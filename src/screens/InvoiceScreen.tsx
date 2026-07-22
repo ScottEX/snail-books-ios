@@ -492,9 +492,19 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
         const res: any = await api.createInvoiceRecord(payload);
         rid = res?.id;
         if (rid && dFiles.length > 0) {
+          const uploadedFilePaths: string[] = [];
+          const uploadedThumbPaths: string[] = [];
           for (const f of dFiles) {
-            await api.uploadInvoiceFile(rid, f);
+            const upRes: any = await api.uploadInvoiceFile(rid, f);
+            if (upRes?.file_path) {
+              uploadedFilePaths.push(upRes.file_path);
+              uploadedThumbPaths.push(upRes.thumb_path || upRes.file_path);
+            }
           }
+          await api.updateInvoiceRecord(rid, {
+            file_path: JSON.stringify(uploadedFilePaths),
+            file_thumb_paths: JSON.stringify(uploadedThumbPaths),
+          });
         }
       }
       closeDrawer();
