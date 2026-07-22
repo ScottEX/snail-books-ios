@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo, useReducer } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, Dimensions, Switch, Keyboard,
 } from 'react-native';
@@ -158,11 +158,12 @@ export default function ExpenseScreen({
   });
   const updateRecon = (k: keyof typeof reconForm, v: string) =>
     setReconForm(f => ({ ...f, [k]: v }));
+  const setReconBatch = (vals: Partial<Record<keyof typeof reconForm, string>>) =>
+    setReconForm(f => ({ ...f, ...vals }));
   const { cardBalance, cashBalance, dineIn, meituan, flashSale, tuan, jd } = reconForm;
 
   const initReconValues = useRef({ card: '', cash: '', dine: '', mt: '', fs: '', jd: '', tuan: '' });
   const reconLoadId = useRef(0);  // guard against stale async responses
-  const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
 
   // Load reconciliation data from backend
   // Rule:
@@ -176,50 +177,49 @@ export default function ExpenseScreen({
         const data = await api.getReconciliations(365);
         if (id !== reconLoadId.current) return; // stale
         if (!data || data.length === 0) {
-          updateRecon('cardBalance', ''); updateRecon('cashBalance', '');
-          updateRecon('dineIn', ''); updateRecon('meituan', '');
-          updateRecon('flashSale', ''); updateRecon('tuan', ''); updateRecon('jd', '');
+          _reconReady.current = true; // set before batch so diff gate opens with correct values
+          setReconBatch({ cardBalance: '', cashBalance: '', dineIn: '', meituan: '', flashSale: '', tuan: '', jd: '' });
           initReconValues.current = { card: '', cash: '', dine: '', mt: '', fs: '', jd: '', tuan: '' };
-          _reconReady.current = true;
-          forceUpdate();
           return;
         }
         const last = data[0]; // most recent record
         const match = data.find((r: any) => r.bill_date === recDate.value);
         if (match) {
-          updateRecon('cardBalance', toDec2(match.card_balance));
-          updateRecon('cashBalance', toDec2(match.cash_balance));
-          updateRecon('dineIn', toDec2(match.dine_in));
-          updateRecon('meituan', toDec2(match.meituan));
-          updateRecon('flashSale', toDec2(match.flash_sale));
-          updateRecon('tuan', toDec2(match.tuan));
-          updateRecon('jd', toDec2(match.jd));
+          _reconReady.current = true; // set before batch so diff gate opens with correct values
+          setReconBatch({
+            cardBalance: toDec2(match.card_balance),
+            cashBalance: toDec2(match.cash_balance),
+            dineIn: toDec2(match.dine_in),
+            meituan: toDec2(match.meituan),
+            flashSale: toDec2(match.flash_sale),
+            tuan: toDec2(match.tuan),
+            jd: toDec2(match.jd),
+          });
           initReconValues.current = {
             card: toDec2(match.card_balance), cash: toDec2(match.cash_balance),
             dine: toDec2(match.dine_in), mt: toDec2(match.meituan),
             fs: toDec2(match.flash_sale), jd: toDec2(match.jd), tuan: toDec2(match.tuan),
           };
         } else if (recDate.value >= (last.bill_date || '')) {
-          updateRecon('cardBalance', toDec2(last.card_balance));
-          updateRecon('cashBalance', toDec2(last.cash_balance));
-          updateRecon('dineIn', toDec2(last.dine_in));
-          updateRecon('meituan', toDec2(last.meituan));
-          updateRecon('flashSale', toDec2(last.flash_sale));
-          updateRecon('tuan', toDec2(last.tuan));
-          updateRecon('jd', toDec2(last.jd));
+          _reconReady.current = true; // set before batch so diff gate opens with correct values
+          setReconBatch({
+            cardBalance: toDec2(last.card_balance),
+            cashBalance: toDec2(last.cash_balance),
+            dineIn: toDec2(last.dine_in),
+            meituan: toDec2(last.meituan),
+            flashSale: toDec2(last.flash_sale),
+            tuan: toDec2(last.tuan),
+            jd: toDec2(last.jd),
+          });
           initReconValues.current = {
             card: toDec2(last.card_balance), cash: toDec2(last.cash_balance),
             dine: toDec2(last.dine_in), mt: toDec2(last.meituan),
             fs: toDec2(last.flash_sale), jd: toDec2(last.jd), tuan: toDec2(last.tuan),
           };
         } else {
-          updateRecon('cardBalance', ''); updateRecon('cashBalance', '');
-          updateRecon('dineIn', ''); updateRecon('meituan', '');
-          updateRecon('flashSale', ''); updateRecon('tuan', ''); updateRecon('jd', '');
+          setReconBatch({ cardBalance: '', cashBalance: '', dineIn: '', meituan: '', flashSale: '', tuan: '', jd: '' });
           initReconValues.current = { card: '', cash: '', dine: '', mt: '', fs: '', jd: '', tuan: '' };
         }
-        _reconReady.current = true;
-        forceUpdate();
       } catch { showToast(t('toastLoadFailed')); }
     })();
   }, [recDate.value]);
