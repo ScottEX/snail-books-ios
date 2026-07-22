@@ -251,9 +251,12 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
           <WebView
             source={source}
             style={styles.webview}
+            allowFileAccess={true}
+            allowingReadAccessToURL={isLocal ? pdfUrl.substring(0, pdfUrl.lastIndexOf('/')) : undefined}
+            originWhitelist={['*']}
+            javaScriptEnabled={!isLocal}
             onLoadEnd={() => setLoading(false)}
             onError={(e) => { setError(e.nativeEvent.description || '加载失败'); setLoading(false); }}
-            javaScriptEnabled={false}
             scalesPageToFit
             startInLoadingState={false}
           />
