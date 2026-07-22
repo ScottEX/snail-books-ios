@@ -102,7 +102,7 @@ export default function ExpenseScreen({
       setBusinessSummary(data || {});
     }).catch(() => {});
   }, []);
-  useEffect(() => { loadBusinessSummary(); }, [loadBusinessSummary]);
+
   const urlCache = useRef<Map<any, string>>(new Map());
   const getPreviewUrl = (file: any) => {
     // RN: expo-image-picker returns { uri, type, name, size }
@@ -179,7 +179,11 @@ export default function ExpenseScreen({
         const data = Array.isArray(resp) ? resp : resp.records;
         if (!Array.isArray(resp) && resp.cash_on_hand != null) {
           serverCashOnHand.current = resp.cash_on_hand;
-          setBusinessSummary((prev: any) => ({ ...prev, cash_on_hand: resp.cash_on_hand }));
+          setBusinessSummary((prev: any) => ({
+            ...prev,
+            cash_on_hand: resp.cash_on_hand,
+            cumulative_expense: resp.cumulative_expense ?? prev.cumulative_expense,
+          }));
           if (resp.diff != null) setBookDiff(resp.diff);
         }
         if (!data || data.length === 0) {

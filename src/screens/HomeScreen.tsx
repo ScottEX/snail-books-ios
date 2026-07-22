@@ -323,6 +323,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     yesterday_expense?: number;
     yesterday_profit?: number;
   }>({});
+  const summaryRef = useRef<any>(null); // avoids RN batching flash
   const navScaleAnims = useRef([...Array(5)].map(() => new Animated.Value(1))).current;
 
   // ── Daily revenue state ──
@@ -408,6 +409,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const loadBusinessSummary = useCallback(async () => {
     try {
       const r: any = await api.getBusinessSummary();
+      summaryRef.current = r;
       setBusinessSummary(r || {});
     } catch { setToast(t('toastLoadFailed')); }
   }, []);
@@ -606,7 +608,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             <ChartGlassCard
               colors={colors}
               bgOpacity={bgOpacity}
-              businessSummary={businessSummary}
+              businessSummary={summaryRef.current ?? businessSummary}
             />
           </View>
         )}
@@ -635,7 +637,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
               colors={colors}
               weekRev={weekRev}
               monthRevRecords={monthRevRecords}
-              businessSummary={businessSummary}
+              businessSummary={summaryRef.current ?? businessSummary}
               chartMonthly={chartMonthly}
             />
           ) : null}
