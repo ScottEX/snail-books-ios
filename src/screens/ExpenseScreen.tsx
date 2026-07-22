@@ -97,8 +97,11 @@ export default function ExpenseScreen({
   const sd = useServerDate();
   // Load business summary internally (matching web)
   const [businessSummary, setBusinessSummary] = useState<any>({});
+  const _reconReady = useRef(false);  // reconciliation data loaded
+  const _summaryReady = useRef(false); // business summary loaded
   const loadBusinessSummary = useCallback(() => {
     api.getBusinessSummary().then((data: any) => {
+      _summaryReady.current = true;
       setBusinessSummary(data || {});
     }).catch(() => {});
   }, []);
@@ -177,6 +180,7 @@ export default function ExpenseScreen({
           updateRecon('dineIn', ''); updateRecon('meituan', '');
           updateRecon('flashSale', ''); updateRecon('tuan', ''); updateRecon('jd', '');
           initReconValues.current = { card: '', cash: '', dine: '', mt: '', fs: '', jd: '', tuan: '' };
+          _reconReady.current = true;
           forceUpdate();
           return;
         }
@@ -214,6 +218,7 @@ export default function ExpenseScreen({
           updateRecon('flashSale', ''); updateRecon('tuan', ''); updateRecon('jd', '');
           initReconValues.current = { card: '', cash: '', dine: '', mt: '', fs: '', jd: '', tuan: '' };
         }
+        _reconReady.current = true;
         forceUpdate();
       } catch { showToast(t('toastLoadFailed')); }
     })();
@@ -279,7 +284,8 @@ export default function ExpenseScreen({
   const realTotalCents = toCents(cardBalance) + toCents(cashBalance) + channelTotalCents;
   const cashOnHandCents = toCents((businessSummary && businessSummary.cash_on_hand) || 0);
   const realTotal = realTotalCents / 100;
-  const diff = (realTotalCents - cashOnHandCents) / 100;
+  // Only compute diff after both data sources are ready (avoids RN split-render flash)
+  const diff = (_reconReady.current && _summaryReady.current) ? (realTotalCents - cashOnHandCents) / 100 : 0;
 
   const hasReconChanges =
     toNum(cardBalance) !== toNum(initReconValues.current.card) ||
