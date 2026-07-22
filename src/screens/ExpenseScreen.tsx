@@ -102,6 +102,7 @@ export default function ExpenseScreen({
       setBusinessSummary(data || {});
     }).catch(() => {});
   }, []);
+  useEffect(() => { loadBusinessSummary(); }, [loadBusinessSummary]);
 
   const urlCache = useRef<Map<any, string>>(new Map());
   const getPreviewUrl = (file: any) => {
