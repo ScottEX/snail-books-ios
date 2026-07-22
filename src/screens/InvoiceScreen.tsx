@@ -605,11 +605,23 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       return;
     }
     // Only show images in the carousel (PDFs are previewed separately)
-    const imageUrls = dExistingFilePath
-      .filter(p => !/\.pdf(\?|$)/i.test(p))
-      .map(p => api.getInvoiceFileUrl(p));
-    const imageIndex = dExistingFilePath.slice(0, index).filter(p => !/\.pdf(\?|$)/i.test(p)).length;
-    openPreview(imageUrls, imageIndex, layout, getLayout);
+    const isPdf = (p: string) => /\.pdf(\?|$)/i.test(p);
+    const imageUrls = dExistingFilePath.filter(p => !isPdf(p)).map(p => api.getInvoiceFileUrl(p));
+    const imageIndex = dExistingFilePath.slice(0, index).filter(p => !isPdf(p)).length;
+    // Wrap getLayout to map carousel index back to original file index
+    const wrappedGetLayout: ThumbLayoutResolver | undefined = getLayout
+      ? (ci, cb) => {
+          let orig = 0, cnt = 0;
+          for (let i = 0; i < dExistingFilePath.length; i++) {
+            if (!isPdf(dExistingFilePath[i])) {
+              if (cnt === ci) { orig = i; break; }
+              cnt++;
+            }
+          }
+          getLayout(orig, cb);
+        }
+      : undefined;
+    openPreview(imageUrls, imageIndex, layout, wrappedGetLayout);
   };
 
   const handlePreviewNew = (index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
@@ -619,13 +631,23 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       return;
     }
     // Only show images in the carousel (PDFs are previewed separately)
-    const imageUris = dFiles
-      .filter(ff => !(ff.type === 'application/pdf' || /\.pdf$/i.test(ff.name || '') || /\.pdf$/i.test(ff.uri || '')))
-      .map(ff => ff.uri);
-    const imageIndex = dFiles.slice(0, index)
-      .filter(ff => !(ff.type === 'application/pdf' || /\.pdf$/i.test(ff.name || '') || /\.pdf$/i.test(ff.uri || '')))
-      .length;
-    openPreview(imageUris, imageIndex, layout, getLayout);
+    const isPdf = (ff: any) => ff.type === 'application/pdf' || /\.pdf$/i.test(ff.name || '') || /\.pdf$/i.test(ff.uri || '');
+    const imageUris = dFiles.filter(ff => !isPdf(ff)).map(ff => ff.uri);
+    const imageIndex = dFiles.slice(0, index).filter(ff => !isPdf(ff)).length;
+    // Wrap getLayout to map carousel index back to original file index
+    const wrappedGetLayout: ThumbLayoutResolver | undefined = getLayout
+      ? (ci, cb) => {
+          let orig = 0, cnt = 0;
+          for (let i = 0; i < dFiles.length; i++) {
+            if (!isPdf(dFiles[i])) {
+              if (cnt === ci) { orig = i; break; }
+              cnt++;
+            }
+          }
+          getLayout(orig, cb);
+        }
+      : undefined;
+    openPreview(imageUris, imageIndex, layout, wrappedGetLayout);
   };
 
   const openPdf = useCallback((url: string) => {
