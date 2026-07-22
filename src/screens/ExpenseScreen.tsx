@@ -103,7 +103,6 @@ export default function ExpenseScreen({
     }).catch(() => {});
   }, []);
   useEffect(() => { loadBusinessSummary(); }, [loadBusinessSummary]);
-
   const urlCache = useRef<Map<any, string>>(new Map());
   const getPreviewUrl = (file: any) => {
     // RN: expo-image-picker returns { uri, type, name, size }
@@ -150,8 +149,6 @@ export default function ExpenseScreen({
 
   /* ── 模块一：对账 ── */
   const recDate = useDateField({ sd });
-  const [bookDiff, setBookDiff] = useState(0); // from backend, avoid RN batching
-  const serverCashOnHand = useRef(0); // backend cash_on_hand, avoids batching
   const [reconForm, setReconForm] = useState({
     cardBalance: '', cashBalance: '', dineIn: '', meituan: '',
     flashSale: '', tuan: '', jd: '',
@@ -162,7 +159,6 @@ export default function ExpenseScreen({
 
   const initReconValues = useRef({ card: '', cash: '', dine: '', mt: '', fs: '', jd: '', tuan: '' });
   const reconLoadId = useRef(0);  // guard against stale async responses
-  const isLoading = useRef(true); // skip live diff during initial load
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
 
   // Load reconciliation data from backend
@@ -174,19 +170,8 @@ export default function ExpenseScreen({
     (async () => {
       const id = ++reconLoadId.current;
       try {
-        const resp = await api.getReconciliations(365, { include_cash_on_hand: '1' });
+        const data = await api.getReconciliations(365);
         if (id !== reconLoadId.current) return; // stale
-        // Backward compat: old backend returns array, new returns { records, cash_on_hand }
-        const data = Array.isArray(resp) ? resp : resp.records;
-        if (!Array.isArray(resp) && resp.cash_on_hand != null) {
-          serverCashOnHand.current = resp.cash_on_hand;
-          setBusinessSummary((prev: any) => ({
-            ...prev,
-            cash_on_hand: resp.cash_on_hand,
-            cumulative_expense: resp.cumulative_expense ?? prev.cumulative_expense,
-          }));
-          if (resp.diff != null) setBookDiff(resp.diff);
-        }
         if (!data || data.length === 0) {
           updateRecon('cardBalance', ''); updateRecon('cashBalance', '');
           updateRecon('dineIn', ''); updateRecon('meituan', '');
@@ -228,9 +213,6 @@ export default function ExpenseScreen({
           updateRecon('dineIn', ''); updateRecon('meituan', '');
           updateRecon('flashSale', ''); updateRecon('tuan', ''); updateRecon('jd', '');
           initReconValues.current = { card: '', cash: '', dine: '', mt: '', fs: '', jd: '', tuan: '' };
-        }
-        if (serverCashOnHand.current) {
-          isLoading.current = false;
         }
         forceUpdate();
       } catch { showToast(t('toastLoadFailed')); }
@@ -295,12 +277,9 @@ export default function ExpenseScreen({
   const channelTotalCents = toCents(dineIn) + toCents(meituan) + toCents(flashSale) + toCents(tuan) + toCents(jd);
   const channelTotal = channelTotalCents / 100;
   const realTotalCents = toCents(cardBalance) + toCents(cashBalance) + channelTotalCents;
-  const cashOnHandCents = toCents(serverCashOnHand.current || (businessSummary && businessSummary.cash_on_hand) || 0);
+  const cashOnHandCents = toCents((businessSummary && businessSummary.cash_on_hand) || 0);
   const realTotal = realTotalCents / 100;
-  const liveDiff = (realTotalCents - cashOnHandCents) / 100;
-
-  // During loading: use backend-computed diff; after: live calculation
-  const diff = isLoading.current ? bookDiff : liveDiff;
+  const diff = (realTotalCents - cashOnHandCents) / 100;
 
   const hasReconChanges =
     toNum(cardBalance) !== toNum(initReconValues.current.card) ||
@@ -399,8 +378,6 @@ export default function ExpenseScreen({
         closeFeeSheet();
         // Reload all months to keep totals accurate
         api.getPlatformFees().then((all: any) => setAllFees(Array.isArray(all) ? all : [])).catch(() => {});
-        // Refresh business summary so cash_on_hand reflects new fees
-        loadBusinessSummary();
       } else {
         showToast(r?.message || t('toastSubmitFailed'));
       }
@@ -544,7 +521,7 @@ export default function ExpenseScreen({
                       <View style={{ flexDirection: 'row', gap: 10 }}>
                         <View style={[st.subCard, { backgroundColor: withAlpha(colors.success, 0.15), borderColor: withAlpha(colors.success, 0.30) }]}>
                           <Text style={st.cardFieldLabel}>{t('bookBalance')}</Text>
-                          <NumberTickerExt value={(businessSummary && businessSummary.cash_on_hand) || 0} formatFn={(v: number) => '¥' + toDec2Comma(v)} style={[st.cardFieldVal, { fontSize: FONTS.body.size }]} />
+                          <Text style={[st.cardFieldVal, { fontSize: FONTS.body.size }]}>{'¥' + toDec2Comma((businessSummary && businessSummary.cash_on_hand) || 0)}</Text>
                         </View>
                         <View style={[st.subCard, { backgroundColor: withAlpha(colors.info, 0.15), borderColor: withAlpha(colors.info, 0.30) }]}>
                           <Text style={st.cardFieldLabel}>{t('currentBalance')}</Text>
