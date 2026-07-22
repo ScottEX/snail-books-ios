@@ -63,6 +63,11 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
   const [pdfCached, setPdfCached] = useState(false);
   const cachedUriRef = useRef('');
 
+  // Skip initial loading spinner for local files (blob URIs, etc.)
+  useEffect(() => {
+    if (!pdfUrl.startsWith('http')) { setLoading(false); }
+  }, [pdfUrl]);
+
   // Loading countdown timer
   useEffect(() => {
     if (!loading) { setIntroSec(0); return; }
