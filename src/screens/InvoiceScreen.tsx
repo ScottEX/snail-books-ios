@@ -595,12 +595,15 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const handlePreviewExisting = (index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
     const path = dExistingFilePath[index];
     if (path && /\.pdf(\?|$)/i.test(path)) {
-      navigation.navigate('PdfPreview', {
-        id: 0,
-        number: 0,
-        fileUrl: api.getInvoiceFileUrl(path),
-        title: t('invTitle'),
-      });
+      closeDrawer();
+      setTimeout(() => {
+        navigation.navigate('PdfPreview', {
+          id: 0,
+          number: 0,
+          fileUrl: api.getInvoiceFileUrl(path),
+          title: t('invTitle'),
+        });
+      }, 400);
       return;
     }
     openPreview(dExistingFilePath.map(p => api.getInvoiceFileUrl(p)), index, layout, getLayout);
@@ -609,12 +612,15 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const handlePreviewNew = (index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
     const f = dFiles[index];
     if (f && (f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '') || /\.pdf$/i.test(f.uri || ''))) {
-      navigation.navigate('PdfPreview', {
-        id: 0,
-        number: 0,
-        fileUrl: f.uri,
-        title: t('invTitle'),
-      });
+      closeDrawer();
+      setTimeout(() => {
+        navigation.navigate('PdfPreview', {
+          id: 0,
+          number: 0,
+          fileUrl: f.uri,
+          title: t('invTitle'),
+        });
+      }, 400);
       return;
     }
     openPreview(dFiles.map(f => f.uri), index, layout, getLayout);
