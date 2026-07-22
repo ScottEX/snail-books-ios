@@ -1233,7 +1233,7 @@ function EditableInfoRow({ icon, iconBg, label, value, colors, mono, onChange, e
         <View style={styles.body}>
           <Text style={[styles.label, { color: colors.textSub }]}>{label}</Text>
           <AppTextInput
-            style={[styles.valueInput, { color: colors.textMain }]}
+            style={[styles.valueInput, { color: colors.textMain, fontFamily: mono ? 'monospace' : undefined }]}
             value={draft}
             onChangeText={handleChange}
             onFocus={onFocus}
@@ -1258,7 +1258,7 @@ function EditableInfoRow({ icon, iconBg, label, value, colors, mono, onChange, e
       <View style={styles.body}>
         <Text style={[styles.label, { color: colors.textSub }]}>{label}</Text>
         <Text
-          style={[styles.value, { color: value ? colors.textMain : colors.textSub, fontWeight: value ? '500' : '400' }]}
+          style={[styles.value, { color: value ? colors.textMain : colors.textSub, fontWeight: value ? '500' : '400', fontFamily: mono ? 'monospace' : undefined }]}
           numberOfLines={1}
         >
           {value || t('invEmpty')}
