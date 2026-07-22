@@ -1226,8 +1226,8 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       onClose={handleClosePreview}
     />
       {pdfAnimating && (
-        <Modal visible animationType="none" onRequestClose={closePdf}>
-          <Animated.View style={{ flex: 1, transform: [{ translateX: slideAnim }] }}>
+        <Modal visible transparent animationType="none" onRequestClose={closePdf}>
+          <Animated.View style={{ flex: 1, backgroundColor: colors.bg, transform: [{ translateX: slideAnim }] }}>
             <PdfPreviewPage
               batchId={0}
               fileUrl={pdfPreviewUrl}
