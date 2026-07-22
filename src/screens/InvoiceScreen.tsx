@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, useWindowDimensions, Modal,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, useWindowDimensions, Modal, Animated, Dimensions,
 } from 'react-native';
 import CustomActionSheet, { ActionItem } from '../components/CustomActionSheet';
 import AppTextInput from '../components/AppTextInput';
@@ -331,6 +331,8 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   // PDF preview (rendered in Modal above everything, like ImagePreview)
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState('');
   const [pdfPreviewTitle, setPdfPreviewTitle] = useState('');
+  const [pdfAnimating, setPdfAnimating] = useState(false);
+  const slideAnim = useRef(new Animated.Value(Dimensions.get('window').width)).current;
 
   // Toast
   const [toast, setToast] = useState('');
@@ -598,8 +600,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const handlePreviewExisting = (index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
     const path = dExistingFilePath[index];
     if (path && /\.pdf(\?|$)/i.test(path)) {
-      setPdfPreviewUrl(api.getInvoiceFileUrl(path));
-      setPdfPreviewTitle(t('invTitle') as string);
+      openPdf(api.getInvoiceFileUrl(path));
       return;
     }
     openPreview(dExistingFilePath.map(p => api.getInvoiceFileUrl(p)), index, layout, getLayout);
@@ -608,12 +609,26 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const handlePreviewNew = (index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
     const f = dFiles[index];
     if (f && (f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '') || /\.pdf$/i.test(f.uri || ''))) {
-      setPdfPreviewUrl(f.uri);
-      setPdfPreviewTitle(t('invTitle') as string);
+      openPdf(f.uri);
       return;
     }
     openPreview(dFiles.map(f => f.uri), index, layout, getLayout);
   };
+
+  const openPdf = useCallback((url: string) => {
+    setPdfPreviewUrl(url);
+    setPdfPreviewTitle(t('invTitle') as string);
+    setPdfAnimating(true);
+    slideAnim.setValue(Dimensions.get('window').width);
+    Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, damping: 30, stiffness: 260, mass: 0.9 }).start();
+  }, [t]);
+
+  const closePdf = useCallback(() => {
+    Animated.timing(slideAnim, { toValue: Dimensions.get('window').width, duration: 250, useNativeDriver: true }).start(() => {
+      setPdfAnimating(false);
+      setPdfPreviewUrl('');
+    });
+  }, []);
 
   const handleClosePreview = () => {
     closePreview();
@@ -1210,14 +1225,16 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       getThumbLayout={preview?.getLayout}
       onClose={handleClosePreview}
     />
-      {pdfPreviewUrl !== '' && (
-        <Modal visible animationType="none" onRequestClose={() => { setPdfPreviewUrl(''); setPdfPreviewTitle(''); }}>
-          <PdfPreviewPage
-            batchId={0}
-            fileUrl={pdfPreviewUrl}
-            title={pdfPreviewTitle}
-            onBack={() => { setPdfPreviewUrl(''); setPdfPreviewTitle(''); }}
-          />
+      {pdfAnimating && (
+        <Modal visible animationType="none" onRequestClose={closePdf}>
+          <Animated.View style={{ flex: 1, transform: [{ translateX: slideAnim }] }}>
+            <PdfPreviewPage
+              batchId={0}
+              fileUrl={pdfPreviewUrl}
+              title={pdfPreviewTitle}
+              onBack={closePdf}
+            />
+          </Animated.View>
         </Modal>
       )}
     </>
