@@ -1211,7 +1211,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       onClose={handleClosePreview}
     />
       {pdfPreviewUrl !== '' && (
-        <Modal visible animationType="slide" onRequestClose={() => { setPdfPreviewUrl(''); setPdfPreviewTitle(''); }}>
+        <Modal visible animationType="none" onRequestClose={() => { setPdfPreviewUrl(''); setPdfPreviewTitle(''); }}>
           <PdfPreviewPage
             batchId={0}
             fileUrl={pdfPreviewUrl}
