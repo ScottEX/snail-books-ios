@@ -369,9 +369,9 @@ export const api = {
 
   createReconciliation: (data: any) => authFetch('/api/reconciliations', { method: 'POST', body: JSON.stringify(data) }),
   getReconciliations: (limit = 30, filters?: Record<string, string>) => {
-    const params = new URLSearchParams({ limit: String(limit) });
-    if (filters) Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
-    return authFetch('/api/reconciliations?' + params.toString());
+    let url = `/api/reconciliations?limit=${limit}`;
+    if (filters) Object.entries(filters).forEach(([k, v]) => { if (v) url += `&${encodeURIComponent(k)}=${encodeURIComponent(v)}`; });
+    return authFetch(url);
   },
   getReconciliationsPage: (page = 1, perPage = 10, filters?: Record<string, string>) => {
     const params = new URLSearchParams({ page: String(page), per_page: String(perPage) });
