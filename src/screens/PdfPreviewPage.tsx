@@ -63,12 +63,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
   const [pdfCached, setPdfCached] = useState(false);
   const cachedUriRef = useRef('');
 
-  // Skip initial loading spinner for local files (blob URIs, etc.)
-  useEffect(() => {
-    if (!pdfUrl.startsWith('http')) { setLoading(false); }
-  }, [pdfUrl]);
-
-  // Loading countdown timer
+  const title = customTitle || (t('procPdfTitle') as string).replace('{n}', String(batchNumber));
   useEffect(() => {
     if (!loading) { setIntroSec(0); return; }
     setIntroSec(0);
@@ -76,7 +71,6 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
     return () => clearInterval(id);
   }, [loading]);
 
-  const title = customTitle || (t('procPdfTitle') as string).replace('{n}', String(batchNumber));
   const pdfUrl = fileUrl
     || (supplier
       ? `${API_BASE}/api/procurement-batches/${batchId}/pdf?supplier=${encodeURIComponent(supplier)}`
@@ -89,6 +83,11 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
 
   const lang = getLang();
   const source = { uri: pdfUrl, headers: { 'X-Lang': lang } };
+
+  // Skip initial loading spinner for local files (blob URIs, etc.)
+  useEffect(() => {
+    if (!pdfUrl.startsWith('http')) { setLoading(false); }
+  }, [pdfUrl]);
 
   const headerHeight = safeTop + 42;
 
