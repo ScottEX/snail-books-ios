@@ -1,8 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, useWindowDimensions,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, useWindowDimensions, Modal,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import CustomActionSheet, { ActionItem } from '../components/CustomActionSheet';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Line, Circle, Rect, Polyline, Text as SvgText } from 'react-native-svg';
@@ -20,6 +19,7 @@ import ExpenseNoteInput from '../components/ExpenseNoteInput';
 import SubmitButton from '../components/SubmitButton';
 import TrashIcon from '../components/icons/TrashIcon';
 import ImagePreview, { ThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
+import PdfPreviewPage from './PdfPreviewPage';
 import { useImagePreview } from '../hooks/useImagePreview';
 import { useServerDate } from '../hooks/useServerDate';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -328,11 +328,14 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   // Submit
   const [submitting, setSubmitting] = useState(false);
 
+  // PDF preview (rendered in Modal above everything, like ImagePreview)
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState('');
+  const [pdfPreviewTitle, setPdfPreviewTitle] = useState('');
+
   // Toast
   const [toast, setToast] = useState('');
 
   const { preview, openPreview, closePreview } = useImagePreview();
-  const navigation = useNavigation<any>();
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -595,15 +598,8 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const handlePreviewExisting = (index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
     const path = dExistingFilePath[index];
     if (path && /\.pdf(\?|$)/i.test(path)) {
-      closeDrawer();
-      setTimeout(() => {
-        navigation.navigate('PdfPreview', {
-          id: 0,
-          number: 0,
-          fileUrl: api.getInvoiceFileUrl(path),
-          title: t('invTitle'),
-        });
-      }, 400);
+      setPdfPreviewUrl(api.getInvoiceFileUrl(path));
+      setPdfPreviewTitle(t('invTitle') as string);
       return;
     }
     openPreview(dExistingFilePath.map(p => api.getInvoiceFileUrl(p)), index, layout, getLayout);
@@ -612,15 +608,8 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const handlePreviewNew = (index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
     const f = dFiles[index];
     if (f && (f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '') || /\.pdf$/i.test(f.uri || ''))) {
-      closeDrawer();
-      setTimeout(() => {
-        navigation.navigate('PdfPreview', {
-          id: 0,
-          number: 0,
-          fileUrl: f.uri,
-          title: t('invTitle'),
-        });
-      }, 400);
+      setPdfPreviewUrl(f.uri);
+      setPdfPreviewTitle(t('invTitle') as string);
       return;
     }
     openPreview(dFiles.map(f => f.uri), index, layout, getLayout);
@@ -1221,6 +1210,16 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       getThumbLayout={preview?.getLayout}
       onClose={handleClosePreview}
     />
+      {pdfPreviewUrl !== '' && (
+        <Modal visible animationType="slide" onRequestClose={() => { setPdfPreviewUrl(''); setPdfPreviewTitle(''); }}>
+          <PdfPreviewPage
+            batchId={0}
+            fileUrl={pdfPreviewUrl}
+            title={pdfPreviewTitle}
+            onBack={() => { setPdfPreviewUrl(''); setPdfPreviewTitle(''); }}
+          />
+        </Modal>
+      )}
     </>
   );
 }
