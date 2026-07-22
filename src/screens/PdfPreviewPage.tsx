@@ -121,14 +121,15 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
     return () => { cancelled = true; };
   }, [pdfUrl, batchId]);
 
-  // Download PDF — reuses cached file (matches web: no extra request)
+  // Download PDF — for invoice (batchId=0) always re-download to ensure correct filename;
+  // for procurement (batchId>0) reuse cached file (matches web: no extra request)
   const handleDownload = useCallback(async () => {
     setActionLoading('download');
     try {
       const fileName = batchId ? `procurement_${batchId}_${lang}.pdf` : `${title}.pdf`;
-      const localUri = cachedUriRef.current || `${FileSystem.cacheDirectory}${fileName}`;
-      // If cache missed, download now with 15s timeout
-      if (!pdfCached) {
+      const localUri = `${FileSystem.cacheDirectory}${fileName}`;
+      const useCache = batchId > 0 && pdfCached;
+      if (!useCache) {
         const dl = FileSystem.createDownloadResumable(pdfUrl, localUri, { headers: { 'X-Lang': lang } });
         const timeout = setTimeout(() => dl.cancelAsync(), 15000);
         const result = await dl.downloadAsync();
@@ -136,7 +137,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
         if (!result) throw new Error('下载超时');
         await Share.share({ url: result.uri, title: fileName });
       } else {
-        await Share.share({ url: localUri, title: fileName });
+        await Share.share({ url: cachedUriRef.current, title: fileName });
       }
     } catch (err: any) {
       if (err?.message !== 'User did not share') {
