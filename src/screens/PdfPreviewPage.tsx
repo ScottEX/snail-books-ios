@@ -76,9 +76,11 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
     || (supplier
       ? `${API_BASE}/api/procurement-batches/${batchId}/pdf?supplier=${encodeURIComponent(supplier)}`
       : `${API_BASE}/api/procurement-batches/${batchId}/pdf`);
-  const pngUrl = supplier
-    ? `${API_BASE}/api/procurement-batches/${batchId}/png?supplier=${encodeURIComponent(supplier)}`
-    : `${API_BASE}/api/procurement-batches/${batchId}/png`;
+  const pngUrl = batchId > 0
+    ? (supplier
+      ? `${API_BASE}/api/procurement-batches/${batchId}/png?supplier=${encodeURIComponent(supplier)}`
+      : `${API_BASE}/api/procurement-batches/${batchId}/png`)
+    : fileUrl ? `${fileUrl}/png` : '';
 
   const lang = getLang();
   const source = { uri: pdfUrl, headers: { 'X-Lang': lang } };
@@ -217,7 +219,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
             )}
           </View>
         </TouchableOpacity>
-        {batchId > 0 && (
+        {pngUrl !== '' && (
           <TouchableOpacity onPress={handleExportImage} activeOpacity={0.7} disabled={isActionLoading}>
             <View style={styles.shareBtn}>
               {actionLoading === 'images' ? (
