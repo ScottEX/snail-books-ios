@@ -90,7 +90,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
   // Cache key includes lang so switching languages re-downloads
   useEffect(() => {
     let cancelled = false;
-    const fileName = `procurement_${batchId}_${lang}.pdf`;
+    const fileName = batchId ? `procurement_${batchId}_${lang}.pdf` : `${title}.pdf`;
     const localUri = `${FileSystem.cacheDirectory}${fileName}`;
     (async () => {
       try {
