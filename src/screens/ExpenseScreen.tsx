@@ -159,6 +159,7 @@ export default function ExpenseScreen({
 
   const initReconValues = useRef({ card: '', cash: '', dine: '', mt: '', fs: '', jd: '', tuan: '' });
   const reconLoadId = useRef(0);  // guard against stale async responses
+  const cashOnHandRef = useRef(0); // avoids React Native batching issues
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
 
   // Load reconciliation data from backend
@@ -175,6 +176,7 @@ export default function ExpenseScreen({
         // Backward compat: old backend returns array, new returns { records, cash_on_hand }
         const data = Array.isArray(resp) ? resp : resp.records;
         if (!Array.isArray(resp) && resp.cash_on_hand != null) {
+          cashOnHandRef.current = resp.cash_on_hand;
           setBusinessSummary((prev: any) => ({ ...prev, cash_on_hand: resp.cash_on_hand }));
         }
         if (!data || data.length === 0) {
@@ -282,7 +284,7 @@ export default function ExpenseScreen({
   const channelTotalCents = toCents(dineIn) + toCents(meituan) + toCents(flashSale) + toCents(tuan) + toCents(jd);
   const channelTotal = channelTotalCents / 100;
   const realTotalCents = toCents(cardBalance) + toCents(cashBalance) + channelTotalCents;
-  const cashOnHandCents = toCents((businessSummary && businessSummary.cash_on_hand) || 0);
+  const cashOnHandCents = toCents(cashOnHandRef.current || (businessSummary && businessSummary.cash_on_hand) || 0);
   const realTotal = realTotalCents / 100;
   const diff = (realTotalCents - cashOnHandCents) / 100;
 
