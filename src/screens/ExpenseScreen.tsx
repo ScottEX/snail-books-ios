@@ -514,9 +514,7 @@ export default function ExpenseScreen({
                           <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.expenseAmountColor }}>
                             {diff >= 0 ? '+' : '-'}¥
                           </Text>
-                          <Text style={{ fontSize: FONTS.h1.size + 4, fontWeight: FONTS.h1.weight, color: colors.expenseAmountColor }}>
-                            {toDec2Comma(Math.abs(diff))}
-                          </Text>
+                          <NumberTickerExt value={Math.abs(diff)} formatFn={toDec2Comma} style={{ fontSize: FONTS.h1.size + 4, fontWeight: FONTS.h1.weight, color: colors.expenseAmountColor }} />
                         </View>
                       </View>
                       {/* Sub-cards row: 账面余额 | 当前结余 (success / info tinted) */}
