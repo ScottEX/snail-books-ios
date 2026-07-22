@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, useWindowDimensions, Modal,
-  Animated, Dimensions, PanResponder,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, useWindowDimensions, Modal, Dimensions,
 } from 'react-native';
+import { GestureHandlerRootView, Gesture, GestureDetector } from 'react-native-gesture-handler';
 import CustomActionSheet, { ActionItem } from '../components/CustomActionSheet';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Line, Circle, Rect, Polyline, Text as SvgText } from 'react-native-svg';
@@ -28,7 +28,7 @@ import { BANK_ICON_MAP, DefaultBankIcon } from '../components/BankIcons';
 import SheetHeader from '../components/SheetHeader';
 import ModalOverlay from '../components/ModalOverlay';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
-import ReAnimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import ReAnimated, { useAnimatedStyle, useSharedValue, withTiming, withSpring, runOnJS } from 'react-native-reanimated';
 import { bottomSheetOverlay } from '../sharedStyles';
 
 /* ═══════════════ ICONS ═══════════════ */
@@ -333,7 +333,8 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState('');
   const [pdfPreviewTitle, setPdfPreviewTitle] = useState('');
   const [pdfAnimating, setPdfAnimating] = useState(false);
-  const slideAnim = useRef(new Animated.Value(Dimensions.get('window').width)).current;
+  const slideAnim = useSharedValue(0);
+
 
   // Toast
   const [toast, setToast] = useState('');
@@ -620,15 +621,16 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
     setPdfPreviewUrl(url);
     setPdfPreviewTitle(t('invTitle') as string);
     setPdfAnimating(true);
-    slideAnim.setValue(Dimensions.get('window').width);
-    Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, damping: 30, stiffness: 260, mass: 0.9 }).start();
+    slideAnim.value = Dimensions.get('window').width;
+    slideAnim.value = withSpring(0, { damping: 30, stiffness: 260, mass: 0.9 });
   }, [t]);
 
   const closePdf = useCallback(() => {
-    Animated.timing(slideAnim, { toValue: Dimensions.get('window').width, duration: 250, useNativeDriver: true }).start(() => {
+    slideAnim.value = withTiming(Dimensions.get('window').width, { duration: 250 });
+    setTimeout(() => {
       setPdfAnimating(false);
       setPdfPreviewUrl('');
-    });
+    }, 260);
   }, []);
 
   const handleClosePreview = () => {
@@ -636,20 +638,25 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
     setDrawerOpen(true);
   };
 
-  const SCREEN_WIDTH = Dimensions.get('window').width;
-  const edgePanResponder = useRef(PanResponder.create({
-    onMoveShouldSetPanResponder: (_, gs) => gs.dx > 5 && Math.abs(gs.dy) < Math.abs(gs.dx),
-    onPanResponderMove: (_, gs) => {
-      if (gs.dx > 0) slideAnim.setValue(gs.dx);
-    },
-    onPanResponderRelease: (_, gs) => {
-      if (gs.dx > 60 || gs.vx > 0.3) {
-        closePdf();
-      } else {
-        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true }).start();
+  const pdfAnimatedStyle = useAnimatedStyle(() => ({
+    flex: 1,
+    backgroundColor: c.bg,
+    transform: [{ translateX: slideAnim.value }],
+  }));
+
+  const swipeGesture = Gesture.Pan()
+    .onUpdate((e) => {
+      if (e.translationX > 0) {
+        slideAnim.value = e.translationX;
       }
-    },
-  })).current;
+    })
+    .onEnd((e) => {
+      if (e.translationX > 80 || e.velocityX > 500) {
+        runOnJS(closePdf)();
+      } else {
+        slideAnim.value = withSpring(0);
+      }
+    });
 
   return (
     <>
@@ -1243,19 +1250,18 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
     />
       {pdfAnimating && (
         <Modal visible transparent animationType="none" onRequestClose={closePdf}>
-          <Animated.View style={{ flex: 1, backgroundColor: c.bg, transform: [{ translateX: slideAnim }] }}>
-            <PdfPreviewPage
-              batchId={0}
-              fileUrl={pdfPreviewUrl}
-              title={pdfPreviewTitle}
-              onBack={closePdf}
-            />
-            {/* Left-edge swipe-to-back strip — sits above WebView to catch gestures */}
-            <View
-              {...edgePanResponder.panHandlers}
-              style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 36, zIndex: 999 }}
-            />
-          </Animated.View>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <GestureDetector gesture={swipeGesture}>
+              <ReAnimated.View style={pdfAnimatedStyle}>
+                <PdfPreviewPage
+                  batchId={0}
+                  fileUrl={pdfPreviewUrl}
+                  title={pdfPreviewTitle}
+                  onBack={closePdf}
+                />
+              </ReAnimated.View>
+            </GestureDetector>
+          </GestureHandlerRootView>
         </Modal>
       )}
     </>
