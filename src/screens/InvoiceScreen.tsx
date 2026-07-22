@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet, useWindowDimensions, Modal, Dimensions,
 } from 'react-native';
-import { GestureHandlerRootView, Gesture, GestureDetector } from 'react-native-gesture-handler';
 import CustomActionSheet, { ActionItem } from '../components/CustomActionSheet';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Line, Circle, Rect, Polyline, Text as SvgText } from 'react-native-svg';
@@ -28,7 +27,7 @@ import { BANK_ICON_MAP, DefaultBankIcon } from '../components/BankIcons';
 import SheetHeader from '../components/SheetHeader';
 import ModalOverlay from '../components/ModalOverlay';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
-import ReAnimated, { useAnimatedStyle, useSharedValue, withTiming, withSpring, runOnJS } from 'react-native-reanimated';
+import ReAnimated, { useAnimatedStyle, useSharedValue, withTiming, withSpring } from 'react-native-reanimated';
 import { bottomSheetOverlay } from '../sharedStyles';
 
 /* ═══════════════ ICONS ═══════════════ */
@@ -643,21 +642,6 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
     backgroundColor: c.bg,
     transform: [{ translateX: slideAnim.value }],
   }));
-
-  const swipeGesture = Gesture.Pan()
-    .onUpdate((e) => {
-      if (e.translationX > 0) {
-        slideAnim.value = e.translationX;
-      }
-    })
-    .onEnd((e) => {
-      if (e.translationX > 80 || e.velocityX > 500) {
-        runOnJS(closePdf)();
-      } else {
-        slideAnim.value = withSpring(0);
-      }
-    });
-
   return (
     <>
       <View style={styles.root}>
@@ -1250,18 +1234,14 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
     />
       {pdfAnimating && (
         <Modal visible transparent animationType="none" onRequestClose={closePdf}>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <GestureDetector gesture={swipeGesture}>
-              <ReAnimated.View style={pdfAnimatedStyle}>
-                <PdfPreviewPage
-                  batchId={0}
-                  fileUrl={pdfPreviewUrl}
-                  title={pdfPreviewTitle}
-                  onBack={closePdf}
-                />
-              </ReAnimated.View>
-            </GestureDetector>
-          </GestureHandlerRootView>
+          <ReAnimated.View style={pdfAnimatedStyle}>
+            <PdfPreviewPage
+              batchId={0}
+              fileUrl={pdfPreviewUrl}
+              title={pdfPreviewTitle}
+              onBack={closePdf}
+            />
+          </ReAnimated.View>
         </Modal>
       )}
     </>

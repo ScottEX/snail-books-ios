@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Share } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Share, PanResponder } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -84,6 +84,14 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
   const lang = getLang();
   const isLocal = !pdfUrl.startsWith('http');
   const source = isLocal ? { uri: pdfUrl } : { uri: pdfUrl, headers: { 'X-Lang': lang } };
+
+  // Swipe-to-back on header
+  const headerPan = useRef(PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gs) => gs.dx > 10 && Math.abs(gs.dy) < 5,
+    onPanResponderRelease: (_, gs) => {
+      if (gs.dx > 60) onBack();
+    },
+  })).current;
 
   // Skip initial loading spinner for local files (blob URIs, etc.)
   useEffect(() => {
@@ -193,6 +201,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
       />
       <StatusBar barStyle="dark-content" />
       <View
+        {...headerPan.panHandlers}
         style={{
           position: 'absolute',
           top: safeTop - 5,
@@ -206,7 +215,6 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
           paddingBottom: 6,
           paddingHorizontal: 16,
           backgroundColor: 'transparent',
-          pointerEvents: 'box-none' as const,
         }}
       >
         <TouchableOpacity onPress={onBack} activeOpacity={0.7} disabled={isActionLoading}>
