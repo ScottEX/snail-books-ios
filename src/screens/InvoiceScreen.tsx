@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, useWindowDimensions, Modal, Animated, Dimensions,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, useWindowDimensions, Modal,
+  Animated, Dimensions, PanResponder,
 } from 'react-native';
 import CustomActionSheet, { ActionItem } from '../components/CustomActionSheet';
 import AppTextInput from '../components/AppTextInput';
@@ -635,6 +636,21 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
     setDrawerOpen(true);
   };
 
+  const SCREEN_WIDTH = Dimensions.get('window').width;
+  const panResponder = useRef(PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gs) => gs.dx > 10 && Math.abs(gs.dy) < Math.abs(gs.dx) && gs.moveX < 40,
+    onPanResponderMove: (_, gs) => {
+      if (gs.dx > 0) slideAnim.setValue(gs.dx);
+    },
+    onPanResponderRelease: (_, gs) => {
+      if (gs.dx > 80 || gs.vx > 0.5) {
+        closePdf();
+      } else {
+        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true }).start();
+      }
+    },
+  })).current;
+
   return (
     <>
       <View style={styles.root}>
@@ -1227,7 +1243,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
     />
       {pdfAnimating && (
         <Modal visible transparent animationType="none" onRequestClose={closePdf}>
-          <Animated.View style={{ flex: 1, backgroundColor: c.bg, transform: [{ translateX: slideAnim }] }}>
+          <Animated.View style={{ flex: 1, backgroundColor: c.bg, transform: [{ translateX: slideAnim }] }} {...panResponder.panHandlers}>
             <PdfPreviewPage
               batchId={0}
               fileUrl={pdfPreviewUrl}
