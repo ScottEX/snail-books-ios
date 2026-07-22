@@ -1265,7 +1265,7 @@ function EditableInfoRow({ icon, iconBg, label, value, colors, mono, onChange, e
         </Text>
       </View>
       {editable && (
-        <TouchableOpacity onPress={() => { setDraft(value); setEditing(true); }} activeOpacity={0.7}>
+        <TouchableOpacity onPress={() => { setDraft(filter ? filter(value) : value); setEditing(true); }} activeOpacity={0.7}>
           <PencilSvg color={colors.textSub} />
         </TouchableOpacity>
       )}
