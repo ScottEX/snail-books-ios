@@ -82,7 +82,8 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
     : (fileUrl && fileUrl.startsWith(API_BASE)) ? `${fileUrl}/png` : '';
 
   const lang = getLang();
-  const source = { uri: pdfUrl, headers: { 'X-Lang': lang } };
+  const isLocal = !pdfUrl.startsWith('http');
+  const source = isLocal ? { uri: pdfUrl } : { uri: pdfUrl, headers: { 'X-Lang': lang } };
 
   // Skip initial loading spinner for local files (blob URIs, etc.)
   useEffect(() => {
