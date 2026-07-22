@@ -1,0 +1,17 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "assets/fonts/DMMono-Bold.ttf",
+      "sha1": "8f354a8fba8aa0a2ea34c2fa90442221b096e4df"
+    },
+    {
+      "path": "assets/fonts/DMMono-Medium.ttf",
+      "sha1": "117f3fae37e533f9434b94299c73bbad1178e671"
+    },
+    {
+      "path": "assets/fonts/DMMono-Regular.ttf",
+      "sha1": "3a34582e82763e17a156572ba8ff8ff6a52311bf"
+    }
+  ]
+}

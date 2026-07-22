@@ -16,6 +16,9 @@
 		96905EF65AED1B983A6B3ABC /* libPods-app.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 58EEBF8E8E6FB1BC6CAF49B5 /* libPods-app.a */; };
 		B18059E884C0ABDD17F3DC3D /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
+		86632BFE30924B8C8BD9F180 /* DMMono-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E13E8E41D3064D3099CAD06D /* DMMono-Medium.ttf */; };
+		7117AC56B97141F79CBA3694 /* DMMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C4544C16890E49ABA086783F /* DMMono-Regular.ttf */; };
+		6FD882347C1D4DBB8CB901E4 /* DMMono-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = D39D8025F8BD465181B12FBC /* DMMono-Bold.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +38,9 @@
 		E062DBB42E81A77CAB67A155 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = app/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		FAC715A2D49A985799AEE119 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-app/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		E13E8E41D3064D3099CAD06D /* DMMono-Medium.ttf */ = {isa = PBXFileReference; name = "DMMono-Medium.ttf"; path = "../assets/fonts/DMMono-Medium.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		C4544C16890E49ABA086783F /* DMMono-Regular.ttf */ = {isa = PBXFileReference; name = "DMMono-Regular.ttf"; path = "../assets/fonts/DMMono-Regular.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		D39D8025F8BD465181B12FBC /* DMMono-Bold.ttf */ = {isa = PBXFileReference; name = "DMMono-Bold.ttf"; path = "../assets/fonts/DMMono-Bold.ttf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -91,6 +97,7 @@
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				D65327D7A22EEC0BE12398D9 /* Pods */,
 				D7E4C46ADA2E9064B798F356 /* ExpoModulesProviders */,
+				753A793B68A045AB8D6AA6FE /* Resources */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -138,6 +145,17 @@
 			);
 			name = ExpoModulesProviders;
 			sourceTree = "<group>";
+		};
+		753A793B68A045AB8D6AA6FE /* Resources */ = {
+			isa = "PBXGroup";
+			children = (
+				E13E8E41D3064D3099CAD06D /* DMMono-Medium.ttf */,
+				C4544C16890E49ABA086783F /* DMMono-Regular.ttf */,
+				D39D8025F8BD465181B12FBC /* DMMono-Bold.ttf */,
+			);
+			name = Resources;
+			sourceTree = "<group>";
+			path = "";
 		};
 /* End PBXGroup section */
 
@@ -204,6 +222,9 @@
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
 				7E395AA704660CF5C898B18F /* PrivacyInfo.xcprivacy in Resources */,
+				86632BFE30924B8C8BD9F180 /* DMMono-Medium.ttf in Resources */,
+				7117AC56B97141F79CBA3694 /* DMMono-Regular.ttf in Resources */,
+				6FD882347C1D4DBB8CB901E4 /* DMMono-Bold.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
