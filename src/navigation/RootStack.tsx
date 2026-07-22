@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect, RouteProp } from '@react-navigation/native';
 import HomeScreen from '../screens/HomeScreen';
 import ExpenseHistoryScreen from '../screens/ExpenseHistoryScreen';
 import DailyRevenueHistory from '../screens/DailyRevenueHistory';
