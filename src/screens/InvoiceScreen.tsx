@@ -604,7 +604,12 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       openPdf(api.getInvoiceFileUrl(path));
       return;
     }
-    openPreview(dExistingFilePath.map(p => api.getInvoiceFileUrl(p)), index, layout, getLayout);
+    // Only show images in the carousel (PDFs are previewed separately)
+    const imageUrls = dExistingFilePath
+      .filter(p => !/\.pdf(\?|$)/i.test(p))
+      .map(p => api.getInvoiceFileUrl(p));
+    const imageIndex = dExistingFilePath.slice(0, index).filter(p => !/\.pdf(\?|$)/i.test(p)).length;
+    openPreview(imageUrls, imageIndex, layout, getLayout);
   };
 
   const handlePreviewNew = (index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
@@ -613,7 +618,14 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       openPdf(f.uri);
       return;
     }
-    openPreview(dFiles.map(f => f.uri), index, layout, getLayout);
+    // Only show images in the carousel (PDFs are previewed separately)
+    const imageUris = dFiles
+      .filter(ff => !(ff.type === 'application/pdf' || /\.pdf$/i.test(ff.name || '') || /\.pdf$/i.test(ff.uri || '')))
+      .map(ff => ff.uri);
+    const imageIndex = dFiles.slice(0, index)
+      .filter(ff => !(ff.type === 'application/pdf' || /\.pdf$/i.test(ff.name || '') || /\.pdf$/i.test(ff.uri || '')))
+      .length;
+    openPreview(imageUris, imageIndex, layout, getLayout);
   };
 
   const openPdf = useCallback((url: string) => {
