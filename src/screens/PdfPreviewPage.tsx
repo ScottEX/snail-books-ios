@@ -80,7 +80,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
     ? (supplier
       ? `${API_BASE}/api/procurement-batches/${batchId}/png?supplier=${encodeURIComponent(supplier)}`
       : `${API_BASE}/api/procurement-batches/${batchId}/png`)
-    : fileUrl ? `${fileUrl}/png` : '';
+    : (fileUrl && fileUrl.startsWith(API_BASE)) ? `${fileUrl}/png` : '';
 
   const lang = getLang();
   const source = { uri: pdfUrl, headers: { 'X-Lang': lang } };
