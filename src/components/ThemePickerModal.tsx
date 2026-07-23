@@ -102,8 +102,19 @@ export default function ThemePickerModal({
   };
 
   const handleResetDefault = async () => {
+    if (resetting) return;
     setResetting(true);
     try {
+      setTheme(DEFAULT_THEME_ID);
+      await api.resetBackground();
+      try {
+        const { getCurrentUserId } = require('../utils/storage');
+        const uid = getCurrentUserId();
+        localStorage.setItem(uid ? `bg-opacity-${uid}` : 'bg-opacity', '0');
+        api.saveBackgroundSettings({ opacity: 0 }).catch(() => {});
+      } catch {}
+      try { localStorage.removeItem('bg-image'); } catch {}
+      try { localStorage.setItem('__theme_reset_ts', String(Date.now())); } catch {}
       if (typeof (window as any).dispatchEvent === 'function') {
         (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: '' } }));
       }
