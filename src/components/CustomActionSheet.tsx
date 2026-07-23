@@ -96,7 +96,7 @@ export default function CustomActionSheet({
           ]}
         >
           {dark ? (
-            <BlurView intensity={24} tint="dark" style={{ borderRadius: 24, overflow: 'hidden' as any }}>
+            <BlurView intensity={50} tint="dark" style={{ borderRadius: 24, overflow: 'hidden' as any }}>
               <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
                 {actions.map((action, index) => (
                   <TouchableOpacity
