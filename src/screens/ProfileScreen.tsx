@@ -1431,6 +1431,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     <CustomActionSheet
       visible={showPickerSheet}
       onClose={() => setShowPickerSheet(false)}
+      position="bottom"
       actions={[
         { label: t('takePhoto'), onPress: handlePickFromCamera },
         { label: t('chooseFromLibrary'), onPress: handlePickFromLibrary },

@@ -28,10 +28,12 @@ interface Props {
   dark?: boolean;
   /** Hide backdrop overlay */
   noOverlay?: boolean;
+  /** Bottom sheet style (centered, full-width below safe area) */
+  position?: 'top' | 'bottom';
 }
 
 export default function CustomActionSheet({
-  visible, title, message, actions, onClose, offsetY = 0, offsetX = 0, dark = false, noOverlay = false,
+  visible, title, message, actions, onClose, offsetY = 0, offsetX = 0, dark = false, noOverlay = false, position = 'top',
 }: Props) {
   const { colors: c } = useTheme();
   const anim = useRef(new Animated.Value(0)).current;
@@ -59,6 +61,8 @@ export default function CustomActionSheet({
     }).start(() => onClose());
   }, [onClose]);
 
+  const isBottom = position === 'bottom';
+
   return (
     <Modal
       visible={visible}
@@ -78,19 +82,18 @@ export default function CustomActionSheet({
       </TouchableOpacity>
 
       <View
-        style={st.sheetOuter}
+        style={[st.sheetOuter, isBottom && st.sheetOuterBottom]}
         pointerEvents="box-none"
       >
         <Animated.View
           style={[
-            dark ? { width: 180, alignSelf: 'flex-start' as const } : st.sheet,
+            dark ? { width: 180, alignSelf: 'flex-start' as const } : isBottom ? st.sheetBottom : st.sheet,
             {
-              marginTop: offsetY,
-              marginLeft: offsetX,
-              transform: [{ scale: anim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0.9, 1],
-              }) }],
+              marginTop: isBottom ? 0 : offsetY,
+              marginLeft: isBottom ? 0 : offsetX,
+              transform: isBottom
+                ? [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [100, 0] }) }]
+                : [{ scale: anim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }],
               opacity: anim,
             },
           ]}
@@ -185,6 +188,12 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     justifyContent: 'flex-start' as any,
     alignItems: 'flex-start' as any,
   },
+  sheetOuterBottom: {
+    justifyContent: 'flex-end' as any,
+    alignItems: 'center' as any,
+    paddingBottom: 34,
+    paddingHorizontal: 16,
+  },
   sheet: {
     width: 140,
     maxWidth: 140,
@@ -196,6 +205,17 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.25,
     shadowRadius: 20,
+  },
+  sheetBottom: {
+    width: '100%',
+    backgroundColor: c.surface,
+    borderRadius: 14,
+    overflow: 'hidden' as any,
+    elevation: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
   },
   titleWrap: {
     paddingVertical: 10,

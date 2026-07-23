@@ -192,6 +192,7 @@ export default function ThemePickerModal({
       <CustomActionSheet
         visible={showPickerSheet}
         onClose={() => setShowPickerSheet(false)}
+        position="bottom"
         actions={[
           { label: t('takePhoto'), onPress: handlePickFromCamera },
           { label: t('chooseFromLibrary'), onPress: handlePickFromLibrary },
