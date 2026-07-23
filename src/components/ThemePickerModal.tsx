@@ -9,7 +9,7 @@ import ThemePicker from './ThemePicker';
 import Slider from '@react-native-community/slider';
 import CloseButton from './CloseButton';
 import ModalOverlay from './ModalOverlay';
-import { pickImages } from '../utils/imagePicker';
+import { pickImageWithCamera } from '../utils/imagePicker';
 
 interface ThemePickerModalProps {
   visible: boolean;
@@ -97,15 +97,11 @@ export default function ThemePickerModal({
   };
 
   const handlePickImage = async () => {
-    try {
-      const picked = await pickImages({ multiple: false });
-      if (!picked || picked.length === 0) return;
-      fastClose.current = true;
-      await onCoverImagePicked?.(picked[0]);
-      onClose();
-    } catch {
-      // Permission denied / cancelled
-    }
+    const picked = await pickImageWithCamera();
+    if (!picked) return;
+    fastClose.current = true;
+    await onCoverImagePicked?.(picked);
+    onClose();
   };
 
   const opacityValue = coverOpacity ?? 1;
