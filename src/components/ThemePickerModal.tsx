@@ -47,11 +47,11 @@ function getStyles(colors: ThemeColors) {
     bgBtnOutline: {
       borderWidth: 1, borderColor: colors.primary, backgroundColor: 'transparent',
     },
-    bgBtnOutlineText: { fontSize: FONTS.body.size, color: colors.primary },
+    bgBtnOutlineText: { fontSize: FONTS.small.size, fontWeight: '600', color: colors.primary },
     bgBtnDanger: {
-      backgroundColor: colors.danger,
+      borderWidth: 1, borderColor: colors.danger, backgroundColor: 'transparent',
     },
-    bgBtnDangerText: { fontSize: FONTS.body.size, color: '#fff' },
+    bgBtnDangerText: { fontSize: FONTS.small.size, fontWeight: '600', color: colors.danger },
   });
 }
 
@@ -60,7 +60,7 @@ export default function ThemePickerModal({
   showCoverTools, coverOpacity, onCoverOpacityChange,
   onCoverImagePicked, onResetCover, coverUploading,
 }: ThemePickerModalProps) {
-  const { colors } = useTheme();
+  const { colors, setTheme } = useTheme();
   const styles = getStyles(colors);
   const [resetting, setResetting] = useState(false);
   const [showPickerSheet, setShowPickerSheet] = useState(false);
