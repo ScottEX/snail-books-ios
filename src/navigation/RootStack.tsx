@@ -14,9 +14,7 @@ import ExpenseDetailScreen from '../screens/ExpenseDetailScreen';
 import PdfPreviewPage from '../screens/PdfPreviewPage';
 import { api } from '../api/client';
 
-// ── Types ──
-
-export type MainStackParamList = {
+export type RootStackParamList = {
   Main: { editBatch?: any } | undefined;
   ExpenseHistory: undefined;
   DailyHistory: undefined;
@@ -27,19 +25,10 @@ export type MainStackParamList = {
   Invoice: { filterBatchId?: number | null } | undefined;
   ProcurementDetail: { batch: any };
   ExpenseDetail: { expense: any };
-};
-
-export type RootStackParamList = MainStackParamList & {
   PdfPreview: { id: number; number: number; supplier?: string; fileUrl?: string; title?: string };
 };
 
-export type RootParamList = {
-  MainStack: undefined;
-  PdfPreview: { id: number; number: number; supplier?: string; fileUrl?: string; title?: string };
-};
-
-const MainStack = createNativeStackNavigator<MainStackParamList>();
-const Root = createNativeStackNavigator<RootParamList>();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 // ── Session context: onLogout lives in App.tsx, stack screens consume it ──
 export const SessionContext = createContext<{ onLogout: () => void }>({ onLogout: () => {} });
@@ -179,7 +168,7 @@ function ExpenseDetailRoute() {
 
 function PdfPreviewRoute() {
   const navigation = useNavigation<any>();
-  const { params } = useRoute<RouteProp<RootParamList, 'PdfPreview'>>();
+  const { params } = useRoute<RouteProp<RootStackParamList, 'PdfPreview'>>();
   return (
     <PdfPreviewPage
       batchId={params.id}
@@ -192,46 +181,30 @@ function PdfPreviewRoute() {
   );
 }
 
-function MainStackNavigator({ onLogout }: { onLogout: () => void }) {
-  return (
-    <MainStack.Navigator
-      screenOptions={{
-        headerShown: false,
-        gestureEnabled: true,
-        fullScreenGestureEnabled: false,
-      }}
-    >
-      <MainStack.Screen name="Main">
-        {() => <HomeScreen onLogout={onLogout} />}
-      </MainStack.Screen>
-      <MainStack.Screen name="ExpenseHistory" component={ExpenseHistoryRoute} />
-      <MainStack.Screen name="DailyHistory" component={DailyHistoryRoute} />
-      <MainStack.Screen name="ReconHistory" component={ReconHistoryRoute} />
-      <MainStack.Screen name="Profile" component={ProfileRoute} />
-      <MainStack.Screen name="UserManagement" component={UserManagementRoute} />
-      <MainStack.Screen name="UserDetail" component={UserDetailRoute} />
-      <MainStack.Screen name="Invoice" component={InvoiceRoute} />
-      <MainStack.Screen name="ProcurementDetail" component={ProcurementDetailRoute} />
-      <MainStack.Screen name="ExpenseDetail" component={ExpenseDetailRoute} />
-    </MainStack.Navigator>
-  );
-}
-
 export default function RootStack({ onLogout }: { onLogout: () => void }) {
   return (
     <SessionContext.Provider value={{ onLogout }}>
-      <Root.Navigator screenOptions={{ headerShown: false }}>
-        <Root.Screen name="MainStack" options={{ headerShown: false }}>
-          {() => <MainStackNavigator onLogout={onLogout} />}
-        </Root.Screen>
-        <Root.Screen
-          name="PdfPreview"
-          component={PdfPreviewRoute}
-          options={{
-            animation: 'slide_from_right',
-          }}
-        />
-      </Root.Navigator>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          gestureEnabled: true,
+          fullScreenGestureEnabled: false,
+        }}
+      >
+        <Stack.Screen name="Main">
+          {() => <HomeScreen onLogout={onLogout} />}
+        </Stack.Screen>
+        <Stack.Screen name="ExpenseHistory" component={ExpenseHistoryRoute} />
+        <Stack.Screen name="DailyHistory" component={DailyHistoryRoute} />
+        <Stack.Screen name="ReconHistory" component={ReconHistoryRoute} />
+        <Stack.Screen name="Profile" component={ProfileRoute} />
+        <Stack.Screen name="UserManagement" component={UserManagementRoute} />
+        <Stack.Screen name="UserDetail" component={UserDetailRoute} />
+        <Stack.Screen name="Invoice" component={InvoiceRoute} />
+        <Stack.Screen name="ProcurementDetail" component={ProcurementDetailRoute} />
+        <Stack.Screen name="ExpenseDetail" component={ExpenseDetailRoute} />
+        <Stack.Screen name="PdfPreview" component={PdfPreviewRoute} />
+      </Stack.Navigator>
     </SessionContext.Provider>
   );
 }
