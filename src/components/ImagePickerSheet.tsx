@@ -3,7 +3,6 @@ import { Dimensions } from 'react-native';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import CustomActionSheet, { ActionItem } from './CustomActionSheet';
 import { t } from '../i18n';
-import { useTheme } from '../theme';
 import { pickImages, takePhoto, PickedImage } from '../utils/imagePicker';
 import * as DocumentPicker from 'expo-document-picker';
 
@@ -22,12 +21,9 @@ interface Props {
 }
 
 export default function ImagePickerSheet({ visible, onClose, onPicked, showFileOption = false, position = 'anchor', offsetX = 16, offsetY = 100 }: Props) {
-  const { colors } = useTheme();
   const { width: screenW } = Dimensions.get('window');
-  const finalX = position === 'center' ? Math.max(8, (screenW - 156) / 2) : Math.min(offsetX, screenW - 156);
+  const finalX = position === 'center' ? Math.max(8, (screenW - 180) / 2) : Math.min(offsetX, screenW - 196);
   const finalY = position === 'center' ? 60 : offsetY;
-
-  const iconColor = colors.textMain;
 
   const handleCamera = async () => {
     onClose();
@@ -69,7 +65,7 @@ export default function ImagePickerSheet({ visible, onClose, onPicked, showFileO
     {
       label: t('chooseFromLibrary'),
       icon: (
-        <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+        <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
           <Rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
           <Circle cx="9" cy="9" r="2" />
           <Path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
@@ -80,7 +76,7 @@ export default function ImagePickerSheet({ visible, onClose, onPicked, showFileO
     {
       label: t('takePhoto'),
       icon: (
-        <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+        <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
           <Path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
           <Circle cx="12" cy="13" r="3" />
         </Svg>
@@ -93,7 +89,7 @@ export default function ImagePickerSheet({ visible, onClose, onPicked, showFileO
     actions.push({
       label: t('chooseFile'),
       icon: (
-        <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+        <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
           <Path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
         </Svg>
       ),
@@ -105,6 +101,8 @@ export default function ImagePickerSheet({ visible, onClose, onPicked, showFileO
     <CustomActionSheet
       visible={visible}
       onClose={onClose}
+      dark
+      noOverlay
       offsetY={finalY}
       offsetX={finalX}
       actions={actions}
