@@ -524,38 +524,29 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   };
 
   // ── Avatar / Cover handlers ──
-  const [showPickerSheet, setShowPickerSheet] = useState(false);
+  const [showAvatarSheet, setShowAvatarSheet] = useState(false);
+  const [showCoverSheet, setShowCoverSheet] = useState(false);
   const [pickOffsetX, setPickOffsetX] = useState(0);
   const [pickOffsetY, setPickOffsetY] = useState(0);
-  const pendingPicker = useRef<'avatar' | 'cover' | null>(null);
   const avatarRef = useRef<any>(null);
-  const coverRef = useRef<any>(null);
 
-  const openPicker = (kind: 'avatar' | 'cover') => {
-    pendingPicker.current = kind;
-    const ref = kind === 'avatar' ? avatarRef : coverRef;
-    (ref.current as any)?.measureInWindow?.((x: number, y: number, _w: number, h: number) => {
+  const openAvatarPicker = () => {
+    (avatarRef.current as any)?.measureInWindow?.((x: number, y: number, _w: number, h: number) => {
       setPickOffsetX(x || 16);
       setPickOffsetY(y || 100);
-      setShowPickerSheet(true);
-    }) || setShowPickerSheet(true);
+      setShowAvatarSheet(true);
+    }) || setShowAvatarSheet(true);
   };
 
-  const handlePicked = (img: PickedImage | null) => {
+  const handleAvatarPicked = (img: PickedImage | null) => {
     if (!img) return;
-    if (pendingPicker.current === 'avatar') {
-      setAvatarCropSrc(img.uri);
-      setShowAvatarCrop(true);
-    } else {
-      setCoverCropSrc(img.uri);
-      setShowCoverCrop(true);
-    }
-    pendingPicker.current = null;
+    setAvatarCropSrc(img.uri);
+    setShowAvatarCrop(true);
   };
 
   const handleAvatarPress = async () => {
     if (uploadingAvatar) return;
-    openPicker('avatar');
+    openAvatarPicker();
   };
 
   const handleAvatarCropConfirm = (dataUri: string) => {
@@ -588,7 +579,13 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
   const handleCoverPress = async () => {
     if (uploadingCover) return;
-    openPicker('cover');
+    setShowCoverSheet(true);
+  };
+
+  const handleCoverPicked = (img: PickedImage | null) => {
+    if (!img) return;
+    setCoverCropSrc(img.uri);
+    setShowCoverCrop(true);
   };
 
   // ── bgOpacity (shared via localStorage + API, same as HomeScreen) ──
@@ -803,7 +800,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       >
         <TouchableOpacity
         style={st.coverWrap}
-        ref={coverRef}
         onPress={handleCoverPress} activeOpacity={0.9} disabled={uploadingCover}>
         {/* Gradient — always rendered as base; cover image fades in on top */}
         <View style={st.coverGradient}>
@@ -1433,12 +1429,19 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     </View>
 
     <ImagePickerSheet
-      visible={showPickerSheet}
-      onClose={() => setShowPickerSheet(false)}
-      onPicked={handlePicked}
+      visible={showAvatarSheet}
+      onClose={() => setShowAvatarSheet(false)}
+      onPicked={handleAvatarPicked}
       showFileOption
       offsetY={pickOffsetY}
       offsetX={pickOffsetX}
+    />
+    <ImagePickerSheet
+      visible={showCoverSheet}
+      onClose={() => setShowCoverSheet(false)}
+      onPicked={handleCoverPicked}
+      showFileOption
+      position="center"
     />
     </>
   );
