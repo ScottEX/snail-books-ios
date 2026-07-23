@@ -24,9 +24,8 @@ import ButtonPair from '../components/ButtonPair';
 import SubmitButton from '../components/SubmitButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ModalOverlay from '../components/ModalOverlay';
-import CustomActionSheet from '../components/CustomActionSheet';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
-import { useImagePickerSheet } from '../hooks/useImagePickerSheet';
+import { pickImageWithCamera } from '../utils/imagePicker';
 import { cacheBackground } from '../utils/backgroundCache';
 import { modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
 import { isBiometricAvailable, saveCredential, promptBiometric, getCredential } from '../utils/biometric';
@@ -523,15 +522,15 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     persistAuthPrefs({ session_timeout_hours: h });
   };
 
-  const imageSheet = useImagePickerSheet();
-
   // ── Avatar / Cover handlers ──
   const handleAvatarPress = async () => {
     if (uploadingAvatar) return;
-    const img = await imageSheet.open();
-    if (!img) return;
-    setAvatarCropSrc(img.uri);
-    setShowAvatarCrop(true);
+    try {
+      const img = await pickImageWithCamera();
+      if (!img) return;
+      setAvatarCropSrc(img.uri);
+      setShowAvatarCrop(true);
+    } catch {}
   };
 
   const handleAvatarCropConfirm = (dataUri: string) => {
@@ -564,10 +563,12 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
   const handleCoverPress = async () => {
     if (uploadingCover) return;
-    const img = await imageSheet.open();
-    if (!img) return;
-    setCoverCropSrc(img.uri);
-    setShowCoverCrop(true);
+    try {
+      const img = await pickImageWithCamera();
+      if (!img) return;
+      setCoverCropSrc(img.uri);
+      setShowCoverCrop(true);
+    } catch {}
   };
 
   // ── bgOpacity (shared via localStorage + API, same as HomeScreen) ──
@@ -760,7 +761,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   };
 
   return (
-    <>
     <View style={st.root}>
       {/* Nav bar — always visible, fixed at top */}
       <View
@@ -1409,16 +1409,6 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         </ReAnimated.View>
       </ModalOverlay>
     </View>
-
-    <CustomActionSheet
-      visible={imageSheet.show}
-      onClose={imageSheet.close}
-      actions={[
-        { label: t('takePhoto'), onPress: imageSheet.chooseCamera },
-        { label: t('chooseFromLibrary'), onPress: imageSheet.chooseLibrary },
-      ]}
-    />
-    </>
   );
 }
 

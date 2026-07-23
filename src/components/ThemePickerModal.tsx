@@ -9,8 +9,7 @@ import ThemePicker from './ThemePicker';
 import Slider from '@react-native-community/slider';
 import CloseButton from './CloseButton';
 import ModalOverlay from './ModalOverlay';
-import CustomActionSheet from './CustomActionSheet';
-import { useImagePickerSheet } from '../hooks/useImagePickerSheet';
+import { pickImageWithCamera, PickedImage } from '../utils/imagePicker';
 
 interface ThemePickerModalProps {
   visible: boolean;
@@ -50,11 +49,11 @@ function getStyles(colors: ThemeColors) {
     bgBtnOutline: {
       borderWidth: 1, borderColor: colors.primary, backgroundColor: 'transparent',
     },
-    bgBtnOutlineText: { fontSize: FONTS.body.size, color: colors.primary },
+    bgBtnOutlineText: { fontSize: FONTS.small.size, fontWeight: '600', color: colors.primary },
     bgBtnDanger: {
-      backgroundColor: colors.danger,
+      borderWidth: 1, borderColor: colors.danger, backgroundColor: 'transparent',
     },
-    bgBtnDangerText: { fontSize: FONTS.body.size, color: '#fff' },
+    bgBtnDangerText: { fontSize: FONTS.small.size, fontWeight: '600', color: colors.danger },
   });
 }
 
@@ -63,12 +62,34 @@ export default function ThemePickerModal({
   showCoverTools, coverOpacity, onCoverOpacityChange,
   onCoverImagePicked, onResetCover, coverUploading,
 }: ThemePickerModalProps) {
-  const { colors } = useTheme();
+  const { colors, setTheme } = useTheme();
   const styles = getStyles(colors);
   const [resetting, setResetting] = useState(false);
-  const fastClose = useRef(false);
+  const fastClose = useRef(false);  // 10ms dismiss when opening crop after pick
 
-  const imageSheet = useImagePickerSheet();
+  // ── Shared "reset to default" logic ──
+  const handleResetDefault = async () => {
+    if (resetting) return;
+    setResetting(true);
+    try {
+      setTheme(DEFAULT_THEME_ID);
+      await api.resetBackground();
+      try {
+        const { getCurrentUserId } = require('../utils/storage');
+        const uid = getCurrentUserId();
+        localStorage.setItem(uid ? `bg-opacity-${uid}` : 'bg-opacity', '0');
+        api.saveBackgroundSettings({ opacity: 0 }).catch(() => {});
+      } catch {}
+      try { localStorage.removeItem('bg-image'); } catch {}
+      try { localStorage.setItem('__theme_reset_ts', String(Date.now())); } catch {}
+      if (typeof (window as any).dispatchEvent === 'function') {
+        (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: '' } }));
+      }
+      await onResetCover?.();
+    } finally {
+      setResetting(false);
+    }
+  };
 
   const handleClose = () => {
     fastClose.current = false;
@@ -76,21 +97,14 @@ export default function ThemePickerModal({
   };
 
   const handlePickImage = async () => {
-    const picked = await imageSheet.open();
-    if (!picked) return;
-    fastClose.current = true;
-    await onCoverImagePicked?.(picked);
-    onClose();
-  };
-
-  const handleResetDefault = async () => {
-    setResetting(true);
     try {
-      await onResetCover?.();
+      const picked = await pickImageWithCamera();
+      if (!picked) return;
       fastClose.current = true;
+      await onCoverImagePicked?.(picked);
       onClose();
-    } catch {} finally {
-      setResetting(false);
+    } catch {
+      // Permission denied / cancelled
     }
   };
 
@@ -168,15 +182,6 @@ export default function ThemePickerModal({
         </View>
       </View>
       </ModalOverlay>
-
-      <CustomActionSheet
-        visible={imageSheet.show}
-        onClose={imageSheet.close}
-        actions={[
-          { label: t('takePhoto'), onPress: imageSheet.chooseCamera },
-          { label: t('chooseFromLibrary'), onPress: imageSheet.chooseLibrary },
-        ]}
-      />
     </>
   );
 }
