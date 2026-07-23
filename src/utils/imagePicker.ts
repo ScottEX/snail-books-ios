@@ -124,13 +124,13 @@ export async function pickFiles(): Promise<PickedImage[]> {
 }
 
 /**
- * iOS native ActionSheet — pick between camera or library.
+ * iOS native ActionSheet — pick between camera, library, or files.
  * Returns a single image (or null if cancelled).
  */
 export function pickImageWithCamera(): Promise<PickedImage | null> {
   return new Promise((resolve) => {
     ActionSheetIOS.showActionSheetWithOptions(
-      { options: ['拍照', '从相册选择', '取消'], cancelButtonIndex: 2 },
+      { options: ['拍照', '从相册选择', '从文件选择', '取消'], cancelButtonIndex: 3 },
       async (index) => {
         try {
           if (index === 0) {
@@ -138,6 +138,20 @@ export function pickImageWithCamera(): Promise<PickedImage | null> {
           } else if (index === 1) {
             const imgs = await pickImages({ multiple: false });
             resolve(imgs.length > 0 ? imgs[0] : null);
+          } else if (index === 2) {
+            const result = await DocumentPicker.getDocumentAsync({
+              type: ['image/*'],
+              multiple: false,
+              copyToCacheDirectory: true,
+            });
+            if (result.canceled || !result.assets?.length) { resolve(null); return; }
+            const a = result.assets[0];
+            resolve({
+              uri: a.uri,
+              type: a.mimeType ?? 'image/jpeg',
+              name: a.name,
+              size: a.size ?? 0,
+            });
           } else {
             resolve(null);
           }
