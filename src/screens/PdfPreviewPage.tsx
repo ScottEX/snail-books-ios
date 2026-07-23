@@ -290,7 +290,7 @@ const getStyles = (c: ThemeColors) => {
     return `rgba(${r},${g},${b},${op})`;
   };
   return StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#fff' },
+  root: { flex: 1, backgroundColor: 'transparent' },
   backBtn: {
     width: 36,
     height: 36,
