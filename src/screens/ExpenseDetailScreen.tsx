@@ -22,6 +22,7 @@ import PaymentMethodChips from '../components/PaymentMethodChips';
 import ExpenseNoteInput from '../components/ExpenseNoteInput';
 import DatePicker from '../components/DatePicker';
 import HistoryHeader from '../components/HistoryHeader';
+import HomeBackground from '../components/HomeBackground';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { PickedImage } from '../utils/imagePicker';
 import { parseImages } from '../utils/parseImages';
@@ -233,6 +234,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
   return (
     <ReAnimated.View style={[{ flex: 1 }, contentStyle]}>
     <View style={styles.container}>
+      <HomeBackground />
       <HistoryHeader
         onBack={onBack}
         title={t('expDetail')}
@@ -517,7 +519,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
 
 const getStyles = (c: ThemeColors) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: c.bg },
+    container: { flex: 1 },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
