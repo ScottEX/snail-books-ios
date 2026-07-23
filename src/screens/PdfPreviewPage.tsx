@@ -188,17 +188,6 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
 
   return (
     <View style={styles.root}>
-      <BlurView
-        intensity={24}
-        tint="light"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: headerHeight,
-        }}
-      />
       <StatusBar barStyle="dark-content" />
       <View
         {...headerPan.panHandlers}
