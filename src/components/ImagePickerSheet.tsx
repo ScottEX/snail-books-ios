@@ -1,5 +1,6 @@
 import React from 'react';
-import { Dimensions } from 'react-native';
+import { Dimensions, Platform, StatusBar } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import CustomActionSheet, { ActionItem } from './CustomActionSheet';
 import { t } from '../i18n';
@@ -21,9 +22,11 @@ interface Props {
 }
 
 export default function ImagePickerSheet({ visible, onClose, onPicked, showFileOption = false, position = 'anchor', offsetX = 16, offsetY = 100 }: Props) {
+  const insets = useSafeAreaInsets();
   const screenW = Dimensions.get('window').width;
+  const statusBarH = Platform.OS === 'ios' ? insets.top : (StatusBar.currentHeight ?? 44);
   const finalX = position === 'center' ? Math.max(8, (screenW - 180) / 2) : Math.min(offsetX, screenW - 196);
-  const finalY = position === 'center' ? 100 : offsetY;
+  const finalY = position === 'center' ? (statusBarH > 0 ? statusBarH + 12 : 100) : offsetY;
   const handleCamera = async () => {
     onClose();
     try {
