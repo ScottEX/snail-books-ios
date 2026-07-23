@@ -103,8 +103,8 @@ export default function ThemePickerModal({
 
   const handlePickImage = () => {
     (pickBtnRef.current as any)?.measureInWindow?.((x: number, y: number, _w: number, h: number) => {
-      setPickOffsetX(x || 16);
-      setPickOffsetY(Math.max(y - 20, 60));
+      setPickOffsetX(Math.max((x || 16) - 20, 0));
+      setPickOffsetY(Math.max(y - 40, 60));
       setShowPickerSheet(true);
     }) || setShowPickerSheet(true);
   };
