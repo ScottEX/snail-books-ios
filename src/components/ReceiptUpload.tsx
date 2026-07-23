@@ -293,10 +293,8 @@ export default React.memo(function ReceiptUpload({
           {
             label: t('chooseFromLibrary'),
             icon: (
-              <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-                <Rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <Circle cx="9" cy="9" r="2" />
-                <Path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+              <Svg width={18} height={18} viewBox="0 0 1024 1024" fill="#FFFFFF">
+                <Path d="M875.5 151.4H149.2c-46.3 0-83.8 37.5-83.8 83.8v558.7c0 46.3 37.5 83.8 83.8 83.8h726.3c46.3 0 83.8-37.5 83.8-83.8V235.2c0-46.3-37.5-83.8-83.8-83.8z m14 557L714.1 474.6s-10.2-18.9-46-18.9c-40.6 0-52.8 18.3-52.8 18.3L461.7 711.1s-8.4 15.9-28.8 15.9c-21.5 0-31.7-15.9-31.7-15.9l-80.8-92.3s-20.7-27.4-47.6-27.4c-26.8 0-49 30.3-49 30.3l-88.6 110.4v-482c0-15.4 12.5-28 28-28h698.4c15.4 0 28 12.5 28 28l-0.1 458.3zM470.3 402.8c0 54.7-44.3 99-98.9 99-54.6 0-99-44.3-99-99 0-54.6 44.3-98.9 99-98.9 54.6 0 98.9 44.3 98.9 98.9z" />
               </Svg>
             ),
             onPress: handlePickFromLibrary,
