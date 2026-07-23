@@ -24,29 +24,32 @@ export default function HistoryHeader({ onBack, title, filterActive, onToggleFil
         tint="regular"
         style={StyleSheet.absoluteFill}
       />
-      <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
-        <View style={st.backBtn}>
-          <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.textMain} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <Path d="M15 18l-6-6 6-6" />
-          </Svg>
-        </View>
-      </TouchableOpacity>
-      <Text style={st.title}>{title}</Text>
-      {rightAction ? (
-        rightAction
-      ) : onToggleFilter ? (
-        <TouchableOpacity
-          style={[st.filterBtn, filterActive && st.filterBtnActive]}
-          onPress={onToggleFilter}
-          activeOpacity={0.7}
-        >
-          <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={filterActive ? colors.surface : colors.textMain} strokeWidth={2} strokeLinecap="round">
-            <Path d="M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.35-4.35" />
-          </Svg>
+      <View style={st.spacer} />
+      <View style={st.row}>
+        <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
+          <View style={st.backBtn}>
+            <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.textMain} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <Path d="M15 18l-6-6 6-6" />
+            </Svg>
+          </View>
         </TouchableOpacity>
-      ) : (
-        <View style={{ width: 34 }} />
-      )}
+        <Text style={st.title}>{title}</Text>
+        {rightAction ? (
+          rightAction
+        ) : onToggleFilter ? (
+          <TouchableOpacity
+            style={[st.filterBtn, filterActive && st.filterBtnActive]}
+            onPress={onToggleFilter}
+            activeOpacity={0.7}
+          >
+            <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={filterActive ? colors.surface : colors.textMain} strokeWidth={2} strokeLinecap="round">
+              <Path d="M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.35-4.35" />
+            </Svg>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 34 }} />
+        )}
+      </View>
     </View>
   );
 }
@@ -54,9 +57,13 @@ export default function HistoryHeader({ onBack, title, filterActive, onToggleFil
 const getSt = (colors: ThemeColors) => StyleSheet.create({
   header: {
     position: 'absolute' as any, top: 0, left: 0, right: 0, zIndex: 10,
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 12, paddingTop: 62, paddingBottom: 10,
+    flexDirection: 'column',
+    paddingHorizontal: 12, paddingTop: 56, paddingBottom: 10,
     overflow: 'hidden',
+  },
+  spacer: { height: 6 },
+  row: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
   },
   backBtn: { padding: 4 },
   title: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain, flex: 1, textAlign: 'left' },
