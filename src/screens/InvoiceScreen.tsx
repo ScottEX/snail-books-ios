@@ -642,10 +642,21 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
       : undefined;
     openPreview(imageUris, imageIndex, layout, wrappedGetLayout);
   };
+  const wasOpenForPdf = useRef(false);
+
   const openPdf = useCallback((url: string) => {
+    wasOpenForPdf.current = true;
     setDrawerOpen(false);
     onPdfPreview?.(url, t('invTitle') as string);
   }, [t, onPdfPreview]);
+
+  // Return from PdfPreview → reopen drawer
+  useFocusEffect(useCallback(() => {
+    if (wasOpenForPdf.current) {
+      wasOpenForPdf.current = false;
+      setDrawerOpen(true);
+    }
+  }, []));
 
   const handleClosePreview = () => {
     closePreview();
