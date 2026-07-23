@@ -259,6 +259,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
           <WebView
             source={source}
             style={styles.webview}
+            opaque={false}
             allowFileAccess={true}
             allowingReadAccessToURL={isLocal ? pdfUrl.substring(0, pdfUrl.lastIndexOf('/')) : undefined}
             originWhitelist={['*']}
