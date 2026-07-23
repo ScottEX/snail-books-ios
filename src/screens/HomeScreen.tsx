@@ -1330,11 +1330,8 @@ const getStyles = (colors: ThemeColors, headerColor: string, bgOpacity: number) 
   bottomNav: {
     flexDirection: 'row',
     width: '80%', maxWidth: 420,
-    backgroundColor: withAlpha(colors.surface, 0.20),
     borderRadius: 28, overflow: 'hidden',
     paddingVertical: 10, paddingHorizontal: 12,
-    borderWidth: 0.5, borderColor: withAlpha(colors.surface, 0.25),
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12,
     zIndex: 100,
   },
   bottomNavInsetTop: {
