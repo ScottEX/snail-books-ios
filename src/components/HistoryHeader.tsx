@@ -46,7 +46,7 @@ export default function HistoryHeader({ onBack, title, filterActive, onToggleFil
           </Svg>
         </TouchableOpacity>
       ) : (
-        <View style={{ width: 40 }} />
+        <View style={{ width: 34 }} />
       )}
     </View>
   );
@@ -61,6 +61,6 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   },
   backBtn: { padding: 4 },
   title: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain, flex: 1, textAlign: 'left' },
-  filterBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  filterBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   filterBtnActive: { backgroundColor: colors.primary },
 });
