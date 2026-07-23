@@ -96,7 +96,7 @@ export default function CustomActionSheet({
           ]}
         >
           {dark ? (
-            <View style={{ borderRadius: 24, overflow: 'hidden' as any }}>
+            <View style={{ borderRadius: 50, overflow: 'hidden' as any }}>
               <BlurView intensity={24} tint="light" style={StyleSheet.absoluteFill} />
               <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
                 {actions.map((action, index) => (
