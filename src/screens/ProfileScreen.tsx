@@ -533,7 +533,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const openAvatarPicker = () => {
     (avatarRef.current as any)?.measureInWindow?.((x: number, y: number, _w: number, h: number) => {
       setPickOffsetX(x || 16);
-      setPickOffsetY(y || 100);
+      setPickOffsetY(Math.max(y - 20, 60));
       setShowAvatarSheet(true);
     }) || setShowAvatarSheet(true);
   };
