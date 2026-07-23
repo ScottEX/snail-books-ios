@@ -3,7 +3,6 @@ import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
   Image, useWindowDimensions,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import ReAnimated, { useAnimatedStyle, useSharedValue, withTiming, cancelAnimation } from 'react-native-reanimated';
 import AppTextInput from '../components/AppTextInput';
@@ -72,9 +71,7 @@ interface Props {
 
 export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDeleted }: Props) {
   const { colors: c, theme } = useTheme();
-  const insets = useSafeAreaInsets();
-  const safeTop = insets.top;
-  const headerHeight = safeTop + 42;
+  const headerHeight = 100;
   const sd = useServerDate();
   const lang = getLang();
   const { width: w, height: windowHeight } = useWindowDimensions();
