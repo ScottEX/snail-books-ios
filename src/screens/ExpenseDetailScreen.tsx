@@ -240,7 +240,6 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
       <HistoryHeader
         onBack={onBack}
         title={t('expDetail')}
-        topOffset={6}
         rightAction={!expense?.procurement_batch_id ? (
           <TouchableOpacity
             onPress={() => setShowDeleteConfirm(true)}
