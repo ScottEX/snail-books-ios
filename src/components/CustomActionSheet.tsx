@@ -181,7 +181,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     backgroundColor: BACKDROP_COLOR,
   },
   sheetOuter: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'flex-start' as any,
     alignItems: 'flex-start' as any,
   },
