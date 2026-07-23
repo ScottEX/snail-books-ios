@@ -57,7 +57,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
       overlayStyle={{ justifyContent: 'flex-end', padding: 0 }}
       contentStyle={{ width: '100%', alignItems: 'center' }}
     >
-      <View style={[styles.sheet, { backgroundColor: c.surface, paddingBottom: Math.max(insets.bottom, 12) }]}>
+      <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 12) }]}>
         <DateTimePicker
           value={pickerDate}
           mode="date"
@@ -86,7 +86,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
 }
 
 const styles = StyleSheet.create({
-  sheet: { width: '100%' as const, borderRadius: 22, overflow: 'hidden' as const },
+  sheet: { width: '100%' as const, borderRadius: 22, overflow: 'hidden' as const, backgroundColor: '#FFFFFF' },
   footer: { flexDirection: 'row' as const, gap: 10, marginTop: 8 },
   footerBtn: { flex: 1, paddingVertical: 10, alignItems: 'center' as const },
 });
