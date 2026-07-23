@@ -205,7 +205,7 @@ export default function RootStack({ onLogout }: { onLogout: () => void }) {
         <Stack.Screen name="Invoice" component={InvoiceRoute} />
         <Stack.Screen name="ProcurementDetail" component={ProcurementDetailRoute} />
         <Stack.Screen name="ExpenseDetail" component={ExpenseDetailRoute} />
-        <Stack.Screen name="PdfPreview" component={PdfPreviewRoute} options={{ contentStyle: {{ backgroundColor: 'transparent' }} }} />
+        <Stack.Screen name="PdfPreview" component={PdfPreviewRoute} options={{ contentStyle: { backgroundColor: 'transparent' } }} />
       </Stack.Navigator>
     </SessionContext.Provider>
   );
