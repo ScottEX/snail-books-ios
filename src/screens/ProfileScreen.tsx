@@ -24,9 +24,9 @@ import ButtonPair from '../components/ButtonPair';
 import SubmitButton from '../components/SubmitButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ModalOverlay from '../components/ModalOverlay';
-import CustomActionSheet from '../components/CustomActionSheet';
+import ImagePickerSheet from '../components/ImagePickerSheet';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
-import { pickImages, takePhoto, PickedImage } from '../utils/imagePicker';
+import { pickImages, PickedImage } from '../utils/imagePicker';
 import { cacheBackground } from '../utils/backgroundCache';
 import { modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
 import { isBiometricAvailable, saveCredential, promptBiometric, getCredential } from '../utils/biometric';
@@ -532,7 +532,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     setShowPickerSheet(true);
   };
 
-  const applyPicked = (img: PickedImage | null) => {
+  const handlePicked = (img: PickedImage | null) => {
     if (!img) return;
     if (pendingPicker.current === 'avatar') {
       setAvatarCropSrc(img.uri);
@@ -544,15 +544,9 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     pendingPicker.current = null;
   };
 
-  const handlePickFromCamera = async () => {
-    setShowPickerSheet(false);
-    applyPicked(await takePhoto().catch(() => null));
-  };
-
-  const handlePickFromLibrary = async () => {
-    setShowPickerSheet(false);
-    const imgs = await pickImages({ multiple: false }).catch(() => [] as PickedImage[]);
-    applyPicked(imgs.length > 0 ? imgs[0] : null);
+  const handleAvatarPress = async () => {
+    if (uploadingAvatar) return;
+    openPicker('avatar');
   };
 
   const handleAvatarCropConfirm = (dataUri: string) => {
@@ -852,7 +846,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
         {/* Avatar — overlaps cover bottom, follows pull-down stretch */}
         <ReAnimated.View style={[st.avatarFloat, coverFollowStyle]}>
-          <TouchableOpacity onPress={() => openPicker('avatar')} activeOpacity={0.8} disabled={uploadingAvatar}>
+          <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.8} disabled={uploadingAvatar}>
             {avatarUrl ? (
               <Image source={{ uri: avatarUrl }} style={st.avatar} />
             ) : (
@@ -1428,14 +1422,10 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       </ModalOverlay>
     </View>
 
-    <CustomActionSheet
+    <ImagePickerSheet
       visible={showPickerSheet}
       onClose={() => setShowPickerSheet(false)}
-      position="bottom"
-      actions={[
-        { label: t('takePhoto'), onPress: handlePickFromCamera },
-        { label: t('chooseFromLibrary'), onPress: handlePickFromLibrary },
-      ]}
+      onPicked={handlePicked}
     />
     </>
   );
