@@ -228,8 +228,7 @@ export default function RootStack({ onLogout }: { onLogout: () => void }) {
           name="PdfPreview"
           component={PdfPreviewRoute}
           options={{
-            presentation: 'fullScreenModal',
-            animation: 'slide_from_bottom',
+            animation: 'slide_from_right',
           }}
         />
       </Root.Navigator>
