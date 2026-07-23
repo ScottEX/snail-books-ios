@@ -253,7 +253,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
         ) : undefined}
       />
       {/* Body */}
-      <ScrollView style={[styles.body, { marginTop: 101 }]} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false} keyboardDismissMode="interactive">
+      <ScrollView style={[styles.body, { marginTop: 100 }]} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false} keyboardDismissMode="interactive">
         {/* ── View mode ── */}
         {!editMode && (
           <View>
@@ -544,7 +544,7 @@ const getStyles = (c: ThemeColors) =>
       justifyContent: 'center', alignItems: 'center', padding: 4,
     },
     body: { flex: 1, backgroundColor: c.bg },
-    bodyContent: { paddingHorizontal: 16, paddingTop: 11, paddingBottom: 24 },
+    bodyContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 24 },
 
     amountCard: {
       flexDirection: 'row',
