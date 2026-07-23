@@ -12,9 +12,12 @@ interface Props {
   onPicked: (image: PickedImage | null) => void;
   /** Include 'choose from files' option */
   showFileOption?: boolean;
+  /** Popup position — measureInWindow of trigger view */
+  offsetX?: number;
+  offsetY?: number;
 }
 
-export default function ImagePickerSheet({ visible, onClose, onPicked, showFileOption = false }: Props) {
+export default function ImagePickerSheet({ visible, onClose, onPicked, showFileOption = false, offsetX = 16, offsetY = 100 }: Props) {
   const handleCamera = async () => {
     onClose();
     try {
@@ -93,6 +96,8 @@ export default function ImagePickerSheet({ visible, onClose, onPicked, showFileO
       onClose={onClose}
       dark
       noOverlay
+      offsetY={offsetY}
+      offsetX={offsetX}
       actions={actions}
     />
   );

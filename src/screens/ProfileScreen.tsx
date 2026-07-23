@@ -525,11 +525,20 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
   // ── Avatar / Cover handlers ──
   const [showPickerSheet, setShowPickerSheet] = useState(false);
+  const [pickOffsetX, setPickOffsetX] = useState(0);
+  const [pickOffsetY, setPickOffsetY] = useState(0);
   const pendingPicker = useRef<'avatar' | 'cover' | null>(null);
+  const avatarRef = useRef<any>(null);
+  const coverRef = useRef<any>(null);
 
   const openPicker = (kind: 'avatar' | 'cover') => {
     pendingPicker.current = kind;
-    setShowPickerSheet(true);
+    const ref = kind === 'avatar' ? avatarRef : coverRef;
+    (ref.current as any)?.measureInWindow?.((x: number, y: number, _w: number, h: number) => {
+      setPickOffsetX(x || 16);
+      setPickOffsetY((y + h) || 100);
+      setShowPickerSheet(true);
+    }) || setShowPickerSheet(true);
   };
 
   const handlePicked = (img: PickedImage | null) => {
@@ -794,6 +803,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       >
         <TouchableOpacity
         style={st.coverWrap}
+        ref={coverRef}
         onPress={handleCoverPress} activeOpacity={0.9} disabled={uploadingCover}>
         {/* Gradient — always rendered as base; cover image fades in on top */}
         <View style={st.coverGradient}>
@@ -846,7 +856,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
         {/* Avatar — overlaps cover bottom, follows pull-down stretch */}
         <ReAnimated.View style={[st.avatarFloat, coverFollowStyle]}>
-          <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.8} disabled={uploadingAvatar}>
+          <TouchableOpacity ref={avatarRef} onPress={handleAvatarPress} activeOpacity={0.8} disabled={uploadingAvatar}>
             {avatarUrl ? (
               <Image source={{ uri: avatarUrl }} style={st.avatar} />
             ) : (
@@ -1426,6 +1436,8 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       visible={showPickerSheet}
       onClose={() => setShowPickerSheet(false)}
       onPicked={handlePicked}
+      offsetY={pickOffsetY}
+      offsetX={pickOffsetX}
     />
     </>
   );
