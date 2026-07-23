@@ -31,6 +31,9 @@ import { useExpenseForm } from '../hooks/useExpenseForm';
 import ModalOverlay from '../components/ModalOverlay';
 import { useDateField } from '../hooks/useDateField';
 import DateErrorHint from '../components/DateErrorHint';
+import { useNavigation } from '@react-navigation/native';
+import { useImagePreview } from '../hooks/useImagePreview';
+import ImagePreview, { ThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 
 import FadeInView from '../components/FadeInView';
 
@@ -416,6 +419,38 @@ export default function ExpenseScreen({
     clearUrlCache,
     onToast: showToast,
   });
+
+  const navigation = useNavigation<any>();
+  const { preview, openPreview, closePreview } = useImagePreview();
+
+  const openPdf = useCallback((url: string) => {
+    navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title: t('expenseCategory' as any) || '支出凭证' });
+  }, [navigation, t]);
+
+  const handlePreviewNew = (index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
+    const f = expImages[index];
+    if (f && (f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '') || /\.pdf$/i.test(f.uri || ''))) {
+      openPdf(f.uri);
+      return;
+    }
+    // Only show images in the carousel (PDFs are previewed separately)
+    const isPdf = (ff: any) => ff.type === 'application/pdf' || /\.pdf$/i.test(ff.name || '') || /\.pdf$/i.test(ff.uri || '');
+    const imageUris = expImages.filter(ff => !isPdf(ff)).map(ff => ff.uri);
+    const imageIndex = expImages.slice(0, index).filter(ff => !isPdf(ff)).length;
+    const wrappedGetLayout: ThumbLayoutResolver | undefined = getLayout
+      ? (ci, cb) => {
+          let orig = 0, cnt = 0;
+          for (let i = 0; i < expImages.length; i++) {
+            if (!isPdf(expImages[i])) {
+              if (cnt === ci) { orig = i; break; }
+              cnt++;
+            }
+          }
+          getLayout(orig, cb);
+        }
+      : undefined;
+    openPreview(imageUris, imageIndex, layout, wrappedGetLayout);
+  };
 
   // Fast glass-card totals from business-summary API (matching web)
   const glassCatTotals = useMemo(() => ({
@@ -804,6 +839,7 @@ export default function ExpenseScreen({
                 newFiles={expImages}
                 onAdd={handleImageSelect}
                 onRemoveNew={removeImage}
+                onPreviewNew={handlePreviewNew}
                 getPreviewUrl={getPreviewUrl}
                 maxThumbSize={120}
               />
@@ -1095,6 +1131,15 @@ export default function ExpenseScreen({
           </View>
       </ModalOverlay>
     </ReAnimated.View>
+    {/* Image preview */}
+    <ImagePreview
+      images={preview?.images ?? []}
+      initialIdx={preview?.idx ?? 0}
+      visible={preview !== null}
+      thumbLayout={preview?.layout}
+      getThumbLayout={preview?.getLayout}
+      onClose={closePreview}
+    />
     </>
   );
 }

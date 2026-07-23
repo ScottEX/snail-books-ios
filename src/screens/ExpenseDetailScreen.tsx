@@ -30,6 +30,7 @@ import { parseImages } from '../utils/parseImages';
 import ImagePreview, { measureThumbLayout, resolveThumbLayout, ThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 import { Image as ExpoImage } from 'expo-image';
 import { useImagePreview } from '../hooks/useImagePreview';
+import { useNavigation } from '@react-navigation/native';
 import ReceiptUpload from '../components/ReceiptUpload';
 import { useServerDate } from '../hooks/useServerDate';
 
@@ -93,6 +94,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
   const [deleteError, setDeleteError] = useState('');
   const { showToast, ToastHost } = useToast();
   const { preview, openPreview, closePreview } = useImagePreview();
+  const navigation = useNavigation<any>();
   const viewThumbRefs = useRef<(any | null)[]>([]);
 
   const handleViewPreview = useCallback((images: string[], i: number) => {
@@ -110,6 +112,48 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
   const [images, setImages] = useState<string[]>(parseImages(expense?.images));
   const [thumbImages, setThumbImages] = useState<string[]>(parseImages(expense?.thumb_images));
   const [newFiles, setNewFiles] = useState<PickedImage[]>([]);
+
+  const openPdf = useCallback((url: string) => {
+    navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title: '支出详情' });
+  }, [navigation]);
+
+  // Existing images preview (PDF-aware)
+  const handlePreviewExisting = useCallback((index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
+    const path = images[index];
+    if (path && /\.pdf(\?|$)/i.test(path)) { openPdf(resolveAssetUrl(path) || path); return; }
+    const isPdf = (p: string) => /\.pdf(\?|$)/i.test(p);
+    const imageUrls = images.filter(p => !isPdf(p)).map(p => resolveAssetUrl(p) || p);
+    const imageIndex = images.slice(0, index).filter(p => !isPdf(p)).length;
+    const wrappedGetLayout: ThumbLayoutResolver | undefined = getLayout
+      ? (ci, cb) => {
+          let orig = 0, cnt = 0;
+          for (let i = 0; i < images.length; i++) {
+            if (!isPdf(images[i])) { if (cnt === ci) { orig = i; break; } cnt++; }
+          }
+          getLayout(orig, cb);
+        } : undefined;
+    openPreview(imageUrls, imageIndex, layout, wrappedGetLayout);
+  }, [images, openPreview, openPdf]);
+
+  // New files preview (PDF-aware)
+  const handlePreviewNew = useCallback((index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
+    const f = newFiles[index];
+    if (f && (f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '') || /\.pdf$/i.test(f.uri || ''))) {
+      openPdf(f.uri); return;
+    }
+    const isPdf = (ff: any) => ff.type === 'application/pdf' || /\.pdf$/i.test(ff.name || '') || /\.pdf$/i.test(ff.uri || '');
+    const imageUris = newFiles.filter(ff => !isPdf(ff)).map(ff => ff.uri);
+    const imageIndex = newFiles.slice(0, index).filter(ff => !isPdf(ff)).length;
+    const wrappedGetLayout: ThumbLayoutResolver | undefined = getLayout
+      ? (ci, cb) => {
+          let orig = 0, cnt = 0;
+          for (let i = 0; i < newFiles.length; i++) {
+            if (!isPdf(newFiles[i])) { if (cnt === ci) { orig = i; break; } cnt++; }
+          }
+          getLayout(orig, cb);
+        } : undefined;
+    openPreview(imageUris, imageIndex, layout, wrappedGetLayout);
+  }, [newFiles, openPreview, openPdf]);
 
   const hasChanges =
     category !== (expense?.category || 'daily') ||
@@ -439,7 +483,8 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
               onRemoveNew={removeNewFile}
               getPreviewUrl={(f: PickedImage) => f.uri}
               maxThumbSize={thumbSize}
-              onPreviewExisting={(i: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => openPreview(resolvedPreviews, i, layout, getLayout)}
+              onPreviewExisting={handlePreviewExisting}
+              onPreviewNew={handlePreviewNew}
             />
             <View style={{ height: 100 }} />
           </View>
