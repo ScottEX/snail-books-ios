@@ -96,8 +96,7 @@ export default function CustomActionSheet({
           ]}
         >
           {dark ? (
-            <View style={{ borderRadius: 24, overflow: 'hidden' as any }}>
-              <BlurView intensity={24} tint="light" style={StyleSheet.absoluteFill} />
+            <BlurView intensity={80} tint="dark" style={{ borderRadius: 24, overflow: 'hidden' as any }}>
               <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
                 {actions.map((action, index) => (
                   <TouchableOpacity
@@ -116,7 +115,7 @@ export default function CustomActionSheet({
                     {action.icon && <View style={{ width: 18, height: 18, alignItems: 'center', justifyContent: 'center' }}>{action.icon}</View>}
                     <Text style={{
                       fontSize: FONTS.sub.size,
-                      color: action.selected ? '#0A84FF' : action.destructive ? '#FF453A' : c.textMain,
+                      color: action.selected ? '#0A84FF' : action.destructive ? '#FF453A' : '#FFFFFF',
                       fontWeight: action.selected ? '700' : FONTS.sub.weight as any,
                     }}>
                       {action.label}
@@ -124,7 +123,7 @@ export default function CustomActionSheet({
                   </TouchableOpacity>
                 ))}
               </ScrollView>
-            </View>
+            </BlurView>
           ) : (
             <>
               {(title || message) && (
