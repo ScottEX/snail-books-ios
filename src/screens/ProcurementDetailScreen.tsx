@@ -3,6 +3,7 @@ import {
   Image, Switch, StatusBar,
 } from 'react-native';
 import HomeBackground from '../components/HomeBackground';
+import HistoryHeader from '../components/HistoryHeader';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Line } from 'react-native-svg';
@@ -73,7 +74,7 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
   const { colors: c } = useTheme();
   const insets = useSafeAreaInsets();
   const safeTop = insets.top;
-  const headerHeight = safeTop + 42;
+  const headerHeight = safeTop + 44;
   const styles = useMemo(() => getStyles(c), [c]);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -97,23 +98,8 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
     return (
       <View style={styles.container}>
         <HomeBackground />
-        <BlurView
-          intensity={70}
-          tint="regular"
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: headerHeight }}
-        />
         <StatusBar barStyle="dark-content" />
-        <View style={{ position: 'absolute', top: safeTop - 5, left: 0, right: 0, zIndex: 90, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingBottom: 6, backgroundColor: 'transparent', pointerEvents: 'box-none' as const }}>
-          <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
-            <View style={styles.backBtn}>
-              <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <Path d="M15 18l-6-6 6-6" />
-              </Svg>
-            </View>
-          </TouchableOpacity>
-          <Text style={styles.title}>{t('procOrderItems')}</Text>
-          <View style={{ width: 36 }} />
-        </View>
+        <HistoryHeader safeTop={safeTop} onBack={onBack} title={t('procOrderItems')} />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: c.textSub }}>—</Text>
         </View>
@@ -184,45 +170,8 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
   return (
     <View style={styles.container}>
       <HomeBackground />
-      <BlurView
-        intensity={70}
-        tint="regular"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: headerHeight,
-        }}
-      />
       <StatusBar barStyle="light-content" />
-      <View
-        style={{
-          position: 'absolute',
-          top: safeTop - 5,
-          left: 0,
-          right: 0,
-          zIndex: 90,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 12,
-          paddingTop: 0,
-          paddingBottom: 6,
-          paddingHorizontal: 16,
-          backgroundColor: 'transparent',
-          pointerEvents: 'box-none' as const,
-        }}
-      >
-        <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
-          <View style={styles.backBtn}>
-            <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <Path d="M15 18l-6-6 6-6" />
-            </Svg>
-          </View>
-        </TouchableOpacity>
-        <Text style={styles.title}>{t('procDetail')}</Text>
-        <View style={{ width: 36 }} />
-      </View>
+      <HistoryHeader safeTop={safeTop} onBack={onBack} title={t('procDetail')} />
 
       <ScrollView
         style={[styles.body, { marginTop: headerHeight }]}

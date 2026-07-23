@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Share, PanResponder } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system';
 import Svg, { Path, Polyline, Rect, Circle, Line } from 'react-native-svg';
@@ -10,14 +9,7 @@ import { useTheme, ThemeColors, FONTS } from '../theme';
 import { API_BASE } from '../api/client';
 import LoadingSpinner from '../components/LoadingSpinner';
 import HomeBackground from '../components/HomeBackground';
-
-function BackArrowSvg() {
-  return (
-    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <Polyline points="15 18 9 12 15 6" />
-    </Svg>
-  );
-}
+import HistoryHeader from '../components/HistoryHeader';
 
 function DownloadSvg() {
   return (
@@ -99,7 +91,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
     if (!pdfUrl.startsWith('http')) { setLoading(false); }
   }, [pdfUrl]);
 
-  const headerHeight = safeTop + 42;
+  const headerHeight = safeTop + 44;
 
   // Pre-cache PDF on mount so download/share reuses the local file (matches web behavior)
   // Timeout at 15s to avoid hanging gunicorn workers like before
@@ -188,64 +180,38 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
   const isActionLoading = actionLoading !== null;
 
   return (
-    <View style={styles.root}>
+    <View style={styles.root} {...headerPan.panHandlers}>
       <HomeBackground />
-      <BlurView
-        intensity={70}
-        tint="regular"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: headerHeight,
-        }}
-      />
       <StatusBar barStyle="dark-content" />
-      <View
-        {...headerPan.panHandlers}
-        style={{
-          position: 'absolute',
-          top: safeTop - 5,
-          left: 0,
-          right: 0,
-          zIndex: 90,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 10,
-          paddingTop: 0,
-          paddingBottom: 6,
-          paddingHorizontal: 16,
-          backgroundColor: 'transparent',
-        }}
-      >
-        <TouchableOpacity onPress={onBack} activeOpacity={0.7} disabled={isActionLoading}>
-          <View style={styles.backBtn}>
-            <BackArrowSvg />
-          </View>
-        </TouchableOpacity>
-        <Text style={styles.title} numberOfLines={1}>{title}</Text>
-        <TouchableOpacity onPress={handleDownload} activeOpacity={0.7} disabled={isActionLoading}>
-          <View style={styles.shareBtn}>
-            {actionLoading === 'download' ? (
-              <LoadingSpinner label={false} size={16} color="#2C2626" />
-            ) : (
-              <DownloadSvg />
+      <HistoryHeader
+        safeTop={safeTop}
+        onBack={onBack}
+        title={title}
+        rightAction={(
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity onPress={handleDownload} activeOpacity={0.7} disabled={isActionLoading}>
+              <View style={styles.shareBtn}>
+                {actionLoading === 'download' ? (
+                  <LoadingSpinner label={false} size={16} color="#2C2626" />
+                ) : (
+                  <DownloadSvg />
+                )}
+              </View>
+            </TouchableOpacity>
+            {pngUrl !== '' && (
+              <TouchableOpacity onPress={handleExportImage} activeOpacity={0.7} disabled={isActionLoading}>
+                <View style={styles.shareBtn}>
+                  {actionLoading === 'images' ? (
+                    <LoadingSpinner label={false} size={16} color="#2C2626" />
+                  ) : (
+                    <ImageDownloadSvg />
+                  )}
+                </View>
+              </TouchableOpacity>
             )}
           </View>
-        </TouchableOpacity>
-        {pngUrl !== '' && (
-          <TouchableOpacity onPress={handleExportImage} activeOpacity={0.7} disabled={isActionLoading}>
-            <View style={styles.shareBtn}>
-              {actionLoading === 'images' ? (
-                <LoadingSpinner label={false} size={16} color="#2C2626" />
-              ) : (
-                <ImageDownloadSvg />
-              )}
-            </View>
-          </TouchableOpacity>
         )}
-      </View>
+      />
 
       {/* WebView PDF preview */}
       <View style={[styles.webviewWrap, { marginTop: headerHeight }]}>

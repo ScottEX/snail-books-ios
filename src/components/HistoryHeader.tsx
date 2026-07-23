@@ -6,6 +6,7 @@ import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 
 interface Props {
+  safeTop?: number;
   onBack: () => void;
   title: string;
   filterActive?: boolean;
@@ -13,12 +14,12 @@ interface Props {
   rightAction?: React.ReactNode;
 }
 
-export default function HistoryHeader({ onBack, title, filterActive, onToggleFilter, rightAction }: Props) {
+export default function HistoryHeader({ safeTop = 56, onBack, title, filterActive, onToggleFilter, rightAction }: Props) {
   const { colors } = useTheme();
   const st = getSt(colors);
 
   return (
-    <View style={st.header}>
+    <View style={[st.header, { paddingTop: safeTop }]}>
       <BlurView
         intensity={70}
         tint="regular"
@@ -55,7 +56,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   header: {
     position: 'absolute' as any, top: 0, left: 0, right: 0, zIndex: 10,
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 12, paddingTop: 56, paddingBottom: 10,
+    paddingHorizontal: 12, paddingBottom: 10,
     overflow: 'hidden',
   },
   backBtn: { padding: 4 },

@@ -20,7 +20,7 @@ import { useServerDate } from '../hooks/useServerDate';
 import { useTheme, withAlpha, ThemeColors, FONTS } from '../theme';
 import EmptyState from '../components/EmptyState';
 import Toast from '../components/Toast';
-import AdminHeader from '../components/AdminHeader';
+import HistoryHeader from '../components/HistoryHeader';
 import AnimatedDropdown from '../components/AnimatedDropdown';
 
 interface UserItem {
@@ -247,10 +247,10 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
   return (
     <View style={s.container}>
       <HomeBackground />
-      <AdminHeader safeTop={safeTop} onBack={onBack} title={t('userManagement')} />
+      <HistoryHeader safeTop={safeTop} onBack={onBack} title={t('userManagement')} />
 
       {/* Body */}
-      <View style={[s.body, { marginTop: safeTop + 42 }]}>
+      <View style={[s.body, { marginTop: safeTop + 44 }]}>
         {/* Search bar */}
         <View style={s.searchBox}>
           <SearchIcon color={c.textSub} />

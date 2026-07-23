@@ -22,7 +22,7 @@ import { FONTS } from '../theme';
 import ConfirmModal from '../components/ConfirmModal';
 import ModalOverlay from '../components/ModalOverlay';
 import Toast from '../components/Toast';
-import AdminHeader from '../components/AdminHeader';
+import HistoryHeader from '../components/HistoryHeader';
 import CloseButton from '../components/CloseButton';
 import { getCurrentUserId } from '../utils/storage';
 
@@ -278,10 +278,10 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
   return (
     <View style={s.container}>
       <HomeBackground />
-      <AdminHeader safeTop={safeTop} onBack={onBack} title={t('userDetail')} />
+      <HistoryHeader safeTop={safeTop} onBack={onBack} title={t('userDetail')} />
 
       {/* Body */}
-      <View style={[s.body, { marginTop: safeTop + 42 }]}>
+      <View style={[s.body, { marginTop: safeTop + 44 }]}>
 
       {loading ? (
         <View style={{ flex: 1 }}>
