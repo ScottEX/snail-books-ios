@@ -185,6 +185,10 @@ export default function RootStack({ onLogout }: { onLogout: () => void }) {
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
+          // iOS-native push transitions + interactive edge swipe-back.
+          // NOTE: keep this as the default left-edge gesture — fullScreenGestureEnabled
+          // hijacks horizontal swipes inside content (history lists/charts) and
+          // caused accidental pops on ExpenseHistory / DailyHistory / ReconHistory.
           gestureEnabled: true,
           fullScreenGestureEnabled: false,
         }}
