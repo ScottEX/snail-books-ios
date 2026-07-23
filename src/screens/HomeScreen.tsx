@@ -656,11 +656,6 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
               style={[StyleSheet.absoluteFillObject, { borderRadius: 28 }]}
               pointerEvents="none"
             />
-            {/* Inset top highlight — mimics web's
-                boxShadow: inset 0 0.5px 0 rgba(255,255,255,0.12). RN
-                has no inset shadow so we fake it with a thin white
-                line at the top edge. */}
-            <View style={styles.bottomNavInsetTop} pointerEvents="none" />
             {NAV_ITEMS.map(({ id, labelKey, icon }, i) => {
               const active = tab === id;
               // Active icon colour matches web's NavIcon* helpers —
@@ -1333,10 +1328,6 @@ const getStyles = (colors: ThemeColors, headerColor: string, bgOpacity: number) 
     borderRadius: 28, overflow: 'hidden',
     paddingVertical: 10, paddingHorizontal: 12,
     zIndex: 100,
-  },
-  bottomNavInsetTop: {
-    position: 'absolute', left: 12, right: 12, top: 0, height: 1,
-    backgroundColor: 'rgba(255,255,255,0.20)',
   },
   navItem: { flex: 1, alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 22, marginHorizontal: 2 },
   navIconWrap: { alignItems: 'center', justifyContent: 'center' },
