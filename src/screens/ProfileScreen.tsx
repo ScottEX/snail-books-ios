@@ -536,7 +536,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     const ref = kind === 'avatar' ? avatarRef : coverRef;
     (ref.current as any)?.measureInWindow?.((x: number, y: number, _w: number, h: number) => {
       setPickOffsetX(x || 16);
-      setPickOffsetY((y + h) || 100);
+      setPickOffsetY(y || 100);
       setShowPickerSheet(true);
     }) || setShowPickerSheet(true);
   };
@@ -1436,6 +1436,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       visible={showPickerSheet}
       onClose={() => setShowPickerSheet(false)}
       onPicked={handlePicked}
+      showFileOption
       offsetY={pickOffsetY}
       offsetX={pickOffsetX}
     />

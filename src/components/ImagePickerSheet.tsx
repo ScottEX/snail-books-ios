@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import { Dimensions } from 'react-native';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import CustomActionSheet, { ActionItem } from './CustomActionSheet';
 import { t } from '../i18n';
@@ -18,6 +19,8 @@ interface Props {
 }
 
 export default function ImagePickerSheet({ visible, onClose, onPicked, showFileOption = false, offsetX = 16, offsetY = 100 }: Props) {
+  const screenW = Dimensions.get('window').width;
+  const clampedX = useMemo(() => Math.min(offsetX, screenW - 196), [offsetX, screenW]);
   const handleCamera = async () => {
     onClose();
     try {
@@ -97,7 +100,7 @@ export default function ImagePickerSheet({ visible, onClose, onPicked, showFileO
       dark
       noOverlay
       offsetY={offsetY}
-      offsetX={offsetX}
+      offsetX={clampedX}
       actions={actions}
     />
   );
