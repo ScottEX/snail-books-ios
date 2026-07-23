@@ -14,7 +14,9 @@ import ExpenseDetailScreen from '../screens/ExpenseDetailScreen';
 import PdfPreviewPage from '../screens/PdfPreviewPage';
 import { api } from '../api/client';
 
-export type RootStackParamList = {
+// ── Types ──
+
+export type MainStackParamList = {
   Main: { editBatch?: any } | undefined;
   ExpenseHistory: undefined;
   DailyHistory: undefined;
@@ -25,10 +27,19 @@ export type RootStackParamList = {
   Invoice: { filterBatchId?: number | null } | undefined;
   ProcurementDetail: { batch: any };
   ExpenseDetail: { expense: any };
+};
+
+export type RootStackParamList = MainStackParamList & {
   PdfPreview: { id: number; number: number; supplier?: string; fileUrl?: string; title?: string };
 };
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
+export type RootParamList = {
+  MainStack: undefined;
+  PdfPreview: { id: number; number: number; supplier?: string; fileUrl?: string; title?: string };
+};
+
+const MainStack = createNativeStackNavigator<MainStackParamList>();
+const Root = createNativeStackNavigator<RootParamList>();
 
 // ── Session context: onLogout lives in App.tsx, stack screens consume it ──
 export const SessionContext = createContext<{ onLogout: () => void }>({ onLogout: () => {} });
@@ -42,7 +53,6 @@ export const onAvatarChanged = (fn: () => void) => {
 export const emitAvatarChanged = () => { avatarListeners.forEach(f => f()); };
 
 // ── Focus-refresh: key increments on each RE-focus (skip first mount) ──
-// Replaces the old refreshKey props — screens refetch when popped back to.
 function useFocusRefreshKey() {
   const [key, setKey] = useState(0);
   const first = useRef(true);
@@ -53,7 +63,7 @@ function useFocusRefreshKey() {
   return key;
 }
 
-// ── Route wrappers: adapt navigation to each screen's existing prop API ──
+// ── Route wrappers ──
 
 function ExpenseHistoryRoute() {
   const navigation = useNavigation<any>();
@@ -131,6 +141,9 @@ function InvoiceRoute() {
     <InvoiceScreen
       onBack={() => navigation.goBack()}
       filterBatchId={route.params?.filterBatchId ?? null}
+      onPdfPreview={(url: string, title: string) =>
+        navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title })
+      }
     />
   );
 }
@@ -166,7 +179,7 @@ function ExpenseDetailRoute() {
 
 function PdfPreviewRoute() {
   const navigation = useNavigation<any>();
-  const { params } = useRoute<RouteProp<RootStackParamList, 'PdfPreview'>>();
+  const { params } = useRoute<RouteProp<RootParamList, 'PdfPreview'>>();
   return (
     <PdfPreviewPage
       batchId={params.id}
@@ -179,34 +192,47 @@ function PdfPreviewRoute() {
   );
 }
 
+function MainStackNavigator({ onLogout }: { onLogout: () => void }) {
+  return (
+    <MainStack.Navigator
+      screenOptions={{
+        headerShown: false,
+        gestureEnabled: true,
+        fullScreenGestureEnabled: false,
+      }}
+    >
+      <MainStack.Screen name="Main">
+        {() => <HomeScreen onLogout={onLogout} />}
+      </MainStack.Screen>
+      <MainStack.Screen name="ExpenseHistory" component={ExpenseHistoryRoute} />
+      <MainStack.Screen name="DailyHistory" component={DailyHistoryRoute} />
+      <MainStack.Screen name="ReconHistory" component={ReconHistoryRoute} />
+      <MainStack.Screen name="Profile" component={ProfileRoute} />
+      <MainStack.Screen name="UserManagement" component={UserManagementRoute} />
+      <MainStack.Screen name="UserDetail" component={UserDetailRoute} />
+      <MainStack.Screen name="Invoice" component={InvoiceRoute} />
+      <MainStack.Screen name="ProcurementDetail" component={ProcurementDetailRoute} />
+      <MainStack.Screen name="ExpenseDetail" component={ExpenseDetailRoute} />
+    </MainStack.Navigator>
+  );
+}
+
 export default function RootStack({ onLogout }: { onLogout: () => void }) {
   return (
     <SessionContext.Provider value={{ onLogout }}>
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-          // iOS-native push transitions + interactive edge swipe-back.
-          // NOTE: keep this as the default left-edge gesture — fullScreenGestureEnabled
-          // hijacks horizontal swipes inside content (history lists/charts) and
-          // caused accidental pops on ExpenseHistory / DailyHistory / ReconHistory.
-          gestureEnabled: true,
-          fullScreenGestureEnabled: false,
-        }}
-      >
-        <Stack.Screen name="Main">
-          {() => <HomeScreen onLogout={onLogout} />}
-        </Stack.Screen>
-        <Stack.Screen name="ExpenseHistory" component={ExpenseHistoryRoute} />
-        <Stack.Screen name="DailyHistory" component={DailyHistoryRoute} />
-        <Stack.Screen name="ReconHistory" component={ReconHistoryRoute} />
-        <Stack.Screen name="Profile" component={ProfileRoute} />
-        <Stack.Screen name="UserManagement" component={UserManagementRoute} />
-        <Stack.Screen name="UserDetail" component={UserDetailRoute} />
-        <Stack.Screen name="Invoice" component={InvoiceRoute} />
-        <Stack.Screen name="ProcurementDetail" component={ProcurementDetailRoute} />
-        <Stack.Screen name="ExpenseDetail" component={ExpenseDetailRoute} />
-        <Stack.Screen name="PdfPreview" component={PdfPreviewRoute} />
-      </Stack.Navigator>
+      <Root.Navigator screenOptions={{ headerShown: false }}>
+        <Root.Screen name="MainStack" options={{ headerShown: false }}>
+          {() => <MainStackNavigator onLogout={onLogout} />}
+        </Root.Screen>
+        <Root.Screen
+          name="PdfPreview"
+          component={PdfPreviewRoute}
+          options={{
+            presentation: 'fullScreenModal',
+            animation: 'slide_from_bottom',
+          }}
+        />
+      </Root.Navigator>
     </SessionContext.Provider>
   );
 }

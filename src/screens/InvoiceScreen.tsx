@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, useWindowDimensions, Modal, Dimensions,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, useWindowDimensions, Modal,
 } from 'react-native';
 import CustomActionSheet, { ActionItem } from '../components/CustomActionSheet';
 import AppTextInput from '../components/AppTextInput';
@@ -19,7 +19,6 @@ import ExpenseNoteInput from '../components/ExpenseNoteInput';
 import SubmitButton from '../components/SubmitButton';
 import TrashIcon from '../components/icons/TrashIcon';
 import ImagePreview, { ThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
-import PdfPreviewPage from './PdfPreviewPage';
 import { useImagePreview } from '../hooks/useImagePreview';
 import { useServerDate } from '../hooks/useServerDate';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,7 +26,7 @@ import { BANK_ICON_MAP, DefaultBankIcon } from '../components/BankIcons';
 import SheetHeader from '../components/SheetHeader';
 import ModalOverlay from '../components/ModalOverlay';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
-import ReAnimated, { useAnimatedStyle, useSharedValue, withTiming, withSpring } from 'react-native-reanimated';
+import ReAnimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { bottomSheetOverlay } from '../sharedStyles';
 
 /* ═══════════════ ICONS ═══════════════ */
@@ -233,9 +232,10 @@ const parseFilePaths = (fp: string | null | undefined): string[] => {
 interface Props {
   onBack: () => void;
   filterBatchId?: number | null;
+  onPdfPreview?: (url: string, title: string) => void;
 }
 
-export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
+export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: Props) {
   const { colors: c } = useTheme();
   const sd = useServerDate();
   const insets = useSafeAreaInsets();
@@ -328,14 +328,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   // Submit
   const [submitting, setSubmitting] = useState(false);
 
-  // PDF preview (rendered in Modal above everything, like ImagePreview)
-  const [pdfPreviewUrl, setPdfPreviewUrl] = useState('');
-  const [pdfPreviewTitle, setPdfPreviewTitle] = useState('');
-  const [pdfAnimating, setPdfAnimating] = useState(false);
-  const slideAnim = useSharedValue(0);
-
-
-  // Toast
+  // Media preview (drawer / push)
   const [toast, setToast] = useState('');
 
   const { preview, openPreview, closePreview } = useImagePreview();
@@ -649,33 +642,15 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       : undefined;
     openPreview(imageUris, imageIndex, layout, wrappedGetLayout);
   };
-
   const openPdf = useCallback((url: string) => {
-    setPdfPreviewUrl(url);
-    setPdfPreviewTitle(t('invTitle') as string);
-    setPdfAnimating(true);
-    slideAnim.value = Dimensions.get('window').width;
-    slideAnim.value = withSpring(0, { damping: 30, stiffness: 260, mass: 0.9 });
-  }, [t]);
-
-  const closePdf = useCallback(() => {
-    slideAnim.value = withTiming(Dimensions.get('window').width, { duration: 250 });
-    setTimeout(() => {
-      setPdfAnimating(false);
-      setPdfPreviewUrl('');
-    }, 260);
-  }, []);
+    onPdfPreview?.(url, t('invTitle') as string);
+  }, [t, onPdfPreview]);
 
   const handleClosePreview = () => {
     closePreview();
     setDrawerOpen(true);
   };
 
-  const pdfAnimatedStyle = useAnimatedStyle(() => ({
-    flex: 1,
-    backgroundColor: c.bg,
-    transform: [{ translateX: slideAnim.value }],
-  }));
   return (
     <>
       <View style={styles.root}>
@@ -1266,18 +1241,6 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
       getThumbLayout={preview?.getLayout}
       onClose={handleClosePreview}
     />
-      {pdfAnimating && (
-        <Modal visible transparent animationType="none" onRequestClose={closePdf}>
-          <ReAnimated.View style={pdfAnimatedStyle}>
-            <PdfPreviewPage
-              batchId={0}
-              fileUrl={pdfPreviewUrl}
-              title={pdfPreviewTitle}
-              onBack={closePdf}
-            />
-          </ReAnimated.View>
-        </Modal>
-      )}
     </>
   );
 }
