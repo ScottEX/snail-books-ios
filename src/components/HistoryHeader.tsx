@@ -11,14 +11,15 @@ interface Props {
   filterActive?: boolean;
   onToggleFilter?: () => void;
   rightAction?: React.ReactNode;
+  topOffset?: number;
 }
 
-export default function HistoryHeader({ onBack, title, filterActive, onToggleFilter, rightAction }: Props) {
+export default function HistoryHeader({ onBack, title, filterActive, onToggleFilter, rightAction, topOffset = 0 }: Props) {
   const { colors } = useTheme();
   const st = getSt(colors);
 
   return (
-    <View style={st.header}>
+    <View style={[st.header, topOffset !== 0 && { paddingBottom: 10 + topOffset }]}>
       <BlurView
         intensity={70}
         tint="regular"
