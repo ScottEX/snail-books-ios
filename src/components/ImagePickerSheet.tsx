@@ -3,6 +3,7 @@ import { Dimensions } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import CustomActionSheet, { ActionItem } from './CustomActionSheet';
 import { t } from '../i18n';
+import { useTheme } from '../theme';
 import { pickImages, takePhoto, PickedImage } from '../utils/imagePicker';
 import * as DocumentPicker from 'expo-document-picker';
 
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export default function ImagePickerSheet({ visible, onClose, onPicked, showFileOption = false, position = 'anchor', offsetX = 16, offsetY = 100 }: Props) {
+  const { colors: c } = useTheme();
   const { width: screenW } = Dimensions.get('window');
   const finalX = position === 'center' ? Math.max(8, (screenW - 180) / 2) : Math.min(offsetX, screenW - 196);
   const finalY = position === 'center' ? 60 : offsetY;
