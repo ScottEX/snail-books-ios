@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Dimensions } from 'react-native';
 import Svg, { Path, Circle, Rect } from 'react-native-svg';
 import CustomActionSheet, { ActionItem } from './CustomActionSheet';
@@ -13,14 +13,17 @@ interface Props {
   onPicked: (image: PickedImage | null) => void;
   /** Include 'choose from files' option */
   showFileOption?: boolean;
-  /** Popup position — measureInWindow of trigger view */
+  /** 'center' = below dynamic island centered; 'anchor' = at offsetX/offsetY (default) */
+  position?: 'center' | 'anchor';
+  /** Popup position — measureInWindow of trigger view (position='anchor' only) */
   offsetX?: number;
   offsetY?: number;
 }
 
-export default function ImagePickerSheet({ visible, onClose, onPicked, showFileOption = false, offsetX = 16, offsetY = 100 }: Props) {
+export default function ImagePickerSheet({ visible, onClose, onPicked, showFileOption = false, position = 'anchor', offsetX = 16, offsetY = 100 }: Props) {
   const screenW = Dimensions.get('window').width;
-  const clampedX = useMemo(() => Math.min(offsetX, screenW - 196), [offsetX, screenW]);
+  const finalX = position === 'center' ? Math.max(8, (screenW - 180) / 2) : Math.min(offsetX, screenW - 196);
+  const finalY = position === 'center' ? 100 : offsetY;
   const handleCamera = async () => {
     onClose();
     try {
@@ -99,8 +102,8 @@ export default function ImagePickerSheet({ visible, onClose, onPicked, showFileO
       onClose={onClose}
       dark
       noOverlay
-      offsetY={offsetY}
-      offsetX={clampedX}
+      offsetY={finalY}
+      offsetX={finalX}
       actions={actions}
     />
   );

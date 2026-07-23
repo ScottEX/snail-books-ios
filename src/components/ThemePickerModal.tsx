@@ -67,9 +67,6 @@ export default function ThemePickerModal({
   const styles = getStyles(colors);
   const [resetting, setResetting] = useState(false);
   const [showPickerSheet, setShowPickerSheet] = useState(false);
-  const [pickOffsetX, setPickOffsetX] = useState(0);
-  const [pickOffsetY, setPickOffsetY] = useState(0);
-  const pickBtnRef = useRef<any>(null);
   const fastClose = useRef(false);  // 10ms dismiss when opening crop after pick
 
   // ── Shared "reset to default" logic ──
@@ -102,11 +99,7 @@ export default function ThemePickerModal({
   };
 
   const handlePickImage = () => {
-    (pickBtnRef.current as any)?.measureInWindow?.((x: number, y: number, _w: number, h: number) => {
-      setPickOffsetX(x || 16);
-      setPickOffsetY(y || 100);
-      setShowPickerSheet(true);
-    }) || setShowPickerSheet(true);
+    setShowPickerSheet(true);
   };
 
   const handlePicked = async (img: PickedImage | null) => {
@@ -174,7 +167,6 @@ export default function ThemePickerModal({
               <TouchableOpacity
                 style={[styles.bgBtn, styles.bgBtnOutline]}
                 disabled={coverUploading}
-                ref={pickBtnRef}
                 onPress={handlePickImage}
               >
                 <Text style={styles.bgBtnOutlineText}>{coverUploading ? t('uploading') : t('chooseImage')}</Text>
@@ -197,8 +189,7 @@ export default function ThemePickerModal({
         onClose={() => setShowPickerSheet(false)}
         onPicked={handlePicked}
         showFileOption
-        offsetY={pickOffsetY}
-        offsetX={pickOffsetX}
+        position="center"
       />
     </>
   );
