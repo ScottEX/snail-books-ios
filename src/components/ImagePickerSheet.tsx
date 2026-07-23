@@ -21,9 +21,9 @@ interface Props {
 }
 
 export default function ImagePickerSheet({ visible, onClose, onPicked, showFileOption = false, position = 'anchor', offsetX = 16, offsetY = 100 }: Props) {
-  const screenW = Dimensions.get('window').width;
+  const { width: screenW, height: screenH } = Dimensions.get('window');
   const finalX = position === 'center' ? Math.max(8, (screenW - 180) / 2) : Math.min(offsetX, screenW - 196);
-  const finalY = position === 'center' ? 60 : offsetY;
+  const finalY = position === 'center' ? Math.max(60, (screenH - 150) / 2) : offsetY;
   const handleCamera = async () => {
     onClose();
     try {
