@@ -260,30 +260,15 @@ const getStyles = (c: ThemeColors) => {
   };
   return StyleSheet.create({
   root: { flex: 1, backgroundColor: 'transparent' },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.08)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(0,0,0,0.10)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   shareBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: btnBg(0.30),
     borderWidth: 0.5,
     borderColor: 'rgba(0,0,0,0.10)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  title: {
-    flex: 1,
-    fontSize: FONTS.sub.size,
-    color: '#000',
   },
   webviewWrap: { flex: 1, backgroundColor: 'transparent' },
   webview: { flex: 1, backgroundColor: 'transparent' },
