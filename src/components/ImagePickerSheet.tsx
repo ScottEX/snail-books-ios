@@ -86,8 +86,8 @@ export default function ImagePickerSheet({ visible, onClose, onPicked, showFileO
     actions.push({
       label: t('chooseFile'),
       icon: (
-        <Svg width={18} height={18} viewBox="0 0 1024 1024" fill="#FFFFFF">
-          <Path d="M873.7 985.6H150.3C61.9 985.6 0 930.3 0 850.9V231.2C0 148.1 78.6 69.5 161.7 69.5h215.6c16.3 0 31.9 7.5 42 20.3l91.6 114.5h378.3c78.1 0 134.7 66 134.7 156.9v475.5c0.1 82.2-67.3 148.9-150.2 148.9zM142.5 158c-24.4 0-56.8 32.4-56.8 56.8v653.9c0 24.8 28.1 28.5 44.9 28.5h763c24.8 0 44.9-19.5 44.9-43.4V352c0-14.4-5.1-51.9-28.5-51.9H483.5c-17.2 0-33.6-7.9-44.3-21.4l-96.7-120.9h-200v0.2z m19.2 19.2M107.8 446.8h808.4v80.9H107.8z" />
+        <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+          <Path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
         </Svg>
       ),
       onPress: handleFile,
