@@ -643,6 +643,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
     openPreview(imageUris, imageIndex, layout, wrappedGetLayout);
   };
   const openPdf = useCallback((url: string) => {
+    setDrawerOpen(false);
     onPdfPreview?.(url, t('invTitle') as string);
   }, [t, onPdfPreview]);
 

@@ -14,9 +14,7 @@ import ExpenseDetailScreen from '../screens/ExpenseDetailScreen';
 import PdfPreviewPage from '../screens/PdfPreviewPage';
 import { api } from '../api/client';
 
-// ── Types ──
-
-export type MainStackParamList = {
+export type RootStackParamList = {
   Main: { editBatch?: any } | undefined;
   ExpenseHistory: undefined;
   DailyHistory: undefined;
@@ -27,20 +25,15 @@ export type MainStackParamList = {
   Invoice: { filterBatchId?: number | null } | undefined;
   ProcurementDetail: { batch: any };
   ExpenseDetail: { expense: any };
-};
-
-export type RootStackParamList = {
-  MainStack: undefined;
   PdfPreview: { id: number; number: number; supplier?: string; fileUrl?: string; title?: string };
 };
 
-const MainStackNav = createNativeStackNavigator<MainStackParamList>();
-const Root = createNativeStackNavigator<RootStackParamList>();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
-// ── Session context ──
+// ── Session context: onLogout lives in App.tsx, stack screens consume it ──
 export const SessionContext = createContext<{ onLogout: () => void }>({ onLogout: () => {} });
 
-// ── Avatar-changed event ──
+// ── Avatar-changed event: ProfileScreen uploads → HomeScreen header reloads ──
 const avatarListeners = new Set<() => void>();
 export const onAvatarChanged = (fn: () => void) => {
   avatarListeners.add(fn);
@@ -48,7 +41,7 @@ export const onAvatarChanged = (fn: () => void) => {
 };
 export const emitAvatarChanged = () => { avatarListeners.forEach(f => f()); };
 
-// ── Focus-refresh ──
+// ── Focus-refresh: key increments on each RE-focus (skip first mount) ──
 function useFocusRefreshKey() {
   const [key, setKey] = useState(0);
   const first = useRef(true);
@@ -188,48 +181,30 @@ function PdfPreviewRoute() {
   );
 }
 
-// ── MainStack: 所有普通页面,一行不改 ──
-function MainStackNavigator({ onLogout }: { onLogout: () => void }) {
-  return (
-    <MainStackNav.Navigator
-      screenOptions={{
-        headerShown: false,
-        gestureEnabled: true,
-        fullScreenGestureEnabled: false,
-      }}
-    >
-      <MainStackNav.Screen name="Main">
-        {() => <HomeScreen onLogout={onLogout} />}
-      </MainStackNav.Screen>
-      <MainStackNav.Screen name="ExpenseHistory" component={ExpenseHistoryRoute} />
-      <MainStackNav.Screen name="DailyHistory" component={DailyHistoryRoute} />
-      <MainStackNav.Screen name="ReconHistory" component={ReconHistoryRoute} />
-      <MainStackNav.Screen name="Profile" component={ProfileRoute} />
-      <MainStackNav.Screen name="UserManagement" component={UserManagementRoute} />
-      <MainStackNav.Screen name="UserDetail" component={UserDetailRoute} />
-      <MainStackNav.Screen name="Invoice" component={InvoiceRoute} />
-      <MainStackNav.Screen name="ProcurementDetail" component={ProcurementDetailRoute} />
-      <MainStackNav.Screen name="ExpenseDetail" component={ExpenseDetailRoute} />
-    </MainStackNav.Navigator>
-  );
-}
-
-// ── Root: MainStack + 全局 Modal ──
 export default function RootStack({ onLogout }: { onLogout: () => void }) {
   return (
     <SessionContext.Provider value={{ onLogout }}>
-      <Root.Navigator screenOptions={{ headerShown: false }}>
-        <Root.Screen name="MainStack" options={{ headerShown: false }}>
-          {() => <MainStackNavigator onLogout={onLogout} />}
-        </Root.Screen>
-        <Root.Screen
-          name="PdfPreview"
-          component={PdfPreviewRoute}
-          options={{
-            presentation: 'fullScreenModal',
-          }}
-        />
-      </Root.Navigator>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          gestureEnabled: true,
+          fullScreenGestureEnabled: false,
+        }}
+      >
+        <Stack.Screen name="Main">
+          {() => <HomeScreen onLogout={onLogout} />}
+        </Stack.Screen>
+        <Stack.Screen name="ExpenseHistory" component={ExpenseHistoryRoute} />
+        <Stack.Screen name="DailyHistory" component={DailyHistoryRoute} />
+        <Stack.Screen name="ReconHistory" component={ReconHistoryRoute} />
+        <Stack.Screen name="Profile" component={ProfileRoute} />
+        <Stack.Screen name="UserManagement" component={UserManagementRoute} />
+        <Stack.Screen name="UserDetail" component={UserDetailRoute} />
+        <Stack.Screen name="Invoice" component={InvoiceRoute} />
+        <Stack.Screen name="ProcurementDetail" component={ProcurementDetailRoute} />
+        <Stack.Screen name="ExpenseDetail" component={ExpenseDetailRoute} />
+        <Stack.Screen name="PdfPreview" component={PdfPreviewRoute} />
+      </Stack.Navigator>
     </SessionContext.Provider>
   );
 }
