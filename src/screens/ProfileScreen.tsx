@@ -24,8 +24,9 @@ import ButtonPair from '../components/ButtonPair';
 import SubmitButton from '../components/SubmitButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ModalOverlay from '../components/ModalOverlay';
+import CustomActionSheet from '../components/CustomActionSheet';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
-import { pickImageWithCamera } from '../utils/imagePicker';
+import { pickImages, takePhoto, PickedImage } from '../utils/imagePicker';
 import { cacheBackground } from '../utils/backgroundCache';
 import { modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
 import { isBiometricAvailable, saveCredential, promptBiometric, getCredential } from '../utils/biometric';
@@ -523,12 +524,35 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   };
 
   // ── Avatar / Cover handlers ──
-  const handleAvatarPress = async () => {
-    if (uploadingAvatar) return;
-    const img = await pickImageWithCamera();
+  const [showPickerSheet, setShowPickerSheet] = useState(false);
+  const pendingPicker = useRef<'avatar' | 'cover' | null>(null);
+
+  const openPicker = (kind: 'avatar' | 'cover') => {
+    pendingPicker.current = kind;
+    setShowPickerSheet(true);
+  };
+
+  const applyPicked = (img: PickedImage | null) => {
     if (!img) return;
-    setAvatarCropSrc(img.uri);
-    setShowAvatarCrop(true);
+    if (pendingPicker.current === 'avatar') {
+      setAvatarCropSrc(img.uri);
+      setShowAvatarCrop(true);
+    } else {
+      setCoverCropSrc(img.uri);
+      setShowCoverCrop(true);
+    }
+    pendingPicker.current = null;
+  };
+
+  const handlePickFromCamera = async () => {
+    setShowPickerSheet(false);
+    applyPicked(await takePhoto().catch(() => null));
+  };
+
+  const handlePickFromLibrary = async () => {
+    setShowPickerSheet(false);
+    const imgs = await pickImages({ multiple: false }).catch(() => [] as PickedImage[]);
+    applyPicked(imgs.length > 0 ? imgs[0] : null);
   };
 
   const handleAvatarCropConfirm = (dataUri: string) => {
@@ -561,10 +585,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
   const handleCoverPress = async () => {
     if (uploadingCover) return;
-    const img = await pickImageWithCamera();
-    if (!img) return;
-    setCoverCropSrc(img.uri);
-    setShowCoverCrop(true);
+    openPicker('cover');
   };
 
   // ── bgOpacity (shared via localStorage + API, same as HomeScreen) ──
@@ -757,6 +778,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   };
 
   return (
+    <>
     <View style={st.root}>
       {/* Nav bar — always visible, fixed at top */}
       <View
@@ -830,7 +852,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
         {/* Avatar — overlaps cover bottom, follows pull-down stretch */}
         <ReAnimated.View style={[st.avatarFloat, coverFollowStyle]}>
-          <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.8} disabled={uploadingAvatar}>
+          <TouchableOpacity onPress={() => openPicker('avatar')} activeOpacity={0.8} disabled={uploadingAvatar}>
             {avatarUrl ? (
               <Image source={{ uri: avatarUrl }} style={st.avatar} />
             ) : (
@@ -1405,6 +1427,16 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         </ReAnimated.View>
       </ModalOverlay>
     </View>
+
+    <CustomActionSheet
+      visible={showPickerSheet}
+      onClose={() => setShowPickerSheet(false)}
+      actions={[
+        { label: t('takePhoto'), onPress: handlePickFromCamera },
+        { label: t('chooseFromLibrary'), onPress: handlePickFromLibrary },
+      ]}
+    />
+    </>
   );
 }
 

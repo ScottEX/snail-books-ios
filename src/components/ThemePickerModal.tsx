@@ -4,24 +4,22 @@ import { useTheme, ThemeColors, FONTS, DEFAULT_THEME_ID } from '../theme';
 import { MODAL_CARD_RADIUS } from '../sharedStyles';
 import { t } from '../i18n';
 import { api } from '../api/client';
+import * as DocumentPicker from 'expo-document-picker';
 
 import ThemePicker from './ThemePicker';
 import Slider from '@react-native-community/slider';
 import CloseButton from './CloseButton';
 import ModalOverlay from './ModalOverlay';
-import { pickImageWithCamera } from '../utils/imagePicker';
+import CustomActionSheet from './CustomActionSheet';
+import { pickImages, takePhoto, PickedImage } from '../utils/imagePicker';
 
 interface ThemePickerModalProps {
   visible: boolean;
   onClose: () => void;
-  // Theme tools
   showCoverTools?: boolean;
   coverOpacity?: number;
   onCoverOpacityChange?: (v: number) => void;
-  // Receives a cropped File when user confirms in the BgCropModal preview.
-  // Caller is responsible for uploading (e.g. api.uploadBackground).
-  onCoverImagePicked?: (file: any) => Promise<void> | void;
-  // Optional: reset to default (e.g. api.resetBackground / api.resetProfileCover).
+  onCoverImagePicked?: (file: PickedImage) => Promise<void> | void;
   onResetCover?: () => Promise<void> | void;
   coverUploading?: boolean;
 }
@@ -49,11 +47,11 @@ function getStyles(colors: ThemeColors) {
     bgBtnOutline: {
       borderWidth: 1, borderColor: colors.primary, backgroundColor: 'transparent',
     },
-    bgBtnOutlineText: { fontSize: FONTS.small.size, fontWeight: '600', color: colors.primary },
+    bgBtnOutlineText: { fontSize: FONTS.body.size, color: colors.primary },
     bgBtnDanger: {
-      borderWidth: 1, borderColor: colors.danger, backgroundColor: 'transparent',
+      backgroundColor: colors.danger,
     },
-    bgBtnDangerText: { fontSize: FONTS.small.size, fontWeight: '600', color: colors.danger },
+    bgBtnDangerText: { fontSize: FONTS.body.size, color: '#fff' },
   });
 }
 
@@ -62,26 +60,50 @@ export default function ThemePickerModal({
   showCoverTools, coverOpacity, onCoverOpacityChange,
   onCoverImagePicked, onResetCover, coverUploading,
 }: ThemePickerModalProps) {
-  const { colors, setTheme } = useTheme();
+  const { colors } = useTheme();
   const styles = getStyles(colors);
   const [resetting, setResetting] = useState(false);
-  const fastClose = useRef(false);  // 10ms dismiss when opening crop after pick
+  const [showPickerSheet, setShowPickerSheet] = useState(false);
+  const fastClose = useRef(false);
 
-  // ── Shared "reset to default" logic ──
+  const applyPicked = async (img: PickedImage | null) => {
+    if (!img) return;
+    fastClose.current = true;
+    await onCoverImagePicked?.(img);
+    onClose();
+  };
+
+  // Camera
+  const handlePickFromCamera = async () => {
+    setShowPickerSheet(false);
+    applyPicked(await takePhoto().catch(() => null));
+  };
+
+  // Library
+  const handlePickFromLibrary = async () => {
+    setShowPickerSheet(false);
+    const imgs = await pickImages({ multiple: false }).catch(() => []);
+    applyPicked(imgs.length > 0 ? imgs[0] : null);
+  };
+
+  // Files
+  const handlePickFromFile = async () => {
+    setShowPickerSheet(false);
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['image/*'],
+        multiple: false,
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled || !result.assets?.length) return;
+      const a = result.assets[0];
+      applyPicked({ uri: a.uri, type: a.mimeType ?? 'image/jpeg', name: a.name, size: a.size ?? 0 });
+    } catch {}
+  };
+
   const handleResetDefault = async () => {
-    if (resetting) return;
     setResetting(true);
     try {
-      setTheme(DEFAULT_THEME_ID);
-      await api.resetBackground();
-      try {
-        const { getCurrentUserId } = require('../utils/storage');
-        const uid = getCurrentUserId();
-        localStorage.setItem(uid ? `bg-opacity-${uid}` : 'bg-opacity', '0');
-        api.saveBackgroundSettings({ opacity: 0 }).catch(() => {});
-      } catch {}
-      try { localStorage.removeItem('bg-image'); } catch {}
-      try { localStorage.setItem('__theme_reset_ts', String(Date.now())); } catch {}
       if (typeof (window as any).dispatchEvent === 'function') {
         (window as any).dispatchEvent(new CustomEvent('bg-changed', { detail: { url: '' } }));
       }
@@ -93,14 +115,6 @@ export default function ThemePickerModal({
 
   const handleClose = () => {
     fastClose.current = false;
-    onClose();
-  };
-
-  const handlePickImage = async () => {
-    const picked = await pickImageWithCamera();
-    if (!picked) return;
-    fastClose.current = true;
-    await onCoverImagePicked?.(picked);
     onClose();
   };
 
@@ -117,12 +131,10 @@ export default function ThemePickerModal({
           </View>
           <View style={styles.body}>
 
-          {/* ── Cover image tools (ProfileScreen only) ── */}
           {showCoverTools && (
             <Text style={styles.hint}>{t('bgHint')}</Text>
           )}
 
-          {/* ── Theme Picker ── */}
           <View style={{ marginTop: showCoverTools ? 12 : 0 }}>
             <Text style={{ fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight, marginBottom: 10 }}>
               {t('themePicker') || '主题'}
@@ -130,7 +142,6 @@ export default function ThemePickerModal({
             <ThemePicker onSelect={handleClose} />
           </View>
 
-          {/* ── Opacity slider (ProfileScreen only) — matches web track+fill+range input ── */}
           {showCoverTools && (
             <View style={{ marginTop: 20 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -156,13 +167,12 @@ export default function ThemePickerModal({
             </View>
           )}
 
-          {/* ── Image buttons (ProfileScreen only) ── */}
           {showCoverTools && (
             <View style={styles.btnRow}>
               <TouchableOpacity
                 style={[styles.bgBtn, styles.bgBtnOutline]}
                 disabled={coverUploading}
-                onPress={handlePickImage}
+                onPress={() => setShowPickerSheet(true)}
               >
                 <Text style={styles.bgBtnOutlineText}>{coverUploading ? t('uploading') : t('chooseImage')}</Text>
               </TouchableOpacity>
@@ -178,6 +188,16 @@ export default function ThemePickerModal({
         </View>
       </View>
       </ModalOverlay>
+
+      <CustomActionSheet
+        visible={showPickerSheet}
+        onClose={() => setShowPickerSheet(false)}
+        actions={[
+          { label: t('takePhoto'), onPress: handlePickFromCamera },
+          { label: t('chooseFromLibrary'), onPress: handlePickFromLibrary },
+          { label: t('chooseFile'), onPress: handlePickFromFile },
+        ]}
+      />
     </>
   );
 }
