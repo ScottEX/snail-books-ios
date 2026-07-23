@@ -316,7 +316,7 @@ const getStyles = (c: ThemeColors) => {
     fontSize: FONTS.sub.size,
     color: '#000',
   },
-  webviewWrap: { flex: 1, backgroundColor: c.bg },
+  webviewWrap: { flex: 1, backgroundColor: 'transparent' },
   webview: { flex: 1, backgroundColor: 'transparent' },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
