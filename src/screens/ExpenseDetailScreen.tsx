@@ -71,7 +71,7 @@ interface Props {
 
 export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDeleted }: Props) {
   const { colors: c, theme } = useTheme();
-  const headerHeight = 100;
+  const headerHeight = 105;
   const sd = useServerDate();
   const lang = getLang();
   const { width: w, height: windowHeight } = useWindowDimensions();
@@ -543,7 +543,7 @@ const getStyles = (c: ThemeColors) =>
       justifyContent: 'center', alignItems: 'center', padding: 4,
     },
     body: { flex: 1, backgroundColor: c.bg },
-    bodyContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 24 },
+    bodyContent: { paddingHorizontal: 16, paddingTop: 7, paddingBottom: 24 },
 
     amountCard: {
       flexDirection: 'row',
