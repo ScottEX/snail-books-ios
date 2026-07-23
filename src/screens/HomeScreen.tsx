@@ -1214,9 +1214,9 @@ const NAV_ITEMS: NavItem[] = [
 
 function IconAdd({ c, active }: { c: string; active?: boolean }) {
   // Wallet
-  const fill = active ? c : 'none';
+  const fillColor = active ? withAlpha(c, 0.12) : 'none';
   return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill={fill} stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill={fillColor} stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M20 12V8H6a2 2 0 010-4h12v4" />
       <Path d="M4 6v12a2 2 0 002 2h14v-4" />
       <Path d="M18 12a2 2 0 100 4h4v-4h-4z" />
@@ -1224,9 +1224,9 @@ function IconAdd({ c, active }: { c: string; active?: boolean }) {
   );
 }
 function IconList({ c, active }: { c: string; active?: boolean }) {
-  const fill = active ? c : 'none';
+  const fillColor = active ? withAlpha(c, 0.12) : 'none';
   return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill={fill} stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill={fillColor} stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
       <Path d="M9 5a2 2 0 012-2h2a2 2 0 012 2v0a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
       <Path d="M9 12h6M9 16h6" />
@@ -1234,16 +1234,16 @@ function IconList({ c, active }: { c: string; active?: boolean }) {
   );
 }
 function IconSupply({ c, active }: { c: string; active?: boolean }) {
-  const fill = active ? c : 'none';
+  const fillColor = active ? withAlpha(c, 0.12) : 'none';
   return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill={fill} stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill={fillColor} stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
       <Path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12" />
     </Svg>
   );
 }
 function IconChart({ c, active }: { c: string; active?: boolean }) {
-  const fillColor = active ? c : 'none';
+  const fillColor = active ? withAlpha(c, 0.12) : 'none';
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M3 3v18h18" />
@@ -1252,9 +1252,9 @@ function IconChart({ c, active }: { c: string; active?: boolean }) {
   );
 }
 function IconPartner({ c, active }: { c: string; active?: boolean }) {
-  const fill = active ? c : 'none';
+  const fillColor = active ? withAlpha(c, 0.12) : 'none';
   return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill={fill} stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill={fillColor} stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" />
       <Circle cx="9" cy="7" r="4" />
       <Path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
