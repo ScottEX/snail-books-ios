@@ -541,7 +541,7 @@ const getStyles = (c: ThemeColors) =>
     actionBtn: {
       justifyContent: 'center', alignItems: 'center', padding: 4,
     },
-    body: { flex: 1 },
+    body: { flex: 1, backgroundColor: c.bg },
     bodyContent: { paddingHorizontal: 16, paddingTop: 112, paddingBottom: 24 },
 
     amountCard: {
