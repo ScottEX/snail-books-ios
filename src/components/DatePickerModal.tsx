@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import ModalOverlay from './ModalOverlay';
-import { FONTS, useTheme } from '../theme';
+import { FONTS } from '../theme';
 import { t, getLang } from '../i18n';
 
 interface Props {
@@ -27,7 +27,6 @@ const parseDate = (s: string): Date => {
 export default function DatePickerModal({ visible, value, onClose, onSelect, minDate, maxDate }: Props) {
   const [draft, setDraft] = useState(value);
   const insets = useSafeAreaInsets();
-  const { colors: c } = useTheme();
 
   const prevVisible = useRef(visible);
   if (visible && !prevVisible.current) {
@@ -71,7 +70,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
         />
         <View style={styles.footer}>
           <TouchableOpacity style={styles.footerBtn} onPress={() => setDraft(value)}>
-            <Text style={{ color: c.textMain, fontSize: FONTS.body.size, fontWeight: '500' }}>{getLang().startsWith('en') ? 'Reset' : '重置'}</Text>
+            <Text style={{ color: 'rgba(0,0,0,0.88)', fontSize: FONTS.body.size, fontWeight: '500' }}>{getLang().startsWith('en') ? 'Reset' : '重置'}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.footerBtn, (!isValid(draft) || isFuture(draft)) && { opacity: 0.3 }]}
