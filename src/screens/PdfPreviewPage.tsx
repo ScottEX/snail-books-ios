@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Share, PanResponder } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system';
 import Svg, { Path, Polyline, Rect, Circle, Line } from 'react-native-svg';
