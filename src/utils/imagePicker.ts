@@ -1,5 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import { Platform, ActionSheetIOS, Alert } from 'react-native';
 
 export interface PickedImage {
   uri: string;
@@ -120,4 +121,39 @@ export async function pickFiles(): Promise<PickedImage[]> {
     name: a.name,
     size: a.size ?? 0,
   }));
+}
+
+/**
+ * Show action sheet to pick between camera or library.
+ * Returns a single image (or null if cancelled).
+ */
+export async function pickImageWithCamera(): Promise<PickedImage | null> {
+  return new Promise((resolve) => {
+    const options = ['拍照', '从相册选择', '取消'];
+    const cancelButtonIndex = 2;
+    const handler = async (index: number) => {
+      try {
+        if (index === 0) {
+          resolve(await takePhoto());
+        } else if (index === 1) {
+          const imgs = await pickImages({ multiple: false });
+          resolve(imgs.length > 0 ? imgs[0] : null);
+        } else {
+          resolve(null);
+        }
+      } catch {
+        resolve(null);
+      }
+    };
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions({ options, cancelButtonIndex }, handler);
+    } else {
+      Alert.alert('选择图片来源', undefined, [
+        { text: '拍照', onPress: () => handler(0) },
+        { text: '从相册选择', onPress: () => handler(1) },
+        { text: '取消', onPress: () => handler(2), style: 'cancel' },
+      ]);
+    }
+  });
 }

@@ -25,7 +25,7 @@ import SubmitButton from '../components/SubmitButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ModalOverlay from '../components/ModalOverlay';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
-import { pickImages } from '../utils/imagePicker';
+import { pickImageWithCamera } from '../utils/imagePicker';
 import { cacheBackground } from '../utils/backgroundCache';
 import { modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
 import { isBiometricAvailable, saveCredential, promptBiometric, getCredential } from '../utils/biometric';
@@ -526,9 +526,9 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const handleAvatarPress = async () => {
     if (uploadingAvatar) return;
     try {
-      const imgs = await pickImages({ multiple: false }).catch(() => []);
-      if (imgs.length === 0) return;
-      setAvatarCropSrc(imgs[0].uri);
+      const img = await pickImageWithCamera();
+      if (!img) return;
+      setAvatarCropSrc(img.uri);
       setShowAvatarCrop(true);
     } catch {}
   };
@@ -564,9 +564,9 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const handleCoverPress = async () => {
     if (uploadingCover) return;
     try {
-      const imgs = await pickImages({ multiple: false }).catch(() => []);
-      if (imgs.length === 0) return;
-      setCoverCropSrc(imgs[0].uri);
+      const img = await pickImageWithCamera();
+      if (!img) return;
+      setCoverCropSrc(img.uri);
       setShowCoverCrop(true);
     } catch {}
   };
