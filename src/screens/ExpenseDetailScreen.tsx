@@ -23,6 +23,7 @@ import ExpenseNoteInput from '../components/ExpenseNoteInput';
 import DatePicker from '../components/DatePicker';
 import HistoryHeader from '../components/HistoryHeader';
 import HomeBackground from '../components/HomeBackground';
+import { StatusBar } from 'react-native';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { PickedImage } from '../utils/imagePicker';
 import { parseImages } from '../utils/parseImages';
@@ -235,6 +236,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
     <ReAnimated.View style={[{ flex: 1 }, contentStyle]}>
     <View style={styles.container}>
       <HomeBackground />
+      <StatusBar barStyle="dark-content" />
       <HistoryHeader
         onBack={onBack}
         title={t('expDetail')}
