@@ -1214,7 +1214,7 @@ const NAV_ITEMS: NavItem[] = [
 
 function IconAdd({ c, active }: { c: string; active?: boolean }) {
   // Wallet
-  const fillColor = active ? withAlpha(c, 0.12) : 'none';
+  const fillColor = active ? withAlpha(c, 0.20) : 'none';
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24" fill={fillColor} stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M20 12V8H6a2 2 0 010-4h12v4" />
@@ -1224,7 +1224,7 @@ function IconAdd({ c, active }: { c: string; active?: boolean }) {
   );
 }
 function IconList({ c, active }: { c: string; active?: boolean }) {
-  const fillColor = active ? withAlpha(c, 0.12) : 'none';
+  const fillColor = active ? withAlpha(c, 0.20) : 'none';
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24" fill={fillColor} stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
@@ -1234,7 +1234,7 @@ function IconList({ c, active }: { c: string; active?: boolean }) {
   );
 }
 function IconSupply({ c, active }: { c: string; active?: boolean }) {
-  const fillColor = active ? withAlpha(c, 0.12) : 'none';
+  const fillColor = active ? withAlpha(c, 0.20) : 'none';
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24" fill={fillColor} stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
@@ -1243,7 +1243,7 @@ function IconSupply({ c, active }: { c: string; active?: boolean }) {
   );
 }
 function IconChart({ c, active }: { c: string; active?: boolean }) {
-  const fillColor = active ? withAlpha(c, 0.12) : 'none';
+  const fillColor = active ? withAlpha(c, 0.20) : 'none';
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M3 3v18h18" />
@@ -1252,7 +1252,7 @@ function IconChart({ c, active }: { c: string; active?: boolean }) {
   );
 }
 function IconPartner({ c, active }: { c: string; active?: boolean }) {
-  const fillColor = active ? withAlpha(c, 0.12) : 'none';
+  const fillColor = active ? withAlpha(c, 0.20) : 'none';
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24" fill={fillColor} stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" />
