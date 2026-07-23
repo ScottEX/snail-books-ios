@@ -541,6 +541,7 @@ const getStyles = (c: ThemeColors) =>
       flex: 1, fontSize: FONTS.h2.size, fontWeight: '700', color: c.textMain,
     },
     actionBtn: {
+      width: 34, height: 34,
       justifyContent: 'center', alignItems: 'center', padding: 4,
     },
     body: { flex: 1, backgroundColor: c.bg },
