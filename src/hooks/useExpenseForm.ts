@@ -36,7 +36,7 @@ export function useExpenseForm(options: UseExpenseFormOptions) {
   const handleImageSelect = useCallback((files: PickedImage[]) => {
     const valid: PickedImage[] = [];
     for (const f of files) {
-      if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type ?? '')) continue;
+      if (!['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(f.type ?? '')) continue;
       if ((f.size ?? 0) > 10 * 1024 * 1024) continue;
       if (expImages.some(ei => ei.name === f.name && ei.size === f.size)) continue;
       valid.push(f);
