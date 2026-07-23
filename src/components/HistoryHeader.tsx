@@ -55,7 +55,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   header: {
     position: 'absolute' as any, top: 0, left: 0, right: 0, zIndex: 10,
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 12, paddingTop: 56, paddingBottom: 10,
+    paddingHorizontal: 12, paddingTop: 56, paddingBottom: 16,
     overflow: 'hidden',
   },
   backBtn: { padding: 4 },
