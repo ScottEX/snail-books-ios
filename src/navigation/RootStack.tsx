@@ -185,10 +185,6 @@ export default function RootStack({ onLogout }: { onLogout: () => void }) {
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
-          // iOS-native push transitions + interactive edge swipe-back.
-          // NOTE: keep this as the default left-edge gesture — fullScreenGestureEnabled
-          // hijacks horizontal swipes inside content (history lists/charts) and
-          // caused accidental pops on ExpenseHistory / DailyHistory / ReconHistory.
           gestureEnabled: true,
           fullScreenGestureEnabled: false,
         }}
@@ -205,7 +201,7 @@ export default function RootStack({ onLogout }: { onLogout: () => void }) {
         <Stack.Screen name="Invoice" component={InvoiceRoute} />
         <Stack.Screen name="ProcurementDetail" component={ProcurementDetailRoute} />
         <Stack.Screen name="ExpenseDetail" component={ExpenseDetailRoute} />
-        <Stack.Screen name="PdfPreview" component={PdfPreviewRoute} options={{ contentStyle: { backgroundColor: 'transparent' } }} />
+        <Stack.Screen name="PdfPreview" component={PdfPreviewRoute} options={{ contentStyle: { backgroundColor: 'transparent' }, presentation: 'transparentModal', animation: 'slide_from_right' }} />
       </Stack.Navigator>
     </SessionContext.Provider>
   );
