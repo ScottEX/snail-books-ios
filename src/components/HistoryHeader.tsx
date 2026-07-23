@@ -46,7 +46,7 @@ export default function HistoryHeader({ safeTop = 56, onBack, title, filterActiv
           </Svg>
         </TouchableOpacity>
       ) : (
-        <View style={{ width: 34 }} />
+        <View style={{ width: 34, height: 34 }} />
       )}
     </View>
   );
