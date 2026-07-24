@@ -14,6 +14,7 @@ import EmptyState from '../components/EmptyState';
 import { useToast } from '../hooks/useToast';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DatePickerModal from '../components/DatePickerModal';
 import HistoryHeader from '../components/HistoryHeader';
@@ -76,6 +77,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
   const currentUser = getCurrentUser();
   const { showToast, ToastHost } = useToast();
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
 
   const openPdf = useCallback((url: string) => {
     navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title: t('expensePdfTitle') as string });
@@ -275,6 +277,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
       <HomeBackground />
       <StatusBar barStyle="dark-content" />
       <HistoryHeader
+        safeTop={insets.top}
         onBack={onBack}
         title={`${t('expenseHistory')} (${total}/${totalAll})`}
         filterActive={showFilter}
