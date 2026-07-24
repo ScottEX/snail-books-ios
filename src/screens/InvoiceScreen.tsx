@@ -1054,11 +1054,16 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
                   style={[styles.dBatchSelect, { backgroundColor: withAlpha(c.textMain, 0.03) }]}
                   onPress={() => {
                     if (showBatchPicker) { setShowBatchPicker(false); return; }
-                    (batchBtnRef.current as any)?.measureInWindow?.((x: number, y: number, _w: number, h: number) => {
-                      setBatchOffsetX(x || 16);
-                      setBatchOffsetY((y || 100) + (h || 40) + 8);
+                    const ref = batchBtnRef.current as any;
+                    if (ref?.measureInWindow) {
+                      ref.measureInWindow((x: number, y: number, _w: number, h: number) => {
+                        setBatchOffsetX(x || 16);
+                        setBatchOffsetY((y || 100) + (h || 40) + 8);
+                        setShowBatchPicker(true);
+                      });
+                    } else {
                       setShowBatchPicker(true);
-                    }) || setShowBatchPicker(true);
+                    }
                   }}
                   activeOpacity={0.7}
                 >
