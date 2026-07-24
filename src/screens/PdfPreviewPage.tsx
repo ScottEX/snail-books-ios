@@ -177,7 +177,8 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
         if (!result) throw new Error('下载超时');
         await Share.share({ url: result.uri, title: fileName });
       } else {
-        await Share.share({ url: cachedUriRef.current, title: fileName });
+        await FileSystem.copyAsync({ from: cachedUriRef.current, to: localUri });
+        await Share.share({ url: localUri, title: fileName });
       }
     } catch (err: any) {
       if (err?.message !== 'User did not share') {
