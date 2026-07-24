@@ -83,7 +83,7 @@ export default function CustomActionSheet({
       >
         <Animated.View
           style={[
-            dark ? { width: 180, alignSelf: 'flex-start' as const } : st.sheet,
+            dark ? { width: 160, alignSelf: 'flex-start' as const } : st.sheet,
             {
               marginTop: offsetY,
               marginLeft: offsetX,
@@ -96,7 +96,7 @@ export default function CustomActionSheet({
           ]}
         >
           {dark ? (
-            <BlurView intensity={70} tint="dark" style={{ borderRadius: 24, overflow: 'hidden' as any }}>
+            <BlurView intensity={70} tint="dark" style={{ borderRadius: 10, overflow: 'hidden' as any }}>
               <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
                 {actions.map((action, index) => (
                   <TouchableOpacity
