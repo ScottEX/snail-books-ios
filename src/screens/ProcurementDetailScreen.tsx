@@ -84,9 +84,15 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
   const thumbRefs = useRef<(any | null)[]>([]);
   const navigation = useNavigation<any>();
 
+  const [cur, setCur] = useState<BatchRecord | null>(batch);
+  useEffect(() => { setCur(batch); }, [batch]);
+
   const openPdf = useCallback((url: string) => {
-    navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title: t('procOrderItems') as string });
-  }, [navigation]);
+    const title = cur?.batch_number
+      ? (t('procPdfTitle') as string).replace('{n}', String(cur.batch_number))
+      : (t('procOrderItems') as string);
+    navigation.navigate('PdfPreview', { id: 0, number: cur?.batch_number || 0, fileUrl: url, title });
+  }, [navigation, cur?.batch_number]);
 
   const handleThumbPreview = useCallback((images: string[], i: number) => {
     const url = images[i];
@@ -113,8 +119,6 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
     if (!ref) { openPreview(imageUrls, imageIndex, undefined, wrappedResolver); return; }
     measureThumbLayout(ref, (layout) => openPreview(imageUrls, imageIndex, layout, wrappedResolver));
   }, [openPreview, openPdf]);
-  const [cur, setCur] = useState<BatchRecord | null>(batch);
-  useEffect(() => { setCur(batch); }, [batch]);
   const [settling, setSettling] = useState(false);
   const [showSettleConfirm, setShowSettleConfirm] = useState(false);
   const [settleError, setSettleError] = useState('');

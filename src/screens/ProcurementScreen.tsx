@@ -401,14 +401,17 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   const histThumbRefs = useRef<Record<string, any>>({});
   const navigation = useNavigation<any>();
 
-  const openPdf = useCallback((url: string) => {
-    navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title: t('procurement') as string });
+  const openPdf = useCallback((url: string, batchNumber?: number) => {
+    const title = batchNumber
+      ? (t('procPdfTitle') as string).replace('{n}', String(batchNumber))
+      : (t('procurement') as string);
+    navigation.navigate('PdfPreview', { id: 0, number: batchNumber || 0, fileUrl: url, title });
   }, [navigation]);
 
-  const handleHistPreview = useCallback((batchId: string | number, images: string[], i: number) => {
+  const handleHistPreview = useCallback((batchId: string | number, batchNumber: number, images: string[], i: number) => {
     const url = images[i];
     if (url && /\.pdf(\?|$)/i.test(url)) {
-      openPdf(url);
+      openPdf(url, batchNumber);
       return;
     }
     // Filter out PDFs from carousel (matching InvoiceScreen pattern)
@@ -661,7 +664,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   const handlePreviewExisting = useCallback((index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
     const path = existingImageUrls[index];
     if (path && /\.pdf(\?|$)/i.test(path)) {
-      openPdf(resolveAssetUrl(path) || path);
+      openPdf(resolveAssetUrl(path) || path, editingBatchId ? editingBatchNumber : undefined);
       return;
     }
     const isPdf = (p: string) => /\.pdf(\?|$)/i.test(p);
@@ -680,12 +683,12 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
         }
       : undefined;
     openPreview(imageUrls, imageIndex, layout, wrappedGetLayout);
-  }, [existingImageUrls, openPreview, openPdf]);
+  }, [existingImageUrls, openPreview, openPdf, editingBatchId, editingBatchNumber]);
 
   const handlePreviewNew = useCallback((index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
     const f = receipts[index];
     if (f && (f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '') || /\.pdf$/i.test(f.uri || ''))) {
-      openPdf(f.uri);
+      openPdf(f.uri, editingBatchId ? editingBatchNumber : undefined);
       return;
     }
     const isPdf = (ff: any) => ff.type === 'application/pdf' || /\.pdf$/i.test(ff.name || '') || /\.pdf$/i.test(ff.uri || '');
@@ -704,7 +707,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
         }
       : undefined;
     openPreview(imageUris, imageIndex, layout, wrappedGetLayout);
-  }, [receipts, openPreview, openPdf]);
+  }, [receipts, openPreview, openPdf, editingBatchId, editingBatchNumber]);
 
   const submitOrder = async () => {
     if (cartItems.length === 0) return;
@@ -1230,7 +1233,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                         <TouchableOpacity
                           key={i}
                           ref={el => { histThumbRefs.current[`${batch.id}-${i}`] = el; }}
-                          onPress={() => handleHistPreview(batch.id, fullImgs.map((u: string) => resolveAssetUrl(u) || u), i)}
+                          onPress={() => handleHistPreview(batch.id, batch.batch_number, fullImgs.map((u: string) => resolveAssetUrl(u) || u), i)}
                           activeOpacity={0.7}
                         >
                           {isPdf ? (
