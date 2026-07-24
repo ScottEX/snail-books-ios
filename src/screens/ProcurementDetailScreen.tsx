@@ -89,7 +89,7 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
 
   const openPdf = useCallback((url: string) => {
     const title = cur?.batch_number
-      ? (t('procPdfTitle') as string).replace('{n}', String(cur.batch_number))
+      ? (t('procVoucherTitle') as string).replace('{n}', String(cur.batch_number))
       : (t('procOrderItems') as string);
     navigation.navigate('PdfPreview', { id: 0, number: cur?.batch_number || 0, fileUrl: url, title });
   }, [navigation, cur?.batch_number]);

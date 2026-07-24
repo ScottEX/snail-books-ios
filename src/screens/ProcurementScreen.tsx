@@ -403,7 +403,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
   const openPdf = useCallback((url: string, batchNumber?: number) => {
     const title = batchNumber
-      ? (t('procPdfTitle') as string).replace('{n}', String(batchNumber))
+      ? (t('procVoucherTitle') as string).replace('{n}', String(batchNumber))
       : (t('procurement') as string);
     navigation.navigate('PdfPreview', { id: 0, number: batchNumber || 0, fileUrl: url, title });
   }, [navigation]);
