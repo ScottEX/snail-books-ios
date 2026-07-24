@@ -285,7 +285,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
       />
 
       {/* Filter — dark glass via FilterPanel (BlurView inside) */}
-      <FilterPanel visible={showFilter} onClose={() => setShowFilter(false)}>
+      <FilterPanel visible={showFilter} onClose={() => setShowFilter(false)} top={insets.top + 44}>
         {rangeInvalid && <Text style={{ color: colors.danger, fontSize: FONTS.micro.size, textAlign: 'right' }}>{t('errDateRange')}</Text>}
         {rangeTooLong && <Text style={{ color: colors.danger, fontSize: FONTS.micro.size, textAlign: 'right' }}>{t('errDateRangeTooLong')}</Text>}
         <View style={st.filterField}>

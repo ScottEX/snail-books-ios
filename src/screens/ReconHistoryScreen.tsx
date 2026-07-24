@@ -205,7 +205,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
       />
 
       {/* Filter — dark glass via FilterPanel (BlurView inside) */}
-      <FilterPanel visible={showFilter} onClose={closeFilter}>
+      <FilterPanel visible={showFilter} onClose={closeFilter} top={insets.top + 44}>
         <DateErrorHint trigger={filterDateError} message={t('errDateFuture')} color={colors.danger} />
         {rangeInvalid && <Text style={{ color: colors.danger, fontSize: FONTS.micro.size, textAlign: 'right', marginTop: 2 }}>{t('errDateRange')}</Text>}
         {rangeTooLong && <Text style={{ color: colors.danger, fontSize: FONTS.micro.size, textAlign: 'right', marginTop: 2 }}>{t('errDateRangeTooLong')}</Text>}
@@ -252,7 +252,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
       {/* User dropdown — moved outside FilterPanel to avoid overflow clipping */}
       {showUserPick && (
         <Animated.View style={{
-          position: 'absolute' as any, top: 212, left: 100, width: 160, zIndex: 10000,
+          position: 'absolute' as any, top: insets.top + 156, left: 100, width: 160, zIndex: 10000,
           opacity: userDropAnim,
           transform: [{ translateY: dropSlide }, { scale: dropScale }],
         }}>
