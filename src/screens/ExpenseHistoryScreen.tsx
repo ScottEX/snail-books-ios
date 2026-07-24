@@ -1,6 +1,7 @@
 import React from 'react';
 import HomeBackground from '../components/HomeBackground';
 import { View, Text, TouchableOpacity, FlatList, ScrollView, StyleSheet, Image, StatusBar } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 
 import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg';
@@ -74,6 +75,11 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
   const sd = useServerDate();
   const currentUser = getCurrentUser();
   const { showToast, ToastHost } = useToast();
+  const navigation = useNavigation<any>();
+
+  const openPdf = useCallback((url: string) => {
+    navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title: '支出凭证' });
+  }, [navigation]);
 
   const [showFilter, setShowFilter] = useState(false);
 
@@ -100,11 +106,16 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
   const thumbRefs = useRef<Record<string, any>>({});
 
   const handleThumbPreview = useCallback((recordId: string | number, images: string[], j: number) => {
+    const url = images[j];
+    if (url && /\.pdf(\?|$)/i.test(url)) {
+      openPdf(url);
+      return;
+    }
     const resolver: ThumbLayoutResolver = (idx, cb) => resolveThumbLayout(thumbRefs.current[`${recordId}-${idx}`], cb);
     const ref = thumbRefs.current[`${recordId}-${j}`];
     if (!ref) { openPreview(images, j, undefined, resolver); return; }
     measureThumbLayout(ref, (layout) => openPreview(images, j, layout, resolver));
-  }, [openPreview]);
+  }, [openPreview, openPdf]);
 
   const toggleCat = (cat: string) => {
     setFilCats(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
@@ -216,7 +227,9 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         {/* Image thumbnails */}
         {resolvedImgs.length > 0 && (
           <View style={st.imgThumbs}>
-            {resolvedImgs.map((url: string, j: number) => (
+            {resolvedImgs.map((url: string, j: number) => {
+              const isPdf = /\.pdf(\?|$)/i.test(String(previewImgsList[j] || ''));
+              return (
               <TouchableOpacity
                 key={j}
                 ref={el => { thumbRefs.current[`${e.id}-${j}`] = el; }}
@@ -224,9 +237,16 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
                 activeOpacity={0.7}
                 delayPressIn={80}
               >
-                <Image source={{ uri: url }} style={st.thumbImg} />
+                {isPdf ? (
+                  <View style={[st.thumbImg, { alignItems: 'center', justifyContent: 'center', gap: 2, backgroundColor: withAlpha(colors.textMain, 0.06) }]}>
+                    <Text style={{ fontSize: FONTS.xlarge.size }}>📄</Text>
+                    <Text style={{ fontSize: FONTS.tiny.size, color: colors.textSub }}>PDF</Text>
+                  </View>
+                ) : (
+                  <Image source={{ uri: url }} style={st.thumbImg} />
+                )}
               </TouchableOpacity>
-            ))}
+            ); })}
           </View>
         )}
       </View>
