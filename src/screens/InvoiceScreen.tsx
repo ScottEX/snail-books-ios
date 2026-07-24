@@ -1144,7 +1144,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
                 <View style={styles.dFieldHalf}>
                   <Text style={styles.dLabel}>{t('invEmail')}</Text>
                   <AppTextInput
-                    style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), height: FONTS.sub.size + 28 }]}
+                    style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
                     value={dEmail}
                     onChangeText={setDEmail}
                     placeholder="email@example.com"
@@ -1466,7 +1466,7 @@ const getStyles = (c: ThemeColors) =>
     dField: { marginBottom: 14 },
     dFieldHalf: { flex: 1, minWidth: 0 },
     dRow: { flexDirection: 'row', gap: 10 },
-    dInput: { width: '100%', paddingVertical: 11, paddingHorizontal: 14, borderWidth: 0, borderRadius: 10, fontSize: FONTS.sub.size, color: c.textMain },
+    dInput: { width: '100%', paddingVertical: 11, paddingHorizontal: 14, borderWidth: 0, borderRadius: 10, fontSize: FONTS.sub.size, color: c.textMain, minHeight: FONTS.sub.size + 28 },
     dAmountWrap: { position: 'relative' as any },
     dAmountPrefix: { position: 'absolute' as any, left: 14, top: 14, fontSize: FONTS.sub.size, fontWeight: '600' },
     dAmountInput: { paddingLeft: 26, fontSize: FONTS.body.size, fontWeight: '700' },
