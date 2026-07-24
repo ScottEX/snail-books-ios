@@ -400,13 +400,37 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   const { preview, openPreview, closePreview } = useImagePreview();
   const histThumbRefs = useRef<Record<string, any>>({});
   const navigation = useNavigation<any>();
+  const closeDrawerForPdf = useRef(false);
+  const reopenDrawerRef = useRef(false);
+
+  // Return from PdfPreview → reopen shopping cart drawer
+  useEffect(() => {
+    const unsub = navigation.addListener('focus', () => {
+      if (reopenDrawerRef.current) {
+        reopenDrawerRef.current = false;
+        requestAnimationFrame(() => setShowDrawer(true));
+      }
+    });
+    return unsub;
+  }, [navigation]);
 
   const openPdf = useCallback((url: string, batchNumber?: number) => {
     const title = batchNumber
       ? (t('procVoucherTitle') as string).replace('{n}', String(batchNumber))
       : (t('procurement') as string);
-    navigation.navigate('PdfPreview', { id: 0, number: batchNumber || 0, fileUrl: url, title });
-  }, [navigation]);
+    if (showDrawer) {
+      reopenDrawerRef.current = true;
+      closeDrawerForPdf.current = true;
+      setShowDrawer(false);
+      // Wait 2 frames: render with outDuration=0 → Modal anim finishes → setShow(false) → Modal unmounts
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        closeDrawerForPdf.current = false;
+        navigation.navigate('PdfPreview', { id: 0, number: batchNumber || 0, fileUrl: url, title });
+      }));
+    } else {
+      navigation.navigate('PdfPreview', { id: 0, number: batchNumber || 0, fileUrl: url, title });
+    }
+  }, [navigation, showDrawer]);
 
   const handleHistPreview = useCallback((batchId: string | number, batchNumber: number, images: string[], i: number) => {
     const url = images[i];
@@ -1381,6 +1405,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
       {/* ── Order Drawer (slide up + scale) ── */}
       <ModalOverlay
         visible={showDrawer}
+        outDuration={closeDrawerForPdf.current ? 0 : undefined}
         onClose={handleDrawerClose}
         animation="slideUpScale"
         overlayStyle={bottomSheetOverlay as any}
