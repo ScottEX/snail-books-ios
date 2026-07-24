@@ -270,6 +270,7 @@ const I18N: Record<string, Record<string, string>> = {
     invTaxAmount: '含税金额',
     invTips: '开票信息将自动填入申请表单，确保税号准确以免开具失败。',
     invTitle: '开票管理中心',
+    invPdfTitle: '发票',
     invToInvoice: '去开票',
     invTotalAmount: '开票总额',
     invTotalCount: '累计开票',
@@ -881,6 +882,7 @@ const I18N: Record<string, Record<string, string>> = {
     invTaxAmount: '含稅金額',
     invTips: '開票信息將自動填入申請表單，確保稅號準確以免開具失敗。',
     invTitle: '開票管理中心',
+    invPdfTitle: '發票',
     invToInvoice: '去開票',
     invTotalAmount: '開票總額',
     invTotalCount: '累計開票',
@@ -1502,6 +1504,7 @@ const I18N: Record<string, Record<string, string>> = {
     invTaxAmount: 'Tax-incl. Amount',
     invTips: 'Invoice info will auto-fill the application form. Ensure tax ID is correct.',
     invTitle: 'Invoice Management',
+    invPdfTitle: 'Invoice',
     invToInvoice: 'Invoice',
     invTotalAmount: 'Total Amount',
     invTotalCount: 'Total Invoices',
@@ -2118,6 +2121,7 @@ export type I18nKey =
   | 'invTaxAmount'
   | 'invTips'
   | 'invTitle'
+  | 'invPdfTitle'
   | 'invToInvoice'
   | 'invTotalAmount'
   | 'invTotalCount'

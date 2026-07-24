@@ -651,7 +651,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
   const openPdf = useCallback((url: string) => {
     wasOpenForPdf.current = true;
     setDrawerOpen(false);
-    onPdfPreview?.(url, t('invTitle') as string);
+    onPdfPreview?.(url, t('invPdfTitle') as string);
   }, [t, onPdfPreview]);
 
   // Return from PdfPreview → reopen drawer

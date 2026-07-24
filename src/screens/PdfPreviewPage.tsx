@@ -233,14 +233,10 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
                   </View>
                 </TouchableOpacity>
               )}
-              {pngUrl !== '' && (pdfPages !== null ? pdfPages <= 5 : true) && (
+              {pngUrl !== '' && (pdfPages === null || pdfPages <= 5) && (
                 <TouchableOpacity onPress={handleExportImage} activeOpacity={0.7} disabled={isActionLoading}>
                   <View style={styles.shareBtn}>
-                    {pdfPages === null ? (
-                      <Text style={{ fontSize: 10, color: '#2C2626', fontWeight: '600' }}>?</Text>
-                    ) : pdfPages === -1 ? (
-                      <Text style={{ fontSize: 10, color: '#2C2626', fontWeight: '600' }}>✕</Text>
-                    ) : actionLoading === 'images' ? (
+                    {actionLoading === 'images' ? (
                       <LoadingSpinner label={false} size={16} color="#2C2626" />
                     ) : (
                       <ImageDownloadSvg />
