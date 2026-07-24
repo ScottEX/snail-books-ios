@@ -97,8 +97,13 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
     if (!pngUrl) return;
     let cancelled = false;
     const sep = pngUrl.includes('?') ? '&' : '?';
+    const h: Record<string, string> = { 'X-Lang': lang };
+    try {
+      const token = localStorage.getItem('token');
+      if (token) h['Authorization'] = `Bearer ${token}`;
+    } catch {}
     fetch(`${pngUrl}${sep}pages=1`, {
-      headers: { 'X-Lang': lang },
+      headers: h,
       credentials: 'include',
     })
       .then(r => r.json())
