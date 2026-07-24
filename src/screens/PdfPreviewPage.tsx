@@ -190,25 +190,21 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
         rightAction={(
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {!isLocal && (
-              <TouchableOpacity onPress={handleDownload} activeOpacity={0.7} disabled={isActionLoading}>
-                <View style={styles.shareBtn}>
-                  {actionLoading === 'download' ? (
-                    <LoadingSpinner label={false} size={16} color="#2C2626" />
-                  ) : (
-                    <DownloadSvg />
-                  )}
-                </View>
+              <TouchableOpacity onPress={handleDownload} activeOpacity={0.7} disabled={isActionLoading} style={styles.shareBtn}>
+                {actionLoading === 'download' ? (
+                  <LoadingSpinner label={false} size={16} color="#2C2626" />
+                ) : (
+                  <DownloadSvg />
+                )}
               </TouchableOpacity>
             )}
             {pngUrl !== '' && (
-              <TouchableOpacity onPress={handleExportImage} activeOpacity={0.7} disabled={isActionLoading}>
-                <View style={styles.shareBtn}>
-                  {actionLoading === 'images' ? (
-                    <LoadingSpinner label={false} size={16} color="#2C2626" />
-                  ) : (
-                    <ImageDownloadSvg />
-                  )}
-                </View>
+              <TouchableOpacity onPress={handleExportImage} activeOpacity={0.7} disabled={isActionLoading} style={styles.shareBtn}>
+                {actionLoading === 'images' ? (
+                  <LoadingSpinner label={false} size={16} color="#2C2626" />
+                ) : (
+                  <ImageDownloadSvg />
+                )}
               </TouchableOpacity>
             )}
           </View>
