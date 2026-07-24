@@ -154,7 +154,7 @@ export default function DailyRevenueHistory({ onBack }: Props) {
 
       <ScrollView style={styles.list} showsVerticalScrollIndicator={false}
         onScroll={handleScroll} scrollEventThrottle={50}
-        contentContainerStyle={{ paddingTop: showFilter ? 240 : 120, paddingHorizontal: 16, paddingBottom: 20 }}>
+        contentContainerStyle={{ paddingTop: showFilter ? insets.top + 180 : insets.top + 64, paddingHorizontal: 16, paddingBottom: 20 }}>
         {loading ? (
           <LoadingSpinner />
         ) : records.length === 0 ? (
