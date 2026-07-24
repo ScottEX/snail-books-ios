@@ -166,7 +166,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
   const handleDownload = useCallback(async () => {
     setActionLoading('download');
     try {
-      const fileName = batchId ? `procurement_${batchId}_${lang}.pdf` : `${title}.pdf`;
+      const fileName = batchId ? `${t('procFileName')}_${batchNumber}.pdf` : `${title}.pdf`;
       const localUri = `${FileSystem.cacheDirectory}${fileName}`;
       const useCache = batchId > 0 && pdfCached;
       if (!useCache) {
@@ -186,13 +186,13 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
     } finally {
       setActionLoading(null);
     }
-  }, [pdfUrl, batchId, pdfCached]);
+  }, [pdfUrl, batchId, batchNumber, pdfCached]);
 
   // Export image — downloads PNG from server (backend converts first PDF page to PNG)
   const handleExportImage = useCallback(async () => {
     setActionLoading('images');
     try {
-      const fileName = batchId ? `procurement_${batchId}.png` : `${title}.png`;
+      const fileName = batchId ? `${t('procFileName')}_${batchNumber}.png` : `${title}.png`;
       const localUri = `${FileSystem.cacheDirectory}${fileName}`;
       const dl = FileSystem.createDownloadResumable(pngUrl, localUri, { headers: { 'X-Lang': lang } });
       const timeout = setTimeout(() => dl.cancelAsync(), 15000);
@@ -207,7 +207,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
     } finally {
       setActionLoading(null);
     }
-  }, [pngUrl, batchId, lang]);
+  }, [pngUrl, batchId, batchNumber, lang]);
 
   const isActionLoading = actionLoading !== null;
 
