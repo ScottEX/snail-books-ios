@@ -17,6 +17,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import ModalOverlay from '../components/ModalOverlay';
 import ImagePreview, { measureThumbLayout, resolveThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
+import { useNavigation } from '@react-navigation/native';
 import { formatDate } from '../utils/format';
 import TrashIcon from '../components/icons/TrashIcon';
 import { getCurrentUser } from '../utils/storage';
@@ -81,13 +82,37 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
   const [deleteError, setDeleteError] = useState('');
   const { preview: previewData, openPreview, closePreview } = useImagePreview();
   const thumbRefs = useRef<(any | null)[]>([]);
+  const navigation = useNavigation<any>();
+
+  const openPdf = useCallback((url: string) => {
+    navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title: t('procOrderItems') as string });
+  }, [navigation]);
 
   const handleThumbPreview = useCallback((images: string[], i: number) => {
-    const resolver: ThumbLayoutResolver = (idx, cb) => resolveThumbLayout(thumbRefs.current[idx], cb);
+    const url = images[i];
+    if (url && /\.pdf(\?|$)/i.test(url)) {
+      openPdf(url);
+      return;
+    }
+    // Filter out PDFs from carousel (matching InvoiceScreen pattern)
+    const isPdf = (p: string) => /\.pdf(\?|$)/i.test(p);
+    const imageUrls = images.filter(p => !isPdf(p));
+    const imageIndex = images.slice(0, i).filter(p => !isPdf(p)).length;
+    // Map carousel index back to display index (skip PDFs)
+    const wrappedResolver: ThumbLayoutResolver = (idx, cb) => {
+      let orig = 0, cnt = 0;
+      for (let k = 0; k < images.length; k++) {
+        if (!isPdf(images[k])) {
+          if (cnt === idx) { orig = k; break; }
+          cnt++;
+        }
+      }
+      resolveThumbLayout(thumbRefs.current[orig], cb);
+    };
     const ref = thumbRefs.current[i];
-    if (!ref) { openPreview(images, i, undefined, resolver); return; }
-    measureThumbLayout(ref, (layout) => openPreview(images, i, layout, resolver));
-  }, [openPreview]);
+    if (!ref) { openPreview(imageUrls, imageIndex, undefined, wrappedResolver); return; }
+    measureThumbLayout(ref, (layout) => openPreview(imageUrls, imageIndex, layout, wrappedResolver));
+  }, [openPreview, openPdf]);
   const [cur, setCur] = useState<BatchRecord | null>(batch);
   useEffect(() => { setCur(batch); }, [batch]);
   const [settling, setSettling] = useState(false);
@@ -261,7 +286,10 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('procImages')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {thumbImgs.map((img: string, i: number) => (
+              {thumbImgs.map((img: string, i: number) => {
+                const fullImgs: string[] = cur?.images || [];
+                const isPdf = /\.pdf(\?|$)/i.test(String(fullImgs[i] || ''));
+                return (
                 <TouchableOpacity
                   key={i}
                   ref={el => { thumbRefs.current[i] = el; }}
@@ -269,9 +297,16 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
                   activeOpacity={0.8}
                   style={{ marginRight: 8 }}
                 >
-                  <Image source={{ uri: resolveAssetUrl(img) || img }} style={[styles.thumb, { marginRight: 0 }]} />
+                  {isPdf ? (
+                    <View style={[styles.thumb, { alignItems: 'center', justifyContent: 'center', gap: 2, backgroundColor: withAlpha(c.textMain, 0.06), marginRight: 0 }]}>
+                      <Text style={{ fontSize: FONTS.large.size }}>📄</Text>
+                      <Text style={{ fontSize: FONTS.tiny.size, color: c.textSub }}>PDF</Text>
+                    </View>
+                  ) : (
+                    <Image source={{ uri: resolveAssetUrl(img) || img }} style={[styles.thumb, { marginRight: 0 }]} />
+                  )}
                 </TouchableOpacity>
-              ))}
+              ); })}
             </ScrollView>
           </View>
         )}

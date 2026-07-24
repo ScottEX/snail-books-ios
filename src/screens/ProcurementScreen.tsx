@@ -37,8 +37,9 @@ import PlusIcon from '../components/icons/PlusIcon';
 import { fmtDecInput } from '../utils/numbers';
 import type { PickedImage } from '../utils/imagePicker';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import ImagePreview, { measureThumbLayout, resolveThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
+import ImagePreview, { measureThumbLayout, resolveThumbLayout, ThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
+import { useNavigation } from '@react-navigation/native';
 
 type SubTab = 'new' | 'history' | 'products';
 type PayMethod = 'payCash' | 'payWechat' | 'payAlipay';
@@ -398,13 +399,37 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
   const { preview, openPreview, closePreview } = useImagePreview();
   const histThumbRefs = useRef<Record<string, any>>({});
+  const navigation = useNavigation<any>();
+
+  const openPdf = useCallback((url: string) => {
+    navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title: t('procurement') as string });
+  }, [navigation]);
 
   const handleHistPreview = useCallback((batchId: string | number, images: string[], i: number) => {
-    const resolver: ThumbLayoutResolver = (idx, cb) => resolveThumbLayout(histThumbRefs.current[`${batchId}-${idx}`], cb);
+    const url = images[i];
+    if (url && /\.pdf(\?|$)/i.test(url)) {
+      openPdf(url);
+      return;
+    }
+    // Filter out PDFs from carousel (matching InvoiceScreen pattern)
+    const isPdf = (p: string) => /\.pdf(\?|$)/i.test(p);
+    const imageUrls = images.filter(p => !isPdf(p));
+    const imageIndex = images.slice(0, i).filter(p => !isPdf(p)).length;
+    // Map carousel index back to display index (skip PDFs)
+    const wrappedResolver: ThumbLayoutResolver = (idx, cb) => {
+      let orig = 0, cnt = 0;
+      for (let k = 0; k < images.length; k++) {
+        if (!isPdf(images[k])) {
+          if (cnt === idx) { orig = k; break; }
+          cnt++;
+        }
+      }
+      resolveThumbLayout(histThumbRefs.current[`${batchId}-${orig}`], cb);
+    };
     const ref = histThumbRefs.current[`${batchId}-${i}`];
-    if (!ref) { openPreview(images, i, undefined, resolver); return; }
-    measureThumbLayout(ref, (layout) => openPreview(images, i, layout, resolver));
-  }, [openPreview]);
+    if (!ref) { openPreview(imageUrls, imageIndex, undefined, wrappedResolver); return; }
+    measureThumbLayout(ref, (layout) => openPreview(imageUrls, imageIndex, layout, wrappedResolver));
+  }, [openPreview, openPdf]);
 
   const [stats, setStats] = useState<ProcStats>({ total_spent: 0, total_income: 0, batch_count: 0, margin_pct: 0 });
 
@@ -631,6 +656,55 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   }, []);
 
   const getPreviewUrl = useCallback((file: PickedImage) => file.uri || '', []);
+
+  // PDF-aware preview handlers (matching InvoiceScreen pattern)
+  const handlePreviewExisting = useCallback((index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
+    const path = existingImageUrls[index];
+    if (path && /\.pdf(\?|$)/i.test(path)) {
+      openPdf(resolveAssetUrl(path) || path);
+      return;
+    }
+    const isPdf = (p: string) => /\.pdf(\?|$)/i.test(p);
+    const imageUrls = existingImageUrls.filter(p => !isPdf(p)).map(p => resolveAssetUrl(p) || p);
+    const imageIndex = existingImageUrls.slice(0, index).filter(p => !isPdf(p)).length;
+    const wrappedGetLayout: ThumbLayoutResolver | undefined = getLayout
+      ? (ci, cb) => {
+          let orig = 0, cnt = 0;
+          for (let i = 0; i < existingImageUrls.length; i++) {
+            if (!isPdf(existingImageUrls[i])) {
+              if (cnt === ci) { orig = i; break; }
+              cnt++;
+            }
+          }
+          getLayout(orig, cb);
+        }
+      : undefined;
+    openPreview(imageUrls, imageIndex, layout, wrappedGetLayout);
+  }, [existingImageUrls, openPreview, openPdf]);
+
+  const handlePreviewNew = useCallback((index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
+    const f = receipts[index];
+    if (f && (f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '') || /\.pdf$/i.test(f.uri || ''))) {
+      openPdf(f.uri);
+      return;
+    }
+    const isPdf = (ff: any) => ff.type === 'application/pdf' || /\.pdf$/i.test(ff.name || '') || /\.pdf$/i.test(ff.uri || '');
+    const imageUris = receipts.filter(ff => !isPdf(ff)).map(ff => ff.uri);
+    const imageIndex = receipts.slice(0, index).filter(ff => !isPdf(ff)).length;
+    const wrappedGetLayout: ThumbLayoutResolver | undefined = getLayout
+      ? (ci, cb) => {
+          let orig = 0, cnt = 0;
+          for (let i = 0; i < receipts.length; i++) {
+            if (!isPdf(receipts[i])) {
+              if (cnt === ci) { orig = i; break; }
+              cnt++;
+            }
+          }
+          getLayout(orig, cb);
+        }
+      : undefined;
+    openPreview(imageUris, imageIndex, layout, wrappedGetLayout);
+  }, [receipts, openPreview, openPdf]);
 
   const submitOrder = async () => {
     if (cartItems.length === 0) return;
@@ -1150,17 +1224,26 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                   const fullImgs: string[] = batch.images || [];
                   return thumbImgs.length > 0 && (
                     <View style={styles.histImages}>
-                      {thumbImgs.map((img: string, i: number) => (
+                      {thumbImgs.map((img: string, i: number) => {
+                        const isPdf = /\.pdf(\?|$)/i.test(String(fullImgs[i] || ''));
+                        return (
                         <TouchableOpacity
                           key={i}
                           ref={el => { histThumbRefs.current[`${batch.id}-${i}`] = el; }}
                           onPress={() => handleHistPreview(batch.id, fullImgs.map((u: string) => resolveAssetUrl(u) || u), i)}
                           activeOpacity={0.7}
                         >
-                          <Image source={{ uri: resolveAssetUrl(img) || img }}
-                            style={{ width: 60, height: 60, borderRadius: 6, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.08) }} />
+                          {isPdf ? (
+                            <View style={{ width: 60, height: 60, borderRadius: 6, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.08), backgroundColor: withAlpha(c.textMain, 0.06), alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                              <Text style={{ fontSize: FONTS.large.size }}>📄</Text>
+                              <Text style={{ fontSize: FONTS.tiny.size, color: c.textSub }}>PDF</Text>
+                            </View>
+                          ) : (
+                            <Image source={{ uri: resolveAssetUrl(img) || img }}
+                              style={{ width: 60, height: 60, borderRadius: 6, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.08) }} />
+                          )}
                         </TouchableOpacity>
-                      ))}
+                      ); })}
                     </View>
                   );
                   })()}
@@ -1339,6 +1422,8 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                 onRemoveExisting={removeExistingImage}
                 onRemoveNew={handleRemoveNewFile}
                 getPreviewUrl={getPreviewUrl}
+                onPreviewExisting={handlePreviewExisting}
+                onPreviewNew={handlePreviewNew}
               />
             </View>
 
