@@ -187,32 +187,34 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
         safeTop={safeTop}
         onBack={onBack}
         title={title}
-        rightAction={(
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            {!isLocal && (
-              <TouchableOpacity onPress={handleDownload} activeOpacity={0.7} disabled={isActionLoading}>
-                <View style={styles.shareBtn}>
-                  {actionLoading === 'download' ? (
-                    <LoadingSpinner label={false} size={16} color="#2C2626" />
-                  ) : (
-                    <DownloadSvg />
-                  )}
-                </View>
-              </TouchableOpacity>
-            )}
-            {pngUrl !== '' && (
-              <TouchableOpacity onPress={handleExportImage} activeOpacity={0.7} disabled={isActionLoading}>
-                <View style={styles.shareBtn}>
-                  {actionLoading === 'images' ? (
-                    <LoadingSpinner label={false} size={16} color="#2C2626" />
-                  ) : (
-                    <ImageDownloadSvg />
-                  )}
-                </View>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+        {...(!isLocal || pngUrl !== '' ? {
+          rightAction: (
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {!isLocal && (
+                <TouchableOpacity onPress={handleDownload} activeOpacity={0.7} disabled={isActionLoading}>
+                  <View style={styles.shareBtn}>
+                    {actionLoading === 'download' ? (
+                      <LoadingSpinner label={false} size={16} color="#2C2626" />
+                    ) : (
+                      <DownloadSvg />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              )}
+              {pngUrl !== '' && (
+                <TouchableOpacity onPress={handleExportImage} activeOpacity={0.7} disabled={isActionLoading}>
+                  <View style={styles.shareBtn}>
+                    {actionLoading === 'images' ? (
+                      <LoadingSpinner label={false} size={16} color="#2C2626" />
+                    ) : (
+                      <ImageDownloadSvg />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              )}
+            </View>
+          ),
+        } : {})}
       />
 
       {/* WebView PDF preview */}
