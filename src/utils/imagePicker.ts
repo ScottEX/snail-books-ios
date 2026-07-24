@@ -20,9 +20,10 @@ const UTI_TO_MIME: Record<string, string> = {
   'com.compuserve.gif': 'image/gif',
   'public.tiff': 'image/tiff',
   'org.webmproject.webp': 'image/webp',
+  'com.adobe.pdf': 'application/pdf',
 };
-const normalizeMime = (mimeType: string | null | undefined): string => {
-  if (!mimeType) return 'image/jpeg';
+const normalizeMime = (mimeType: string | null | undefined, fallback: string = 'image/jpeg'): string => {
+  if (!mimeType) return fallback;
   return UTI_TO_MIME[mimeType] ?? mimeType;
 };
 
@@ -115,12 +116,21 @@ export async function pickFiles(): Promise<PickedImage[]> {
   });
 
   if (result.canceled) return [];
-  return result.assets.map(a => ({
-    uri: a.uri,
-    type: a.mimeType ?? 'application/octet-stream',
-    name: a.name,
-    size: a.size ?? 0,
-  }));
+  return result.assets.map(a => {
+    const extType = a.name ? (
+      /\.pdf$/i.test(a.name) ? 'application/pdf' :
+      /\.(jpg|jpeg)$/i.test(a.name) ? 'image/jpeg' :
+      /\.png$/i.test(a.name) ? 'image/png' :
+      /\.webp$/i.test(a.name) ? 'image/webp' :
+      'application/octet-stream'
+    ) : 'application/octet-stream';
+    return {
+      uri: a.uri,
+      type: normalizeMime(a.mimeType, extType),
+      name: a.name,
+      size: a.size ?? 0,
+    };
+  });
 }
 
 /**
