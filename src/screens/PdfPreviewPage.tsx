@@ -55,6 +55,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
   const [introSec, setIntroSec] = useState(0);
   const [pdfCached, setPdfCached] = useState(false);
   const cachedUriRef = useRef('');
+  const [pdfPages, setPdfPages] = useState<number | null>(null);
 
   const title = customTitle || (t('procPdfTitle') as string).replace('{n}', String(batchNumber));
   useEffect(() => {
@@ -90,6 +91,27 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
   useEffect(() => {
     if (!pdfUrl.startsWith('http')) { setLoading(false); }
   }, [pdfUrl]);
+
+  // Fetch page count to decide whether to show export-image button (>5 pages → hide)
+  useEffect(() => {
+    if (!pngUrl) return;
+    let cancelled = false;
+    const sep = pngUrl.includes('?') ? '&' : '?';
+    fetch(`${pngUrl}${sep}pages=1`, {
+      headers: { 'X-Lang': lang },
+      credentials: 'include',
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (!cancelled && typeof data.pages === 'number') {
+          setPdfPages(data.pages);
+        }
+      })
+      .catch(() => {
+        // Fail open — don't hide button on fetch error
+      });
+    return () => { cancelled = true; };
+  }, [pngUrl, lang]);
 
   const headerHeight = safeTop + 44;
 
@@ -201,7 +223,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
                   </View>
                 </TouchableOpacity>
               )}
-              {pngUrl !== '' && (
+              {pngUrl !== '' && (pdfPages === null || pdfPages <= 5) && (
                 <TouchableOpacity onPress={handleExportImage} activeOpacity={0.7} disabled={isActionLoading}>
                   <View style={styles.shareBtn}>
                     {actionLoading === 'images' ? (
