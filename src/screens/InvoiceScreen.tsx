@@ -301,7 +301,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
   // Drawer (create/edit)
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [editSnapshot, setEditSnapshot] = useState<string | null>(null);
+  const editOriginal = useRef<InvoiceRecord | null>(null);
   const [dType, setDType] = useState<InvType>('general');
   const [dAmount, setDAmount] = useState('');
   const [dAmountFocus, setDAmountFocus] = useState(false);
@@ -453,17 +453,6 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
     }
   };
 
-  const editUnchanged = useMemo(() => {
-    if (editingId === null || !editSnapshot) return false;
-    try {
-      const s = JSON.parse(editSnapshot);
-      return s.type === dType && s.amount === dAmount && s.date === dDate &&
-        s.note === dNote && s.invoiceNo === dInvoiceNo && s.status === dStatus &&
-        s.batchId === dBatchId && s.filePathLen === dExistingFilePath.length &&
-        dFiles.length === 0;
-    } catch { return false; }
-  }, [editingId, editSnapshot, dType, dAmount, dDate, dNote, dInvoiceNo, dStatus, dBatchId, dExistingFilePath.length, dFiles.length]);
-
   /* ── Drawer submit ── */
   const handleDrawerSubmit = async () => {
     if (submitting) return;
@@ -547,16 +536,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
     setDFiles([]);
     setDExistingFilePath(forEdit ? parseFilePaths(forEdit.file_path) : []);
     setDExistingThumbPaths(forEdit ? parseFilePaths(forEdit.file_thumb_paths) : []);
-    if (forEdit) {
-      setEditSnapshot(JSON.stringify({
-        type: forEdit.type, amount: String(forEdit.amount), date: forEdit.date,
-        note: forEdit.note || '', invoiceNo: forEdit.invoice_number || '',
-        status: forEdit.status, batchId: forEdit.procurement_batch_id ?? null,
-        filePathLen: (forEdit.file_path ? parseFilePaths(forEdit.file_path).length : 0),
-      }));
-    } else {
-      setEditSnapshot(null);
-    }
+    editOriginal.current = forEdit || null;
     setDrawerOpen(true);
 
     // Fetch batch list
@@ -580,7 +560,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
 
   const closeDrawer = () => {
     setDrawerOpen(false);
-    setEditSnapshot(null);
+    editOriginal.current = null;
     setTimeout(() => {
       setEditingId(null);
       setDStatus('pending');
@@ -1245,7 +1225,17 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
               const nonLoadDisabled = !dAmount || !data.company_name || !data.tax_id
                 || (dStatus === 'done' && !dInvoiceNo.trim())
                 || (dStatus === 'done' && dFiles.length === 0 && dExistingFilePath.length === 0)
-                || editUnchanged;
+                || (editingId && editOriginal.current ? (
+                  editOriginal.current.type === dType &&
+                  String(editOriginal.current.amount) === dAmount &&
+                  editOriginal.current.date === dDate &&
+                  (editOriginal.current.note || '') === dNote &&
+                  (editOriginal.current.invoice_number || '') === dInvoiceNo &&
+                  editOriginal.current.status === dStatus &&
+                  (editOriginal.current.procurement_batch_id ?? null) === dBatchId &&
+                  parseFilePaths(editOriginal.current.file_path).length === dExistingFilePath.length &&
+                  dFiles.length === 0
+                ) : false);
               return (
                 <SubmitButton
                   onPress={handleDrawerSubmit}
