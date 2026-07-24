@@ -424,7 +424,7 @@ export default function ExpenseScreen({
   const { preview, openPreview, closePreview } = useImagePreview();
 
   const openPdf = useCallback((url: string) => {
-    navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title: t('expenseCategory' as any) || '支出凭证' });
+    navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title: t('expensePdfTitle') as string });
   }, [navigation, t]);
 
   const handlePreviewNew = (index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {

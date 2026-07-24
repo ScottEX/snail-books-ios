@@ -78,7 +78,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
   const navigation = useNavigation<any>();
 
   const openPdf = useCallback((url: string) => {
-    navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title: '支出凭证' });
+    navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title: t('expensePdfTitle') as string });
   }, [navigation]);
 
   const [showFilter, setShowFilter] = useState(false);

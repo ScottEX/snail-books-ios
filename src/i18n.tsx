@@ -456,6 +456,7 @@ const I18N: Record<string, Record<string, string>> = {
     pwHint: '8位以上，含字母+数字+特殊字符',
     realName: '用户姓名',
     receiptExpenseLabel: '查看凭证',
+    expensePdfTitle: '支出凭证',
     receivable: '应收总额',
     reconComplete: '对账完成',
     reconDate: '对账日期',
@@ -1071,6 +1072,7 @@ const I18N: Record<string, Record<string, string>> = {
     pwHint: '8位以上，含字母+數字+特殊字符',
     realName: '用戶姓名',
     receiptExpenseLabel: '查看憑證',
+    expensePdfTitle: '支出憑證',
     receivable: '應收總額',
     reconComplete: '對賬完成',
     reconDate: '對賬日期',
@@ -1685,6 +1687,7 @@ const I18N: Record<string, Record<string, string>> = {
     pwHint: '8+ chars, letter + number + special',
     realName: 'Real Name',
     receiptExpenseLabel: 'View Receipt',
+    expensePdfTitle: 'Expense Receipt',
     receivable: 'Total Receivable',
     reconComplete: 'Complete Recon',
     reconDate: 'Date',
@@ -2012,6 +2015,7 @@ export type I18nKey =
   | 'expense'
   | 'expenseBreakdown'
   | 'expenseBreakdownOfMonth'
+  | 'expensePdfTitle'
   | 'expenseCategory'
   | 'expenseDate'
   | 'expenseHistory'

@@ -98,7 +98,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
   const viewThumbRefs = useRef<(any | null)[]>([]);
 
   const openPdf = useCallback((url: string) => {
-    navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title: '支出详情' });
+    navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title: t('expensePdfTitle') as string });
   }, [navigation]);
 
   const handleViewPreview = useCallback((previewUrls: string[], i: number) => {
