@@ -45,7 +45,12 @@ export default function HomeBackground() {
           resizeMode="cover"
         />
       ) : null}
-
+      <View
+        style={[
+          StyleSheet.absoluteFillObject,
+          { backgroundColor: 'rgba(0,0,0,0.25)', opacity },
+        ]}
+      />
     </View>
   );
 }
