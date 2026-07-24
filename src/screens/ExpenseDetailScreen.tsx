@@ -111,10 +111,20 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
     const isPdf = (p: string) => /\.pdf(\?|$)/i.test(p);
     const imageUrls = previewUrls.filter(p => !isPdf(p));
     const imageIndex = previewUrls.slice(0, i).filter(p => !isPdf(p)).length;
-    const resolver: ThumbLayoutResolver = (idx, cb) => resolveThumbLayout(viewThumbRefs.current[idx], cb);
+    // Map carousel index back to display index (skip PDFs)
+    const wrappedResolver: ThumbLayoutResolver = (idx, cb) => {
+      let orig = 0, cnt = 0;
+      for (let k = 0; k < previewUrls.length; k++) {
+        if (!isPdf(previewUrls[k])) {
+          if (cnt === idx) { orig = k; break; }
+          cnt++;
+        }
+      }
+      resolveThumbLayout(viewThumbRefs.current[orig], cb);
+    };
     const ref = viewThumbRefs.current[i];
-    if (!ref) { openPreview(imageUrls, imageIndex, undefined, resolver); return; }
-    measureThumbLayout(ref, (layout) => openPreview(imageUrls, imageIndex, layout, resolver));
+    if (!ref) { openPreview(imageUrls, imageIndex, undefined, wrappedResolver); return; }
+    measureThumbLayout(ref, (layout) => openPreview(imageUrls, imageIndex, layout, wrappedResolver));
   }, [openPreview, openPdf]);
 
   const [category, setCategory] = useState(expense?.category || 'daily');
