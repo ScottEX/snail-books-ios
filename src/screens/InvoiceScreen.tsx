@@ -1146,7 +1146,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
                   <AppTextInput
                     style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
                     value={dEmail}
-                    onChangeText={setDEmail}
+                    editable={false}
                     placeholder="email@example.com"
                     placeholderTextColor={c.textSub}
                     keyboardType="email-address"
