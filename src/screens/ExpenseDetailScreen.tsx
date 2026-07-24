@@ -97,12 +97,17 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
   const navigation = useNavigation<any>();
   const viewThumbRefs = useRef<(any | null)[]>([]);
 
-  const handleViewPreview = useCallback((images: string[], i: number) => {
+  const handleViewPreview = useCallback((previewUrls: string[], i: number) => {
+    const url = previewUrls[i];
+    if (url && /\.pdf(\?|$)/i.test(url)) {
+      openPdf(url);
+      return;
+    }
     const resolver: ThumbLayoutResolver = (idx, cb) => resolveThumbLayout(viewThumbRefs.current[idx], cb);
     const ref = viewThumbRefs.current[i];
-    if (!ref) { openPreview(images, i, undefined, resolver); return; }
-    measureThumbLayout(ref, (layout) => openPreview(images, i, layout, resolver));
-  }, [openPreview]);
+    if (!ref) { openPreview(previewUrls, i, undefined, resolver); return; }
+    measureThumbLayout(ref, (layout) => openPreview(previewUrls, i, layout, resolver));
+  }, [openPreview, openPdf]);
 
   const [category, setCategory] = useState(expense?.category || 'daily');
   const [account, setAccount] = useState(expense?.account || 'payWechat');
@@ -385,6 +390,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
                 <View style={styles.thumbRow}>
                   {displayImgs.map((url: string, i: number) => {
                     const resolvedUrl = resolveAssetUrl(url) || url;
+                    const isPdf = /\.pdf(\?|$)/i.test(String(previewImgs[i] || ''));
                     return (
                     <TouchableOpacity
                       key={`v-${i}`}
@@ -392,7 +398,14 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
                       onPress={() => handleViewPreview(resolvedPreviews, i)}
                       activeOpacity={0.8}
                     >
-                      <Image source={{ uri: resolvedUrl }} style={[styles.thumb, { width: thumbSize, height: thumbSize }]} />
+                      {isPdf ? (
+                        <View style={[styles.thumb, { width: thumbSize, height: thumbSize, borderRadius: 8, backgroundColor: withAlpha(c.textMain, 0.06), alignItems: 'center', justifyContent: 'center', gap: 2 }]}>
+                          <Text style={{ fontSize: FONTS.xlarge.size }}>📄</Text>
+                          <Text style={{ fontSize: FONTS.tiny.size, color: c.textSub }}>PDF</Text>
+                        </View>
+                      ) : (
+                        <Image source={{ uri: resolvedUrl }} style={[styles.thumb, { width: thumbSize, height: thumbSize }]} />
+                      )}
                     </TouchableOpacity>
                   ); })}
                 </View>
