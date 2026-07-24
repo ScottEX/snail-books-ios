@@ -13,6 +13,7 @@ import { FONTS } from '../theme';
 import { modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
 import ModalOverlay from '../components/ModalOverlay';
 import { fmtAmtFull } from '../utils/format';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DatePickerModal from '../components/DatePickerModal';
 import HistoryHeader from '../components/HistoryHeader';
@@ -50,6 +51,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
   const { showToast, ToastHost } = useToast();
 
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const st = useMemo(() => getSt(colors), [colors]);
 
   const [showFilter, setShowFilter] = useState(false);
@@ -195,8 +197,9 @@ export default function ReconHistoryScreen({ onBack }: Props) {
       <HomeBackground />
       <StatusBar barStyle="dark-content" />
       <HistoryHeader
+        safeTop={insets.top}
         onBack={onBack}
-        title={`${t('reconHistory')} (${total}/${totalAll})`}
+        title={t('reconHistory')}
         filterActive={showFilter}
         onToggleFilter={() => setShowFilter(!showFilter)}
       />

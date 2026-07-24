@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
   Image, useWindowDimensions,
@@ -73,6 +74,7 @@ interface Props {
 
 export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDeleted }: Props) {
   const { colors: c, theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const sd = useServerDate();
   const lang = getLang();
   const { width: w, height: windowHeight } = useWindowDimensions();
@@ -301,8 +303,9 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
       <HomeBackground />
       <StatusBar barStyle="dark-content" />
       <HistoryHeader
+        safeTop={insets.top}
         onBack={onBack}
-        title={t('expDetail')}
+        title={t('expenseDetail')}
         rightAction={!expense?.procurement_batch_id ? (
           <TouchableOpacity
             onPress={() => setShowDeleteConfirm(true)}

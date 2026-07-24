@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import HomeBackground from '../components/HomeBackground';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, StatusBar } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
@@ -51,6 +52,7 @@ const fmtDate = (d: string) => {
 export default function DailyRevenueHistory({ onBack }: Props) {
   const { colors } = useTheme();
   const sd = useServerDate();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   const [showFilter, setShowFilter] = useState(false);
@@ -108,6 +110,7 @@ export default function DailyRevenueHistory({ onBack }: Props) {
       <HomeBackground />
       <StatusBar barStyle="dark-content" />
       <HistoryHeader
+        safeTop={insets.top}
         onBack={onBack}
         title={`${t('revHistoryBtn')} (${total}/${totalAll})`}
         filterActive={showFilter}
