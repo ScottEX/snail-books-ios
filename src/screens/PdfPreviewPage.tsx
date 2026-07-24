@@ -106,14 +106,19 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
       headers: h,
       credentials: 'include',
     })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then(data => {
         if (!cancelled && typeof data.pages === 'number') {
           setPdfPages(data.pages);
+        } else if (!cancelled) {
+          setPdfPages(-1); // error indicator
         }
       })
-      .catch(() => {
-        // Fail open — don't hide button on fetch error
+      .catch((err) => {
+        if (!cancelled) setPdfPages(-1); // error indicator
       });
     return () => { cancelled = true; };
   }, [pngUrl, lang]);
@@ -228,10 +233,14 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
                   </View>
                 </TouchableOpacity>
               )}
-              {pngUrl !== '' && (pdfPages === null || pdfPages <= 5) && (
+              {pngUrl !== '' && (pdfPages !== null ? pdfPages <= 5 : true) && (
                 <TouchableOpacity onPress={handleExportImage} activeOpacity={0.7} disabled={isActionLoading}>
                   <View style={styles.shareBtn}>
-                    {actionLoading === 'images' ? (
+                    {pdfPages === null ? (
+                      <Text style={{ fontSize: 10, color: '#2C2626', fontWeight: '600' }}>?</Text>
+                    ) : pdfPages === -1 ? (
+                      <Text style={{ fontSize: 10, color: '#2C2626', fontWeight: '600' }}>✕</Text>
+                    ) : actionLoading === 'images' ? (
                       <LoadingSpinner label={false} size={16} color="#2C2626" />
                     ) : (
                       <ImageDownloadSvg />
