@@ -53,8 +53,6 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState<'download' | 'images' | null>(null);
   const [introSec, setIntroSec] = useState(0);
-  const [pdfCached, setPdfCached] = useState(false);
-  const cachedUriRef = useRef('');
   const [pdfPages, setPdfPages] = useState<number | null>(null);
 
   const title = customTitle || (t('procPdfTitle') as string).replace('{n}', String(batchNumber));
@@ -125,61 +123,18 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
 
   const headerHeight = safeTop + 44;
 
-  // Pre-cache PDF on mount so download/share reuses the local file (matches web behavior)
-  // Timeout at 15s to avoid hanging gunicorn workers like before
-  // Cache key includes lang so switching languages re-downloads
-  useEffect(() => {
-    let cancelled = false;
-    const fileName = batchId ? `procurement_${batchId}_${lang}.pdf` : `${title}.pdf`;
-    const localUri = `${FileSystem.cacheDirectory}${fileName}`;
-    (async () => {
-      try {
-        const info = await FileSystem.getInfoAsync(localUri);
-        if (info.exists) {
-          if (!cancelled) { cachedUriRef.current = localUri; setPdfCached(true); }
-          return;
-        }
-        const dl = FileSystem.createDownloadResumable(pdfUrl, localUri, { headers: { 'X-Lang': lang } }, (progress) => {
-          // progress callback — can be used for timeout detection
-        });
-        const timeout = setTimeout(() => {
-          if (!cancelled) dl.cancelAsync();
-        }, 15000);
-        const result = await dl.downloadAsync();
-        clearTimeout(timeout);
-        if (result && !cancelled) {
-          cachedUriRef.current = result.uri;
-          setPdfCached(true);
-        }
-      } catch (e) {
-        if (!cancelled) {
-          // Cache failed silently — download/share will fall back to direct download
-          console.warn('PDF pre-cache failed:', e);
-        }
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [pdfUrl, batchId]);
-
-  // Download PDF — for invoice (batchId=0) always re-download to ensure correct filename;
-  // for procurement (batchId>0) reuse cached file (matches web: no extra request)
+  // Download PDF
   const handleDownload = useCallback(async () => {
     setActionLoading('download');
     try {
       const fileName = batchId ? `${t('procFileName')}_${batchNumber}.pdf` : `${title}.pdf`;
       const localUri = `${FileSystem.cacheDirectory}${fileName}`;
-      const useCache = batchId > 0 && pdfCached;
-      if (!useCache) {
-        const dl = FileSystem.createDownloadResumable(pdfUrl, localUri, { headers: { 'X-Lang': lang } });
-        const timeout = setTimeout(() => dl.cancelAsync(), 15000);
-        const result = await dl.downloadAsync();
-        clearTimeout(timeout);
-        if (!result) throw new Error('下载超时');
-        await Share.share({ url: result.uri, title: fileName });
-      } else {
-        await FileSystem.copyAsync({ from: cachedUriRef.current, to: localUri });
-        await Share.share({ url: localUri, title: fileName });
-      }
+      const dl = FileSystem.createDownloadResumable(pdfUrl, localUri, { headers: { 'X-Lang': lang } });
+      const timeout = setTimeout(() => dl.cancelAsync(), 15000);
+      const result = await dl.downloadAsync();
+      clearTimeout(timeout);
+      if (!result) throw new Error('下载超时');
+      await Share.share({ url: result.uri, title: fileName });
     } catch (err: any) {
       if (err?.message !== 'User did not share') {
         setError(err?.message || '下载失败');
@@ -187,7 +142,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
     } finally {
       setActionLoading(null);
     }
-  }, [pdfUrl, batchId, batchNumber, pdfCached]);
+  }, [pdfUrl, batchId, batchNumber]);
 
   // Export image — downloads PNG from server (backend converts first PDF page to PNG)
   const handleExportImage = useCallback(async () => {
