@@ -97,6 +97,10 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
   const navigation = useNavigation<any>();
   const viewThumbRefs = useRef<(any | null)[]>([]);
 
+  const openPdf = useCallback((url: string) => {
+    navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title: '支出详情' });
+  }, [navigation]);
+
   const handleViewPreview = useCallback((previewUrls: string[], i: number) => {
     const url = previewUrls[i];
     if (url && /\.pdf(\?|$)/i.test(url)) {
@@ -117,10 +121,6 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
   const [images, setImages] = useState<string[]>(parseImages(expense?.images));
   const [thumbImages, setThumbImages] = useState<string[]>(parseImages(expense?.thumb_images));
   const [newFiles, setNewFiles] = useState<PickedImage[]>([]);
-
-  const openPdf = useCallback((url: string) => {
-    navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title: '支出详情' });
-  }, [navigation]);
 
   // Existing images preview (PDF-aware)
   const handlePreviewExisting = useCallback((index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
