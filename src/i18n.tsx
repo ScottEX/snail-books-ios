@@ -418,7 +418,8 @@ const I18N: Record<string, Record<string, string>> = {
     procPaymentMethod: '支付方式',
     procPdfTitle: '进货单 #{n}',
     procFileName: '进货单',
-    procVoucherTitle: '第{n}次进货凭证',
+    procVoucherTitle: '进货凭证 #{n}',
+    procVoucherFileName: '进货凭证',
     procProduct: '商品',
     procProductMgmt: '产品维护',
     procProductName: '产品名称',
@@ -1033,7 +1034,8 @@ const I18N: Record<string, Record<string, string>> = {
     procPaymentMethod: '支付方式',
     procPdfTitle: '進貨單 #{n}',
     procFileName: '進貨單',
-    procVoucherTitle: '第{n}次進貨憑證',
+    procVoucherTitle: '進貨憑證 #{n}',
+    procVoucherFileName: '進貨憑證',
     procProduct: '商品',
     procProductMgmt: '產品維護',
     procProductName: '產品名稱',
@@ -1654,6 +1656,7 @@ const I18N: Record<string, Record<string, string>> = {
     procPdfTitle: 'Order #{n}',
     procFileName: 'PO',
     procVoucherTitle: 'Receipt #{n}',
+    procVoucherFileName: 'Receipt',
     procProduct: 'Product',
     procProductMgmt: 'Products',
     procProductName: 'Name',
@@ -2276,6 +2279,7 @@ export type I18nKey =
   | 'procPdfTitle'
   | 'procFileName'
   | 'procVoucherTitle'
+  | 'procVoucherFileName'
   | 'procProduct'
   | 'procProductMgmt'
   | 'procProductName'

@@ -25,7 +25,7 @@ export type RootStackParamList = {
   Invoice: { filterBatchId?: number | null } | undefined;
   ProcurementDetail: { batch: any };
   ExpenseDetail: { expense: any };
-  PdfPreview: { id: number; number: number; supplier?: string; fileUrl?: string; title?: string };
+  PdfPreview: { id: number; number: number; supplier?: string; fileUrl?: string; title?: string; fileNamePrefix?: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -176,6 +176,7 @@ function PdfPreviewRoute() {
       supplier={params.supplier}
       fileUrl={params.fileUrl}
       title={params.title}
+      fileNamePrefix={params.fileNamePrefix}
       onBack={() => navigation.goBack()}
     />
   );

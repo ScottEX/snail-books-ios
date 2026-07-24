@@ -41,10 +41,12 @@ interface Props {
   fileUrl?: string;
   /** Custom title (used with fileUrl mode) */
   title?: string;
+  /** Filename prefix for download/export (used with fileUrl mode, combined with batchNumber) */
+  fileNamePrefix?: string;
   onBack: () => void;
 }
 
-export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl, title: customTitle, onBack }: Props) {
+export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl, title: customTitle, fileNamePrefix, onBack }: Props) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const safeTop = insets.top;
@@ -127,7 +129,11 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
   const handleDownload = useCallback(async () => {
     setActionLoading('download');
     try {
-      const fileName = batchId ? `${t('procFileName')}_${batchNumber}.pdf` : `${title}.pdf`;
+      const fileName = batchId
+        ? `${t('procFileName')}_${batchNumber}.pdf`
+        : (fileNamePrefix && (batchNumber ?? 0) > 0)
+          ? `${fileNamePrefix}_${batchNumber}.pdf`
+          : `${title}.pdf`;
       const localUri = `${FileSystem.cacheDirectory}${fileName}`;
       const dl = FileSystem.createDownloadResumable(pdfUrl, localUri, { headers: { 'X-Lang': lang } });
       const timeout = setTimeout(() => dl.cancelAsync(), 15000);
@@ -142,13 +148,17 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
     } finally {
       setActionLoading(null);
     }
-  }, [pdfUrl, batchId, batchNumber]);
+  }, [pdfUrl, batchId, batchNumber, fileNamePrefix]);
 
   // Export image — downloads PNG from server (backend converts first PDF page to PNG)
   const handleExportImage = useCallback(async () => {
     setActionLoading('images');
     try {
-      const fileName = batchId ? `${t('procFileName')}_${batchNumber}.png` : `${title}.png`;
+      const fileName = batchId
+        ? `${t('procFileName')}_${batchNumber}.png`
+        : (fileNamePrefix && (batchNumber ?? 0) > 0)
+          ? `${fileNamePrefix}_${batchNumber}.png`
+          : `${title}.png`;
       const localUri = `${FileSystem.cacheDirectory}${fileName}`;
       const dl = FileSystem.createDownloadResumable(pngUrl, localUri, { headers: { 'X-Lang': lang } });
       const timeout = setTimeout(() => dl.cancelAsync(), 15000);

@@ -425,10 +425,10 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
       // Wait 2 frames: render with outDuration=0 → Modal anim finishes → setShow(false) → Modal unmounts
       requestAnimationFrame(() => requestAnimationFrame(() => {
         closeDrawerForPdf.current = false;
-        navigation.navigate('PdfPreview', { id: 0, number: batchNumber || 0, fileUrl: url, title });
+        navigation.navigate('PdfPreview', { id: 0, number: batchNumber || 0, fileUrl: url, title, fileNamePrefix: t('procVoucherFileName') as string });
       }));
     } else {
-      navigation.navigate('PdfPreview', { id: 0, number: batchNumber || 0, fileUrl: url, title });
+      navigation.navigate('PdfPreview', { id: 0, number: batchNumber || 0, fileUrl: url, title, fileNamePrefix: t('procVoucherFileName') as string });
     }
   }, [navigation, showDrawer]);
 
