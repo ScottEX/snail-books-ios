@@ -1130,7 +1130,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
               <View style={styles.dRow}>
                 <View style={[styles.dFieldHalf, { overflow: 'hidden' }]}>
                   <Text style={styles.dLabel}>{t('invDrawerDate')}</Text>
-                  <View style={[styles.dInput, { backgroundColor: withAlpha(c.textMain, 0.03), justifyContent: 'center', paddingVertical: 0 }]}>
+                  <View style={[styles.dInput, { backgroundColor: withAlpha(c.textMain, 0.03), justifyContent: 'center' }]}>
                     <DatePicker
                       date={dDate}
                       onChange={setDDate}
