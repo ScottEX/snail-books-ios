@@ -111,10 +111,14 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
       openPdf(url);
       return;
     }
+    // Filter out PDFs from carousel (matching InvoiceScreen pattern)
+    const isPdf = (p: string) => /\.pdf(\?|$)/i.test(p);
+    const imageUrls = images.filter(p => !isPdf(p));
+    const imageIndex = images.slice(0, j).filter(p => !isPdf(p)).length;
     const resolver: ThumbLayoutResolver = (idx, cb) => resolveThumbLayout(thumbRefs.current[`${recordId}-${idx}`], cb);
     const ref = thumbRefs.current[`${recordId}-${j}`];
-    if (!ref) { openPreview(images, j, undefined, resolver); return; }
-    measureThumbLayout(ref, (layout) => openPreview(images, j, layout, resolver));
+    if (!ref) { openPreview(imageUrls, imageIndex, undefined, resolver); return; }
+    measureThumbLayout(ref, (layout) => openPreview(imageUrls, imageIndex, layout, resolver));
   }, [openPreview, openPdf]);
 
   const toggleCat = (cat: string) => {

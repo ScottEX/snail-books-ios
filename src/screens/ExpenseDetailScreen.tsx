@@ -107,10 +107,14 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
       openPdf(url);
       return;
     }
+    // Filter out PDFs from carousel (matching InvoiceScreen pattern)
+    const isPdf = (p: string) => /\.pdf(\?|$)/i.test(p);
+    const imageUrls = previewUrls.filter(p => !isPdf(p));
+    const imageIndex = previewUrls.slice(0, i).filter(p => !isPdf(p)).length;
     const resolver: ThumbLayoutResolver = (idx, cb) => resolveThumbLayout(viewThumbRefs.current[idx], cb);
     const ref = viewThumbRefs.current[i];
-    if (!ref) { openPreview(previewUrls, i, undefined, resolver); return; }
-    measureThumbLayout(ref, (layout) => openPreview(previewUrls, i, layout, resolver));
+    if (!ref) { openPreview(imageUrls, imageIndex, undefined, resolver); return; }
+    measureThumbLayout(ref, (layout) => openPreview(imageUrls, imageIndex, layout, resolver));
   }, [openPreview, openPdf]);
 
   const [category, setCategory] = useState(expense?.category || 'daily');
