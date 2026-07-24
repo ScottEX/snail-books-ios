@@ -1130,7 +1130,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
               <View style={styles.dRow}>
                 <View style={[styles.dFieldHalf, { overflow: 'hidden' }]}>
                   <Text style={styles.dLabel}>{t('invDrawerDate')}</Text>
-                  <View style={[styles.dInput, { backgroundColor: withAlpha(c.textMain, 0.03), justifyContent: 'center', paddingVertical: 0, height: FONTS.sub.size + 28 }]}>
+                  <View style={[styles.dInput, { backgroundColor: withAlpha(c.textMain, 0.03), justifyContent: 'center' }]}>
                     <DatePicker
                       date={dDate}
                       onChange={setDDate}
@@ -1144,7 +1144,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
                 <View style={styles.dFieldHalf}>
                   <Text style={styles.dLabel}>{t('invEmail')}</Text>
                   <AppTextInput
-                    style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), height: FONTS.sub.size + 28 }]}
+                    style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
                     value={dEmail}
                     onChangeText={setDEmail}
                     placeholder="email@example.com"
