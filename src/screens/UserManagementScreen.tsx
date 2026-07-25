@@ -351,8 +351,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
           ) : users.length === 0 ? (
             <EmptyState
               icon={<UserEmptyIcon color={c.textSub} />}
-              title={t('noUsers') || '暂无用户'}
-              hint={noUsersHint}
+              title={noUsersHint}
             />
           ) : (
             filteredUsers.map((u) => {
