@@ -662,7 +662,9 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
             <CloseButton onPress={() => setShowLinkedPartnerHint(false)} />
           </View>
           <View style={s.hintBody}>
-            <Text style={s.hintMsg}>{t('err_user_linked_partner')}</Text>
+            <View style={s.hintMsgBox}>
+              <Text style={s.hintMsg}>{t('err_user_linked_partner')}</Text>
+            </View>
             <TouchableOpacity style={s.hintBtn} onPress={() => setShowLinkedPartnerHint(false)} activeOpacity={0.7}>
               <Text style={s.hintBtnText}>{t('confirm')}</Text>
             </TouchableOpacity>
@@ -753,9 +755,11 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   },
   hintTitle: { fontSize: FONTS.sub.size, fontWeight: '700', color: c.surface },
   hintBody: { padding: 24, gap: 18 },
+  hintMsgBox: {
+    backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 14, padding: 12,
+  },
   hintMsg: {
     fontSize: FONTS.sub.size, color: c.textSub, textAlign: 'center', lineHeight: 22,
-    backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 14, padding: 12,
   },
   hintBtn: {
     width: '100%', paddingVertical: 12, borderRadius: 10,
