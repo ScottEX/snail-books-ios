@@ -463,13 +463,13 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
             {/* Year selector */}
             <View style={s.pickerRow}>
               {(sd.ready
-                ? [sd.year - 2, sd.year - 1, sd.year, sd.year + 1]
-                : [FALLBACK_YEAR - 2, FALLBACK_YEAR - 1, FALLBACK_YEAR, FALLBACK_YEAR + 1]
+                ? [sd.year - 2, sd.year - 1, sd.year]
+                : [FALLBACK_YEAR - 2, FALLBACK_YEAR - 1, FALLBACK_YEAR]
               ).map(y => (
                 <TouchableOpacity
                   key={y}
                   style={[s.pickerBtn, pendingDate.type === 'custom' && pendingDate.year === y && s.pickerBtnOn]}
-                  onPress={() => { setDropYear(y); if (pendingDate.type === 'custom') setPendingDate({ ...pendingDate, year: y }); }}
+                  onPress={() => { const m = new Date().getMonth() + 1; setDropYear(y); setDropMonth(m); setPendingDate({ type: 'custom', year: y, month: m }); }}
                 >
                   <Text style={[s.pickerBtnText, pendingDate.type === 'custom' && pendingDate.year === y && s.pickerBtnTextOn]}>{y}</Text>
                 </TouchableOpacity>
@@ -481,7 +481,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
                 <TouchableOpacity
                   key={m}
                   style={[s.monthBtn, pendingDate.type === 'custom' && pendingDate.month === m && s.monthBtnOn]}
-                  onPress={() => { setDropMonth(m); setPendingDate({ type: 'custom', year: dropYear, month: m }); }}
+                  onPress={() => { const y = sd.year || new Date().getFullYear(); setDropYear(y); setDropMonth(m); setPendingDate({ type: 'custom', year: y, month: m }); }}
                 >
                   <Text style={[s.monthBtnText, pendingDate.type === 'custom' && pendingDate.month === m && s.monthBtnTextOn]}> 
                     {m}{t('monthUnit')}
