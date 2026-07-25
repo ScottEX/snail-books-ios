@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { api } from './api/client';
 import { getCurrentUserId } from './utils/storage';
+import { Dimensions } from 'react-native';
 
 // ═══════════════════════════════════════════
 // 三方案主题色值定义
@@ -201,8 +202,14 @@ export interface FontToken {
   color: 'textMain' | 'textSub';
 }
 
-// RN 原生渲染字号偏小，加系数缩放对齐 web 视觉
-const S = 1.15;
+// RN 原生渲染字号偏小，加系数缩放对齐 web 视觉。
+// 小屏设备缩放减小，避免字号过大。
+function getFontScale(width: number): number {
+  if (width <= 375) return 1.0;
+  if (width >= 430) return 1.15;
+  return 1.0 + ((width - 375) / (430 - 375)) * 0.15;
+}
+const S = getFontScale(Dimensions.get('window').width);
 
 export const FONTS = {
   h1:       { size: Math.round(24 * S), weight: '600' as const, color: 'textMain' as const },
