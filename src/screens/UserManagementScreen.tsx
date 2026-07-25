@@ -578,12 +578,12 @@ const getStyles = (c: ThemeColors) => {
     pickerBtnText: { fontSize: FONTS.small.size, color: c.textMain },
     pickerBtnTextOn: { color: '#fff', fontWeight: '600' as any },
     monthGrid: {
-      flexDirection: 'row', flexWrap: 'wrap', gap: 6,
+      flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between',
       paddingHorizontal: 14, paddingBottom: 8,
     },
     monthBtn: {
       width: '22%' as any, alignItems: 'center',
-      paddingVertical: 7, borderRadius: 8,
+      paddingVertical: 8, borderRadius: 8,
       backgroundColor: withAlpha(c.textMain, 0.04),
     },
     monthBtnOn: { backgroundColor: c.primary },
