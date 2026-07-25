@@ -597,6 +597,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             onProcurementDetail={(batch) => navigation.navigate('ProcurementDetail', { batch })}
             pendingEditBatch={pendingEditBatch}
             onPendingEditConsumed={() => setPendingEditBatch(null)}
+            onInvoice={(batchId: number) => navigation.navigate('Invoice', { filterBatchId: batchId })}
           />
         ) : isHome && (
         <>
