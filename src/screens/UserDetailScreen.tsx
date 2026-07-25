@@ -198,13 +198,17 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
     } catch {
       showToast(t('toastLoadFailed'));
     }
-    setLoading(false);
 
-    // 并行拉取合伙人列表
+    // 拉取合伙人列表，确保 loading 结束前就绪
     if (!partnersLoaded) {
-      fetchPartnerList();
+      try {
+        const data: any = await api.getPartners();
+        setPartnerList(Array.isArray(data) ? data : []);
+      } catch {}
+      setPartnersLoaded(true);
     }
-  }, [user.id, partnersLoaded, fetchPartnerList, showToast]);
+    setLoading(false);
+  }, [user.id, partnersLoaded, showToast]);
 
   useEffect(() => { fetchDetail(); }, [fetchDetail]);
 
@@ -523,7 +527,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
             </View>
           )}
 
-          {(linkedPartnerId !== null || availablePartners.length > 0) && (
+          {!loading && (
           <View style={s.section}>
             <View style={s.sectionTitleRow}>
               <Text style={s.sectionTitleText}>{t('linkedPartner')}</Text>
@@ -540,10 +544,12 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
                   <TouchableOpacity onPress={() => setShowUnlinkConfirm(true)} disabled={saving} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}>
                     <Text style={{ color: c.danger, fontSize: FONTS.small.size, fontWeight: '500' }}>{t('unlinkPartner')}</Text>
                   </TouchableOpacity>
-                ) : (
+                ) : availablePartners.length > 0 ? (
                   <TouchableOpacity onPress={() => { fetchPartnerList(); setShowPartnerPicker(true); }} disabled={saving} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}>
                     <Text style={{ color: c.primary, fontSize: FONTS.small.size, fontWeight: '500' }}>{t('linkPartner')}</Text>
                   </TouchableOpacity>
+                ) : (
+                  <Text style={{ color: c.danger, fontSize: FONTS.small.size, fontWeight: '500' }}>{t('noPartnerAvailable')}</Text>
                 )}
               </View>
             </View>

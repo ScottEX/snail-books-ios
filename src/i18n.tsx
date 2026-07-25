@@ -301,6 +301,7 @@ const I18N: Record<string, Record<string, string>> = {
     lastLogin: '最后登录',
     linkCopied: '链接已复制',
     linkPartner: '关联',
+    noPartnerAvailable: '此间账簿，已无共笔之人',
     linkedPartner: '关联合伙人',
     loadMore: '加载更多',
     loading: '加载中...',
@@ -918,6 +919,7 @@ const I18N: Record<string, Record<string, string>> = {
     lastLogin: '最後登入',
     linkCopied: '連結已複製',
     linkPartner: '關聯',
+    noPartnerAvailable: '此間賬簿，已無共筆之人',
     linkedPartner: '關聯合夥人',
     loadMore: '載入更多',
     loading: '載入中...',
@@ -1545,6 +1547,7 @@ const I18N: Record<string, Record<string, string>> = {
     lastLogin: 'Last Login',
     linkCopied: 'Link copied',
     linkPartner: 'Link',
+    noPartnerAvailable: 'No one left to write with in these ledgers.',
     linkedPartner: 'Linked Partner',
     loadMore: 'Load More',
     loading: 'Loading...',
@@ -2167,6 +2170,7 @@ export type I18nKey =
   | 'lastLogin'
   | 'linkCopied'
   | 'linkPartner'
+  | 'noPartnerAvailable'
   | 'linkedPartner'
   | 'loadMore'
   | 'loading'
