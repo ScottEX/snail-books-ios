@@ -221,10 +221,16 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      await api.admin.deleteUser(user.id);
+      const resp: any = await api.admin.deleteUser(user.id);
       setShowDeleteConfirm(false);
+      setDetail(prev => ({
+        ...prev,
+        is_disabled: true,
+        delete_scheduled: resp?.scheduled || '',
+        delete_by: 'admin',
+      }));
+      setIsDisabled(true);
       onChanged();
-      onBack();
     } catch (e: any) {
       showToast(e?.message || t('toastSubmitFailed'));
     }
