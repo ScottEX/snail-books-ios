@@ -753,6 +753,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
                 value={data.company_name}
                 colors={c}
                 onChange={(v) => setData({ ...data, company_name: v })}
+                onFocus={() => { infoPushSV.value = withTiming(0, { duration: 200 }); }}
                 editable={isAdmin}
               />
               <View style={styles.divider} />
@@ -766,6 +767,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
                 mono
                 filter={(v: string) => v.replace(/[^a-zA-Z0-9]/g, '')}
                 onChange={(v) => setData({ ...data, tax_id: v })}
+                onFocus={() => { infoPushSV.value = withTiming(0, { duration: 200 }); }}
                 editable={isAdmin}
               />
               <View style={styles.divider} />
@@ -777,6 +779,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
                 value={data.address}
                 colors={c}
                 onChange={(v) => setData({ ...data, address: v })}
+                onFocus={() => { infoPushSV.value = withTiming(0, { duration: 200 }); }}
                 editable={isAdmin}
               />
               <View style={styles.divider} />
@@ -792,6 +795,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
                 filter={(v: string) => v.replace(/[^\d]/g, '').slice(0, 11)}
                 validate={(v: string) => v && !/^1[3-9]\d{9}$/.test(v) ? t('errPhoneInvalid') : null}
                 onChange={(v) => setData({ ...data, phone: v })}
+                onFocus={() => { infoPushSV.value = withTiming(0, { duration: 200 }); }}
                 editable={isAdmin}
               />
             </View>
