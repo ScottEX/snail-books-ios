@@ -18,6 +18,7 @@ import DatePicker from '../components/DatePicker';
 import ReceiptUpload from '../components/ReceiptUpload';
 import ExpenseNoteInput from '../components/ExpenseNoteInput';
 import SubmitButton from '../components/SubmitButton';
+import LoadingSpinner from '../components/LoadingSpinner';
 import TrashIcon from '../components/icons/TrashIcon';
 import ImagePreview, { ThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
@@ -133,12 +134,27 @@ const IcnSealActive = ({ color, label }: { color: string; label: string }) => (
   </Svg>
 );
 
-const InvoiceEmptyIcon = ({ color }: { color: string }) => (
-  <Svg width={48} height={48} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-    <Path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-    <Path d="M14 2v6h6" />
-    <Line x1="8" y1="13" x2="16" y2="13" />
-    <Line x1="8" y1="17" x2="14" y2="17" />
+const InvoiceEmptyIcon = () => (
+  <Svg width={96} height={96} viewBox="0 0 1024 1024">
+    {/* Light pink background shape */}
+    <Path d="M143.7 867.3a362.2 92.8 0 1 0 724.4 0 362.2 92.8 0 1 0-724.4 0Z" fill="#F9D4D7" />
+    {/* Red decoration elements */}
+    <Path d="M408.3 315.3L374.1 259l-59.2-29 56.3-34.2 29-59.2 34.2 56.3 59.2 29-56.3 34.1-29 59.3z m-60.1-86.9l37.1 18.2 21.5 35.3 18.2-37.1 35.3-21.5-37.1-18.2-21.5-35.3-18.2 37.2-35.3 21.4zM772.5 203.9l-10.8-47.3-34.6-34 47.3-10.8 34-34.6 10.8 47.3 34.6 34-47.3 10.8-34 34.6zM753.1 130l20.4 20 6.4 27.8 20-20.4 27.8-6.4-20.4-20-6.4-27.8-20 20.4-27.8 6.4zM670 185.9l-26.4-16.1-30.9 0.6 16.1-26.4-0.6-30.9 26.4 16.1 30.9-0.6-16.2 26.4 0.7 30.9z m-22.9-29.2l9.3 5.7-0.2-11 5.7-9.3-11 0.2-9.3-5.7 0.2 11-5.7 9.3 11-0.2zM758.3 323.9l-0.5-27.8-15.3-23.1 27.8-0.5 23.2-15.4 0.5 27.8 15.4 23.2-27.8 0.5-23.3 15.3z m8.2-38.3l4.3 6.5 0.1 7.8 6.5-4.3 7.8-0.1-4.3-6.5-0.1-7.8-6.5 4.3-7.8 0.1zM876.3 308.6l-16.2-28.5-29-15.2 28.5-16.2 15.2-29 16.2 28.5 29 15.2-28.5 16.2-15.2 29z m-18.2-44.2l11.4 6 6.4 11.1 6-11.4 11.1-6.4-11.4-6-6.4-11.1-6 11.4-11.1 6.4zM146.9 154.1l-16.2-28.5-29-15.2 28.5-16.2 15.2-29 16.2 28.5 29 15.2-28.5 16.2-15.2 29z m-18.2-44.2l11.4 6 6.4 11.1 6-11.4 11.1-6.4-11.4-6-6.4-11.1-6 11.4-11.1 6.4zM193.8 288.4l-0.4-29.3-16.1-24.5 29.3-0.4 24.5-16.1 0.4 29.3 16.1 24.5-29.3 0.4-24.5 16.1z m7.4-41.1l5.2 7.8 0.1 9.4 7.8-5.2 9.4-0.1-5.2-7.8-0.1-9.4-7.8 5.2-9.4 0.1zM657.96 776.264l87.256-87.256 9.263 9.263-87.256 87.256z" fill="#E60012" />
+    {/* Document body — light pink */}
+    <Path d="M267.9 518.2v261h392.9v-85.8h86.4V518.2H267.9z m123.5 210h-71.1v-71.4h71.1v71.4z m0-96.5h-71.1v-71.4h71.1v71.4z" fill="#F9D4D7" />
+    {/* Document outline — red */}
+    <Path d="M667.3 785.7H261.4v-274h492.4v188.2h-86.4v85.8z m-392.9-13h379.9v-85.8h86.4V524.7H274.4v248z m123.5-38h-84.1v-84.4h84.1v84.4z m-71.1-13h58.1v-58.4h-58.1v58.4z m71.1-83.5h-84.1v-84.4h84.1v84.4z m-71.1-13h58.1v-58.4h-58.1v58.4z" fill="#E60012" />
+    {/* Document text lines — pink */}
+    <Path d="M428.2 554H542v24.9H428.2zM428.2 591.9H591v24.9H428.2zM428.2 654.5H542v24.9H428.2zM428.2 692.2H591v24.9H428.2z" fill="#F09198" />
+    {/* Outer border — red */}
+    <Path d="M746.8 851.7H268.4c-5.8 0-10.5-4.7-10.5-10.5V418c0-5.8 4.7-10.5 10.5-10.5h478.4c5.8 0 10.5 4.7 10.5 10.5v423.2c0 5.8-4.7 10.5-10.5 10.5z m-475.9-13h473.4V420.5H270.9v418.2z" fill="#E60012" />
+    {/* Top stamp holes */}
+    <Path d="M387 450.6h-8.5c-8.2 0-15-6.8-15-15v-40.5c0-8.2 6.8-15 15-15h8.5c8.2 0 15 6.8 15 15v40.5c0 8.3-6.7 15-15 15z" fill="#F9D4D7" />
+    <Path d="M387 454.6h-8.5c-10.5 0-19-8.5-19-19v-40.5c0-10.5 8.5-19 19-19h8.5c10.5 0 19 8.5 19 19v40.5c0 10.5-8.5 19-19 19z m-8.5-70.4c-6.1 0-11 4.9-11 11v40.5c0 6.1 4.9 11 11 11h8.5c6.1 0 11-4.9 11-11v-40.5c0-6.1-4.9-11-11-11h-8.5z" fill="#E60012" />
+    <Path d="M511.9 450.6h-8.5c-8.2 0-15-6.8-15-15v-40.5c0-8.2 6.8-15 15-15h8.5c8.2 0 15 6.8 15 15v40.5c0 8.3-6.7 15-15 15z" fill="#F9D4D7" />
+    <Path d="M511.9 454.6h-8.5c-10.5 0-19-8.5-19-19v-40.5c0-10.5 8.5-19 19-19h8.5c10.5 0 19 8.5 19 19v40.5c0 10.5-8.5 19-19 19z m-8.4-70.4c-6.1 0-11 4.9-11 11v40.5c0 6.1 4.9 11 11 11h8.5c6.1 0 11-4.9 11-11v-40.5c0-6.1-4.9-11-11-11h-8.5z" fill="#E60012" />
+    <Path d="M636.6 450.6h-8.5c-8.2 0-15-6.8-15-15v-40.5c0-8.2 6.8-15 15-15h8.5c8.2 0 15 6.8 15 15v40.5c0 8.3-6.7 15-15 15z" fill="#F9D4D7" />
+    <Path d="M636.6 454.6h-8.5c-10.5 0-19-8.5-19-19v-40.5c0-10.5 8.5-19 19-19h8.5c10.5 0 19 8.5 19 19v40.5c0 10.5-8.5 19-19 19z m-8.4-70.4c-6.1 0-11 4.9-11 11v40.5c0 6.1 4.9 11 11 11h8.5c6.1 0 11-4.9 11-11v-40.5c0-6.1-4.9-11-11-11h-8.5z" fill="#E60012" />
   </Svg>
 );
 
@@ -917,12 +933,10 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
 
           <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
             {recordsLoading ? (
-              <View style={styles.empty}>
-                <Text style={styles.emptyText}>...</Text>
-              </View>
+              <LoadingSpinner />
             ) : filtered.length === 0 ? (
               <EmptyState
-                icon={<InvoiceEmptyIcon color={c.textSub} />}
+                icon={<InvoiceEmptyIcon />}
                 title={t('noRecords')}
                 hint={t('emptyInvoiceHint')}
               />
