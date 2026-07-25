@@ -592,7 +592,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
             <CloseButton onPress={() => setShowPartnerPicker(false)} />
           </View>
           <ScrollView style={s.partnerBody} showsVerticalScrollIndicator={false}>
-            {partnerList.filter((p: any) => p.id !== linkedPartnerId).map((p: any) => (
+            {partnerList.filter((p: any) => linkedPartnerId === null || p.id != linkedPartnerId).map((p: any) => (
               <TouchableOpacity
                 key={p.id}
                 style={s.partnerRow}
