@@ -743,7 +743,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   partnerRow: {
     paddingVertical: 14, paddingHorizontal: 12,
     marginBottom: 4, borderRadius: 14,
-    backgroundColor: c.bg,
+    backgroundColor: withAlpha(c.primary, 0.1),
     alignItems: 'center',
   },
   partnerRowText: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.textMain },
