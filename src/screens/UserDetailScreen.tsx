@@ -506,7 +506,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
               <View style={s.toggleRow}>
                 <View style={{ flex: 1 }}>
                   {loading ? (
-                    <View style={{ height: 20, width: 120, borderRadius: 4, backgroundColor: c.bg }} />
+                    <View style={{ height: 16, flex: 1, borderRadius: 4, backgroundColor: c.bg, marginRight: 12 }} />
                   ) : (
                   <Text style={s.toggleLabel}>
                     {linkedPartnerId ? linkedPartnerName : t('unlinked')}
@@ -514,7 +514,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
                   )}
                 </View>
                 {loading ? (
-                  <View style={{ height: 20, width: 40, borderRadius: 4, backgroundColor: c.bg }} />
+                  <View style={{ height: 16, width: 56, borderRadius: 4, backgroundColor: c.bg }} />
                 ) : linkedPartnerId ? (
                   <TouchableOpacity onPress={() => setShowUnlinkConfirm(true)} disabled={saving} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}>
                     <Text style={{ color: c.danger, fontSize: FONTS.small.size, fontWeight: '500' }}>{t('unlinkPartner')}</Text>
