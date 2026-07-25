@@ -200,18 +200,22 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
     setShowDateDrop(true);
     // Init pending date from current filter
     if (dateFrom && dateTo) {
-      // Check if matches a quick preset
-      const d = new Date(dateTo).getTime() - new Date(dateFrom).getTime();
-      const days = Math.round(d / 86400000);
-      if (days >= 6 && days <= 7) { setPendingDate({ type: 'quick', days: 7 }); }
-      else if (days >= 29 && days <= 30) { setPendingDate({ type: 'quick', days: 30 }); }
-      else if (days >= 89 && days <= 90) { setPendingDate({ type: 'quick', days: 90 }); }
-      else { setPendingDate({ type: 'custom', year: dropYear, month: dropMonth }); }
+      // Check if matches a quick preset (only when dateTo is today)
+      if (dateTo === sd.today) {
+        const d = new Date(dateTo).getTime() - new Date(dateFrom).getTime();
+        const days = Math.round(d / 86400000);
+        if (days >= 6 && days <= 7) { setPendingDate({ type: 'quick', days: 7 }); }
+        else if (days >= 29 && days <= 30) { setPendingDate({ type: 'quick', days: 30 }); }
+        else if (days >= 89 && days <= 90) { setPendingDate({ type: 'quick', days: 90 }); }
+        else { setPendingDate({ type: 'custom', year: dropYear, month: dropMonth }); }
+      } else {
+        setPendingDate({ type: 'custom', year: dropYear, month: dropMonth });
+      }
     } else {
       setPendingDate({ type: 'any' });
     }
     setShowStatusDrop(false);
-  }, [dateFrom, sd.year]);
+  }, [dateFrom, sd.year, sd.today]);
 
   const applyStatus = useCallback((val: string) => {
     setStatusFilter(val);
