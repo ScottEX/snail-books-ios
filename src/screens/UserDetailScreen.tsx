@@ -525,7 +525,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
             </View>
           )}
 
-          {(loading || linkedPartnerId !== null || partnersLoading || availablePartners.length > 0) && (
+          {(linkedPartnerId !== null || partnersLoading || availablePartners.length > 0) && (
           <View style={s.section}>
             <View style={s.sectionTitleRow}>
               <Text style={s.sectionTitleText}>{t('linkedPartner')}</Text>
