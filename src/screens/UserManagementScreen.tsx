@@ -112,7 +112,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
   const [dateLayout, setDateLayout] = useState({ top: 0, left: 0, width: 0 });
   const statusChipRef = useRef<View>(null);
   const dateChipRef = useRef<View>(null);
-  const monthPicked = useRef(false);
+  const [monthPicked, setMonthPicked] = useState(false);
 
   useEffect(() => {
     if (sd.ready && sd.year !== FALLBACK_YEAR) setDropYear(sd.year);
@@ -186,7 +186,6 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
       if (left < pad) left = pad;
       setDateLayout({ top: y + height + 4, left, width: DD_W });
     });
-    monthPicked.current = false;
     if (dateFrom && dateFrom.length >= 7) {
       setDropYear(parseInt(dateFrom.slice(0, 4)));
       setDropMonth(parseInt(dateFrom.slice(5, 7)));
@@ -195,6 +194,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
       setDropMonth(new Date().getMonth() + 1);
     }
     setShowDateDrop(true);
+    setMonthPicked(false);
     setShowStatusDrop(false);
   }, [dateFrom, sd.year]);
 
@@ -205,7 +205,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
   }, [dateFrom, dateTo, fetchUsers]);
 
   const applyPick = useCallback(() => {
-    if (!monthPicked.current && !dateFrom) {
+    if (!monthPicked && !dateFrom) {
       // Nothing selected and no prior filter — just close
       setShowDateDrop(false);
       return;
@@ -216,7 +216,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
     setDateTo(to);
     setShowDateDrop(false);
     fetchUsers(statusFilter, from, to);
-  }, [dropYear, dropMonth, statusFilter, dateFrom, fetchUsers]);
+  }, [dropYear, dropMonth, statusFilter, dateFrom, monthPicked, fetchUsers]);
 
   const applyQuick = useCallback((days: number) => {
     setDateFrom(sd.offset(-days));
@@ -457,10 +457,10 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
               {MONTHS.map(m => (
                 <TouchableOpacity
                   key={m}
-                  style={[s.monthBtn, dropMonth === m && s.monthBtnOn]}
-                  onPress={() => { setDropMonth(m); monthPicked.current = true; }}
+                  style={[s.monthBtn, (dateFrom || monthPicked) && dropMonth === m && s.monthBtnOn]}
+                  onPress={() => { setDropMonth(m); setMonthPicked(true); }}
                 >
-                  <Text style={[s.monthBtnText, dropMonth === m && s.monthBtnTextOn]}> 
+                  <Text style={[s.monthBtnText, (dateFrom || monthPicked) && dropMonth === m && s.monthBtnTextOn]}> 
                     {m}{t('monthUnit')}
                   </Text>
                 </TouchableOpacity>
