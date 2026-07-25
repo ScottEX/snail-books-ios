@@ -602,10 +602,11 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
         visible={showDeleteConfirm}
         title={t('deleteUser')}
         message={
-          <>
-            <Text style={{ fontSize: FONTS.micro.size, color: c.textSub, textAlign: 'center' }}>{t('deleteUserGraceNote')}</Text>
-            {deleteError ? <Text style={{ fontSize: FONTS.micro.size, color: c.danger, textAlign: 'center', marginTop: 8 }}>{deleteError}</Text> : null}
-          </>
+          deleteError ? (
+            <Text style={{ fontSize: FONTS.micro.size, color: c.danger, textAlign: 'center' }}>{deleteError}</Text>
+          ) : (
+            t('deleteUserGraceNote')
+          )
         }
         confirmLabel={deleting ? (t('loading') || '...') : (t('delete') || '删除')}
         cancelLabel={t('cancel')}
@@ -613,6 +614,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
         loading={deleting}
         onConfirm={handleDelete}
         onCancel={() => { setShowDeleteConfirm(false); setDeleteError(''); }}
+        animation="springScale"
       />
 
       {/* Partner picker */}
