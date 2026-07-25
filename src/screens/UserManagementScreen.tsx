@@ -463,8 +463,8 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
             {/* Year selector */}
             <View style={s.pickerRow}>
               {(sd.ready
-                ? [sd.year - 2, sd.year - 1, sd.year]
-                : [FALLBACK_YEAR - 2, FALLBACK_YEAR - 1, FALLBACK_YEAR]
+                ? [sd.year - 3, sd.year - 2, sd.year - 1, sd.year]
+                : [FALLBACK_YEAR - 3, FALLBACK_YEAR - 2, FALLBACK_YEAR - 1, FALLBACK_YEAR]
               ).map(y => (
                 <TouchableOpacity
                   key={y}
