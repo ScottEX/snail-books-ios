@@ -655,7 +655,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       />
 
       {/* Linked-partner delete hint modal */}
-      <ModalOverlay visible={showLinkedPartnerHint} onClose={() => setShowLinkedPartnerHint(false)} animation="springScale">
+      <ModalOverlay visible={showLinkedPartnerHint} onClose={() => setShowLinkedPartnerHint(false)} animation="blurMorph">
         <View style={s.hintCard} onStartShouldSetResponder={() => true}>
           <View style={s.hintHeader}>
             <Text style={s.hintTitle}>{t('friendlyReminder')}</Text>
