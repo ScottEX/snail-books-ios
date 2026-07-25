@@ -759,7 +759,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 14, padding: 12,
   },
   hintMsg: {
-    fontSize: FONTS.sub.size, color: c.textSub, textAlign: 'center', lineHeight: 22,
+    fontSize: FONTS.micro.size, color: c.textSub, textAlign: 'center',
   },
   hintBtn: {
     width: '100%', paddingVertical: 12, borderRadius: 10,
