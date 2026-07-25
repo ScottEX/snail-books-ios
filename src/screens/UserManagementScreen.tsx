@@ -59,10 +59,10 @@ function ChevronRightSvg({ color }: { color: string }) {
   );
 }
 
-function CaretDownSvg({ color }: { color: string }) {
+function DropArrowIcon({ color, open }: { color: string; open: boolean }) {
   return (
-    <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M6 9l6 6 6-6" />
+    <Svg width={14} height={14} viewBox="0 0 1024 1024" style={{ marginLeft: 2, transform: [{ rotate: open ? '180deg' : '0deg' }] }}>
+      <Path d="M836.899 399.237l-218.01 335.037c-47.506 73.007-166.272 73.007-213.778 0l-218.01-335.037C139.595 326.23 198.977 234.97 293.99 234.97h436.02c95.013 0 154.395 91.26 106.889 164.267z" fill={color} />
     </Svg>
   );
 }
@@ -284,7 +284,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
               >
                 {statusLabel}
               </Text>
-              <CaretDownSvg color={statusFilter !== '' ? c.primary : c.textSub} />
+              <DropArrowIcon color={statusFilter !== '' ? c.primary : c.textSub} open={showStatusDrop} />
             </TouchableOpacity>
           </View>
           <View style={{ flex: 1 }}>
@@ -300,7 +300,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
               >
                 {dateLabel}
               </Text>
-              <CaretDownSvg color={(dateFrom || dateTo) ? c.primary : c.textSub} />
+              <DropArrowIcon color={(dateFrom || dateTo) ? c.primary : c.textSub} open={showDateDrop} />
             </TouchableOpacity>
           </View>
         </View>
