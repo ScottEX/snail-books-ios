@@ -603,6 +603,9 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
               </TouchableOpacity>
             ))}
           </ScrollView>
+          <TouchableOpacity style={s.partnerCancel} onPress={() => setShowPartnerPicker(false)} activeOpacity={0.7}>
+            <Text style={s.partnerCancelText}>{t('cancel')}</Text>
+          </TouchableOpacity>
         </View>
       </ModalOverlay>
 
@@ -742,4 +745,9 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     borderBottomWidth: 0.5, borderBottomColor: withAlpha(c.textMain, 0.08),
   },
   partnerRowText: { fontSize: FONTS.sub.size, color: c.textMain },
+  partnerCancel: {
+    paddingVertical: 14, alignItems: 'center',
+    borderTopWidth: 1, borderTopColor: c.secondary,
+  },
+  partnerCancelText: { fontSize: FONTS.sub.size, fontWeight: '600', color: c.primary },
 });
