@@ -1106,7 +1106,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
                 <View style={styles.dAmountWrap}>
                   <Text style={[styles.dAmountPrefix, { color: c.textSub }]}>¥</Text>
                   <AppTextInput
-                    style={[styles.dInput, styles.dAmountInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
+                    style={[styles.dInput, styles.dAmountInput, dAmountFocus && styles.dAmountInputFocus, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
                     value={dAmountFocus ? dAmount : formatAmountForDisplay(dAmount)}
                     onFocus={() => setDAmountFocus(true)}
                     onBlur={() => { setDAmountFocus(false); setDAmount(formatAmountForStorage(dAmount)); }}
@@ -1560,8 +1560,9 @@ const getStyles = (c: ThemeColors) =>
     dRow: { flexDirection: 'row', gap: 10 },
     dInput: { width: '100%', paddingVertical: 11, paddingHorizontal: 14, borderWidth: 0, borderRadius: 10, fontSize: FONTS.sub.size, color: c.textMain, minHeight: FONTS.sub.size + 28 },
     dAmountWrap: { position: 'relative' as any },
-    dAmountPrefix: { position: 'absolute' as any, left: 14, top: 14, fontSize: FONTS.sub.size, fontWeight: '600' },
-    dAmountInput: { paddingLeft: 26, fontSize: FONTS.body.size, fontWeight: '700', fontFamily: 'DMMono-Regular' },
+    dAmountPrefix: { position: 'absolute' as any, left: 14, top: '50%' as any, fontSize: 14, fontWeight: '600', fontFamily: 'DMMono-Regular' },
+    dAmountInput: { paddingLeft: 26, fontSize: 18, fontWeight: '700', fontFamily: 'DMMono-Regular', letterSpacing: 0.2 },
+    dAmountInputFocus: { fontSize: 18, fontWeight: '700' },
     dTypeRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
     dTypeChip: { flex: 1, flexDirection: 'row', paddingVertical: 10, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
     dTypeChipText: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight },
