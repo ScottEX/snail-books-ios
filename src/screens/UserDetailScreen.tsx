@@ -741,12 +741,12 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   partnerTitle: { fontSize: FONTS.sub.size, fontWeight: '700', color: c.surface },
   partnerBody: { paddingVertical: 4, maxHeight: 360, backgroundColor: c.surface, paddingHorizontal: 12 },
   partnerRow: {
-    paddingVertical: 12, paddingHorizontal: 12,
-    marginBottom: 4, borderRadius: 8,
+    paddingVertical: 14, paddingHorizontal: 12,
+    marginBottom: 4, borderRadius: 24,
     backgroundColor: c.bg,
     alignItems: 'center',
   },
-  partnerRowText: { fontSize: FONTS.sub.size, color: c.textMain },
+  partnerRowText: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.textMain },
   partnerCancel: {
     marginHorizontal: 16, marginBottom: 16, marginTop: 8,
     paddingVertical: 12, borderRadius: 10,
