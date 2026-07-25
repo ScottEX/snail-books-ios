@@ -1247,7 +1247,7 @@ function IconChart({ c, active }: { c: string; active?: boolean }) {
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M3 3v18h18" />
-      <Path d="M7 16 L11 8 L15 12 L19 6 L19 21 L7 21 Z" fill={fillColor} stroke="none" />
+      <Path d="M7 16 L11 8 L15 12 L19 6 L19 21 L3 21 L3 16 Z" fill={fillColor} stroke="none" />
       <Path d="M7 16l4-8 4 4 4-6" fill="none" />
     </Svg>
   );
