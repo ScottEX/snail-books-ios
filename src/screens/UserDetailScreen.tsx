@@ -261,6 +261,13 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
     setPartnersLoading(false);
   }, []);
 
+  // 加载合伙人列表，用于判断是否有可关联的合伙人
+  useEffect(() => {
+    if (!loading && !partnersLoaded && !linkedPartnerId) {
+      fetchPartnerList();
+    }
+  }, [loading, partnersLoaded, linkedPartnerId, fetchPartnerList]);
+
   const availablePartners = useMemo(() => partnerList.filter((p: any) => !p.linked_user_id), [partnerList]);
 
   const handleLinkPartner = useCallback(async (partnerId: number, partnerName: string) => {
@@ -281,10 +288,9 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       setLinkedPartnerId(null);
       setLinkedPartnerName('');
       setPartnersLoaded(false);
-      fetchPartnerList();
     } catch {}
     setSaving(false);
-  }, [user.id, fetchPartnerList]);
+  }, [user.id]);
 
   const handleRoleSelect = useCallback((r: string) => {
     setRole(r);
