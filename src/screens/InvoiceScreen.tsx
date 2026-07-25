@@ -249,7 +249,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
   const drawerPushStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: Math.max(keyboardHeight.value, drawerCap) }],
   }));
-  const infoPushCap = -screenH * 0.25;
+  const infoPushCap = -screenH * 0.30;
   const infoPushSV = useSharedValue(0); // default: no push for header info
   const infoPushStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: Math.max(keyboardHeight.value, infoPushSV.value) }],
