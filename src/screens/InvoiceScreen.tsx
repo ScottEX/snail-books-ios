@@ -1411,7 +1411,7 @@ const getStyles = (c: ThemeColors) =>
     ecBtnText: { color: '#fff', fontSize: FONTS.small.size, fontWeight: '500' },
     ecStats: { flexDirection: 'row', marginBottom: 16 },
     ecStat: { flex: 1, paddingHorizontal: 12, alignItems: 'center', borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.12)' },
-    ecStatNum: { color: '#fff', fontSize: FONTS.large.size, fontWeight: '600' },
+    ecStatNum: { color: '#fff', fontSize: FONTS.large.size, fontWeight: '600', fontFamily: 'DMMono-Regular' },
     ecStatLbl: { color: 'rgba(255,255,255,0.5)', fontSize: FONTS.tiny.size, marginTop: 2 },
 
     /* TABS */
