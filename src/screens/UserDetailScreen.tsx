@@ -150,6 +150,8 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
   const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false);
   const [showLinkedPartnerHint, setShowLinkedPartnerHint] = useState(false);
   const [partnerList, setPartnerList] = useState<any[]>([]);
+  const [partnersLoading, setPartnersLoading] = useState(false);
+  const [partnersLoaded, setPartnersLoaded] = useState(false);
   const [toast, setToast] = useState('');
 
   const showToast = useCallback((msg: string) => {
@@ -243,11 +245,16 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
   };
 
   const fetchPartnerList = useCallback(async () => {
+    setPartnersLoading(true);
     try {
       const data: any = await api.getPartners();
       setPartnerList(Array.isArray(data) ? data : []);
     } catch {}
+    setPartnersLoaded(true);
+    setPartnersLoading(false);
   }, []);
+
+  const availablePartners = useMemo(() => partnerList.filter((p: any) => !p.linked_user_id), [partnerList]);
 
   const handleLinkPartner = useCallback(async (partnerId: number, partnerName: string) => {
     setShowPartnerPicker(false);
@@ -266,6 +273,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       await api.admin.updateUser(user.id, { linked_partner_id: null });
       setLinkedPartnerId(null);
       setLinkedPartnerName('');
+      setPartnersLoaded(false);
     } catch {}
     setSaving(false);
   }, [user.id]);
@@ -488,7 +496,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
             </View>
           )}
 
-          {/* Linked Partner */}
+          {(linkedPartnerId !== null || partnersLoading || availablePartners.length > 0) && (
           <View style={s.section}>
             <View style={s.sectionTitleRow}>
               <Text style={s.sectionTitleText}>{t('linkedPartner')}</Text>
@@ -513,6 +521,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
               </View>
             </View>
           </View>
+          )}
 
           {/* Other Info */}
           <View style={s.section}>
