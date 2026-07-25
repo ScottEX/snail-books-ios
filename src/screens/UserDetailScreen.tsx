@@ -113,7 +113,24 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
   const lang = getLang();
   const s = useMemo(() => getStyles(c), [c]);
 
-  const [detail, setDetail] = useState<UserData | null>(null);
+  const [detail, setDetail] = useState<UserData>({
+    id: user.id,
+    username: user.username,
+    email: user.email || '',
+    phone: '',
+    role: '',
+    remark: '',
+    created_at: '',
+    last_login: '',
+    avatar: user.avatar || '',
+    signature: '',
+    delete_scheduled: '',
+    delete_by: '',
+    linked_partner_id: null,
+    linked_partner_name: '',
+    is_disabled: user.is_disabled,
+    reviewed: false,
+  });
   const [loading, setLoading] = useState(true);
   const [isDisabled, setIsDisabled] = useState(user.is_disabled);
   const [saving, setSaving] = useState(false);
@@ -283,18 +300,12 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       {/* Body */}
       <View style={[s.body, { marginTop: safeTop + 44 }]}>
 
-      {loading ? (
-        <View style={{ flex: 1 }}>
-          <View style={{ paddingVertical: 60, alignItems: 'center' }}>
-            <LoadingSpinner />
-          </View>
+      {loading && (
+        <View style={{ height: 2, backgroundColor: c.primary, opacity: 0.6 }}>
+          <View style={{ height: 2, width: '30%', backgroundColor: c.primary }} />
         </View>
-      ) : !detail ? (
-        <View style={{ flex: 1 }}>
-          <Text style={{ textAlign: 'center', color: c.textSub, marginTop: 60, fontSize: FONTS.small.size }}>User not found</Text>
-        </View>
-      ) : (
-        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80, paddingTop: 12 }}>
+      )}
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80, paddingTop: loading ? 10 : 12 }}>
           {/* Avatar + username row */}
           <View style={s.avatarSection}>
             <Image
@@ -559,7 +570,6 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
 
           {/* TODO: show user's recent transactions / activity here if backend provides */}
         </ScrollView>
-      )}
       </View>
 
       <ConfirmModal
