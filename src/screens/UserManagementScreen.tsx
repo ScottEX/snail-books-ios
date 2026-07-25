@@ -106,7 +106,8 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
   const [dateTo, setDateTo] = useState('');
   const [dropYear, setDropYear] = useState(FALLBACK_YEAR);
   const [dropMonth, setDropMonth] = useState(new Date().getMonth() + 1);
-
+  type PendingDate = { type: 'any' } | { type: 'quick'; days: number } | { type: 'custom'; year: number; month: number };
+  const [pendingDate, setPendingDate] = useState<PendingDate>({ type: 'any' });
   // Layout refs for dropdown positioning
   const [statusLayout, setStatusLayout] = useState({ top: 0, left: 0, width: 0 });
   const [dateLayout, setDateLayout] = useState({ top: 0, left: 0, width: 0 });
@@ -194,7 +195,17 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
       setDropMonth(new Date().getMonth() + 1);
     }
     setShowDateDrop(true);
-    setMonthPicked(false);
+    // Init pending date from current filter
+    if (dateFrom && dateTo) {
+      // Check if matches a quick preset
+      const d = Math.round((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / 86400000);
+      if (d === 6) { setPendingDate({ type: 'quick', days: 7 }); }
+      else if (d === 29) { setPendingDate({ type: 'quick', days: 30 }); }
+      else if (d === 89) { setPendingDate({ type: 'quick', days: 90 }); }
+      else { setPendingDate({ type: 'custom', year: dropYear, month: dropMonth }); }
+    } else {
+      setPendingDate({ type: 'any' });
+    }
     setShowStatusDrop(false);
   }, [dateFrom, sd.year]);
 
@@ -205,18 +216,25 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
   }, [dateFrom, dateTo, fetchUsers]);
 
   const applyPick = useCallback(() => {
-    if (!monthPicked && !dateFrom) {
-      // Nothing selected and no prior filter — just close
+    if (pendingDate.type === 'any') {
+      setDateFrom('');
+      setDateTo('');
       setShowDateDrop(false);
-      return;
+      fetchUsers(statusFilter, '', '');
+    } else if (pendingDate.type === 'quick') {
+      setDateFrom(sd.offset(-pendingDate.days));
+      setDateTo(sd.today);
+      setShowDateDrop(false);
+      fetchUsers(statusFilter, sd.offset(-pendingDate.days), sd.today);
+    } else {
+      const from = `${pendingDate.year}-${String(pendingDate.month).padStart(2, '0')}-01`;
+      const to = lastDayOfMonth(pendingDate.year, pendingDate.month);
+      setDateFrom(from);
+      setDateTo(to);
+      setShowDateDrop(false);
+      fetchUsers(statusFilter, from, to);
     }
-    const from = `${dropYear}-${String(dropMonth).padStart(2, '0')}-01`;
-    const to = lastDayOfMonth(dropYear, dropMonth);
-    setDateFrom(from);
-    setDateTo(to);
-    setShowDateDrop(false);
-    fetchUsers(statusFilter, from, to);
-  }, [dropYear, dropMonth, statusFilter, dateFrom, monthPicked, fetchUsers]);
+  }, [pendingDate, statusFilter, sd, fetchUsers]);
 
   const applyQuick = useCallback((days: number) => {
     setDateFrom(sd.offset(-days));
@@ -232,14 +250,19 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
     fetchUsers(statusFilter, '', '');
   }, [statusFilter, fetchUsers]);
 
-  // ── Which quick preset is active? ──
+  // ── Which quick preset is active? (in-dropdown: pendingDate; outside: actual filter)
   const quickActive = useMemo(() => {
+    if (showDateDrop) {
+      if (pendingDate.type === 'any') return 0;
+      if (pendingDate.type === 'quick') return pendingDate.days;
+      return -1;
+    }
     if (!dateFrom && !dateTo) return 0;
     if (sd.ready && dateFrom === sd.offset(-7) && dateTo === sd.today) return 7;
     if (sd.ready && dateFrom === sd.offset(-30) && dateTo === sd.today) return 30;
     if (sd.ready && dateFrom === sd.offset(-90) && dateTo === sd.today) return 90;
-    return null;
-  }, [dateFrom, dateTo, sd.today, sd.ready]);
+    return -1;
+  }, [showDateDrop, pendingDate, dateFrom, dateTo, sd.today, sd.ready]);
 
   // ── Labels ──
   const statusLabel =
@@ -445,10 +468,10 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
               ).map(y => (
                 <TouchableOpacity
                   key={y}
-                  style={[s.pickerBtn, (dateFrom || monthPicked) && dropYear === y && s.pickerBtnOn]}
+                  style={[s.pickerBtn, pendingDate.type === 'custom' && pendingDate.year === y && s.pickerBtnOn]}
                   onPress={() => setDropYear(y)}
                 >
-                  <Text style={[s.pickerBtnText, (dateFrom || monthPicked) && dropYear === y && s.pickerBtnTextOn]}>{y}</Text>
+                  <Text style={[s.pickerBtnText, pendingDate.type === 'custom' && pendingDate.year === y && s.pickerBtnTextOn]}>{y}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -457,10 +480,10 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
               {MONTHS.map(m => (
                 <TouchableOpacity
                   key={m}
-                  style={[s.monthBtn, (dateFrom || monthPicked) && dropMonth === m && s.monthBtnOn]}
-                  onPress={() => { setDropMonth(m); setMonthPicked(true); }}
+                  style={[s.monthBtn, pendingDate.type === 'custom' && pendingDate.month === m && s.monthBtnOn]}
+                  onPress={() => { setDropMonth(m); setPendingDate({ type: 'custom', year: dropYear, month: m }); }}
                 >
-                  <Text style={[s.monthBtnText, (dateFrom || monthPicked) && dropMonth === m && s.monthBtnTextOn]}> 
+                  <Text style={[s.monthBtnText, pendingDate.type === 'custom' && pendingDate.month === m && s.monthBtnTextOn]}> 
                     {m}{t('monthUnit')}
                   </Text>
                 </TouchableOpacity>
@@ -470,25 +493,25 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
             <View style={s.quickRow}>
               <TouchableOpacity
                 style={[s.quickBtn, quickActive === 0 && s.quickBtnOn]}
-                onPress={clearDate}
+                onPress={() => setPendingDate({ type: 'any' })}
               >
                 <Text style={[s.quickBtnText, quickActive === 0 && s.quickBtnTextOn]}>
                   {t('anyDate')}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[s.quickBtn, quickActive === 7 && s.quickBtnOn]} onPress={() => applyQuick(7)}>
+              <TouchableOpacity style={[s.quickBtn, quickActive === 7 && s.quickBtnOn]} onPress={() => setPendingDate({ type: 'quick', days: 7 })}>
                 <Text style={[s.quickBtnText, quickActive === 7 && s.quickBtnTextOn]}>{t('last7Days')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[s.quickBtn, quickActive === 30 && s.quickBtnOn]} onPress={() => applyQuick(30)}>
+              <TouchableOpacity style={[s.quickBtn, quickActive === 30 && s.quickBtnOn]} onPress={() => setPendingDate({ type: 'quick', days: 30 })}>
                 <Text style={[s.quickBtnText, quickActive === 30 && s.quickBtnTextOn]}>{t('last30Days')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[s.quickBtn, quickActive === 90 && s.quickBtnOn]} onPress={() => applyQuick(90)}>
+              <TouchableOpacity style={[s.quickBtn, quickActive === 90 && s.quickBtnOn]} onPress={() => setPendingDate({ type: 'quick', days: 90 })}>
                 <Text style={[s.quickBtnText, quickActive === 90 && s.quickBtnTextOn]}>{t('last3Months')}</Text>
               </TouchableOpacity>
             </View>
             {/* Actions */}
             <View style={s.dateActions}>
-              <TouchableOpacity style={s.dateActionBtn} onPress={clearDate}>
+              <TouchableOpacity style={s.dateActionBtn} onPress={() => setPendingDate({ type: 'any' })}>
                 <Text style={s.dateActionText}>{t('reset') || '重置'}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[s.dateActionBtn, s.dateActionApply]} onPress={applyPick}>
