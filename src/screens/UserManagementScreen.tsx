@@ -469,7 +469,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
                 <TouchableOpacity
                   key={y}
                   style={[s.pickerBtn, pendingDate.type === 'custom' && pendingDate.year === y && s.pickerBtnOn]}
-                  onPress={() => setDropYear(y)}
+                  onPress={() => { setDropYear(y); if (pendingDate.type === 'custom') setPendingDate({ ...pendingDate, year: y }); }}
                 >
                   <Text style={[s.pickerBtnText, pendingDate.type === 'custom' && pendingDate.year === y && s.pickerBtnTextOn]}>{y}</Text>
                 </TouchableOpacity>
