@@ -241,6 +241,8 @@ const parseFilePaths = (fp: string | null | undefined): string[] => {
   return [fp];
 };
 
+function isDash(v: string) { return v === '-' || v === '\u2014'; }
+
 /* ═══════════════ COMPONENT ═══════════════ */
 
 interface Props {
@@ -1146,6 +1148,70 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
                 />
               </View>
 
+              {/* VAT-only fields — 从开票信息反显 */}
+              {dType === 'vat' && (() => {
+                const vatFilled = (v: string) => v && !isDash(v);
+                const vatHint = (v: string) => vatFilled(v)
+                  ? <Text style={{ color: c.textSub, fontWeight: '400', fontSize: FONTS.tiny.size, marginLeft: 'auto' }}>{t('invAutoFilled')}</Text>
+                  : <Text style={{ color: c.danger, fontWeight: '400', fontSize: FONTS.tiny.size, marginLeft: 'auto' }}>{t('invVatGoMaintain')}</Text>;
+                return (
+                <>
+                  <View style={styles.dField}>
+                    <View style={styles.dLabelRow}>
+                      <Text style={styles.dLabel}>{t('addressPhone')}<Text style={{ color: c.danger }}> *</Text></Text>
+                      {vatHint(data.address)}
+                    </View>
+                    <AppTextInput
+                      style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
+                      value={isDash(data.address) ? '' : data.address}
+                      editable={false}
+                      placeholder="—"
+                      placeholderTextColor={c.textSub}
+                    />
+                  </View>
+                  <View style={styles.dField}>
+                    <View style={styles.dLabelRow}>
+                      <Text style={styles.dLabel}>{t('companyPhone')}<Text style={{ color: c.danger }}> *</Text></Text>
+                      {vatHint(data.phone)}
+                    </View>
+                    <AppTextInput
+                      style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), fontFamily: 'DMMono-Regular' }]}
+                      value={isDash(data.phone) ? '' : data.phone}
+                      editable={false}
+                      placeholder="—"
+                      placeholderTextColor={c.textSub}
+                    />
+                  </View>
+                  <View style={styles.dField}>
+                    <View style={styles.dLabelRow}>
+                      <Text style={styles.dLabel}>{t('bankName')}<Text style={{ color: c.danger }}> *</Text></Text>
+                      {vatHint(data.bank_name)}
+                    </View>
+                    <AppTextInput
+                      style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
+                      value={isDash(data.bank_name) ? '' : data.bank_name}
+                      editable={false}
+                      placeholder="—"
+                      placeholderTextColor={c.textSub}
+                    />
+                  </View>
+                  <View style={styles.dField}>
+                    <View style={styles.dLabelRow}>
+                      <Text style={styles.dLabel}>{t('bankAccount')}<Text style={{ color: c.danger }}> *</Text></Text>
+                      {vatHint(data.bank_account)}
+                    </View>
+                    <AppTextInput
+                      style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), fontFamily: 'DMMono-Regular' }]}
+                      value={isDash(data.bank_account) ? '' : data.bank_account}
+                      editable={false}
+                      placeholder="—"
+                      placeholderTextColor={c.textSub}
+                    />
+                  </View>
+                </>
+                );
+              })()}
+
               {/* Date + Email */}
               <View style={styles.dRow}>
                 <View style={[styles.dFieldHalf, { overflow: 'hidden' }]}>
@@ -1245,6 +1311,12 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
               const nonLoadDisabled = !dAmount || !data.company_name || !data.tax_id
                 || (dStatus === 'done' && !dInvoiceNo.trim())
                 || (dStatus === 'done' && dFiles.length === 0 && dExistingFilePath.length === 0)
+                || (dType === 'vat' && (
+                  !data.address || isDash(data.address) ||
+                  !data.phone || isDash(data.phone) ||
+                  !data.bank_name || isDash(data.bank_name) ||
+                  !data.bank_account || isDash(data.bank_account)
+                ))
                 || (editingId && editOriginal.current ? (
                   editOriginal.current.type === dType &&
                   String(editOriginal.current.amount) === dAmount &&

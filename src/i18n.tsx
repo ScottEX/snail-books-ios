@@ -207,6 +207,7 @@ const I18N: Record<string, Record<string, string>> = {
     invApplyAmount: '申请金额',
     invAutoFilled: '已自动填入',
     invBankInfo: '银行信息',
+    invVatGoMaintain: '请完善开票信息',
     invCenter: '发票管理',
     invContact: '联系开票方',
     invPleaseMaintain: '请完善信息',
@@ -825,6 +826,7 @@ const I18N: Record<string, Record<string, string>> = {
     invApplyAmount: '申請金額',
     invAutoFilled: '已自動填入',
     invBankInfo: '銀行信息',
+    invVatGoMaintain: '請去開票信息維護',
     invCenter: '發票管理',
     invContact: '聯繫開票方',
     invPleaseMaintain: '請維護信息',
@@ -1453,6 +1455,7 @@ const I18N: Record<string, Record<string, string>> = {
     invApplyAmount: 'Apply Amount',
     invAutoFilled: 'Auto-filled',
     invBankInfo: 'Bank Info',
+    invVatGoMaintain: 'Please fill in Invoice Settings',
     invCenter: 'Invoice Management',
     invContact: 'Contact Issuer',
     invPleaseMaintain: 'Please fill in',
@@ -2075,6 +2078,7 @@ export type I18nKey =
   | 'invApply'
   | 'invApplyAmount'
   | 'invAutoFilled'
+  | 'invVatGoMaintain'
   | 'invBankInfo'
   | 'invCenter'
   | 'invContact'
