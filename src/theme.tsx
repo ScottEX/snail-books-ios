@@ -205,9 +205,9 @@ export interface FontToken {
 // RN 原生渲染字号偏小，加系数缩放对齐 web 视觉。
 // 小屏设备缩放减小，避免字号过大。
 function getFontScale(width: number): number {
-  if (width <= 375) return 1.0;
+  if (width <= 375) return 0.9;
   if (width >= 430) return 1.15;
-  return 1.0 + ((width - 375) / (430 - 375)) * 0.15;
+  return 0.9 + ((width - 375) / (430 - 375)) * 0.25;
 }
 const S = getFontScale(Dimensions.get('window').width);
 
