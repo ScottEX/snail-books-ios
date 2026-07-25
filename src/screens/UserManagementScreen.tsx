@@ -22,8 +22,6 @@ import EmptyState from '../components/EmptyState';
 import Toast from '../components/Toast';
 import HistoryHeader from '../components/HistoryHeader';
 import AnimatedDropdown from '../components/AnimatedDropdown';
-import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
-import ReAnimated, { useAnimatedStyle } from 'react-native-reanimated';
 
 interface UserItem {
   id: number;
@@ -96,10 +94,6 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
   const s = useMemo(() => getStyles(c), [c]);
   const insets = useSafeAreaInsets();
   const safeTop = insets.top;
-  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const kbStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: keyboardHeight.value }],
-  }));
 
   const [users, setUsers] = useState<UserItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -293,7 +287,6 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
     t('noUsersHintSpaceBlue');
 
   return (
-    <ReAnimated.View style={[{ flex: 1 }, kbStyle]}>
     <View style={s.container}>
       <HomeBackground />
       <HistoryHeader safeTop={safeTop} onBack={onBack} title={t('userManagement')} />
@@ -542,7 +535,6 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
 
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
     </View>
-    </ReAnimated.View>
   );
 }
 
