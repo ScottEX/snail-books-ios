@@ -28,6 +28,7 @@ import HistoryHeader from '../components/HistoryHeader';
 import CloseButton from '../components/CloseButton';
 import { MODAL_CARD_RADIUS } from '../sharedStyles';
 import { getCurrentUserId } from '../utils/storage';
+import { translateName } from './partner/usePartnerData';
 
 interface UserData {
   id: number;
@@ -156,6 +157,8 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
   const [realNameTW, setRealNameTW] = useState('');
   const [linkedPartnerId, setLinkedPartnerId] = useState<number | null>(null);
   const [linkedPartnerName, setLinkedPartnerName] = useState('');
+  const [linkedPartnerNamePinyin, setLinkedPartnerNamePinyin] = useState('');
+  const [linkedPartnerNameTW, setLinkedPartnerNameTW] = useState('');
   const [showPartnerPicker, setShowPartnerPicker] = useState(false);
   const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false);
   const [showLinkedPartnerHint, setShowLinkedPartnerHint] = useState(false);
@@ -195,6 +198,8 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       setRealNameTW(d?.real_name_tw || '');
       setLinkedPartnerId(d?.linked_partner_id ?? null);
       setLinkedPartnerName(d?.linked_partner_name || '');
+      setLinkedPartnerNamePinyin(d?.linked_partner_name_pinyin || '');
+      setLinkedPartnerNameTW(d?.linked_partner_name_tw || '');
     } catch {
       showToast(t('toastLoadFailed'));
     }
@@ -288,10 +293,12 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
     try {
       await api.admin.updateUser(user.id, { linked_partner_id: partnerId });
       setLinkedPartnerId(partnerId);
-      setLinkedPartnerName(partnerName);
+      setLinkedPartnerName(realName || partnerName);
+      setLinkedPartnerNamePinyin(realNamePinyin || '');
+      setLinkedPartnerNameTW(realNameTW || '');
     } catch {}
     setSaving(false);
-  }, [user.id]);
+  }, [user.id, realName, realNamePinyin, realNameTW]);
 
   const handleUnlinkPartner = useCallback(async () => {
     setSaving(true);
@@ -299,6 +306,8 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       await api.admin.updateUser(user.id, { linked_partner_id: null });
       setLinkedPartnerId(null);
       setLinkedPartnerName('');
+      setLinkedPartnerNamePinyin('');
+      setLinkedPartnerNameTW('');
       setPartnersLoaded(false);
     } catch {}
     setSaving(false);
@@ -539,7 +548,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
                     <View style={{ height: 16, flex: 1, borderRadius: 4, backgroundColor: c.bg, marginRight: 12 }} />
                   ) : (
                   <Text style={s.toggleLabel}>
-                    {linkedPartnerId ? linkedPartnerName : t('unlinked')}
+                    {linkedPartnerId ? translateName(linkedPartnerName, linkedPartnerNamePinyin, linkedPartnerNameTW) : t('unlinked')}
                   </Text>
                   )}
                 </View>
@@ -666,7 +675,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       <ConfirmModal
         visible={showUnlinkConfirm}
         title={t('unlinkPartner')}
-        message={t('unlinkPartner') + '？“' + linkedPartnerName + '”'}
+        message={t('confirmUnlinkMsg').replace('{name}', linkedPartnerName)}
         confirmLabel={saving ? (t('loading') || '...') : t('unlinkPartner')}
         cancelLabel={t('cancel')}
         confirmColor={c.danger}
