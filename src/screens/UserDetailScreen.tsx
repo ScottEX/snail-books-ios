@@ -739,11 +739,11 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
   partnerTitle: { fontSize: FONTS.sub.size, fontWeight: '700', color: c.surface },
-  partnerBody: { paddingVertical: 4, maxHeight: 360, backgroundColor: c.bg, paddingHorizontal: 12 },
+  partnerBody: { paddingVertical: 4, maxHeight: 360, backgroundColor: c.surface, paddingHorizontal: 12 },
   partnerRow: {
     paddingVertical: 12, paddingHorizontal: 12,
     marginBottom: 4, borderRadius: 8,
-    backgroundColor: c.surface,
+    backgroundColor: c.bg,
     alignItems: 'center',
   },
   partnerRowText: { fontSize: FONTS.sub.size, color: c.textMain },
