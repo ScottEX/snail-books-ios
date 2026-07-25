@@ -281,9 +281,10 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       setLinkedPartnerId(null);
       setLinkedPartnerName('');
       setPartnersLoaded(false);
+      fetchPartnerList();
     } catch {}
     setSaving(false);
-  }, [user.id]);
+  }, [user.id, fetchPartnerList]);
 
   const handleRoleSelect = useCallback((r: string) => {
     setRole(r);
