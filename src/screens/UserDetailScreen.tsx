@@ -655,7 +655,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       />
 
       {/* Linked-partner delete hint modal */}
-      <ModalOverlay visible={showLinkedPartnerHint} onClose={() => setShowLinkedPartnerHint(false)}>
+      <ModalOverlay visible={showLinkedPartnerHint} onClose={() => setShowLinkedPartnerHint(false)} animation="springScale">
         <View style={s.hintCard} onStartShouldSetResponder={() => true}>
           <View style={s.hintHeader}>
             <Text style={s.hintTitle}>{t('friendlyReminder')}</Text>
@@ -744,7 +744,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   roleItemText: { fontSize: FONTS.small.size },
   /* Linked-partner delete hint modal */
   hintCard: {
-    backgroundColor: c.surface, borderRadius: 16,
+    backgroundColor: c.surface, borderRadius: MODAL_CARD_RADIUS,
     width: 340, maxWidth: '100%', overflow: 'hidden',
   },
   hintHeader: {
