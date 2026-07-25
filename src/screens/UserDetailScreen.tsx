@@ -352,7 +352,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
                 </View>
               )}
               {/* Unreviewed badge + Mark reviewed action */}
-              {!detail.reviewed && (
+              {!loading && !detail.reviewed && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
                   <View style={s.newBadge}>
                     <Text style={s.newBadgeText}>{t('newUserBadge')}</Text>
