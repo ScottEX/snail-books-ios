@@ -9,7 +9,6 @@ import {
   Switch,
   Image,
   TextInput,
-  Modal,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -24,6 +23,7 @@ import ModalOverlay from '../components/ModalOverlay';
 import Toast from '../components/Toast';
 import HistoryHeader from '../components/HistoryHeader';
 import CloseButton from '../components/CloseButton';
+import { MODAL_CARD_RADIUS } from '../sharedStyles';
 import { getCurrentUserId } from '../utils/storage';
 
 interface UserData {
@@ -585,25 +585,26 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       />
 
       {/* Partner picker */}
-      <Modal visible={showPartnerPicker} transparent animationType="fade" onRequestClose={() => setShowPartnerPicker(false)}>
-        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' }} activeOpacity={1} onPress={() => setShowPartnerPicker(false)}>
-          <View style={{ backgroundColor: c.surface, borderRadius: 14, width: '80%', maxHeight: '60%', padding: 4 }} onStartShouldSetResponder={() => true}>
-            <Text style={{ fontSize: FONTS.sub.size, fontWeight: '600', color: c.textMain, padding: 16, paddingBottom: 12 }}>{t('linkPartner')}</Text>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {partnerList.map((p: any) => (
-                <TouchableOpacity
-                  key={p.id}
-                  style={{ paddingVertical: 14, paddingHorizontal: 16, borderTopWidth: 0.5, borderTopColor: withAlpha(c.textMain, 0.08) }}
-                  onPress={() => handleLinkPartner(p.id, p.name)}
-                  activeOpacity={0.6}
-                >
-                  <Text style={{ fontSize: FONTS.sub.size, color: c.textMain }}>{p.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+      <ModalOverlay visible={showPartnerPicker} onClose={() => setShowPartnerPicker(false)} animation="springScale">
+        <View style={s.partnerCard}>
+          <View style={s.partnerHeader}>
+            <Text style={s.partnerTitle}>{t('linkPartner')}</Text>
+            <CloseButton onPress={() => setShowPartnerPicker(false)} />
           </View>
-        </TouchableOpacity>
-      </Modal>
+          <ScrollView style={s.partnerBody} showsVerticalScrollIndicator={false}>
+            {partnerList.map((p: any) => (
+              <TouchableOpacity
+                key={p.id}
+                style={s.partnerRow}
+                onPress={() => handleLinkPartner(p.id, p.name)}
+                activeOpacity={0.6}
+              >
+                <Text style={s.partnerRowText}>{p.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </ModalOverlay>
 
       <ConfirmModal
         visible={showUnlinkConfirm}
@@ -725,4 +726,20 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     backgroundColor: c.primary, justifyContent: 'center', alignItems: 'center',
   },
   hintBtnText: { fontSize: FONTS.sub.size, fontWeight: '600', color: c.surface },
+  /* Partner picker */
+  partnerCard: {
+    backgroundColor: c.surface, borderRadius: MODAL_CARD_RADIUS,
+    width: 320, maxWidth: '100%', maxHeight: '70%', overflow: 'hidden',
+  },
+  partnerHeader: {
+    backgroundColor: c.primary, paddingVertical: 14, paddingHorizontal: 20,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+  },
+  partnerTitle: { fontSize: FONTS.sub.size, fontWeight: '700', color: c.surface },
+  partnerBody: { paddingVertical: 4 },
+  partnerRow: {
+    paddingVertical: 14, paddingHorizontal: 20,
+    borderBottomWidth: 0.5, borderBottomColor: withAlpha(c.textMain, 0.08),
+  },
+  partnerRowText: { fontSize: FONTS.sub.size, color: c.textMain },
 });
