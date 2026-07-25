@@ -336,7 +336,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
                 >
                   <View style={s.avatarWrap}>
                     {u.avatar ? (
-                      <Image source={{ uri: resolveAssetUrl(u.avatar) || '' }} style={s.avatar} contentFit="cover" transition={200} placeholder={{ uri: resolveAssetUrl('/img/logo.jpg') || '' }} />
+                      <Image source={{ uri: resolveAssetUrl(u.avatar) || '' }} style={s.avatar} contentFit="cover" transition={200} placeholder={{ uri: resolveAssetUrl('/img/logo.jpg') || '' }} cachePolicy="none" />
                     ) : (
                       <Image source={require('../../assets/img/logo.jpg')} style={s.avatar} contentFit="cover" />
                     )}
