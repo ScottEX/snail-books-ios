@@ -9,6 +9,7 @@ import {
   Switch,
   Image,
   TextInput,
+  useWindowDimensions,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -21,7 +22,7 @@ import { FONTS } from '../theme';
 import ConfirmModal from '../components/ConfirmModal';
 import ModalOverlay from '../components/ModalOverlay';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
-import ReAnimated, { useAnimatedStyle } from 'react-native-reanimated';
+import ReAnimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Toast from '../components/Toast';
 import HistoryHeader from '../components/HistoryHeader';
 import CloseButton from '../components/CloseButton';
@@ -111,9 +112,12 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
   const { colors: c } = useTheme();
   const insets = useSafeAreaInsets();
   const safeTop = insets.top;
+  const { height: windowHeight } = useWindowDimensions();
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const remarkPushCap = -windowHeight * 0.1;
+  const pushCapSV = useSharedValue(0);
   const kbStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: keyboardHeight.value }],
+    transform: [{ translateY: Math.max(keyboardHeight.value, pushCapSV.value) }],
   }));
   const isSelf = String(user.id) === (getCurrentUserId() || '');
   const lang = getLang();
@@ -599,7 +603,8 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
                   style={s.editInput}
                   value={remark}
                   onChangeText={setRemark}
-                  onBlur={() => saveField('remark', remark)}
+                  onFocus={() => { pushCapSV.value = withTiming(remarkPushCap, { duration: 200 }); }}
+                  onBlur={() => { saveField('remark', remark); pushCapSV.value = withTiming(0, { duration: 200 }); }}
                   placeholder="—"
                   placeholderTextColor={c.textSub}
                   multiline
