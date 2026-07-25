@@ -502,11 +502,11 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
                   </Text>
                 </View>
                 {linkedPartnerId ? (
-                  <TouchableOpacity onPress={() => setShowUnlinkConfirm(true)} disabled={saving} activeOpacity={0.7}>
+                  <TouchableOpacity onPress={() => setShowUnlinkConfirm(true)} disabled={saving} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}>
                     <Text style={{ color: c.danger, fontSize: FONTS.small.size, fontWeight: '500' }}>{t('unlinkPartner')}</Text>
                   </TouchableOpacity>
                 ) : (
-                  <TouchableOpacity onPress={() => { fetchPartnerList(); setShowPartnerPicker(true); }} disabled={saving} activeOpacity={0.7}>
+                  <TouchableOpacity onPress={() => { fetchPartnerList(); setShowPartnerPicker(true); }} disabled={saving} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}>
                     <Text style={{ color: c.primary, fontSize: FONTS.small.size, fontWeight: '500' }}>{t('linkPartner')}</Text>
                   </TouchableOpacity>
                 )}
