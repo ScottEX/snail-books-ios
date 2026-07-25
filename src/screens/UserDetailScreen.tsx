@@ -527,7 +527,6 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
             </View>
           )}
 
-          {!loading && (
           <View style={s.section}>
             <View style={s.sectionTitleRow}>
               <Text style={s.sectionTitleText}>{t('linkedPartner')}</Text>
@@ -536,11 +535,17 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
             <View style={s.card}>
               <View style={s.toggleRow}>
                 <View style={{ flex: 1 }}>
+                  {loading ? (
+                    <View style={{ height: 16, flex: 1, borderRadius: 4, backgroundColor: c.bg, marginRight: 12 }} />
+                  ) : (
                   <Text style={s.toggleLabel}>
                     {linkedPartnerId ? linkedPartnerName : t('unlinked')}
                   </Text>
+                  )}
                 </View>
-                {linkedPartnerId ? (
+                {loading ? (
+                  <View style={{ height: 16, width: 56, borderRadius: 4, backgroundColor: c.bg }} />
+                ) : linkedPartnerId ? (
                   <TouchableOpacity onPress={() => setShowUnlinkConfirm(true)} disabled={saving} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}>
                     <Text style={{ color: c.danger, fontSize: FONTS.small.size, fontWeight: '500' }}>{t('unlinkPartner')}</Text>
                   </TouchableOpacity>
@@ -554,7 +559,6 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
               </View>
             </View>
           </View>
-          )}
 
           {/* Other Info */}
           <View style={s.section}>
