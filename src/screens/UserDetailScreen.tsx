@@ -614,7 +614,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
         loading={deleting}
         onConfirm={handleDelete}
         onCancel={() => { setShowDeleteConfirm(false); setDeleteError(''); }}
-        animation="springScale"
+        animation="blurMorph"
       />
 
       {/* Partner picker */}
