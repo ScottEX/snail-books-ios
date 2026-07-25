@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, useWindowDimensions,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, useWindowDimensions, Modal,
 } from 'react-native';
 import CustomActionSheet, { ActionItem } from '../components/CustomActionSheet';
 import AppTextInput from '../components/AppTextInput';
@@ -17,6 +18,7 @@ import DatePicker from '../components/DatePicker';
 import ReceiptUpload from '../components/ReceiptUpload';
 import ExpenseNoteInput from '../components/ExpenseNoteInput';
 import SubmitButton from '../components/SubmitButton';
+import LoadingSpinner from '../components/LoadingSpinner';
 import TrashIcon from '../components/icons/TrashIcon';
 import ImagePreview, { ThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
@@ -132,12 +134,24 @@ const IcnSealActive = ({ color, label }: { color: string; label: string }) => (
   </Svg>
 );
 
-const InvoiceEmptyIcon = ({ color }: { color: string }) => (
-  <Svg width={48} height={48} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-    <Path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-    <Path d="M14 2v6h6" />
-    <Line x1="8" y1="13" x2="16" y2="13" />
-    <Line x1="8" y1="17" x2="14" y2="17" />
+const InvoiceEmptyIcon = () => (
+  <Svg width={96} height={90} viewBox="0 0 1087 1024">
+    {/* Document shadow */}
+    <Path d="M92.940209 150.028592h712.476692v873.971408h-712.476692z" fill="#EEEFF1" />
+    {/* Dark decorative element — bottom-left */}
+    <Path d="M3.34864 660.627388l9.380944-1.519951c10.767898 66.307831 39.499708 98.345533 74.121325 98.891765h0.60323l-0.29449-1.51045c-4.051617-21.516796-1.139963-44.653289 7.371758-59.449056l0.793224-1.325206c12.017107-19.388866 31.144731-18.476896 47.911683 5.262828 17.636173 24.965183-7.082018 58.622582-42.644105 65.319863l-1.120963 0.208993 0.394237 1.277708c19.065876 61.14 72.264136 100.335718 160.378503 117.620402l2.887906 0.555732-1.766943 9.333445c-94.065923-17.788168-151.425046-60.099784-171.231898-126.86835l-0.28499-0.949969-1.206461 0.028499c-40.04594 0.584231-72.919614-34.436373-84.898722-104.52508l-0.394238-2.351173z m100.050727 40.093438c-7.970239 12.857829-10.782147 35.015854-6.640282 55.349939l0.261241 1.201711 1.130463-0.185244c29.605781-5.19633 49.631126-31.605466 37.870511-49.82587l-0.541482-0.802724c-13.052573-18.476896-23.863219-18.994629-32.080451-5.737812z" fill="#252A3D" />
+    {/* Main document background */}
+    <Path d="M140.709397 148.133404L837.616098 0l171.830378 808.414053L312.539775 956.542707z" fill="#DADDE4" />
+    {/* Blue circle badge */}
+    <Path d="M491.927157 677.261344m-147.245183 0a147.245183 147.245183 0 1 0 294.490366 0 147.245183 147.245183 0 1 0-294.490366 0Z" fill="#0069FF" />
+    {/* Checkmark inside badge */}
+    <Path d="M412.998989 730.459603c58.318592-48.267921 114.670749-48.267921 166.372807 0.29924l-9.756181 10.383161c-46.325234-43.508577-94.602655-43.508577-147.530173 0.29449l-9.081703-10.972141z" fill="#FFFFFF" />
+    {/* Text lines on document — white */}
+    <Path d="M277.24843 257.546074l473.891997-100.729954 2.963903 13.940794-473.891997 100.729954zM296.247808 343.043277l473.891997-100.729954 2.963903 13.940794-473.891997 100.729954zM315.247187 428.54048l241.596096-51.35057 2.963903 13.936044-241.596096 51.35532z" fill="#FFFFFF" />
+    {/* Dark decorative element — top-right */}
+    <Path d="M1082.475337 486.688078l-8.521221 4.198863c-55.449686-112.566567-125.562142-152.565009-188.402587-130.872469l-0.28974 0.104497 0.261241 0.455985c20.353084 35.419591 28.556066 79.17041 21.222306 109.768909l-0.451235 1.790691c-9.703933 36.749548-39.75145 44.382548-78.894919 14.05954-42.112122-32.612433-15.242251-103.826853 44.363548-130.891468l-0.508233 0.237493-1.453452-2.232427c-65.201117-98.511777-179.035893-139.407939-342.292802-122.493743l-5.068085 0.541482-1.040216-9.442691c172.685351-19.027878 293.112911 25.06968 360.40871 132.501665l-1.629197-2.574415 0.090247-0.028499c67.637787-24.870186 142.609335 16.225469 200.386445 131.219207l1.81919 3.65738z m-185.362686-16.980694c7.409758-28.071582-0.246992-70.254952-19.773603-104.306588l-0.997467-1.728943-0.645979 0.28499c-53.459501 24.266956-77.260972 86.166931-43.518077 113.901274l1.035467 0.831223c34.056386 26.375887 56.033917 20.79007 63.899659-8.981956z" fill="#252A3D" />
+    {/* Blue dot */}
+    <Path d="M130.938966 164.278126m-52.24829 0a52.248291 52.248291 0 1 0 104.496581 0 52.248291 52.248291 0 1 0-104.496581 0Z" fill="#0069FF" />
   </Svg>
 );
 
@@ -227,14 +241,17 @@ const parseFilePaths = (fp: string | null | undefined): string[] => {
   return [fp];
 };
 
+function isDash(v: string) { return v === '-' || v === '\u2014'; }
+
 /* ═══════════════ COMPONENT ═══════════════ */
 
 interface Props {
   onBack: () => void;
   filterBatchId?: number | null;
+  onPdfPreview?: (url: string, title: string) => void;
 }
 
-export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
+export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: Props) {
   const { colors: c } = useTheme();
   const sd = useServerDate();
   const insets = useSafeAreaInsets();
@@ -247,7 +264,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   const drawerPushStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: Math.max(keyboardHeight.value, drawerCap) }],
   }));
-  const infoPushCap = -screenH * 0.25;
+  const infoPushCap = -screenH * 0.28;
   const infoPushSV = useSharedValue(0); // default: no push for header info
   const infoPushStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: Math.max(keyboardHeight.value, infoPushSV.value) }],
@@ -299,6 +316,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   // Drawer (create/edit)
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const editOriginal = useRef<InvoiceRecord | null>(null);
   const [dType, setDType] = useState<InvType>('general');
   const [dAmount, setDAmount] = useState('');
   const [dAmountFocus, setDAmountFocus] = useState(false);
@@ -327,7 +345,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
   // Submit
   const [submitting, setSubmitting] = useState(false);
 
-  // Toast
+  // Media preview (drawer / push)
   const [toast, setToast] = useState('');
 
   const { preview, openPreview, closePreview } = useImagePreview();
@@ -492,9 +510,19 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
         const res: any = await api.createInvoiceRecord(payload);
         rid = res?.id;
         if (rid && dFiles.length > 0) {
+          const uploadedFilePaths: string[] = [];
+          const uploadedThumbPaths: string[] = [];
           for (const f of dFiles) {
-            await api.uploadInvoiceFile(rid, f);
+            const upRes: any = await api.uploadInvoiceFile(rid, f);
+            if (upRes?.file_path) {
+              uploadedFilePaths.push(upRes.file_path);
+              uploadedThumbPaths.push(upRes.thumb_path || upRes.file_path);
+            }
           }
+          await api.updateInvoiceRecord(rid, {
+            file_path: JSON.stringify(uploadedFilePaths),
+            file_thumb_paths: JSON.stringify(uploadedThumbPaths),
+          });
         }
       }
       closeDrawer();
@@ -523,6 +551,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
     setDFiles([]);
     setDExistingFilePath(forEdit ? parseFilePaths(forEdit.file_path) : []);
     setDExistingThumbPaths(forEdit ? parseFilePaths(forEdit.file_thumb_paths) : []);
+    editOriginal.current = forEdit || null;
     setDrawerOpen(true);
 
     // Fetch batch list
@@ -546,6 +575,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
 
   const closeDrawer = () => {
     setDrawerOpen(false);
+    editOriginal.current = null;
     setTimeout(() => {
       setEditingId(null);
       setDStatus('pending');
@@ -581,12 +611,71 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
 
   /* ── Preview handlers ── */
   const handlePreviewExisting = (index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
-    openPreview(dExistingFilePath.map(p => api.getInvoiceFileUrl(p)), index, layout, getLayout);
+    const path = dExistingFilePath[index];
+    if (path && /\.pdf(\?|$)/i.test(path)) {
+      openPdf(api.getInvoiceFileUrl(path));
+      return;
+    }
+    // Only show images in the carousel (PDFs are previewed separately)
+    const isPdf = (p: string) => /\.pdf(\?|$)/i.test(p);
+    const imageUrls = dExistingFilePath.filter(p => !isPdf(p)).map(p => api.getInvoiceFileUrl(p));
+    const imageIndex = dExistingFilePath.slice(0, index).filter(p => !isPdf(p)).length;
+    // Wrap getLayout to map carousel index back to original file index
+    const wrappedGetLayout: ThumbLayoutResolver | undefined = getLayout
+      ? (ci, cb) => {
+          let orig = 0, cnt = 0;
+          for (let i = 0; i < dExistingFilePath.length; i++) {
+            if (!isPdf(dExistingFilePath[i])) {
+              if (cnt === ci) { orig = i; break; }
+              cnt++;
+            }
+          }
+          getLayout(orig, cb);
+        }
+      : undefined;
+    openPreview(imageUrls, imageIndex, layout, wrappedGetLayout);
   };
 
   const handlePreviewNew = (index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
-    openPreview(dFiles.map(f => f.uri), index, layout, getLayout);
+    const f = dFiles[index];
+    if (f && (f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '') || /\.pdf$/i.test(f.uri || ''))) {
+      openPdf(f.uri);
+      return;
+    }
+    // Only show images in the carousel (PDFs are previewed separately)
+    const isPdf = (ff: any) => ff.type === 'application/pdf' || /\.pdf$/i.test(ff.name || '') || /\.pdf$/i.test(ff.uri || '');
+    const imageUris = dFiles.filter(ff => !isPdf(ff)).map(ff => ff.uri);
+    const imageIndex = dFiles.slice(0, index).filter(ff => !isPdf(ff)).length;
+    // Wrap getLayout to map carousel index back to original file index
+    const wrappedGetLayout: ThumbLayoutResolver | undefined = getLayout
+      ? (ci, cb) => {
+          let orig = 0, cnt = 0;
+          for (let i = 0; i < dFiles.length; i++) {
+            if (!isPdf(dFiles[i])) {
+              if (cnt === ci) { orig = i; break; }
+              cnt++;
+            }
+          }
+          getLayout(orig, cb);
+        }
+      : undefined;
+    openPreview(imageUris, imageIndex, layout, wrappedGetLayout);
   };
+  const wasOpenForPdf = useRef(false);
+
+  const openPdf = useCallback((url: string) => {
+    wasOpenForPdf.current = true;
+    setDrawerOpen(false);
+    onPdfPreview?.(url, t('invPdfTitle') as string);
+  }, [t, onPdfPreview]);
+
+  // Return from PdfPreview → reopen drawer
+  useFocusEffect(useCallback(() => {
+    if (wasOpenForPdf.current) {
+      wasOpenForPdf.current = false;
+      setDrawerOpen(true);
+    }
+  }, []));
 
   const handleClosePreview = () => {
     closePreview();
@@ -679,6 +768,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 value={data.company_name}
                 colors={c}
                 onChange={(v) => setData({ ...data, company_name: v })}
+                onFocus={() => { infoPushSV.value = withTiming(0, { duration: 200 }); }}
                 editable={isAdmin}
               />
               <View style={styles.divider} />
@@ -692,6 +782,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 mono
                 filter={(v: string) => v.replace(/[^a-zA-Z0-9]/g, '')}
                 onChange={(v) => setData({ ...data, tax_id: v })}
+                onFocus={() => { infoPushSV.value = withTiming(0, { duration: 200 }); }}
                 editable={isAdmin}
               />
               <View style={styles.divider} />
@@ -703,6 +794,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 value={data.address}
                 colors={c}
                 onChange={(v) => setData({ ...data, address: v })}
+                onFocus={() => { infoPushSV.value = withTiming(0, { duration: 200 }); }}
                 editable={isAdmin}
               />
               <View style={styles.divider} />
@@ -718,6 +810,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 filter={(v: string) => v.replace(/[^\d]/g, '').slice(0, 11)}
                 validate={(v: string) => v && !/^1[3-9]\d{9}$/.test(v) ? t('errPhoneInvalid') : null}
                 onChange={(v) => setData({ ...data, phone: v })}
+                onFocus={() => { infoPushSV.value = withTiming(0, { duration: 200 }); }}
                 editable={isAdmin}
               />
             </View>
@@ -839,12 +932,10 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
 
           <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
             {recordsLoading ? (
-              <View style={styles.empty}>
-                <Text style={styles.emptyText}>...</Text>
-              </View>
+              <LoadingSpinner />
             ) : filtered.length === 0 ? (
               <EmptyState
-                icon={<InvoiceEmptyIcon color={c.textSub} />}
+                icon={<InvoiceEmptyIcon />}
                 title={t('noRecords')}
                 hint={t('emptyInvoiceHint')}
               />
@@ -980,11 +1071,16 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                   style={[styles.dBatchSelect, { backgroundColor: withAlpha(c.textMain, 0.03) }]}
                   onPress={() => {
                     if (showBatchPicker) { setShowBatchPicker(false); return; }
-                    (batchBtnRef.current as any)?.measureInWindow?.((x: number, y: number, _w: number, h: number) => {
-                      setBatchOffsetX(x || 16);
-                      setBatchOffsetY((y || 100) + (h || 40) + 8);
+                    const ref = batchBtnRef.current as any;
+                    if (ref?.measureInWindow) {
+                      ref.measureInWindow((x: number, y: number, _w: number, h: number) => {
+                        setBatchOffsetX(x || 16);
+                        setBatchOffsetY((y || 100) + (h || 40) + 8);
+                        setShowBatchPicker(true);
+                      });
+                    } else {
                       setShowBatchPicker(true);
-                    }) || setShowBatchPicker(true);
+                    }
                   }}
                   activeOpacity={0.7}
                 >
@@ -1010,7 +1106,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 <View style={styles.dAmountWrap}>
                   <Text style={[styles.dAmountPrefix, { color: c.textSub }]}>¥</Text>
                   <AppTextInput
-                    style={[styles.dInput, styles.dAmountInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
+                    style={[styles.dInput, styles.dAmountInput, dAmountFocus && styles.dAmountInputFocus, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
                     value={dAmountFocus ? dAmount : formatAmountForDisplay(dAmount)}
                     onFocus={() => setDAmountFocus(true)}
                     onBlur={() => { setDAmountFocus(false); setDAmount(formatAmountForStorage(dAmount)); }}
@@ -1044,7 +1140,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                   <Text style={styles.dAutoFillLabel}>{t('invAutoFilled')}</Text>
                 </View>
                 <AppTextInput
-                  style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
+                  style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), fontFamily: 'DMMono-Regular' }]}
                   value={data.tax_id}
                   editable={false}
                   placeholder="—"
@@ -1052,11 +1148,75 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 />
               </View>
 
+              {/* VAT-only fields — 从开票信息反显 */}
+              {dType === 'vat' && (() => {
+                const vatFilled = (v: string) => v && !isDash(v);
+                const vatHint = (v: string) => vatFilled(v)
+                  ? <Text style={{ color: c.textSub, fontWeight: '400', fontSize: FONTS.tiny.size, marginLeft: 'auto' }}>{t('invAutoFilled')}</Text>
+                  : <Text style={{ color: c.danger, fontWeight: '400', fontSize: FONTS.tiny.size, marginLeft: 'auto' }}>{t('invVatGoMaintain')}</Text>;
+                return (
+                <>
+                  <View style={styles.dField}>
+                    <View style={styles.dLabelRow}>
+                      <Text style={styles.dLabel}>{t('addressPhone')}<Text style={{ color: c.danger }}> *</Text></Text>
+                      {vatHint(data.address)}
+                    </View>
+                    <AppTextInput
+                      style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
+                      value={isDash(data.address) ? '' : data.address}
+                      editable={false}
+                      placeholder="—"
+                      placeholderTextColor={c.textSub}
+                    />
+                  </View>
+                  <View style={styles.dField}>
+                    <View style={styles.dLabelRow}>
+                      <Text style={styles.dLabel}>{t('companyPhone')}<Text style={{ color: c.danger }}> *</Text></Text>
+                      {vatHint(data.phone)}
+                    </View>
+                    <AppTextInput
+                      style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), fontFamily: 'DMMono-Regular' }]}
+                      value={isDash(data.phone) ? '' : data.phone}
+                      editable={false}
+                      placeholder="—"
+                      placeholderTextColor={c.textSub}
+                    />
+                  </View>
+                  <View style={styles.dField}>
+                    <View style={styles.dLabelRow}>
+                      <Text style={styles.dLabel}>{t('bankName')}<Text style={{ color: c.danger }}> *</Text></Text>
+                      {vatHint(data.bank_name)}
+                    </View>
+                    <AppTextInput
+                      style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
+                      value={isDash(data.bank_name) ? '' : data.bank_name}
+                      editable={false}
+                      placeholder="—"
+                      placeholderTextColor={c.textSub}
+                    />
+                  </View>
+                  <View style={styles.dField}>
+                    <View style={styles.dLabelRow}>
+                      <Text style={styles.dLabel}>{t('bankAccount')}<Text style={{ color: c.danger }}> *</Text></Text>
+                      {vatHint(data.bank_account)}
+                    </View>
+                    <AppTextInput
+                      style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), fontFamily: 'DMMono-Regular' }]}
+                      value={isDash(data.bank_account) ? '' : data.bank_account}
+                      editable={false}
+                      placeholder="—"
+                      placeholderTextColor={c.textSub}
+                    />
+                  </View>
+                </>
+                );
+              })()}
+
               {/* Date + Email */}
               <View style={styles.dRow}>
                 <View style={[styles.dFieldHalf, { overflow: 'hidden' }]}>
                   <Text style={styles.dLabel}>{t('invDrawerDate')}</Text>
-                  <View style={[styles.dInput, { backgroundColor: withAlpha(c.textMain, 0.03), justifyContent: 'center', paddingVertical: 0 }]}>
+                  <View style={[styles.dInput, { backgroundColor: withAlpha(c.textMain, 0.03), justifyContent: 'center', paddingVertical: 0, height: FONTS.sub.size + 28 }]}>
                     <DatePicker
                       date={dDate}
                       onChange={setDDate}
@@ -1072,7 +1232,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                   <AppTextInput
                     style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
                     value={dEmail}
-                    onChangeText={setDEmail}
+                    editable={false}
                     placeholder="email@example.com"
                     placeholderTextColor={c.textSub}
                     keyboardType="email-address"
@@ -1104,7 +1264,7 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
                 <View style={styles.dField}>
                   <Text style={styles.dLabel}>{t('invRecInvoiceNo')}<Text style={{ color: c.danger }}> *</Text></Text>
                   <AppTextInput
-                    style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
+                    style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), fontFamily: 'DMMono-Regular' }]}
                     value={dInvoiceNo}
                     onChangeText={(v) => setDInvoiceNo(v.replace(/[^\d]/g, '').slice(0, 20))}
                     placeholder="20260600000001"
@@ -1150,7 +1310,24 @@ export default function InvoiceScreen({ onBack, filterBatchId }: Props) {
             {(() => {
               const nonLoadDisabled = !dAmount || !data.company_name || !data.tax_id
                 || (dStatus === 'done' && !dInvoiceNo.trim())
-                || (dStatus === 'done' && dFiles.length === 0 && dExistingFilePath.length === 0);
+                || (dStatus === 'done' && dFiles.length === 0 && dExistingFilePath.length === 0)
+                || (dType === 'vat' && (
+                  !data.address || isDash(data.address) ||
+                  !data.phone || isDash(data.phone) ||
+                  !data.bank_name || isDash(data.bank_name) ||
+                  !data.bank_account || isDash(data.bank_account)
+                ))
+                || (editingId && editOriginal.current ? (
+                  editOriginal.current.type === dType &&
+                  String(editOriginal.current.amount) === dAmount &&
+                  editOriginal.current.date === dDate &&
+                  (editOriginal.current.note || '') === dNote &&
+                  (editOriginal.current.invoice_number || '') === dInvoiceNo &&
+                  editOriginal.current.status === dStatus &&
+                  (editOriginal.current.procurement_batch_id ?? null) === dBatchId &&
+                  parseFilePaths(editOriginal.current.file_path).length === dExistingFilePath.length &&
+                  dFiles.length === 0
+                ) : false);
               return (
                 <SubmitButton
                   onPress={handleDrawerSubmit}
@@ -1233,7 +1410,7 @@ function EditableInfoRow({ icon, iconBg, label, value, colors, mono, onChange, e
         <View style={styles.body}>
           <Text style={[styles.label, { color: colors.textSub }]}>{label}</Text>
           <AppTextInput
-            style={[styles.valueInput, { color: colors.textMain }]}
+            style={[styles.valueInput, { color: colors.textMain, fontFamily: mono ? 'DMMono-Regular' : undefined }]}
             value={draft}
             onChangeText={handleChange}
             onFocus={onFocus}
@@ -1258,14 +1435,14 @@ function EditableInfoRow({ icon, iconBg, label, value, colors, mono, onChange, e
       <View style={styles.body}>
         <Text style={[styles.label, { color: colors.textSub }]}>{label}</Text>
         <Text
-          style={[styles.value, { color: value ? colors.textMain : colors.textSub, fontWeight: value ? '500' : '400' }]}
+          style={[styles.value, { color: value ? colors.textMain : colors.textSub, fontWeight: value ? '500' : '400', fontFamily: mono ? 'DMMono-Regular' : undefined }]}
           numberOfLines={1}
         >
           {value || t('invEmpty')}
         </Text>
       </View>
       {editable && (
-        <TouchableOpacity onPress={() => { setDraft(value); setEditing(true); }} activeOpacity={0.7}>
+        <TouchableOpacity onPress={() => { setDraft(filter ? filter(value) : value); setEditing(true); }} activeOpacity={0.7}>
           <PencilSvg color={colors.textSub} />
         </TouchableOpacity>
       )}
@@ -1306,7 +1483,7 @@ const getStyles = (c: ThemeColors) =>
     ecBtnText: { color: '#fff', fontSize: FONTS.small.size, fontWeight: '500' },
     ecStats: { flexDirection: 'row', marginBottom: 16 },
     ecStat: { flex: 1, paddingHorizontal: 12, alignItems: 'center', borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.12)' },
-    ecStatNum: { color: '#fff', fontSize: FONTS.large.size, fontWeight: '600' },
+    ecStatNum: { color: '#fff', fontSize: FONTS.large.size, fontWeight: '600', fontFamily: 'DMMono-Regular' },
     ecStatLbl: { color: 'rgba(255,255,255,0.5)', fontSize: FONTS.tiny.size, marginTop: 2 },
 
     /* TABS */
@@ -1353,14 +1530,14 @@ const getStyles = (c: ThemeColors) =>
     invBadgeText: { fontSize: FONTS.tiny.size, fontWeight: '600', letterSpacing: 0.6 },
     invMain: { flex: 1, minWidth: 0 },
     invCompany: { fontSize: FONTS.sub.size, fontWeight: '600', color: c.textMain, marginBottom: 3 },
-    invTax: { fontSize: FONTS.nano.size, color: c.textSub, marginBottom: 4 },
+    invTax: { fontSize: FONTS.nano.size, color: c.textSub, marginBottom: 4, fontFamily: 'DMMono-Regular' },
     invMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' as any },
     invDate: { fontSize: FONTS.nano.size, color: c.textSub },
     invDot: { color: c.secondary, fontSize: FONTS.nano.size },
-    invNo: { fontSize: FONTS.tiny.size, color: c.textSub },
+    invNo: { fontSize: FONTS.tiny.size, color: c.textSub, fontFamily: 'DMMono-Regular' },
     invSealWrap: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     invBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
-    invAmount: { fontSize: FONTS.large.size, fontWeight: '700' },
+    invAmount: { fontSize: FONTS.large.size, fontWeight: '700', fontFamily: 'DMMono-Regular' },
     invAmountLabel: { fontSize: FONTS.tiny.size, color: c.textSub, marginTop: 1 },
     invActions: { flexDirection: 'row', gap: 6 },
     invDelBtn: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
@@ -1381,10 +1558,11 @@ const getStyles = (c: ThemeColors) =>
     dField: { marginBottom: 14 },
     dFieldHalf: { flex: 1, minWidth: 0 },
     dRow: { flexDirection: 'row', gap: 10 },
-    dInput: { width: '100%', paddingVertical: 11, paddingHorizontal: 14, borderWidth: 0, borderRadius: 10, fontSize: FONTS.sub.size, color: c.textMain },
+    dInput: { width: '100%', paddingVertical: 11, paddingHorizontal: 14, borderWidth: 0, borderRadius: 10, fontSize: FONTS.sub.size, color: c.textMain, minHeight: FONTS.sub.size + 28 },
     dAmountWrap: { position: 'relative' as any },
-    dAmountPrefix: { position: 'absolute' as any, left: 14, top: 14, fontSize: FONTS.sub.size, fontWeight: '600' },
-    dAmountInput: { paddingLeft: 26, fontSize: FONTS.body.size, fontWeight: '700' },
+    dAmountPrefix: { position: 'absolute' as any, left: 14, top: '50%' as any, fontSize: FONTS.sub.size, fontWeight: '600', fontFamily: 'DMMono-Regular' },
+    dAmountInput: { paddingLeft: 26, fontSize: FONTS.h2.size, fontWeight: '700', fontFamily: 'DMMono-Regular', letterSpacing: 0.2 },
+    dAmountInputFocus: { fontSize: FONTS.h2.size, fontWeight: '700' },
     dTypeRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
     dTypeChip: { flex: 1, flexDirection: 'row', paddingVertical: 10, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
     dTypeChipText: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight },

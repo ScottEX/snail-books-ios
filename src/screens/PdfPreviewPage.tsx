@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Share } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Share, PanResponder } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system';
 import Svg, { Path, Polyline, Rect, Circle, Line } from 'react-native-svg';
@@ -9,14 +8,8 @@ import { t, getLang } from '../i18n';
 import { useTheme, ThemeColors, FONTS } from '../theme';
 import { API_BASE } from '../api/client';
 import LoadingSpinner from '../components/LoadingSpinner';
-
-function BackArrowSvg() {
-  return (
-    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <Polyline points="15 18 9 12 15 6" />
-    </Svg>
-  );
-}
+import HomeBackground from '../components/HomeBackground';
+import HistoryHeader from '../components/HistoryHeader';
 
 function DownloadSvg() {
   return (
@@ -42,12 +35,18 @@ function ImageDownloadSvg() {
 
 interface Props {
   batchId: number;
-  batchNumber: number;
+  batchNumber?: number;
   supplier?: string;
+  /** If provided, preview this file URL directly instead of fetching by batchId */
+  fileUrl?: string;
+  /** Custom title (used with fileUrl mode) */
+  title?: string;
+  /** Filename prefix for download/export (used with fileUrl mode, combined with batchNumber) */
+  fileNamePrefix?: string;
   onBack: () => void;
 }
 
-export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack }: Props) {
+export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl, title: customTitle, fileNamePrefix, onBack }: Props) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const safeTop = insets.top;
@@ -56,10 +55,9 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState<'download' | 'images' | null>(null);
   const [introSec, setIntroSec] = useState(0);
-  const [pdfCached, setPdfCached] = useState(false);
-  const cachedUriRef = useRef('');
+  const [pdfPages, setPdfPages] = useState<number | null>(null);
 
-  // Loading countdown timer
+  const title = customTitle || (t('procPdfTitle') as string).replace('{n}', String(batchNumber));
   useEffect(() => {
     if (!loading) { setIntroSec(0); return; }
     setIntroSec(0);
@@ -67,72 +65,82 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
     return () => clearInterval(id);
   }, [loading]);
 
-  const title = (t('procPdfTitle') as string).replace('{n}', String(batchNumber));
-  const pdfUrl = supplier
-    ? `${API_BASE}/api/procurement-batches/${batchId}/pdf?supplier=${encodeURIComponent(supplier)}`
-    : `${API_BASE}/api/procurement-batches/${batchId}/pdf`;
-  const pngUrl = supplier
-    ? `${API_BASE}/api/procurement-batches/${batchId}/png?supplier=${encodeURIComponent(supplier)}`
-    : `${API_BASE}/api/procurement-batches/${batchId}/png`;
+  const pdfUrl = fileUrl
+    || (supplier
+      ? `${API_BASE}/api/procurement-batches/${batchId}/pdf?supplier=${encodeURIComponent(supplier)}`
+      : `${API_BASE}/api/procurement-batches/${batchId}/pdf`);
+  const pngUrl = batchId > 0
+    ? (supplier
+      ? `${API_BASE}/api/procurement-batches/${batchId}/png?supplier=${encodeURIComponent(supplier)}`
+      : `${API_BASE}/api/procurement-batches/${batchId}/png`)
+    : (fileUrl && fileUrl.startsWith(API_BASE)) ? `${fileUrl}/png` : '';
 
   const lang = getLang();
-  const source = { uri: pdfUrl, headers: { 'X-Lang': lang } };
+  const isLocal = !pdfUrl.startsWith('http');
+  const source = isLocal ? { uri: pdfUrl } : { uri: pdfUrl, headers: { 'X-Lang': lang } };
 
-  const headerHeight = safeTop + 42;
+  // Swipe-to-back on header
+  const headerPan = useRef(PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gs) => gs.dx > 10 && Math.abs(gs.dy) < 5,
+    onPanResponderRelease: (_, gs) => {
+      if (gs.dx > 60) onBack();
+    },
+  })).current;
 
-  // Pre-cache PDF on mount so download/share reuses the local file (matches web behavior)
-  // Timeout at 15s to avoid hanging gunicorn workers like before
-  // Cache key includes lang so switching languages re-downloads
+  // Skip initial loading spinner for local files (blob URIs, etc.)
   useEffect(() => {
-    let cancelled = false;
-    const fileName = `procurement_${batchId}_${lang}.pdf`;
-    const localUri = `${FileSystem.cacheDirectory}${fileName}`;
-    (async () => {
-      try {
-        const info = await FileSystem.getInfoAsync(localUri);
-        if (info.exists) {
-          if (!cancelled) { cachedUriRef.current = localUri; setPdfCached(true); }
-          return;
-        }
-        const dl = FileSystem.createDownloadResumable(pdfUrl, localUri, { headers: { 'X-Lang': lang } }, (progress) => {
-          // progress callback — can be used for timeout detection
-        });
-        const timeout = setTimeout(() => {
-          if (!cancelled) dl.cancelAsync();
-        }, 15000);
-        const result = await dl.downloadAsync();
-        clearTimeout(timeout);
-        if (result && !cancelled) {
-          cachedUriRef.current = result.uri;
-          setPdfCached(true);
-        }
-      } catch (e) {
-        if (!cancelled) {
-          // Cache failed silently — download/share will fall back to direct download
-          console.warn('PDF pre-cache failed:', e);
-        }
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [pdfUrl, batchId]);
+    if (!pdfUrl.startsWith('http')) { setLoading(false); }
+  }, [pdfUrl]);
 
-  // Download PDF — reuses cached file (matches web: no extra request)
+  // Fetch page count to decide whether to show export-image button (>5 pages → hide)
+  useEffect(() => {
+    if (!pngUrl) return;
+    let cancelled = false;
+    const sep = pngUrl.includes('?') ? '&' : '?';
+    const h: Record<string, string> = { 'X-Lang': lang };
+    try {
+      const token = localStorage.getItem('token');
+      if (token) h['Authorization'] = `Bearer ${token}`;
+    } catch {}
+    fetch(`${pngUrl}${sep}pages=1`, {
+      headers: h,
+      credentials: 'include',
+    })
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(data => {
+        if (!cancelled && typeof data.pages === 'number') {
+          setPdfPages(data.pages);
+        } else if (!cancelled) {
+          setPdfPages(-1); // error indicator
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) setPdfPages(-1); // error indicator
+      });
+    return () => { cancelled = true; };
+  }, [pngUrl, lang]);
+
+  const headerHeight = safeTop + 44;
+
+  // Download PDF
   const handleDownload = useCallback(async () => {
     setActionLoading('download');
     try {
-      const fileName = `procurement_${batchId}_${lang}.pdf`;
-      const localUri = cachedUriRef.current || `${FileSystem.cacheDirectory}${fileName}`;
-      // If cache missed, download now with 15s timeout
-      if (!pdfCached) {
-        const dl = FileSystem.createDownloadResumable(pdfUrl, localUri, { headers: { 'X-Lang': lang } });
-        const timeout = setTimeout(() => dl.cancelAsync(), 15000);
-        const result = await dl.downloadAsync();
-        clearTimeout(timeout);
-        if (!result) throw new Error('下载超时');
-        await Share.share({ url: result.uri, title: fileName });
-      } else {
-        await Share.share({ url: localUri, title: fileName });
-      }
+      const fileName = batchId
+        ? `${t('procFileName')}_${batchNumber}.pdf`
+        : (fileNamePrefix && (batchNumber ?? 0) > 0)
+          ? `${fileNamePrefix}_${batchNumber}.pdf`
+          : `${title}.pdf`;
+      const localUri = `${FileSystem.cacheDirectory}${fileName}`;
+      const dl = FileSystem.createDownloadResumable(pdfUrl, localUri, { headers: { 'X-Lang': lang } });
+      const timeout = setTimeout(() => dl.cancelAsync(), 15000);
+      const result = await dl.downloadAsync();
+      clearTimeout(timeout);
+      if (!result) throw new Error('下载超时');
+      await Share.share({ url: result.uri, title: fileName });
     } catch (err: any) {
       if (err?.message !== 'User did not share') {
         setError(err?.message || '下载失败');
@@ -140,13 +148,17 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
     } finally {
       setActionLoading(null);
     }
-  }, [pdfUrl, batchId, pdfCached]);
+  }, [pdfUrl, batchId, batchNumber, fileNamePrefix]);
 
   // Export image — downloads PNG from server (backend converts first PDF page to PNG)
   const handleExportImage = useCallback(async () => {
     setActionLoading('images');
     try {
-      const fileName = `procurement_${batchId}.png`;
+      const fileName = batchId
+        ? `${t('procFileName')}_${batchNumber}.png`
+        : (fileNamePrefix && (batchNumber ?? 0) > 0)
+          ? `${fileNamePrefix}_${batchNumber}.png`
+          : `${title}.png`;
       const localUri = `${FileSystem.cacheDirectory}${fileName}`;
       const dl = FileSystem.createDownloadResumable(pngUrl, localUri, { headers: { 'X-Lang': lang } });
       const timeout = setTimeout(() => dl.cancelAsync(), 15000);
@@ -161,66 +173,47 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
     } finally {
       setActionLoading(null);
     }
-  }, [pngUrl, batchId, lang]);
+  }, [pngUrl, batchId, batchNumber, lang]);
 
   const isActionLoading = actionLoading !== null;
 
   return (
-    <View style={styles.root}>
-      <BlurView
-        intensity={24}
-        tint="light"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: headerHeight,
-        }}
-      />
+    <View style={styles.root} {...headerPan.panHandlers}>
+      <HomeBackground />
       <StatusBar barStyle="dark-content" />
-      <View
-        style={{
-          position: 'absolute',
-          top: safeTop - 5,
-          left: 0,
-          right: 0,
-          zIndex: 90,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 10,
-          paddingTop: 0,
-          paddingBottom: 6,
-          paddingHorizontal: 16,
-          backgroundColor: 'transparent',
-          pointerEvents: 'box-none' as const,
-        }}
-      >
-        <TouchableOpacity onPress={onBack} activeOpacity={0.7} disabled={isActionLoading}>
-          <View style={styles.backBtn}>
-            <BackArrowSvg />
-          </View>
-        </TouchableOpacity>
-        <Text style={styles.title} numberOfLines={1}>{title}</Text>
-        <TouchableOpacity onPress={handleDownload} activeOpacity={0.7} disabled={isActionLoading}>
-          <View style={styles.shareBtn}>
-            {actionLoading === 'download' ? (
-              <LoadingSpinner label={false} size={16} color="#2C2626" />
-            ) : (
-              <DownloadSvg />
-            )}
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleExportImage} activeOpacity={0.7} disabled={isActionLoading}>
-          <View style={styles.shareBtn}>
-            {actionLoading === 'images' ? (
-              <LoadingSpinner label={false} size={16} color="#2C2626" />
-            ) : (
-              <ImageDownloadSvg />
-            )}
-          </View>
-        </TouchableOpacity>
-      </View>
+      <HistoryHeader
+        safeTop={safeTop}
+        onBack={onBack}
+        title={title}
+        {...(!isLocal || pngUrl !== '' ? {
+          rightAction: (
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {!isLocal && (
+                <TouchableOpacity onPress={handleDownload} activeOpacity={0.7} disabled={isActionLoading}>
+                  <View style={styles.shareBtn}>
+                    {actionLoading === 'download' ? (
+                      <LoadingSpinner label={false} size={16} color="#2C2626" />
+                    ) : (
+                      <DownloadSvg />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              )}
+              {pngUrl !== '' && (pdfPages === null || pdfPages <= 5) && (
+                <TouchableOpacity onPress={handleExportImage} activeOpacity={0.7} disabled={isActionLoading}>
+                  <View style={styles.shareBtn}>
+                    {actionLoading === 'images' ? (
+                      <LoadingSpinner label={false} size={16} color="#2C2626" />
+                    ) : (
+                      <ImageDownloadSvg />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              )}
+            </View>
+          ),
+        } : {})}
+      />
 
       {/* WebView PDF preview */}
       <View style={[styles.webviewWrap, { marginTop: headerHeight }]}>
@@ -236,9 +229,13 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
           <WebView
             source={source}
             style={styles.webview}
+            opaque={false}
+            allowFileAccess={true}
+            allowingReadAccessToURL={isLocal ? pdfUrl.substring(0, pdfUrl.lastIndexOf('/')) : undefined}
+            originWhitelist={['*']}
+            javaScriptEnabled={!isLocal}
             onLoadEnd={() => setLoading(false)}
             onError={(e) => { setError(e.nativeEvent.description || '加载失败'); setLoading(false); }}
-            javaScriptEnabled={false}
             scalesPageToFit
             startInLoadingState={false}
           />
@@ -246,7 +243,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, onBack 
         {loading && !error && (
           <View style={styles.loadingOverlay} pointerEvents="none">
             <LoadingSpinner
-              labelText={t('pdfGenerating')}
+              labelText={batchId > 0 ? t('pdfGenerating') : t('loading')}
               footer={<Text style={styles.loadingSec}>{introSec}s</Text>}
             />
           </View>
@@ -264,33 +261,18 @@ const getStyles = (c: ThemeColors) => {
     return `rgba(${r},${g},${b},${op})`;
   };
   return StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#fff' },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.08)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(0,0,0,0.10)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  root: { flex: 1, backgroundColor: 'transparent' },
   shareBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: btnBg(0.30),
     borderWidth: 0.5,
     borderColor: 'rgba(0,0,0,0.10)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  title: {
-    flex: 1,
-    fontSize: FONTS.sub.size,
-    color: '#000',
-  },
-  webviewWrap: { flex: 1, backgroundColor: c.bg },
+  webviewWrap: { flex: 1, backgroundColor: 'transparent' },
   webview: { flex: 1, backgroundColor: 'transparent' },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,

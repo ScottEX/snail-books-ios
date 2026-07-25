@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet,
   Image, useWindowDimensions,
@@ -22,12 +23,15 @@ import PaymentMethodChips from '../components/PaymentMethodChips';
 import ExpenseNoteInput from '../components/ExpenseNoteInput';
 import DatePicker from '../components/DatePicker';
 import HistoryHeader from '../components/HistoryHeader';
+import HomeBackground from '../components/HomeBackground';
+import { StatusBar } from 'react-native';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { PickedImage } from '../utils/imagePicker';
 import { parseImages } from '../utils/parseImages';
 import ImagePreview, { measureThumbLayout, resolveThumbLayout, ThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 import { Image as ExpoImage } from 'expo-image';
 import { useImagePreview } from '../hooks/useImagePreview';
+import { useNavigation } from '@react-navigation/native';
 import ReceiptUpload from '../components/ReceiptUpload';
 import { useServerDate } from '../hooks/useServerDate';
 
@@ -70,6 +74,7 @@ interface Props {
 
 export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDeleted }: Props) {
   const { colors: c, theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const sd = useServerDate();
   const lang = getLang();
   const { width: w, height: windowHeight } = useWindowDimensions();
@@ -91,14 +96,38 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
   const [deleteError, setDeleteError] = useState('');
   const { showToast, ToastHost } = useToast();
   const { preview, openPreview, closePreview } = useImagePreview();
+  const navigation = useNavigation<any>();
   const viewThumbRefs = useRef<(any | null)[]>([]);
 
-  const handleViewPreview = useCallback((images: string[], i: number) => {
-    const resolver: ThumbLayoutResolver = (idx, cb) => resolveThumbLayout(viewThumbRefs.current[idx], cb);
+  const openPdf = useCallback((url: string) => {
+    navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title: t('expensePdfTitle') as string });
+  }, [navigation]);
+
+  const handleViewPreview = useCallback((previewUrls: string[], i: number) => {
+    const url = previewUrls[i];
+    if (url && /\.pdf(\?|$)/i.test(url)) {
+      openPdf(url);
+      return;
+    }
+    // Filter out PDFs from carousel (matching InvoiceScreen pattern)
+    const isPdf = (p: string) => /\.pdf(\?|$)/i.test(p);
+    const imageUrls = previewUrls.filter(p => !isPdf(p));
+    const imageIndex = previewUrls.slice(0, i).filter(p => !isPdf(p)).length;
+    // Map carousel index back to display index (skip PDFs)
+    const wrappedResolver: ThumbLayoutResolver = (idx, cb) => {
+      let orig = 0, cnt = 0;
+      for (let k = 0; k < previewUrls.length; k++) {
+        if (!isPdf(previewUrls[k])) {
+          if (cnt === idx) { orig = k; break; }
+          cnt++;
+        }
+      }
+      resolveThumbLayout(viewThumbRefs.current[orig], cb);
+    };
     const ref = viewThumbRefs.current[i];
-    if (!ref) { openPreview(images, i, undefined, resolver); return; }
-    measureThumbLayout(ref, (layout) => openPreview(images, i, layout, resolver));
-  }, [openPreview]);
+    if (!ref) { openPreview(imageUrls, imageIndex, undefined, wrappedResolver); return; }
+    measureThumbLayout(ref, (layout) => openPreview(imageUrls, imageIndex, layout, wrappedResolver));
+  }, [openPreview, openPdf]);
 
   const [category, setCategory] = useState(expense?.category || 'daily');
   const [account, setAccount] = useState(expense?.account || 'payWechat');
@@ -108,6 +137,44 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
   const [images, setImages] = useState<string[]>(parseImages(expense?.images));
   const [thumbImages, setThumbImages] = useState<string[]>(parseImages(expense?.thumb_images));
   const [newFiles, setNewFiles] = useState<PickedImage[]>([]);
+
+  // Existing images preview (PDF-aware)
+  const handlePreviewExisting = useCallback((index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
+    const path = images[index];
+    if (path && /\.pdf(\?|$)/i.test(path)) { openPdf(resolveAssetUrl(path) || path); return; }
+    const isPdf = (p: string) => /\.pdf(\?|$)/i.test(p);
+    const imageUrls = images.filter(p => !isPdf(p)).map(p => resolveAssetUrl(p) || p);
+    const imageIndex = images.slice(0, index).filter(p => !isPdf(p)).length;
+    const wrappedGetLayout: ThumbLayoutResolver | undefined = getLayout
+      ? (ci, cb) => {
+          let orig = 0, cnt = 0;
+          for (let i = 0; i < images.length; i++) {
+            if (!isPdf(images[i])) { if (cnt === ci) { orig = i; break; } cnt++; }
+          }
+          getLayout(orig, cb);
+        } : undefined;
+    openPreview(imageUrls, imageIndex, layout, wrappedGetLayout);
+  }, [images, openPreview, openPdf]);
+
+  // New files preview (PDF-aware)
+  const handlePreviewNew = useCallback((index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
+    const f = newFiles[index];
+    if (f && (f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '') || /\.pdf$/i.test(f.uri || ''))) {
+      openPdf(f.uri); return;
+    }
+    const isPdf = (ff: any) => ff.type === 'application/pdf' || /\.pdf$/i.test(ff.name || '') || /\.pdf$/i.test(ff.uri || '');
+    const imageUris = newFiles.filter(ff => !isPdf(ff)).map(ff => ff.uri);
+    const imageIndex = newFiles.slice(0, index).filter(ff => !isPdf(ff)).length;
+    const wrappedGetLayout: ThumbLayoutResolver | undefined = getLayout
+      ? (ci, cb) => {
+          let orig = 0, cnt = 0;
+          for (let i = 0; i < newFiles.length; i++) {
+            if (!isPdf(newFiles[i])) { if (cnt === ci) { orig = i; break; } cnt++; }
+          }
+          getLayout(orig, cb);
+        } : undefined;
+    openPreview(imageUris, imageIndex, layout, wrappedGetLayout);
+  }, [newFiles, openPreview, openPdf]);
 
   const hasChanges =
     category !== (expense?.category || 'daily') ||
@@ -233,9 +300,12 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
   return (
     <ReAnimated.View style={[{ flex: 1 }, contentStyle]}>
     <View style={styles.container}>
+      <HomeBackground />
+      <StatusBar barStyle="dark-content" />
       <HistoryHeader
+        safeTop={insets.top}
         onBack={onBack}
-        title={t('expDetail')}
+        title={t('expenseDetail')}
         rightAction={!expense?.procurement_batch_id ? (
           <TouchableOpacity
             onPress={() => setShowDeleteConfirm(true)}
@@ -247,9 +317,8 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
           </TouchableOpacity>
         ) : undefined}
       />
-
       {/* Body */}
-      <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false} keyboardDismissMode="interactive">
+      <ScrollView style={[styles.body, { marginTop: 100 }]} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false} keyboardDismissMode="interactive">
         {/* ── View mode ── */}
         {!editMode && (
           <View>
@@ -338,6 +407,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
                 <View style={styles.thumbRow}>
                   {displayImgs.map((url: string, i: number) => {
                     const resolvedUrl = resolveAssetUrl(url) || url;
+                    const isPdf = /\.pdf(\?|$)/i.test(String(previewImgs[i] || ''));
                     return (
                     <TouchableOpacity
                       key={`v-${i}`}
@@ -345,7 +415,14 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
                       onPress={() => handleViewPreview(resolvedPreviews, i)}
                       activeOpacity={0.8}
                     >
-                      <Image source={{ uri: resolvedUrl }} style={[styles.thumb, { width: thumbSize, height: thumbSize }]} />
+                      {isPdf ? (
+                        <View style={[styles.thumb, { width: thumbSize, height: thumbSize, borderRadius: 8, backgroundColor: withAlpha(c.textMain, 0.06), alignItems: 'center', justifyContent: 'center', gap: 2 }]}>
+                          <Text style={{ fontSize: FONTS.xlarge.size }}>📄</Text>
+                          <Text style={{ fontSize: FONTS.tiny.size, color: c.textSub }}>PDF</Text>
+                        </View>
+                      ) : (
+                        <Image source={{ uri: resolvedUrl }} style={[styles.thumb, { width: thumbSize, height: thumbSize }]} />
+                      )}
                     </TouchableOpacity>
                   ); })}
                 </View>
@@ -436,7 +513,8 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
               onRemoveNew={removeNewFile}
               getPreviewUrl={(f: PickedImage) => f.uri}
               maxThumbSize={thumbSize}
-              onPreviewExisting={(i: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => openPreview(resolvedPreviews, i, layout, getLayout)}
+              onPreviewExisting={handlePreviewExisting}
+              onPreviewNew={handlePreviewNew}
             />
             <View style={{ height: 100 }} />
           </View>
@@ -517,7 +595,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
 
 const getStyles = (c: ThemeColors) =>
   StyleSheet.create({
-    container: { flex: 1, backgroundColor: c.bg },
+    container: { flex: 1 },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -537,10 +615,11 @@ const getStyles = (c: ThemeColors) =>
       flex: 1, fontSize: FONTS.h2.size, fontWeight: '700', color: c.textMain,
     },
     actionBtn: {
+      width: 34, height: 34,
       justifyContent: 'center', alignItems: 'center', padding: 4,
     },
-    body: { flex: 1 },
-    bodyContent: { paddingHorizontal: 16, paddingTop: 112, paddingBottom: 24 },
+    body: { flex: 1, backgroundColor: c.bg },
+    bodyContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 24 },
 
     amountCard: {
       flexDirection: 'row',

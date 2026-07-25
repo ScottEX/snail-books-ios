@@ -40,6 +40,9 @@ const getStyles = (c: ThemeColors) =>
       fontSize: FONTS.body.size,
       fontWeight: '500',
       color: c.textSub,
+      textAlign: 'center',
+      paddingHorizontal: 40,
+      lineHeight: 22,
     },
     hint: {
       fontSize: FONTS.sub.size,

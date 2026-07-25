@@ -13,6 +13,7 @@ import { FONTS } from '../theme';
 import { modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
 import ModalOverlay from '../components/ModalOverlay';
 import { fmtAmtFull } from '../utils/format';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DatePickerModal from '../components/DatePickerModal';
 import HistoryHeader from '../components/HistoryHeader';
@@ -50,6 +51,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
   const { showToast, ToastHost } = useToast();
 
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const st = useMemo(() => getSt(colors), [colors]);
 
   const [showFilter, setShowFilter] = useState(false);
@@ -195,14 +197,15 @@ export default function ReconHistoryScreen({ onBack }: Props) {
       <HomeBackground />
       <StatusBar barStyle="dark-content" />
       <HistoryHeader
+        safeTop={insets.top}
         onBack={onBack}
-        title={`${t('reconHistory')} (${total}/${totalAll})`}
+        title={t('reconHistory')}
         filterActive={showFilter}
         onToggleFilter={() => setShowFilter(!showFilter)}
       />
 
       {/* Filter — dark glass via FilterPanel (BlurView inside) */}
-      <FilterPanel visible={showFilter} onClose={closeFilter}>
+      <FilterPanel visible={showFilter} onClose={closeFilter} top={insets.top + 44}>
         <DateErrorHint trigger={filterDateError} message={t('errDateFuture')} color={colors.danger} />
         {rangeInvalid && <Text style={{ color: colors.danger, fontSize: FONTS.micro.size, textAlign: 'right', marginTop: 2 }}>{t('errDateRange')}</Text>}
         {rangeTooLong && <Text style={{ color: colors.danger, fontSize: FONTS.micro.size, textAlign: 'right', marginTop: 2 }}>{t('errDateRangeTooLong')}</Text>}
@@ -249,7 +252,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
       {/* User dropdown — moved outside FilterPanel to avoid overflow clipping */}
       {showUserPick && (
         <Animated.View style={{
-          position: 'absolute' as any, top: 212, left: 100, width: 160, zIndex: 10000,
+          position: 'absolute' as any, top: insets.top + 156, left: 100, width: 160, zIndex: 10000,
           opacity: userDropAnim,
           transform: [{ translateY: dropSlide }, { scale: dropScale }],
         }}>
@@ -274,7 +277,7 @@ export default function ReconHistoryScreen({ onBack }: Props) {
       {/* List */}
       <ScrollView style={st.list} showsVerticalScrollIndicator={false}
         onScroll={handleScroll} scrollEventThrottle={50}
-        contentContainerStyle={{ paddingTop: showFilter ? 296 : 112, paddingBottom: 20 }}>
+        contentContainerStyle={{ paddingTop: showFilter ? insets.top + 234 : insets.top + 52, paddingBottom: 20 }}>
         {loading ? (
           <LoadingSpinner />
         ) : records.length === 0 ? (

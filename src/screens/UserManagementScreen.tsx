@@ -20,7 +20,7 @@ import { useServerDate } from '../hooks/useServerDate';
 import { useTheme, withAlpha, ThemeColors, FONTS } from '../theme';
 import EmptyState from '../components/EmptyState';
 import Toast from '../components/Toast';
-import AdminHeader from '../components/AdminHeader';
+import HistoryHeader from '../components/HistoryHeader';
 import AnimatedDropdown from '../components/AnimatedDropdown';
 
 interface UserItem {
@@ -59,19 +59,22 @@ function ChevronRightSvg({ color }: { color: string }) {
   );
 }
 
-function CaretDownSvg({ color }: { color: string }) {
+function DropArrowIcon({ color, open }: { color: string; open: boolean }) {
   return (
-    <Svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M6 9l6 6 6-9" />
+    <Svg width={14} height={14} viewBox="0 0 1024 1024" style={{ marginLeft: 2, transform: [{ rotate: open ? '180deg' : '0deg' }] }}>
+      <Path d="M836.899 399.237l-218.01 335.037c-47.506 73.007-166.272 73.007-213.778 0l-218.01-335.037C139.595 326.23 198.977 234.97 293.99 234.97h436.02c95.013 0 154.395 91.26 106.889 164.267z" fill={color} />
     </Svg>
   );
 }
 
 function UserEmptyIcon({ color }: { color: string }) {
   return (
-    <Svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-      <Circle cx={12} cy={8} r={4} />
-      <Path d="M4 22c0-4.4 3.6-8 8-8s8 3.6 8 8" />
+    <Svg width={180} height={140} viewBox="0 0 1024 1024">
+      <Path d="M567.808 496.128c38.4 0 69.632-31.232 69.632-69.632s-31.232-69.632-69.632-69.632-69.632 31.232-69.632 69.632 31.232 69.632 69.632 69.632z m-185.856 0c38.4 0 69.632-31.232 69.632-69.632s-31.232-69.632-69.632-69.632S312.32 388.096 312.32 426.496s31.232 69.632 69.632 69.632z m0 46.592c-54.272 0-162.304 27.136-162.304 81.408v57.856h325.12v-57.856c-0.512-54.272-108.544-81.408-162.816-81.408z m185.856 0c-6.656 0-14.336 0.512-22.528 1.024 27.136 19.456 45.568 45.568 45.568 79.872v57.856h139.264v-57.856c0-53.76-108.544-80.896-162.304-80.896z" fill="#AAD4FF" />
+      <Path d="M660.48 553.984c38.4 0 69.632-31.232 69.632-69.632S698.88 414.72 660.48 414.72s-69.632 31.232-69.632 69.632 31.232 69.632 69.632 69.632z m-185.856 0c38.4 0 69.632-31.232 69.632-69.632S513.024 414.72 474.624 414.72s-69.632 31.232-69.632 69.632 31.232 69.632 69.632 69.632z m0 46.592c-54.272 0-162.304 27.136-162.304 81.408v57.856h325.12v-57.856c0-54.272-108.544-81.408-162.816-81.408z m185.856 0c-6.656 0-14.336 0.512-22.528 1.024 27.136 19.456 45.568 45.568 45.568 79.872v57.856h139.264v-57.856c0-53.76-108.032-80.896-162.304-80.896z" fill="#2B95FF" />
+      <Path d="M864.256 379.904H834.56v-29.696c0-6.656-5.12-11.776-11.776-11.776-6.656 0-11.776 5.12-11.776 11.776v29.696h-29.696c-6.656 0-11.776 5.12-11.776 11.776s5.12 11.776 11.776 11.776h29.696v29.696c0 6.656 5.12 11.776 11.776 11.776 6.656 0 11.776-5.12 11.776-11.776v-29.696h29.696c6.656 0 11.776-5.12 11.776-11.776s-5.632-11.776-11.776-11.776zM323.584 310.272c-14.848 14.848-33.792 10.24-47.616 6.656-13.824-3.584-20.48-4.096-25.6 0.512-5.12 5.12-4.096 11.264-0.512 25.6 3.584 13.824 8.192 32.768-6.656 47.616-14.848 14.848-33.28 10.24-47.104 6.656-13.824-3.584-20.48-4.608-25.6 0.512-4.608 4.608-11.776 4.608-16.384 0s-4.608-11.776 0-16.384c14.848-14.848 33.28-10.24 47.104-6.656 13.824 3.584 20.48 4.608 25.6-0.512s4.096-11.264 0.512-25.6c-3.584-13.824-8.192-32.768 6.656-47.104 14.848-14.848 33.792-10.24 47.616-6.656 13.824 3.584 20.48 4.608 25.6-0.512s4.096-11.776 0.512-25.6c-3.584-13.824-8.192-32.768 6.656-47.616 4.608-4.608 11.776-4.608 16.384 0 4.608 4.608 4.608 11.776 0 16.384-5.12 5.12-4.096 11.264-0.512 25.6 3.584 13.824 8.192 32.768-6.656 47.104z" fill="#A8D4FF" />
+      <Path d="M908.8 613.376m-32.768 0a32.768 32.768 0 1 0 65.536 0 32.768 32.768 0 1 0-65.536 0Z" fill="#D9EDFF" />
+      <Path d="M240.128 756.736l-49.664-49.664c-3.584-3.584-9.216-3.584-12.8 0l-49.664 49.664c-3.584 3.584-3.584 9.216 0 12.8l49.664 49.664c3.584 3.584 9.216 3.584 12.8 0l49.664-49.664c3.584-3.584 3.584-9.216 0-12.8z m-56.832 43.008l-36.864-36.864 36.864-36.864L220.16 762.88l-36.864 36.864z" fill="#A8D4FF" />
     </Svg>
   );
 }
@@ -86,7 +89,7 @@ function lastDayOfMonth(y: number, m: number): string {
 }
 
 export default function UserManagementScreen({ onBack, onSelectUser, reviewedUserId }: Props) {
-  const { colors: c } = useTheme();
+  const { colors: c, theme } = useTheme();
   const sd = useServerDate();
   const s = useMemo(() => getStyles(c), [c]);
   const insets = useSafeAreaInsets();
@@ -106,12 +109,14 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
   const [dateTo, setDateTo] = useState('');
   const [dropYear, setDropYear] = useState(FALLBACK_YEAR);
   const [dropMonth, setDropMonth] = useState(new Date().getMonth() + 1);
-
+  type PendingDate = { type: 'any' } | { type: 'quick'; days: number } | { type: 'custom'; year: number; month: number };
+  const [pendingDate, setPendingDate] = useState<PendingDate>({ type: 'any' });
   // Layout refs for dropdown positioning
   const [statusLayout, setStatusLayout] = useState({ top: 0, left: 0, width: 0 });
   const [dateLayout, setDateLayout] = useState({ top: 0, left: 0, width: 0 });
   const statusChipRef = useRef<View>(null);
   const dateChipRef = useRef<View>(null);
+  const [monthPicked, setMonthPicked] = useState(false);
 
   useEffect(() => {
     if (sd.ready && sd.year !== FALLBACK_YEAR) setDropYear(sd.year);
@@ -193,8 +198,24 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
       setDropMonth(new Date().getMonth() + 1);
     }
     setShowDateDrop(true);
+    // Init pending date from current filter
+    if (dateFrom && dateTo) {
+      // Check if matches a quick preset (only when dateTo is today)
+      if (dateTo === sd.today) {
+        const d = new Date(dateTo).getTime() - new Date(dateFrom).getTime();
+        const days = Math.round(d / 86400000);
+        if (days >= 6 && days <= 7) { setPendingDate({ type: 'quick', days: 7 }); }
+        else if (days >= 29 && days <= 30) { setPendingDate({ type: 'quick', days: 30 }); }
+        else if (days >= 89 && days <= 90) { setPendingDate({ type: 'quick', days: 90 }); }
+        else { setPendingDate({ type: 'custom', year: dropYear, month: dropMonth }); }
+      } else {
+        setPendingDate({ type: 'custom', year: dropYear, month: dropMonth });
+      }
+    } else {
+      setPendingDate({ type: 'any' });
+    }
     setShowStatusDrop(false);
-  }, [dateFrom, sd.year]);
+  }, [dateFrom, sd.year, sd.today]);
 
   const applyStatus = useCallback((val: string) => {
     setStatusFilter(val);
@@ -203,13 +224,25 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
   }, [dateFrom, dateTo, fetchUsers]);
 
   const applyPick = useCallback(() => {
-    const from = `${dropYear}-${String(dropMonth).padStart(2, '0')}-01`;
-    const to = lastDayOfMonth(dropYear, dropMonth);
-    setDateFrom(from);
-    setDateTo(to);
-    setShowDateDrop(false);
-    fetchUsers(statusFilter, from, to);
-  }, [dropYear, dropMonth, statusFilter, fetchUsers]);
+    if (pendingDate.type === 'any') {
+      setDateFrom('');
+      setDateTo('');
+      setShowDateDrop(false);
+      fetchUsers(statusFilter, '', '');
+    } else if (pendingDate.type === 'quick') {
+      setDateFrom(sd.offset(-pendingDate.days));
+      setDateTo(sd.today);
+      setShowDateDrop(false);
+      fetchUsers(statusFilter, sd.offset(-pendingDate.days), sd.today);
+    } else {
+      const from = `${pendingDate.year}-${String(pendingDate.month).padStart(2, '0')}-01`;
+      const to = lastDayOfMonth(pendingDate.year, pendingDate.month);
+      setDateFrom(from);
+      setDateTo(to);
+      setShowDateDrop(false);
+      fetchUsers(statusFilter, from, to);
+    }
+  }, [pendingDate, statusFilter, sd, fetchUsers]);
 
   const applyQuick = useCallback((days: number) => {
     setDateFrom(sd.offset(-days));
@@ -225,14 +258,19 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
     fetchUsers(statusFilter, '', '');
   }, [statusFilter, fetchUsers]);
 
-  // ── Which quick preset is active? ──
+  // ── Which quick preset is active? (in-dropdown: pendingDate; outside: actual filter)
   const quickActive = useMemo(() => {
+    if (showDateDrop) {
+      if (pendingDate.type === 'any') return 0;
+      if (pendingDate.type === 'quick') return pendingDate.days;
+      return -1;
+    }
     if (!dateFrom && !dateTo) return 0;
     if (sd.ready && dateFrom === sd.offset(-7) && dateTo === sd.today) return 7;
     if (sd.ready && dateFrom === sd.offset(-30) && dateTo === sd.today) return 30;
     if (sd.ready && dateFrom === sd.offset(-90) && dateTo === sd.today) return 90;
-    return null;
-  }, [dateFrom, dateTo, sd.today, sd.ready]);
+    return -1;
+  }, [showDateDrop, pendingDate, dateFrom, dateTo, sd.today, sd.ready]);
 
   // ── Labels ──
   const statusLabel =
@@ -244,13 +282,17 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
     ? `${dateFrom || '…'} - ${dateTo || '…'}`
     : t('registrationTime');
 
+  const noUsersHint = theme.id === 'burgundy-warm' ? t('noUsersHintBurgundy') :
+    theme.id === 'obsidian-gold' ? t('noUsersHintObsidian') :
+    t('noUsersHintSpaceBlue');
+
   return (
     <View style={s.container}>
       <HomeBackground />
-      <AdminHeader safeTop={safeTop} onBack={onBack} title={t('userManagement')} />
+      <HistoryHeader safeTop={safeTop} onBack={onBack} title={t('userManagement')} />
 
       {/* Body */}
-      <View style={[s.body, { marginTop: safeTop + 42 }]}>
+      <View style={[s.body, { marginTop: safeTop + 44 }]}>
         {/* Search bar */}
         <View style={s.searchBox}>
           <SearchIcon color={c.textSub} />
@@ -284,7 +326,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
               >
                 {statusLabel}
               </Text>
-              <CaretDownSvg color={statusFilter !== '' ? c.primary : c.textSub} />
+              <DropArrowIcon color={statusFilter !== '' ? c.primary : c.textSub} open={showStatusDrop} />
             </TouchableOpacity>
           </View>
           <View style={{ flex: 1 }}>
@@ -300,7 +342,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
               >
                 {dateLabel}
               </Text>
-              <CaretDownSvg color={(dateFrom || dateTo) ? c.primary : c.textSub} />
+              <DropArrowIcon color={(dateFrom || dateTo) ? c.primary : c.textSub} open={showDateDrop} />
             </TouchableOpacity>
           </View>
         </View>
@@ -314,7 +356,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
           ) : users.length === 0 ? (
             <EmptyState
               icon={<UserEmptyIcon color={c.textSub} />}
-              title={t('noUsers') || '暂无用户'}
+              title={noUsersHint}
             />
           ) : (
             filteredUsers.map((u) => {
@@ -336,7 +378,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
                 >
                   <View style={s.avatarWrap}>
                     {u.avatar ? (
-                      <Image source={{ uri: resolveAssetUrl(u.avatar) || '' }} style={s.avatar} contentFit="cover" transition={200} placeholder={{ uri: resolveAssetUrl('/img/logo.jpg') || '' }} />
+                      <Image source={{ uri: resolveAssetUrl(u.avatar) || '' }} style={s.avatar} contentFit="cover" transition={200} placeholder={{ uri: resolveAssetUrl('/img/logo.jpg') || '' }} cachePolicy="none" />
                     ) : (
                       <Image source={require('../../assets/img/logo.jpg')} style={s.avatar} contentFit="cover" />
                     )}
@@ -388,7 +430,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
       >
         <View style={{
           backgroundColor: c.surface,
-          borderRadius: 10,
+          borderRadius: 14,
           borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
           overflow: 'hidden' as const,
         }}>
@@ -426,22 +468,22 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
       >
         <View style={{
           backgroundColor: c.surface,
-          borderRadius: 10,
+          borderRadius: 14,
           borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
           overflow: 'hidden' as const,
         }}>
             {/* Year selector */}
             <View style={s.pickerRow}>
               {(sd.ready
-                ? [sd.year - 2, sd.year - 1, sd.year, sd.year + 1]
-                : [FALLBACK_YEAR - 2, FALLBACK_YEAR - 1, FALLBACK_YEAR, FALLBACK_YEAR + 1]
+                ? [sd.year - 3, sd.year - 2, sd.year - 1, sd.year]
+                : [FALLBACK_YEAR - 3, FALLBACK_YEAR - 2, FALLBACK_YEAR - 1, FALLBACK_YEAR]
               ).map(y => (
                 <TouchableOpacity
                   key={y}
-                  style={[s.pickerBtn, dateFrom && dropYear === y && s.pickerBtnOn]}
-                  onPress={() => setDropYear(y)}
+                  style={[s.pickerBtn, pendingDate.type === 'custom' && pendingDate.year === y && s.pickerBtnOn]}
+                  onPress={() => { const m = new Date().getMonth() + 1; setDropYear(y); setDropMonth(m); setPendingDate({ type: 'custom', year: y, month: m }); }}
                 >
-                  <Text style={[s.pickerBtnText, dateFrom && dropYear === y && s.pickerBtnTextOn]}>{y}</Text>
+                  <Text style={[s.pickerBtnText, pendingDate.type === 'custom' && pendingDate.year === y && s.pickerBtnTextOn]}>{y}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -450,10 +492,10 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
               {MONTHS.map(m => (
                 <TouchableOpacity
                   key={m}
-                  style={[s.monthBtn, dateFrom && dropMonth === m && s.monthBtnOn]}
-                  onPress={() => setDropMonth(m)}
+                  style={[s.monthBtn, pendingDate.type === 'custom' && pendingDate.month === m && s.monthBtnOn]}
+                  onPress={() => { const y = sd.year || new Date().getFullYear(); setDropYear(y); setDropMonth(m); setPendingDate({ type: 'custom', year: y, month: m }); }}
                 >
-                  <Text style={[s.monthBtnText, dateFrom && dropMonth === m && s.monthBtnTextOn]}>
+                  <Text style={[s.monthBtnText, pendingDate.type === 'custom' && pendingDate.month === m && s.monthBtnTextOn]}> 
                     {m}{t('monthUnit')}
                   </Text>
                 </TouchableOpacity>
@@ -463,25 +505,25 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
             <View style={s.quickRow}>
               <TouchableOpacity
                 style={[s.quickBtn, quickActive === 0 && s.quickBtnOn]}
-                onPress={clearDate}
+                onPress={() => setPendingDate({ type: 'any' })}
               >
                 <Text style={[s.quickBtnText, quickActive === 0 && s.quickBtnTextOn]}>
                   {t('anyDate')}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[s.quickBtn, quickActive === 7 && s.quickBtnOn]} onPress={() => applyQuick(7)}>
+              <TouchableOpacity style={[s.quickBtn, quickActive === 7 && s.quickBtnOn]} onPress={() => setPendingDate({ type: 'quick', days: 7 })}>
                 <Text style={[s.quickBtnText, quickActive === 7 && s.quickBtnTextOn]}>{t('last7Days')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[s.quickBtn, quickActive === 30 && s.quickBtnOn]} onPress={() => applyQuick(30)}>
+              <TouchableOpacity style={[s.quickBtn, quickActive === 30 && s.quickBtnOn]} onPress={() => setPendingDate({ type: 'quick', days: 30 })}>
                 <Text style={[s.quickBtnText, quickActive === 30 && s.quickBtnTextOn]}>{t('last30Days')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[s.quickBtn, quickActive === 90 && s.quickBtnOn]} onPress={() => applyQuick(90)}>
+              <TouchableOpacity style={[s.quickBtn, quickActive === 90 && s.quickBtnOn]} onPress={() => setPendingDate({ type: 'quick', days: 90 })}>
                 <Text style={[s.quickBtnText, quickActive === 90 && s.quickBtnTextOn]}>{t('last3Months')}</Text>
               </TouchableOpacity>
             </View>
             {/* Actions */}
             <View style={s.dateActions}>
-              <TouchableOpacity style={s.dateActionBtn} onPress={clearDate}>
+              <TouchableOpacity style={s.dateActionBtn} onPress={() => setPendingDate({ type: 'any' })}>
                 <Text style={s.dateActionText}>{t('reset') || '重置'}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[s.dateActionBtn, s.dateActionApply]} onPress={applyPick}>
@@ -548,12 +590,12 @@ const getStyles = (c: ThemeColors) => {
     pickerBtnText: { fontSize: FONTS.small.size, color: c.textMain },
     pickerBtnTextOn: { color: '#fff', fontWeight: '600' as any },
     monthGrid: {
-      flexDirection: 'row', flexWrap: 'wrap', gap: 6,
+      flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between',
       paddingHorizontal: 14, paddingBottom: 8,
     },
     monthBtn: {
       width: '22%' as any, alignItems: 'center',
-      paddingVertical: 7, borderRadius: 8,
+      paddingVertical: 8, borderRadius: 8,
       backgroundColor: withAlpha(c.textMain, 0.04),
     },
     monthBtnOn: { backgroundColor: c.primary },

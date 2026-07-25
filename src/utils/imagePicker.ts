@@ -1,4 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import { ActionSheetIOS } from 'react-native';
 
 export interface PickedImage {
   uri: string;
@@ -18,9 +20,10 @@ const UTI_TO_MIME: Record<string, string> = {
   'com.compuserve.gif': 'image/gif',
   'public.tiff': 'image/tiff',
   'org.webmproject.webp': 'image/webp',
+  'com.adobe.pdf': 'application/pdf',
 };
-const normalizeMime = (mimeType: string | null | undefined): string => {
-  if (!mimeType) return 'image/jpeg';
+const normalizeMime = (mimeType: string | null | undefined, fallback: string = 'image/jpeg'): string => {
+  if (!mimeType) return fallback;
   return UTI_TO_MIME[mimeType] ?? mimeType;
 };
 
@@ -100,4 +103,72 @@ export async function takePhoto(): Promise<PickedImage | null> {
     width: a.width,
     height: a.height,
   };
+}
+
+/**
+ * Open the system file picker for documents (PDF etc.).
+ */
+export async function pickFiles(): Promise<PickedImage[]> {
+  const result = await DocumentPicker.getDocumentAsync({
+    type: ['application/pdf', 'image/*'],
+    multiple: true,
+    copyToCacheDirectory: true,
+  });
+
+  if (result.canceled) return [];
+  return result.assets.map(a => {
+    const extType = a.name ? (
+      /\.pdf$/i.test(a.name) ? 'application/pdf' :
+      /\.(jpg|jpeg)$/i.test(a.name) ? 'image/jpeg' :
+      /\.png$/i.test(a.name) ? 'image/png' :
+      /\.webp$/i.test(a.name) ? 'image/webp' :
+      'application/octet-stream'
+    ) : 'application/octet-stream';
+    return {
+      uri: a.uri,
+      type: normalizeMime(a.mimeType, extType),
+      name: a.name,
+      size: a.size ?? 0,
+    };
+  });
+}
+
+/**
+ * iOS native ActionSheet — pick between camera, library, or files.
+ * Returns a single image (or null if cancelled).
+ */
+export function pickImageWithCamera(): Promise<PickedImage | null> {
+  return new Promise((resolve) => {
+    ActionSheetIOS.showActionSheetWithOptions(
+      { options: ['拍照', '从相册选择', '从文件选择', '取消'], cancelButtonIndex: 3 },
+      async (index) => {
+        try {
+          if (index === 0) {
+            resolve(await takePhoto());
+          } else if (index === 1) {
+            const imgs = await pickImages({ multiple: false });
+            resolve(imgs.length > 0 ? imgs[0] : null);
+          } else if (index === 2) {
+            const result = await DocumentPicker.getDocumentAsync({
+              type: ['image/*'],
+              multiple: false,
+              copyToCacheDirectory: true,
+            });
+            if (result.canceled || !result.assets?.length) { resolve(null); return; }
+            const a = result.assets[0];
+            resolve({
+              uri: a.uri,
+              type: a.mimeType ?? 'image/jpeg',
+              name: a.name,
+              size: a.size ?? 0,
+            });
+          } else {
+            resolve(null);
+          }
+        } catch {
+          resolve(null);
+        }
+      },
+    );
+  });
 }

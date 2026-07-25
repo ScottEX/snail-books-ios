@@ -597,6 +597,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             onProcurementDetail={(batch) => navigation.navigate('ProcurementDetail', { batch })}
             pendingEditBatch={pendingEditBatch}
             onPendingEditConsumed={() => setPendingEditBatch(null)}
+            onInvoice={(batchId: number) => navigation.navigate('Invoice', { filterBatchId: batchId })}
           />
         ) : isHome && (
         <>
@@ -656,16 +657,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
               style={[StyleSheet.absoluteFillObject, { borderRadius: 28 }]}
               pointerEvents="none"
             />
-            {/* Inset top highlight — mimics web's
-                boxShadow: inset 0 0.5px 0 rgba(255,255,255,0.12). RN
-                has no inset shadow so we fake it with a thin white
-                line at the top edge. */}
-            <View style={styles.bottomNavInsetTop} pointerEvents="none" />
             {NAV_ITEMS.map(({ id, labelKey, icon }, i) => {
               const active = tab === id;
-              // Active icon colour matches web's NavIcon* helpers —
-              // colors.navActiveColor (per-theme soft tint) for active,
-              // not colors.textMain which was too high-contrast.
               const c = active ? colors.navActiveColor : '#000000';
               return (
                 <TouchableOpacity
@@ -683,9 +676,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
                     }
                   }}
                 >
-                  {active && <Animated.View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.06)' }} />}
                   <Animated.View style={[styles.navIconWrap, { transform: [{ scale: navScaleAnims[i] }] }]}>
-                    {icon(c)}
+                    {icon(c, active)}
                   </Animated.View>
                 </TouchableOpacity>
               );
@@ -1212,54 +1204,60 @@ function Dash({ color }: { color: string }) {
 
 /* ── Bottom nav config ────────────────────────────────────────────── */
 
-interface NavItem { id: Tab; labelKey: string; icon: (c: string) => React.ReactNode }
+interface NavItem { id: Tab; labelKey: string; icon: (c: string, active?: boolean) => React.ReactNode }
 const NAV_ITEMS: NavItem[] = [
-  { id: 'expense', labelKey: 'tabRecord',  icon: (c) => <IconAdd c={c} /> },
-  { id: 'list',    labelKey: 'tabBill',    icon: (c) => <IconList c={c} /> },
-  { id: 'supply',  labelKey: 'tabSupply',  icon: (c) => <IconSupply c={c} /> },
-  { id: 'chart',   labelKey: 'tabTrends',  icon: (c) => <IconChart c={c} /> },
-  { id: 'partner', labelKey: 'navPartner', icon: (c) => <IconPartner c={c} /> },
+  { id: 'expense', labelKey: 'tabRecord',  icon: (c, a) => <IconAdd c={c} active={a} /> },
+  { id: 'list',    labelKey: 'tabBill',    icon: (c, a) => <IconList c={c} active={a} /> },
+  { id: 'supply',  labelKey: 'tabSupply',  icon: (c, a) => <IconSupply c={c} active={a} /> },
+  { id: 'chart',   labelKey: 'tabTrends',  icon: (c, a) => <IconChart c={c} active={a} /> },
+  { id: 'partner', labelKey: 'navPartner', icon: (c, a) => <IconPartner c={c} active={a} /> },
 ];
 
-function IconAdd({ c }: { c: string }) {
-  // Wallet — port of web's NavIconExpense (web/src/screens/HomeScreen.tsx
-  // NavIconExpense). The previous Plus-sign icon didn't match web.
+function IconAdd({ c, active }: { c: string; active?: boolean }) {
+  // Wallet
+  const fillColor = active ? withAlpha(c, 0.20) : 'none';
   return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill={fillColor} stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M20 12V8H6a2 2 0 010-4h12v4" />
       <Path d="M4 6v12a2 2 0 002 2h14v-4" />
       <Path d="M18 12a2 2 0 100 4h4v-4h-4z" />
     </Svg>
   );
 }
-function IconList({ c }: { c: string }) {
+function IconList({ c, active }: { c: string; active?: boolean }) {
+  const fillColor = active ? withAlpha(c, 0.20) : 'none';
   return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill={fillColor} stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
       <Path d="M9 5a2 2 0 012-2h2a2 2 0 012 2v0a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
       <Path d="M9 12h6M9 16h6" />
     </Svg>
   );
 }
-function IconSupply({ c }: { c: string }) {
+function IconSupply({ c, active }: { c: string; active?: boolean }) {
+  const fillColor = active ? withAlpha(c, 0.20) : 'none';
   return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill={fillColor} stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z" />
       <Path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12" />
     </Svg>
   );
 }
-function IconChart({ c }: { c: string }) {
+function IconChart({ c, active }: { c: string; active?: boolean }) {
+  const fillColor = active ? withAlpha(c, 0.20) : 'none';
   return (
     <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M3 3v18h18" />
-      <Path d="M7 16l4-8 4 4 4-6" />
+      <Path d="M7 16 L11 8 L15 12 L19 6 L19 21 L3 21 L3 16 Z" fill={fillColor} stroke="none" />
+      <Path d="M3 3 L3 16 L7 16 L11 8 L15 12 L19 6 L19 3 Z" fill={fillColor} stroke="none" />
+      <Path d="M7 16l4-8 4 4 4-6" fill="none" />
     </Svg>
   );
 }
-function IconPartner({ c }: { c: string }) {
+function IconPartner({ c, active }: { c: string; active?: boolean }) {
+  const fillColor = active ? withAlpha(c, 0.20) : 'none';
   return (
-    <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <Svg width={22} height={22} viewBox="0 0 24 24" fill={fillColor} stroke={c} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <Path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" />
       <Circle cx="9" cy="7" r="4" />
       <Path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
@@ -1330,16 +1328,9 @@ const getStyles = (colors: ThemeColors, headerColor: string, bgOpacity: number) 
   bottomNav: {
     flexDirection: 'row',
     width: '80%', maxWidth: 420,
-    backgroundColor: withAlpha(colors.surface, 0.20),
     borderRadius: 28, overflow: 'hidden',
     paddingVertical: 10, paddingHorizontal: 12,
-    borderWidth: 0.5, borderColor: withAlpha(colors.surface, 0.25),
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12,
     zIndex: 100,
-  },
-  bottomNavInsetTop: {
-    position: 'absolute', left: 12, right: 12, top: 0, height: 1,
-    backgroundColor: 'rgba(255,255,255,0.20)',
   },
   navItem: { flex: 1, alignItems: 'center', justifyContent: 'center', height: 44, borderRadius: 22, marginHorizontal: 2 },
   navIconWrap: { alignItems: 'center', justifyContent: 'center' },

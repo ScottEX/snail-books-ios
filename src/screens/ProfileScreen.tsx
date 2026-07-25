@@ -24,8 +24,9 @@ import ButtonPair from '../components/ButtonPair';
 import SubmitButton from '../components/SubmitButton';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ModalOverlay from '../components/ModalOverlay';
+import ImagePickerSheet from '../components/ImagePickerSheet';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
-import { pickImages } from '../utils/imagePicker';
+import { pickImages, PickedImage } from '../utils/imagePicker';
 import { cacheBackground } from '../utils/backgroundCache';
 import { modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
 import { isBiometricAvailable, saveCredential, promptBiometric, getCredential } from '../utils/biometric';
@@ -523,14 +524,29 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   };
 
   // ── Avatar / Cover handlers ──
+  const [showAvatarSheet, setShowAvatarSheet] = useState(false);
+  const [showCoverSheet, setShowCoverSheet] = useState(false);
+  const [pickOffsetX, setPickOffsetX] = useState(0);
+  const [pickOffsetY, setPickOffsetY] = useState(0);
+  const avatarRef = useRef<any>(null);
+
+  const openAvatarPicker = () => {
+    (avatarRef.current as any)?.measureInWindow?.((x: number, y: number, _w: number, h: number) => {
+      setPickOffsetX(x || 16);
+      setPickOffsetY(Math.max(y - 20, 60));
+      setShowAvatarSheet(true);
+    }) || setShowAvatarSheet(true);
+  };
+
+  const handleAvatarPicked = (img: PickedImage | null) => {
+    if (!img) return;
+    setAvatarCropSrc(img.uri);
+    setShowAvatarCrop(true);
+  };
+
   const handleAvatarPress = async () => {
     if (uploadingAvatar) return;
-    try {
-      const imgs = await pickImages({ multiple: false }).catch(() => []);
-      if (imgs.length === 0) return;
-      setAvatarCropSrc(imgs[0].uri);
-      setShowAvatarCrop(true);
-    } catch {}
+    openAvatarPicker();
   };
 
   const handleAvatarCropConfirm = (dataUri: string) => {
@@ -563,12 +579,13 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
   const handleCoverPress = async () => {
     if (uploadingCover) return;
-    try {
-      const imgs = await pickImages({ multiple: false }).catch(() => []);
-      if (imgs.length === 0) return;
-      setCoverCropSrc(imgs[0].uri);
-      setShowCoverCrop(true);
-    } catch {}
+    setShowCoverSheet(true);
+  };
+
+  const handleCoverPicked = (img: PickedImage | null) => {
+    if (!img) return;
+    setCoverCropSrc(img.uri);
+    setShowCoverCrop(true);
   };
 
   // ── bgOpacity (shared via localStorage + API, same as HomeScreen) ──
@@ -761,6 +778,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   };
 
   return (
+    <>
     <View style={st.root}>
       {/* Nav bar — always visible, fixed at top */}
       <View
@@ -834,7 +852,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
         {/* Avatar — overlaps cover bottom, follows pull-down stretch */}
         <ReAnimated.View style={[st.avatarFloat, coverFollowStyle]}>
-          <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.8} disabled={uploadingAvatar}>
+          <TouchableOpacity ref={avatarRef} onPress={handleAvatarPress} activeOpacity={0.8} disabled={uploadingAvatar}>
             {avatarUrl ? (
               <Image source={{ uri: avatarUrl }} style={st.avatar} />
             ) : (
@@ -1409,6 +1427,23 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         </ReAnimated.View>
       </ModalOverlay>
     </View>
+
+    <ImagePickerSheet
+      visible={showAvatarSheet}
+      onClose={() => setShowAvatarSheet(false)}
+      onPicked={handleAvatarPicked}
+      showFileOption
+      offsetY={pickOffsetY}
+      offsetX={pickOffsetX}
+    />
+    <ImagePickerSheet
+      visible={showCoverSheet}
+      onClose={() => setShowCoverSheet(false)}
+      onPicked={handleCoverPicked}
+      showFileOption
+      position="center"
+    />
+    </>
   );
 }
 

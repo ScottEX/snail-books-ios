@@ -1,6 +1,7 @@
 import React from 'react';
 import HomeBackground from '../components/HomeBackground';
 import { View, Text, TouchableOpacity, FlatList, ScrollView, StyleSheet, Image, StatusBar } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 
 import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg';
@@ -13,6 +14,7 @@ import EmptyState from '../components/EmptyState';
 import { useToast } from '../hooks/useToast';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DatePickerModal from '../components/DatePickerModal';
 import HistoryHeader from '../components/HistoryHeader';
@@ -74,6 +76,12 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
   const sd = useServerDate();
   const currentUser = getCurrentUser();
   const { showToast, ToastHost } = useToast();
+  const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
+
+  const openPdf = useCallback((url: string) => {
+    navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title: t('expensePdfTitle') as string });
+  }, [navigation]);
 
   const [showFilter, setShowFilter] = useState(false);
 
@@ -100,11 +108,30 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
   const thumbRefs = useRef<Record<string, any>>({});
 
   const handleThumbPreview = useCallback((recordId: string | number, images: string[], j: number) => {
-    const resolver: ThumbLayoutResolver = (idx, cb) => resolveThumbLayout(thumbRefs.current[`${recordId}-${idx}`], cb);
+    const url = images[j];
+    if (url && /\.pdf(\?|$)/i.test(url)) {
+      openPdf(url);
+      return;
+    }
+    // Filter out PDFs from carousel (matching InvoiceScreen pattern)
+    const isPdf = (p: string) => /\.pdf(\?|$)/i.test(p);
+    const imageUrls = images.filter(p => !isPdf(p));
+    const imageIndex = images.slice(0, j).filter(p => !isPdf(p)).length;
+    // Map carousel index back to display index (skip PDFs)
+    const wrappedResolver: ThumbLayoutResolver = (idx, cb) => {
+      let orig = 0, cnt = 0;
+      for (let k = 0; k < images.length; k++) {
+        if (!isPdf(images[k])) {
+          if (cnt === idx) { orig = k; break; }
+          cnt++;
+        }
+      }
+      resolveThumbLayout(thumbRefs.current[`${recordId}-${orig}`], cb);
+    };
     const ref = thumbRefs.current[`${recordId}-${j}`];
-    if (!ref) { openPreview(images, j, undefined, resolver); return; }
-    measureThumbLayout(ref, (layout) => openPreview(images, j, layout, resolver));
-  }, [openPreview]);
+    if (!ref) { openPreview(imageUrls, imageIndex, undefined, wrappedResolver); return; }
+    measureThumbLayout(ref, (layout) => openPreview(imageUrls, imageIndex, layout, wrappedResolver));
+  }, [openPreview, openPdf]);
 
   const toggleCat = (cat: string) => {
     setFilCats(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
@@ -216,7 +243,9 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         {/* Image thumbnails */}
         {resolvedImgs.length > 0 && (
           <View style={st.imgThumbs}>
-            {resolvedImgs.map((url: string, j: number) => (
+            {resolvedImgs.map((url: string, j: number) => {
+              const isPdf = /\.pdf(\?|$)/i.test(String(previewImgsList[j] || ''));
+              return (
               <TouchableOpacity
                 key={j}
                 ref={el => { thumbRefs.current[`${e.id}-${j}`] = el; }}
@@ -224,9 +253,16 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
                 activeOpacity={0.7}
                 delayPressIn={80}
               >
-                <Image source={{ uri: url }} style={st.thumbImg} />
+                {isPdf ? (
+                  <View style={[st.thumbImg, { alignItems: 'center', justifyContent: 'center', gap: 2, backgroundColor: withAlpha(colors.textMain, 0.06) }]}>
+                    <Text style={{ fontSize: FONTS.xlarge.size }}>📄</Text>
+                    <Text style={{ fontSize: FONTS.tiny.size, color: colors.textSub }}>PDF</Text>
+                  </View>
+                ) : (
+                  <Image source={{ uri: url }} style={st.thumbImg} />
+                )}
               </TouchableOpacity>
-            ))}
+            ); })}
           </View>
         )}
       </View>
@@ -241,6 +277,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
       <HomeBackground />
       <StatusBar barStyle="dark-content" />
       <HistoryHeader
+        safeTop={insets.top}
         onBack={onBack}
         title={`${t('expenseHistory')} (${total}/${totalAll})`}
         filterActive={showFilter}
@@ -248,7 +285,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
       />
 
       {/* Filter — dark glass via FilterPanel (BlurView inside) */}
-      <FilterPanel visible={showFilter} onClose={() => setShowFilter(false)}>
+      <FilterPanel visible={showFilter} onClose={() => setShowFilter(false)} top={insets.top + 44}>
         {rangeInvalid && <Text style={{ color: colors.danger, fontSize: FONTS.micro.size, textAlign: 'right' }}>{t('errDateRange')}</Text>}
         {rangeTooLong && <Text style={{ color: colors.danger, fontSize: FONTS.micro.size, textAlign: 'right' }}>{t('errDateRangeTooLong')}</Text>}
         <View style={st.filterField}>
@@ -346,7 +383,7 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
         onEndReached={loadMore}
         onEndReachedThreshold={0.4}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: showFilter ? 332 : 112, paddingHorizontal: 12, paddingBottom: 20 }}
+        contentContainerStyle={{ paddingTop: showFilter ? insets.top + 272 : insets.top + 52, paddingHorizontal: 12, paddingBottom: 20 }}
         ListEmptyComponent={!loading ? (
           <EmptyState
             icon={<ExpenseEmptyIcon color={colors.textSub} />}

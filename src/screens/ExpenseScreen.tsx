@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo, useReducer } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, Dimensions, Switch, Keyboard,
 } from 'react-native';
@@ -31,6 +31,9 @@ import { useExpenseForm } from '../hooks/useExpenseForm';
 import ModalOverlay from '../components/ModalOverlay';
 import { useDateField } from '../hooks/useDateField';
 import DateErrorHint from '../components/DateErrorHint';
+import { useNavigation } from '@react-navigation/native';
+import { useImagePreview } from '../hooks/useImagePreview';
+import ImagePreview, { ThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 
 import FadeInView from '../components/FadeInView';
 
@@ -97,8 +100,11 @@ export default function ExpenseScreen({
   const sd = useServerDate();
   // Load business summary internally (matching web)
   const [businessSummary, setBusinessSummary] = useState<any>({});
+  const _reconReady = useRef(false);  // reconciliation data loaded
+  const _summaryReady = useRef(false); // business summary loaded
   const loadBusinessSummary = useCallback(() => {
     api.getBusinessSummary().then((data: any) => {
+      _summaryReady.current = true;
       setBusinessSummary(data || {});
     }).catch(() => {});
   }, []);
@@ -155,11 +161,12 @@ export default function ExpenseScreen({
   });
   const updateRecon = (k: keyof typeof reconForm, v: string) =>
     setReconForm(f => ({ ...f, [k]: v }));
+  const setReconBatch = (vals: Partial<Record<keyof typeof reconForm, string>>) =>
+    setReconForm(f => ({ ...f, ...vals }));
   const { cardBalance, cashBalance, dineIn, meituan, flashSale, tuan, jd } = reconForm;
 
   const initReconValues = useRef({ card: '', cash: '', dine: '', mt: '', fs: '', jd: '', tuan: '' });
   const reconLoadId = useRef(0);  // guard against stale async responses
-  const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
 
   // Load reconciliation data from backend
   // Rule:
@@ -173,48 +180,49 @@ export default function ExpenseScreen({
         const data = await api.getReconciliations(365);
         if (id !== reconLoadId.current) return; // stale
         if (!data || data.length === 0) {
-          updateRecon('cardBalance', ''); updateRecon('cashBalance', '');
-          updateRecon('dineIn', ''); updateRecon('meituan', '');
-          updateRecon('flashSale', ''); updateRecon('tuan', ''); updateRecon('jd', '');
+          _reconReady.current = true; // set before batch so diff gate opens with correct values
+          setReconBatch({ cardBalance: '', cashBalance: '', dineIn: '', meituan: '', flashSale: '', tuan: '', jd: '' });
           initReconValues.current = { card: '', cash: '', dine: '', mt: '', fs: '', jd: '', tuan: '' };
-          forceUpdate();
           return;
         }
         const last = data[0]; // most recent record
         const match = data.find((r: any) => r.bill_date === recDate.value);
         if (match) {
-          updateRecon('cardBalance', toDec2(match.card_balance));
-          updateRecon('cashBalance', toDec2(match.cash_balance));
-          updateRecon('dineIn', toDec2(match.dine_in));
-          updateRecon('meituan', toDec2(match.meituan));
-          updateRecon('flashSale', toDec2(match.flash_sale));
-          updateRecon('tuan', toDec2(match.tuan));
-          updateRecon('jd', toDec2(match.jd));
+          _reconReady.current = true; // set before batch so diff gate opens with correct values
+          setReconBatch({
+            cardBalance: toDec2(match.card_balance),
+            cashBalance: toDec2(match.cash_balance),
+            dineIn: toDec2(match.dine_in),
+            meituan: toDec2(match.meituan),
+            flashSale: toDec2(match.flash_sale),
+            tuan: toDec2(match.tuan),
+            jd: toDec2(match.jd),
+          });
           initReconValues.current = {
             card: toDec2(match.card_balance), cash: toDec2(match.cash_balance),
             dine: toDec2(match.dine_in), mt: toDec2(match.meituan),
             fs: toDec2(match.flash_sale), jd: toDec2(match.jd), tuan: toDec2(match.tuan),
           };
         } else if (recDate.value >= (last.bill_date || '')) {
-          updateRecon('cardBalance', toDec2(last.card_balance));
-          updateRecon('cashBalance', toDec2(last.cash_balance));
-          updateRecon('dineIn', toDec2(last.dine_in));
-          updateRecon('meituan', toDec2(last.meituan));
-          updateRecon('flashSale', toDec2(last.flash_sale));
-          updateRecon('tuan', toDec2(last.tuan));
-          updateRecon('jd', toDec2(last.jd));
+          _reconReady.current = true; // set before batch so diff gate opens with correct values
+          setReconBatch({
+            cardBalance: toDec2(last.card_balance),
+            cashBalance: toDec2(last.cash_balance),
+            dineIn: toDec2(last.dine_in),
+            meituan: toDec2(last.meituan),
+            flashSale: toDec2(last.flash_sale),
+            tuan: toDec2(last.tuan),
+            jd: toDec2(last.jd),
+          });
           initReconValues.current = {
             card: toDec2(last.card_balance), cash: toDec2(last.cash_balance),
             dine: toDec2(last.dine_in), mt: toDec2(last.meituan),
             fs: toDec2(last.flash_sale), jd: toDec2(last.jd), tuan: toDec2(last.tuan),
           };
         } else {
-          updateRecon('cardBalance', ''); updateRecon('cashBalance', '');
-          updateRecon('dineIn', ''); updateRecon('meituan', '');
-          updateRecon('flashSale', ''); updateRecon('tuan', ''); updateRecon('jd', '');
+          setReconBatch({ cardBalance: '', cashBalance: '', dineIn: '', meituan: '', flashSale: '', tuan: '', jd: '' });
           initReconValues.current = { card: '', cash: '', dine: '', mt: '', fs: '', jd: '', tuan: '' };
         }
-        forceUpdate();
       } catch { showToast(t('toastLoadFailed')); }
     })();
   }, [recDate.value]);
@@ -279,7 +287,8 @@ export default function ExpenseScreen({
   const realTotalCents = toCents(cardBalance) + toCents(cashBalance) + channelTotalCents;
   const cashOnHandCents = toCents((businessSummary && businessSummary.cash_on_hand) || 0);
   const realTotal = realTotalCents / 100;
-  const diff = (realTotalCents - cashOnHandCents) / 100;
+  // Only compute diff after both data sources are ready (avoids RN split-render flash)
+  const diff = (_reconReady.current && _summaryReady.current) ? (realTotalCents - cashOnHandCents) / 100 : 0;
 
   const hasReconChanges =
     toNum(cardBalance) !== toNum(initReconValues.current.card) ||
@@ -378,6 +387,7 @@ export default function ExpenseScreen({
         closeFeeSheet();
         // Reload all months to keep totals accurate
         api.getPlatformFees().then((all: any) => setAllFees(Array.isArray(all) ? all : [])).catch(() => {});
+        loadBusinessSummary();
       } else {
         showToast(r?.message || t('toastSubmitFailed'));
       }
@@ -409,6 +419,38 @@ export default function ExpenseScreen({
     clearUrlCache,
     onToast: showToast,
   });
+
+  const navigation = useNavigation<any>();
+  const { preview, openPreview, closePreview } = useImagePreview();
+
+  const openPdf = useCallback((url: string) => {
+    navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title: t('expensePdfTitle') as string });
+  }, [navigation, t]);
+
+  const handlePreviewNew = (index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
+    const f = expImages[index];
+    if (f && (f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '') || /\.pdf$/i.test(f.uri || ''))) {
+      openPdf(f.uri);
+      return;
+    }
+    // Only show images in the carousel (PDFs are previewed separately)
+    const isPdf = (ff: any) => ff.type === 'application/pdf' || /\.pdf$/i.test(ff.name || '') || /\.pdf$/i.test(ff.uri || '');
+    const imageUris = expImages.filter(ff => !isPdf(ff)).map(ff => ff.uri);
+    const imageIndex = expImages.slice(0, index).filter(ff => !isPdf(ff)).length;
+    const wrappedGetLayout: ThumbLayoutResolver | undefined = getLayout
+      ? (ci, cb) => {
+          let orig = 0, cnt = 0;
+          for (let i = 0; i < expImages.length; i++) {
+            if (!isPdf(expImages[i])) {
+              if (cnt === ci) { orig = i; break; }
+              cnt++;
+            }
+          }
+          getLayout(orig, cb);
+        }
+      : undefined;
+    openPreview(imageUris, imageIndex, layout, wrappedGetLayout);
+  };
 
   // Fast glass-card totals from business-summary API (matching web)
   const glassCatTotals = useMemo(() => ({
@@ -514,9 +556,7 @@ export default function ExpenseScreen({
                           <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.expenseAmountColor }}>
                             {diff >= 0 ? '+' : '-'}¥
                           </Text>
-                          <Text style={{ fontSize: FONTS.h1.size + 4, fontWeight: FONTS.h1.weight, color: colors.expenseAmountColor }}>
-                            {toDec2Comma(Math.abs(diff))}
-                          </Text>
+                          <NumberTickerExt value={Math.abs(diff)} formatFn={toDec2Comma} style={{ fontSize: FONTS.h1.size + 4, fontWeight: FONTS.h1.weight, color: colors.expenseAmountColor }} />
                         </View>
                       </View>
                       {/* Sub-cards row: 账面余额 | 当前结余 (success / info tinted) */}
@@ -799,6 +839,7 @@ export default function ExpenseScreen({
                 newFiles={expImages}
                 onAdd={handleImageSelect}
                 onRemoveNew={removeImage}
+                onPreviewNew={handlePreviewNew}
                 getPreviewUrl={getPreviewUrl}
                 maxThumbSize={120}
               />
@@ -1090,6 +1131,15 @@ export default function ExpenseScreen({
           </View>
       </ModalOverlay>
     </ReAnimated.View>
+    {/* Image preview */}
+    <ImagePreview
+      images={preview?.images ?? []}
+      initialIdx={preview?.idx ?? 0}
+      visible={preview !== null}
+      thumbLayout={preview?.layout}
+      getThumbLayout={preview?.getLayout}
+      onClose={closePreview}
+    />
     </>
   );
 }

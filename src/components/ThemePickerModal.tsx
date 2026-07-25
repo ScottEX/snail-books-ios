@@ -9,7 +9,8 @@ import ThemePicker from './ThemePicker';
 import Slider from '@react-native-community/slider';
 import CloseButton from './CloseButton';
 import ModalOverlay from './ModalOverlay';
-import { pickImages } from '../utils/imagePicker';
+import ImagePickerSheet from './ImagePickerSheet';
+import { PickedImage } from '../utils/imagePicker';
 
 interface ThemePickerModalProps {
   visible: boolean;
@@ -65,6 +66,10 @@ export default function ThemePickerModal({
   const { colors, setTheme } = useTheme();
   const styles = getStyles(colors);
   const [resetting, setResetting] = useState(false);
+  const [showPickerSheet, setShowPickerSheet] = useState(false);
+  const [pickOffsetX, setPickOffsetX] = useState(0);
+  const [pickOffsetY, setPickOffsetY] = useState(0);
+  const pickBtnRef = useRef<any>(null);
   const fastClose = useRef(false);  // 10ms dismiss when opening crop after pick
 
   // ── Shared "reset to default" logic ──
@@ -96,16 +101,19 @@ export default function ThemePickerModal({
     onClose();
   };
 
-  const handlePickImage = async () => {
-    try {
-      const picked = await pickImages({ multiple: false });
-      if (!picked || picked.length === 0) return;
-      fastClose.current = true;
-      await onCoverImagePicked?.(picked[0]);
-      onClose();
-    } catch {
-      // Permission denied / cancelled
-    }
+  const handlePickImage = () => {
+    (pickBtnRef.current as any)?.measureInWindow?.((x: number, y: number, _w: number, h: number) => {
+      setPickOffsetX(Math.max((x || 16) - 20, 0));
+      setPickOffsetY(Math.max(y - 40, 60));
+      setShowPickerSheet(true);
+    }) || setShowPickerSheet(true);
+  };
+
+  const handlePicked = async (img: PickedImage | null) => {
+    if (!img) return;
+    fastClose.current = true;
+    await onCoverImagePicked?.(img);
+    onClose();
   };
 
   const opacityValue = coverOpacity ?? 1;
@@ -166,6 +174,7 @@ export default function ThemePickerModal({
               <TouchableOpacity
                 style={[styles.bgBtn, styles.bgBtnOutline]}
                 disabled={coverUploading}
+                ref={pickBtnRef}
                 onPress={handlePickImage}
               >
                 <Text style={styles.bgBtnOutlineText}>{coverUploading ? t('uploading') : t('chooseImage')}</Text>
@@ -182,6 +191,15 @@ export default function ThemePickerModal({
         </View>
       </View>
       </ModalOverlay>
+
+      <ImagePickerSheet
+        visible={showPickerSheet}
+        onClose={() => setShowPickerSheet(false)}
+        onPicked={handlePicked}
+        showFileOption
+        offsetY={pickOffsetY}
+        offsetX={pickOffsetX}
+      />
     </>
   );
 }

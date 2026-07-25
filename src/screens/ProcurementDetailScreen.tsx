@@ -3,6 +3,7 @@ import {
   Image, Switch, StatusBar,
 } from 'react-native';
 import HomeBackground from '../components/HomeBackground';
+import HistoryHeader from '../components/HistoryHeader';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Line } from 'react-native-svg';
@@ -16,6 +17,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import ModalOverlay from '../components/ModalOverlay';
 import ImagePreview, { measureThumbLayout, resolveThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
+import { useNavigation } from '@react-navigation/native';
 import { formatDate } from '../utils/format';
 import TrashIcon from '../components/icons/TrashIcon';
 import { getCurrentUser } from '../utils/storage';
@@ -73,22 +75,50 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
   const { colors: c } = useTheme();
   const insets = useSafeAreaInsets();
   const safeTop = insets.top;
-  const headerHeight = safeTop + 42;
+  const headerHeight = safeTop + 44;
   const styles = useMemo(() => getStyles(c), [c]);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState('');
   const { preview: previewData, openPreview, closePreview } = useImagePreview();
   const thumbRefs = useRef<(any | null)[]>([]);
+  const navigation = useNavigation<any>();
 
-  const handleThumbPreview = useCallback((images: string[], i: number) => {
-    const resolver: ThumbLayoutResolver = (idx, cb) => resolveThumbLayout(thumbRefs.current[idx], cb);
-    const ref = thumbRefs.current[i];
-    if (!ref) { openPreview(images, i, undefined, resolver); return; }
-    measureThumbLayout(ref, (layout) => openPreview(images, i, layout, resolver));
-  }, [openPreview]);
   const [cur, setCur] = useState<BatchRecord | null>(batch);
   useEffect(() => { setCur(batch); }, [batch]);
+
+  const openPdf = useCallback((url: string) => {
+    const title = cur?.batch_number
+      ? (t('procVoucherTitle') as string).replace('{n}', String(cur.batch_number))
+      : (t('procOrderItems') as string);
+    navigation.navigate('PdfPreview', { id: 0, number: cur?.batch_number || 0, fileUrl: url, title, fileNamePrefix: t('procVoucherFileName') as string });
+  }, [navigation, cur?.batch_number]);
+
+  const handleThumbPreview = useCallback((images: string[], i: number) => {
+    const url = images[i];
+    if (url && /\.pdf(\?|$)/i.test(url)) {
+      openPdf(url);
+      return;
+    }
+    // Filter out PDFs from carousel (matching InvoiceScreen pattern)
+    const isPdf = (p: string) => /\.pdf(\?|$)/i.test(p);
+    const imageUrls = images.filter(p => !isPdf(p));
+    const imageIndex = images.slice(0, i).filter(p => !isPdf(p)).length;
+    // Map carousel index back to display index (skip PDFs)
+    const wrappedResolver: ThumbLayoutResolver = (idx, cb) => {
+      let orig = 0, cnt = 0;
+      for (let k = 0; k < images.length; k++) {
+        if (!isPdf(images[k])) {
+          if (cnt === idx) { orig = k; break; }
+          cnt++;
+        }
+      }
+      resolveThumbLayout(thumbRefs.current[orig], cb);
+    };
+    const ref = thumbRefs.current[i];
+    if (!ref) { openPreview(imageUrls, imageIndex, undefined, wrappedResolver); return; }
+    measureThumbLayout(ref, (layout) => openPreview(imageUrls, imageIndex, layout, wrappedResolver));
+  }, [openPreview, openPdf]);
   const [settling, setSettling] = useState(false);
   const [showSettleConfirm, setShowSettleConfirm] = useState(false);
   const [settleError, setSettleError] = useState('');
@@ -97,23 +127,8 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
     return (
       <View style={styles.container}>
         <HomeBackground />
-        <BlurView
-          intensity={70}
-          tint="regular"
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: headerHeight }}
-        />
         <StatusBar barStyle="dark-content" />
-        <View style={{ position: 'absolute', top: safeTop - 5, left: 0, right: 0, zIndex: 90, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingBottom: 6, backgroundColor: 'transparent', pointerEvents: 'box-none' as const }}>
-          <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
-            <View style={styles.backBtn}>
-              <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <Path d="M15 18l-6-6 6-6" />
-              </Svg>
-            </View>
-          </TouchableOpacity>
-          <Text style={styles.title}>{t('procOrderItems')}</Text>
-          <View style={{ width: 36 }} />
-        </View>
+        <HistoryHeader safeTop={safeTop} onBack={onBack} title={t('procOrderItems')} />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: c.textSub }}>—</Text>
         </View>
@@ -184,45 +199,8 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
   return (
     <View style={styles.container}>
       <HomeBackground />
-      <BlurView
-        intensity={70}
-        tint="regular"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: headerHeight,
-        }}
-      />
       <StatusBar barStyle="light-content" />
-      <View
-        style={{
-          position: 'absolute',
-          top: safeTop - 5,
-          left: 0,
-          right: 0,
-          zIndex: 90,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 12,
-          paddingTop: 0,
-          paddingBottom: 6,
-          paddingHorizontal: 16,
-          backgroundColor: 'transparent',
-          pointerEvents: 'box-none' as const,
-        }}
-      >
-        <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
-          <View style={styles.backBtn}>
-            <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <Path d="M15 18l-6-6 6-6" />
-            </Svg>
-          </View>
-        </TouchableOpacity>
-        <Text style={styles.title}>{t('procDetail')}</Text>
-        <View style={{ width: 36 }} />
-      </View>
+      <HistoryHeader safeTop={safeTop} onBack={onBack} title={t('procDetail')} />
 
       <ScrollView
         style={[styles.body, { marginTop: headerHeight }]}
@@ -312,7 +290,10 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('procImages')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {thumbImgs.map((img: string, i: number) => (
+              {thumbImgs.map((img: string, i: number) => {
+                const fullImgs: string[] = cur?.images || [];
+                const isPdf = /\.pdf(\?|$)/i.test(String(fullImgs[i] || ''));
+                return (
                 <TouchableOpacity
                   key={i}
                   ref={el => { thumbRefs.current[i] = el; }}
@@ -320,9 +301,16 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
                   activeOpacity={0.8}
                   style={{ marginRight: 8 }}
                 >
-                  <Image source={{ uri: resolveAssetUrl(img) || img }} style={[styles.thumb, { marginRight: 0 }]} />
+                  {isPdf ? (
+                    <View style={[styles.thumb, { alignItems: 'center', justifyContent: 'center', gap: 2, backgroundColor: withAlpha(c.textMain, 0.06), marginRight: 0 }]}>
+                      <Text style={{ fontSize: FONTS.large.size }}>📄</Text>
+                      <Text style={{ fontSize: FONTS.tiny.size, color: c.textSub }}>PDF</Text>
+                    </View>
+                  ) : (
+                    <Image source={{ uri: resolveAssetUrl(img) || img }} style={[styles.thumb, { marginRight: 0 }]} />
+                  )}
                 </TouchableOpacity>
-              ))}
+              ); })}
             </ScrollView>
           </View>
         )}

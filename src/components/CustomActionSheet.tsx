@@ -26,10 +26,12 @@ interface Props {
   offsetX?: number;
   /** Dark BlurView style — matches 对账人 dropdown */
   dark?: boolean;
+  /** Hide backdrop overlay */
+  noOverlay?: boolean;
 }
 
 export default function CustomActionSheet({
-  visible, title, message, actions, onClose, offsetY = 0, offsetX = 0, dark = false,
+  visible, title, message, actions, onClose, offsetY = 0, offsetX = 0, dark = false, noOverlay = false,
 }: Props) {
   const { colors: c } = useTheme();
   const anim = useRef(new Animated.Value(0)).current;
@@ -71,7 +73,7 @@ export default function CustomActionSheet({
         onPress={handleClose}
       >
         <Animated.View
-          style={[st.overlay, { opacity: anim }]}
+          style={[st.overlay, { opacity: anim, backgroundColor: noOverlay ? 'transparent' : undefined }]}
         />
       </TouchableOpacity>
 
@@ -94,21 +96,23 @@ export default function CustomActionSheet({
           ]}
         >
           {dark ? (
-            <BlurView intensity={45} tint="dark" style={{ borderRadius: 10, overflow: 'hidden' as any }}>
+            <BlurView intensity={70} tint="dark" style={{ borderRadius: 10, overflow: 'hidden' as any }}>
               <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
                 {actions.map((action, index) => (
                   <TouchableOpacity
                     key={index}
-                    style={{
+                    style={[{
                       paddingVertical: 10, paddingHorizontal: 12, marginHorizontal: 4,
                       marginTop: index === 0 ? 4 : 0,
                       marginBottom: index === actions.length - 1 ? 4 : 0,
                       borderRadius: 8,
                       backgroundColor: action.selected ? 'rgba(10,132,255,0.25)' : 'transparent',
-                    }}
+                      flexDirection: 'row' as any, alignItems: 'center' as any, gap: 8,
+                    }]}
                     onPress={() => { if (action.disabled) return; handleClose(); setTimeout(action.onPress, 250); }}
                     activeOpacity={0.6}
                   >
+                    {action.icon && <View style={{ width: 18, height: 18, alignItems: 'center', justifyContent: 'center' }}>{action.icon}</View>}
                     <Text style={{
                       fontSize: FONTS.sub.size,
                       color: action.selected ? '#0A84FF' : action.destructive ? '#FF453A' : '#FFFFFF',
@@ -177,7 +181,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     backgroundColor: BACKDROP_COLOR,
   },
   sheetOuter: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'flex-start' as any,
     alignItems: 'flex-start' as any,
   },

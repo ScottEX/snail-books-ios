@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect, RouteProp } from '@react-navigation/native';
 import HomeScreen from '../screens/HomeScreen';
 import ExpenseHistoryScreen from '../screens/ExpenseHistoryScreen';
 import DailyRevenueHistory from '../screens/DailyRevenueHistory';
@@ -25,7 +25,7 @@ export type RootStackParamList = {
   Invoice: { filterBatchId?: number | null } | undefined;
   ProcurementDetail: { batch: any };
   ExpenseDetail: { expense: any };
-  PdfPreview: { id: number; number: number; supplier?: string };
+  PdfPreview: { id: number; number: number; supplier?: string; fileUrl?: string; title?: string; fileNamePrefix?: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -42,7 +42,6 @@ export const onAvatarChanged = (fn: () => void) => {
 export const emitAvatarChanged = () => { avatarListeners.forEach(f => f()); };
 
 // ── Focus-refresh: key increments on each RE-focus (skip first mount) ──
-// Replaces the old refreshKey props — screens refetch when popped back to.
 function useFocusRefreshKey() {
   const [key, setKey] = useState(0);
   const first = useRef(true);
@@ -53,7 +52,7 @@ function useFocusRefreshKey() {
   return key;
 }
 
-// ── Route wrappers: adapt navigation to each screen's existing prop API ──
+// ── Route wrappers ──
 
 function ExpenseHistoryRoute() {
   const navigation = useNavigation<any>();
@@ -131,6 +130,9 @@ function InvoiceRoute() {
     <InvoiceScreen
       onBack={() => navigation.goBack()}
       filterBatchId={route.params?.filterBatchId ?? null}
+      onPdfPreview={(url: string, title: string) =>
+        navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title })
+      }
     />
   );
 }
@@ -166,13 +168,15 @@ function ExpenseDetailRoute() {
 
 function PdfPreviewRoute() {
   const navigation = useNavigation<any>();
-  const route = useRoute<any>();
-  const { id, number, supplier } = route.params;
+  const { params } = useRoute<RouteProp<RootStackParamList, 'PdfPreview'>>();
   return (
     <PdfPreviewPage
-      batchId={id}
-      batchNumber={number}
-      supplier={supplier}
+      batchId={params.id}
+      batchNumber={params.number}
+      supplier={params.supplier}
+      fileUrl={params.fileUrl}
+      title={params.title}
+      fileNamePrefix={params.fileNamePrefix}
       onBack={() => navigation.goBack()}
     />
   );
@@ -184,10 +188,6 @@ export default function RootStack({ onLogout }: { onLogout: () => void }) {
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
-          // iOS-native push transitions + interactive edge swipe-back.
-          // NOTE: keep this as the default left-edge gesture — fullScreenGestureEnabled
-          // hijacks horizontal swipes inside content (history lists/charts) and
-          // caused accidental pops on ExpenseHistory / DailyHistory / ReconHistory.
           gestureEnabled: true,
           fullScreenGestureEnabled: false,
         }}

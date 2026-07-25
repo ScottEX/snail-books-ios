@@ -207,6 +207,7 @@ const I18N: Record<string, Record<string, string>> = {
     invApplyAmount: '申请金额',
     invAutoFilled: '已自动填入',
     invBankInfo: '银行信息',
+    invVatGoMaintain: '请完善开票信息',
     invCenter: '发票管理',
     invContact: '联系开票方',
     invPleaseMaintain: '请完善信息',
@@ -270,6 +271,7 @@ const I18N: Record<string, Record<string, string>> = {
     invTaxAmount: '含税金额',
     invTips: '开票信息将自动填入申请表单，确保税号准确以免开具失败。',
     invTitle: '开票管理中心',
+    invPdfTitle: '发票',
     invToInvoice: '去开票',
     invTotalAmount: '开票总额',
     invTotalCount: '累计开票',
@@ -300,6 +302,7 @@ const I18N: Record<string, Record<string, string>> = {
     lastLogin: '最后登录',
     linkCopied: '链接已复制',
     linkPartner: '关联',
+    noPartnerAvailable: '此间账簿，已无共笔之人',
     linkedPartner: '关联合伙人',
     loadMore: '加载更多',
     loading: '加载中...',
@@ -348,6 +351,9 @@ const I18N: Record<string, Record<string, string>> = {
     noExpenseRecords: '暂无支出记录',
     noRecords: '暂无记录',
     noUsers: '暂无用户',
+    noUsersHintBurgundy: '此处暂无归人，只余清风。',
+    noUsersHintObsidian: '岁月无声，待君落笔。',
+    noUsersHintSpaceBlue: '空山新雨，无人自静。',
     normalStatus: '正常',
     normalUser: '打杂',
     notePlaceholder: '如：葱、香菜、电费',
@@ -416,6 +422,9 @@ const I18N: Record<string, Record<string, string>> = {
     procOrderItems: '进货明细',
     procPaymentMethod: '支付方式',
     procPdfTitle: '进货单 #{n}',
+    procFileName: '进货单',
+    procVoucherTitle: '进货凭证 #{n}',
+    procVoucherFileName: '进货凭证',
     procProduct: '商品',
     procProductMgmt: '产品维护',
     procProductName: '产品名称',
@@ -455,6 +464,7 @@ const I18N: Record<string, Record<string, string>> = {
     pwHint: '8位以上，含字母+数字+特殊字符',
     realName: '用户姓名',
     receiptExpenseLabel: '查看凭证',
+    expensePdfTitle: '支出凭证',
     receivable: '应收总额',
     reconComplete: '对账完成',
     reconDate: '对账日期',
@@ -579,6 +589,9 @@ const I18N: Record<string, Record<string, string>> = {
     uploadFailedShort: '上传失败',
     uploadFileTip: '支持 jpg/png/webp/pdf，单张最大 10MB',
     uploadImage: '凭证上传',
+    takePhoto: '拍照',
+    chooseFromLibrary: '照片图库',
+    chooseFile: '选择文件',
     uploading: '上传中...',
     usePasswordLogin: '密码登录',
     useThisAvatar: '使用此头像',
@@ -813,6 +826,7 @@ const I18N: Record<string, Record<string, string>> = {
     invApplyAmount: '申請金額',
     invAutoFilled: '已自動填入',
     invBankInfo: '銀行信息',
+    invVatGoMaintain: '請去開票信息維護',
     invCenter: '發票管理',
     invContact: '聯繫開票方',
     invPleaseMaintain: '請維護信息',
@@ -876,6 +890,7 @@ const I18N: Record<string, Record<string, string>> = {
     invTaxAmount: '含稅金額',
     invTips: '開票信息將自動填入申請表單，確保稅號準確以免開具失敗。',
     invTitle: '開票管理中心',
+    invPdfTitle: '發票',
     invToInvoice: '去開票',
     invTotalAmount: '開票總額',
     invTotalCount: '累計開票',
@@ -906,6 +921,7 @@ const I18N: Record<string, Record<string, string>> = {
     lastLogin: '最後登入',
     linkCopied: '連結已複製',
     linkPartner: '關聯',
+    noPartnerAvailable: '此間賬簿，已無共筆之人',
     linkedPartner: '關聯合夥人',
     loadMore: '載入更多',
     loading: '載入中...',
@@ -954,6 +970,9 @@ const I18N: Record<string, Record<string, string>> = {
     noExpenseRecords: '暫無支出記錄',
     noRecords: '暫無記錄',
     noUsers: '暫無用戶',
+    noUsersHintBurgundy: '此處暫無歸人，只餘清風。',
+    noUsersHintObsidian: '歲月無聲，待君落筆。',
+    noUsersHintSpaceBlue: '空山新雨，無人自靜。',
     normalStatus: '正常',
     normalUser: '打雜',
     notePlaceholder: '如：蔥、香菜、電費',
@@ -1024,6 +1043,9 @@ const I18N: Record<string, Record<string, string>> = {
     procOrderItems: '進貨明細',
     procPaymentMethod: '支付方式',
     procPdfTitle: '進貨單 #{n}',
+    procFileName: '進貨單',
+    procVoucherTitle: '進貨憑證 #{n}',
+    procVoucherFileName: '進貨憑證',
     procProduct: '商品',
     procProductMgmt: '產品維護',
     procProductName: '產品名稱',
@@ -1066,6 +1088,7 @@ const I18N: Record<string, Record<string, string>> = {
     pwHint: '8位以上，含字母+數字+特殊字符',
     realName: '用戶姓名',
     receiptExpenseLabel: '查看憑證',
+    expensePdfTitle: '支出憑證',
     receivable: '應收總額',
     reconComplete: '對賬完成',
     reconDate: '對賬日期',
@@ -1195,6 +1218,9 @@ const I18N: Record<string, Record<string, string>> = {
     uploadFailedShort: '上傳失敗',
     uploadFileTip: '支援 jpg/png/webp/pdf，單張最大 10MB',
     uploadImage: '憑證上傳',
+    takePhoto: '拍照',
+    chooseFromLibrary: '照片圖庫',
+    chooseFile: '選擇檔案',
     uploading: '上傳中...',
     usePasswordLogin: '密碼登錄',
     useThisAvatar: '使用此頭像',
@@ -1429,6 +1455,7 @@ const I18N: Record<string, Record<string, string>> = {
     invApplyAmount: 'Apply Amount',
     invAutoFilled: 'Auto-filled',
     invBankInfo: 'Bank Info',
+    invVatGoMaintain: 'Please fill in Invoice Settings',
     invCenter: 'Invoice Management',
     invContact: 'Contact Issuer',
     invPleaseMaintain: 'Please fill in',
@@ -1492,6 +1519,7 @@ const I18N: Record<string, Record<string, string>> = {
     invTaxAmount: 'Tax-incl. Amount',
     invTips: 'Invoice info will auto-fill the application form. Ensure tax ID is correct.',
     invTitle: 'Invoice Management',
+    invPdfTitle: 'Invoice',
     invToInvoice: 'Invoice',
     invTotalAmount: 'Total Amount',
     invTotalCount: 'Total Invoices',
@@ -1522,6 +1550,7 @@ const I18N: Record<string, Record<string, string>> = {
     lastLogin: 'Last Login',
     linkCopied: 'Link copied',
     linkPartner: 'Link',
+    noPartnerAvailable: 'No one left to write with in these ledgers.',
     linkedPartner: 'Linked Partner',
     loadMore: 'Load More',
     loading: 'Loading...',
@@ -1570,6 +1599,9 @@ const I18N: Record<string, Record<string, string>> = {
     noExpenseRecords: 'No expense records',
     noRecords: 'No records yet',
     noUsers: 'No users',
+    noUsersHintBurgundy: 'No one returns here — only the breeze remains.',
+    noUsersHintObsidian: 'Silent years await your pen.',
+    noUsersHintSpaceBlue: 'Fresh rain on quiet hills, at peace alone.',
     normalStatus: 'Normal',
     normalUser: 'Helper',
     notePlaceholder: 'e.g. scallions, cilantro, electricity',
@@ -1637,6 +1669,9 @@ const I18N: Record<string, Record<string, string>> = {
     procOrderItems: 'Items',
     procPaymentMethod: 'Payment',
     procPdfTitle: 'Order #{n}',
+    procFileName: 'PO',
+    procVoucherTitle: 'Receipt #{n}',
+    procVoucherFileName: 'Receipt',
     procProduct: 'Product',
     procProductMgmt: 'Products',
     procProductName: 'Name',
@@ -1676,6 +1711,7 @@ const I18N: Record<string, Record<string, string>> = {
     pwHint: '8+ chars, letter + number + special',
     realName: 'Real Name',
     receiptExpenseLabel: 'View Receipt',
+    expensePdfTitle: 'Expense Receipt',
     receivable: 'Total Receivable',
     reconComplete: 'Complete Recon',
     reconDate: 'Date',
@@ -1800,6 +1836,9 @@ const I18N: Record<string, Record<string, string>> = {
     uploadFailedShort: 'Upload failed',
     uploadFileTip: 'Supports jpg/png/webp/pdf, max 10MB per file',
     uploadImage: 'Upload Receipt',
+    takePhoto: 'Take Photo',
+    chooseFromLibrary: 'Photo Library',
+    chooseFile: 'Choose File',
     uploading: 'Uploading...',
     usePasswordLogin: 'Password Login',
     useThisAvatar: 'Use This Avatar',
@@ -1885,6 +1924,8 @@ export type I18nKey =
   | 'chartXAxis'
   | 'chartXAxisDay'
   | 'chartYAxis'
+  | 'chooseFile'
+  | 'chooseFromLibrary'
   | 'chooseImage'
   | 'clear'
   | 'codeSent'
@@ -1998,6 +2039,7 @@ export type I18nKey =
   | 'expense'
   | 'expenseBreakdown'
   | 'expenseBreakdownOfMonth'
+  | 'expensePdfTitle'
   | 'expenseCategory'
   | 'expenseDate'
   | 'expenseHistory'
@@ -2036,6 +2078,7 @@ export type I18nKey =
   | 'invApply'
   | 'invApplyAmount'
   | 'invAutoFilled'
+  | 'invVatGoMaintain'
   | 'invBankInfo'
   | 'invCenter'
   | 'invContact'
@@ -2100,6 +2143,7 @@ export type I18nKey =
   | 'invTaxAmount'
   | 'invTips'
   | 'invTitle'
+  | 'invPdfTitle'
   | 'invToInvoice'
   | 'invTotalAmount'
   | 'invTotalCount'
@@ -2130,6 +2174,7 @@ export type I18nKey =
   | 'lastLogin'
   | 'linkCopied'
   | 'linkPartner'
+  | 'noPartnerAvailable'
   | 'linkedPartner'
   | 'loadMore'
   | 'loading'
@@ -2249,6 +2294,9 @@ export type I18nKey =
   | 'procOrderItems'
   | 'procPaymentMethod'
   | 'procPdfTitle'
+  | 'procFileName'
+  | 'procVoucherTitle'
+  | 'procVoucherFileName'
   | 'procProduct'
   | 'procProductMgmt'
   | 'procProductName'
@@ -2395,6 +2443,7 @@ export type I18nKey =
   | 'tabExpense'
   | 'tabRecon'
   | 'tabRevenue'
+  | 'takePhoto'
   | 'tapForDetail'
   | 'taxId'
   | 'themeLabel'

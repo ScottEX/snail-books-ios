@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import HomeBackground from '../components/HomeBackground';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, StatusBar } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
@@ -51,6 +52,7 @@ const fmtDate = (d: string) => {
 export default function DailyRevenueHistory({ onBack }: Props) {
   const { colors } = useTheme();
   const sd = useServerDate();
+  const insets = useSafeAreaInsets();
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   const [showFilter, setShowFilter] = useState(false);
@@ -108,13 +110,14 @@ export default function DailyRevenueHistory({ onBack }: Props) {
       <HomeBackground />
       <StatusBar barStyle="dark-content" />
       <HistoryHeader
+        safeTop={insets.top}
         onBack={onBack}
         title={`${t('revHistoryBtn')} (${total}/${totalAll})`}
         filterActive={showFilter}
         onToggleFilter={() => setShowFilter(!showFilter)}
       />
 
-      <FilterPanel visible={showFilter} onClose={() => setShowFilter(false)}>
+      <FilterPanel visible={showFilter} onClose={() => setShowFilter(false)} top={insets.top + 44}>
         <DateErrorHint trigger={filterDateError} message={t('errDateFuture')} color={colors.danger} />
         {rangeInvalid && <Text style={{ color: colors.danger, fontSize: FONTS.micro.size, textAlign: 'right' }}>{t('errDateRange')}</Text>}
         {rangeTooLong && <Text style={{ color: colors.danger, fontSize: FONTS.micro.size, textAlign: 'right' }}>{t('errDateRangeTooLong')}</Text>}
@@ -151,7 +154,7 @@ export default function DailyRevenueHistory({ onBack }: Props) {
 
       <ScrollView style={styles.list} showsVerticalScrollIndicator={false}
         onScroll={handleScroll} scrollEventThrottle={50}
-        contentContainerStyle={{ paddingTop: showFilter ? 240 : 112, paddingHorizontal: 16, paddingBottom: 20 }}>
+        contentContainerStyle={{ paddingTop: showFilter ? insets.top + 180 : insets.top + 52, paddingHorizontal: 16, paddingBottom: 20 }}>
         {loading ? (
           <LoadingSpinner />
         ) : records.length === 0 ? (

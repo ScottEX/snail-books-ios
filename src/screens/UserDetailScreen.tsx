@@ -9,7 +9,7 @@ import {
   Switch,
   Image,
   TextInput,
-  Modal,
+  useWindowDimensions,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -21,9 +21,12 @@ import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import ConfirmModal from '../components/ConfirmModal';
 import ModalOverlay from '../components/ModalOverlay';
+import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
+import ReAnimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Toast from '../components/Toast';
-import AdminHeader from '../components/AdminHeader';
+import HistoryHeader from '../components/HistoryHeader';
 import CloseButton from '../components/CloseButton';
+import { MODAL_CARD_RADIUS } from '../sharedStyles';
 import { getCurrentUserId } from '../utils/storage';
 
 interface UserData {
@@ -109,11 +112,35 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
   const { colors: c } = useTheme();
   const insets = useSafeAreaInsets();
   const safeTop = insets.top;
+  const { height: windowHeight } = useWindowDimensions();
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const remarkPushCap = -windowHeight * 0.35;
+  const pushCapSV = useSharedValue(0);
+  const kbStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: Math.max(keyboardHeight.value, pushCapSV.value) }],
+  }));
   const isSelf = String(user.id) === (getCurrentUserId() || '');
   const lang = getLang();
   const s = useMemo(() => getStyles(c), [c]);
 
-  const [detail, setDetail] = useState<UserData | null>(null);
+  const [detail, setDetail] = useState<UserData>({
+    id: user.id,
+    username: user.username,
+    email: user.email || '',
+    phone: '',
+    role: '',
+    remark: '',
+    created_at: '',
+    last_login: '',
+    avatar: user.avatar || '',
+    signature: '',
+    delete_scheduled: '',
+    delete_by: '',
+    linked_partner_id: null,
+    linked_partner_name: '',
+    is_disabled: user.is_disabled,
+    reviewed: false,
+  });
   const [loading, setLoading] = useState(true);
   const [isDisabled, setIsDisabled] = useState(user.is_disabled);
   const [saving, setSaving] = useState(false);
@@ -133,10 +160,23 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
   const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false);
   const [showLinkedPartnerHint, setShowLinkedPartnerHint] = useState(false);
   const [partnerList, setPartnerList] = useState<any[]>([]);
+  const [partnersLoading, setPartnersLoading] = useState(false);
+  const [partnersLoaded, setPartnersLoaded] = useState(false);
   const [toast, setToast] = useState('');
+  const [deleteError, setDeleteError] = useState('');
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
+  }, []);
+
+  const fetchPartnerList = useCallback(async () => {
+    setPartnersLoading(true);
+    try {
+      const data: any = await api.getPartners();
+      setPartnerList(Array.isArray(data) ? data : []);
+    } catch {}
+    setPartnersLoaded(true);
+    setPartnersLoading(false);
   }, []);
 
   const fetchDetail = useCallback(async () => {
@@ -158,8 +198,17 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
     } catch {
       showToast(t('toastLoadFailed'));
     }
+
+    // 拉取合伙人列表，确保 loading 结束前就绪
+    if (!partnersLoaded) {
+      try {
+        const data: any = await api.getPartners();
+        setPartnerList(Array.isArray(data) ? data : []);
+      } catch {}
+      setPartnersLoaded(true);
+    }
     setLoading(false);
-  }, [user.id, showToast]);
+  }, [user.id, partnersLoaded, showToast]);
 
   useEffect(() => { fetchDetail(); }, [fetchDetail]);
 
@@ -201,13 +250,20 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
 
   const handleDelete = async () => {
     setDeleting(true);
+    setDeleteError('');
     try {
-      await api.admin.deleteUser(user.id);
+      const resp: any = await api.admin.deleteUser(user.id);
       setShowDeleteConfirm(false);
+      setDetail(prev => ({
+        ...prev,
+        is_disabled: true,
+        delete_scheduled: resp?.scheduled || '',
+        delete_by: 'admin',
+      }));
+      setIsDisabled(true);
       onChanged();
-      onBack();
     } catch (e: any) {
-      showToast(e?.message || t('toastSubmitFailed'));
+      setDeleteError(e?.message || t('toastSubmitFailed'));
     }
     setDeleting(false);
   };
@@ -216,7 +272,6 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
     setSaving(true);
     try {
       await api.admin.restoreUser(user.id);
-      showToast(getLang() === 'en' ? 'Restored' : '已恢复');
       fetchDetail();
       onChanged();
     } catch (e: any) {
@@ -225,12 +280,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
     setSaving(false);
   };
 
-  const fetchPartnerList = useCallback(async () => {
-    try {
-      const data: any = await api.getPartners();
-      setPartnerList(Array.isArray(data) ? data : []);
-    } catch {}
-  }, []);
+  const availablePartners = useMemo(() => partnerList.filter((p: any) => !p.linked_user_id), [partnerList]);
 
   const handleLinkPartner = useCallback(async (partnerId: number, partnerName: string) => {
     setShowPartnerPicker(false);
@@ -249,6 +299,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       await api.admin.updateUser(user.id, { linked_partner_id: null });
       setLinkedPartnerId(null);
       setLinkedPartnerName('');
+      setPartnersLoaded(false);
     } catch {}
     setSaving(false);
   }, [user.id]);
@@ -276,25 +327,20 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       : `将于 ${graceDateStr} 永久删除 · ${graceInitiator}发起`;
 
   return (
+    <ReAnimated.View style={[{ flex: 1 }, kbStyle]}>
     <View style={s.container}>
       <HomeBackground />
-      <AdminHeader safeTop={safeTop} onBack={onBack} title={t('userDetail')} />
+      <HistoryHeader safeTop={safeTop} onBack={onBack} title={t('userDetail')} />
 
       {/* Body */}
-      <View style={[s.body, { marginTop: safeTop + 42 }]}>
+      <View style={[s.body, { marginTop: safeTop + 44 }]}>
 
-      {loading ? (
-        <View style={{ flex: 1 }}>
-          <View style={{ paddingVertical: 60, alignItems: 'center' }}>
-            <LoadingSpinner />
-          </View>
+      {loading && (
+        <View style={{ height: 2, backgroundColor: c.primary, opacity: 0.6 }}>
+          <View style={{ height: 2, width: '30%', backgroundColor: c.primary }} />
         </View>
-      ) : !detail ? (
-        <View style={{ flex: 1 }}>
-          <Text style={{ textAlign: 'center', color: c.textSub, marginTop: 60, fontSize: FONTS.small.size }}>User not found</Text>
-        </View>
-      ) : (
-        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80, paddingTop: 12 }}>
+      )}
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80, paddingTop: loading ? 10 : 12 }}>
           {/* Avatar + username row */}
           <View style={s.avatarSection}>
             <Image
@@ -314,7 +360,11 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
                     setShowDeleteConfirm(true);
                   }} activeOpacity={0.7} disabled={deleting}>
                     <View style={[s.actionBtn, { backgroundColor: withAlpha(c.danger, 0.08) }]}>
-                      <TrashIconSvg color={c.danger} />
+                      {deleting ? (
+                        <LoadingSpinner label={false} size={16} color={c.danger} />
+                      ) : (
+                        <TrashIconSvg color={c.danger} />
+                      )}
                     </View>
                   </TouchableOpacity>
                 )}
@@ -341,7 +391,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
                 </View>
               )}
               {/* Unreviewed badge + Mark reviewed action */}
-              {!detail.reviewed && (
+              {!loading && !detail.reviewed && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
                   <View style={s.newBadge}>
                     <Text style={s.newBadgeText}>{t('newUserBadge')}</Text>
@@ -477,7 +527,6 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
             </View>
           )}
 
-          {/* Linked Partner */}
           <View style={s.section}>
             <View style={s.sectionTitleRow}>
               <Text style={s.sectionTitleText}>{t('linkedPartner')}</Text>
@@ -486,18 +535,26 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
             <View style={s.card}>
               <View style={s.toggleRow}>
                 <View style={{ flex: 1 }}>
+                  {loading ? (
+                    <View style={{ height: 16, flex: 1, borderRadius: 4, backgroundColor: c.bg, marginRight: 12 }} />
+                  ) : (
                   <Text style={s.toggleLabel}>
                     {linkedPartnerId ? linkedPartnerName : t('unlinked')}
                   </Text>
+                  )}
                 </View>
-                {linkedPartnerId ? (
-                  <TouchableOpacity onPress={() => setShowUnlinkConfirm(true)} disabled={saving} activeOpacity={0.7}>
+                {loading ? (
+                  <View style={{ height: 16, width: 56, borderRadius: 4, backgroundColor: c.bg }} />
+                ) : linkedPartnerId ? (
+                  <TouchableOpacity onPress={() => setShowUnlinkConfirm(true)} disabled={saving} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}>
                     <Text style={{ color: c.danger, fontSize: FONTS.small.size, fontWeight: '500' }}>{t('unlinkPartner')}</Text>
                   </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity onPress={() => { fetchPartnerList(); setShowPartnerPicker(true); }} disabled={saving} activeOpacity={0.7}>
+                ) : availablePartners.length > 0 ? (
+                  <TouchableOpacity onPress={() => { fetchPartnerList(); setShowPartnerPicker(true); }} disabled={saving} activeOpacity={0.7} hitSlop={{ top: 10, bottom: 10, left: 12, right: 12 }}>
                     <Text style={{ color: c.primary, fontSize: FONTS.small.size, fontWeight: '500' }}>{t('linkPartner')}</Text>
                   </TouchableOpacity>
+                ) : (
+                  <Text style={{ color: c.danger, fontSize: FONTS.small.size, fontWeight: '500' }}>{t('noPartnerAvailable')}</Text>
                 )}
               </View>
             </View>
@@ -548,7 +605,8 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
                   style={s.editInput}
                   value={remark}
                   onChangeText={setRemark}
-                  onBlur={() => saveField('remark', remark)}
+                  onFocus={() => { pushCapSV.value = withTiming(remarkPushCap, { duration: 200 }); }}
+                  onBlur={() => { saveField('remark', remark); pushCapSV.value = withTiming(0, { duration: 200 }); }}
                   placeholder="—"
                   placeholderTextColor={c.textSub}
                   multiline
@@ -559,41 +617,51 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
 
           {/* TODO: show user's recent transactions / activity here if backend provides */}
         </ScrollView>
-      )}
       </View>
 
       <ConfirmModal
         visible={showDeleteConfirm}
         title={t('deleteUser')}
-        message={t('deleteUserGraceNote')}
+        message={
+          deleteError ? (
+            <Text style={{ fontSize: FONTS.micro.size, color: c.danger, textAlign: 'center' }}>{deleteError}</Text>
+          ) : (
+            t('deleteUserGraceNote')
+          )
+        }
         confirmLabel={deleting ? (t('loading') || '...') : (t('delete') || '删除')}
         cancelLabel={t('cancel')}
         confirmColor={c.danger}
         loading={deleting}
         onConfirm={handleDelete}
-        onCancel={() => setShowDeleteConfirm(false)}
+        onCancel={() => { setShowDeleteConfirm(false); setDeleteError(''); }}
+        animation="blurMorph"
       />
 
       {/* Partner picker */}
-      <Modal visible={showPartnerPicker} transparent animationType="fade" onRequestClose={() => setShowPartnerPicker(false)}>
-        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' }} activeOpacity={1} onPress={() => setShowPartnerPicker(false)}>
-          <View style={{ backgroundColor: c.surface, borderRadius: 14, width: '80%', maxHeight: '60%', padding: 4 }} onStartShouldSetResponder={() => true}>
-            <Text style={{ fontSize: FONTS.sub.size, fontWeight: '600', color: c.textMain, padding: 16, paddingBottom: 12 }}>{t('linkPartner')}</Text>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {partnerList.map((p: any) => (
-                <TouchableOpacity
-                  key={p.id}
-                  style={{ paddingVertical: 14, paddingHorizontal: 16, borderTopWidth: 0.5, borderTopColor: withAlpha(c.textMain, 0.08) }}
-                  onPress={() => handleLinkPartner(p.id, p.name)}
-                  activeOpacity={0.6}
-                >
-                  <Text style={{ fontSize: FONTS.sub.size, color: c.textMain }}>{p.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+      <ModalOverlay visible={showPartnerPicker} onClose={() => setShowPartnerPicker(false)} animation="springScale">
+        <View style={s.partnerCard}>
+          <View style={s.partnerHeader}>
+            <Text style={s.partnerTitle}>{t('linkPartner')}</Text>
+            <CloseButton onPress={() => setShowPartnerPicker(false)} />
           </View>
-        </TouchableOpacity>
-      </Modal>
+          <ScrollView style={s.partnerBody} showsVerticalScrollIndicator={false}>
+            {partnerList.filter((p: any) => !p.linked_user_id).map((p: any) => (
+              <TouchableOpacity
+                key={p.id}
+                style={s.partnerRow}
+                onPress={() => handleLinkPartner(p.id, p.name)}
+                activeOpacity={0.6}
+              >
+                <Text style={s.partnerRowText}>{p.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <TouchableOpacity style={s.partnerCancel} onPress={() => setShowPartnerPicker(false)} activeOpacity={0.7}>
+            <Text style={s.partnerCancelText}>{t('cancel')}</Text>
+          </TouchableOpacity>
+        </View>
+      </ModalOverlay>
 
       <ConfirmModal
         visible={showUnlinkConfirm}
@@ -603,19 +671,21 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
         cancelLabel={t('cancel')}
         confirmColor={c.danger}
         loading={saving}
-        onConfirm={handleUnlinkPartner}
+        onConfirm={() => { setShowUnlinkConfirm(false); handleUnlinkPartner(); }}
         onCancel={() => setShowUnlinkConfirm(false)}
       />
 
       {/* Linked-partner delete hint modal */}
-      <ModalOverlay visible={showLinkedPartnerHint} onClose={() => setShowLinkedPartnerHint(false)}>
+      <ModalOverlay visible={showLinkedPartnerHint} onClose={() => setShowLinkedPartnerHint(false)} animation="blurMorph">
         <View style={s.hintCard} onStartShouldSetResponder={() => true}>
           <View style={s.hintHeader}>
             <Text style={s.hintTitle}>{t('friendlyReminder')}</Text>
             <CloseButton onPress={() => setShowLinkedPartnerHint(false)} />
           </View>
           <View style={s.hintBody}>
-            <Text style={s.hintMsg}>{t('err_user_linked_partner')}</Text>
+            <View style={s.hintMsgBox}>
+              <Text style={s.hintMsg}>{t('err_user_linked_partner')}</Text>
+            </View>
             <TouchableOpacity style={s.hintBtn} onPress={() => setShowLinkedPartnerHint(false)} activeOpacity={0.7}>
               <Text style={s.hintBtnText}>{t('confirm')}</Text>
             </TouchableOpacity>
@@ -625,6 +695,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
 
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
     </View>
+    </ReAnimated.View>
   );
 }
 
@@ -697,7 +768,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   roleItemText: { fontSize: FONTS.small.size },
   /* Linked-partner delete hint modal */
   hintCard: {
-    backgroundColor: c.surface, borderRadius: 16,
+    backgroundColor: c.surface, borderRadius: MODAL_CARD_RADIUS,
     width: 340, maxWidth: '100%', overflow: 'hidden',
   },
   hintHeader: {
@@ -706,13 +777,40 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   },
   hintTitle: { fontSize: FONTS.sub.size, fontWeight: '700', color: c.surface },
   hintBody: { padding: 24, gap: 18 },
+  hintMsgBox: {
+    backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 14, padding: 12,
+  },
   hintMsg: {
-    fontSize: FONTS.sub.size, color: c.textSub, textAlign: 'center', lineHeight: 22,
-    backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 12, padding: 12,
+    fontSize: FONTS.micro.size, color: c.textSub, textAlign: 'center',
   },
   hintBtn: {
     width: '100%', paddingVertical: 12, borderRadius: 10,
     backgroundColor: c.primary, justifyContent: 'center', alignItems: 'center',
   },
   hintBtnText: { fontSize: FONTS.sub.size, fontWeight: '600', color: c.surface },
+  /* Partner picker */
+  partnerCard: {
+    backgroundColor: c.surface, borderRadius: MODAL_CARD_RADIUS,
+    width: 320, maxWidth: '100%', overflow: 'hidden',
+  },
+  partnerHeader: {
+    backgroundColor: c.primary, paddingVertical: 14, paddingHorizontal: 20,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+  },
+  partnerTitle: { fontSize: FONTS.sub.size, fontWeight: '700', color: c.surface },
+  partnerBody: { paddingTop: 8, paddingBottom: 4, maxHeight: 360, backgroundColor: c.surface, paddingHorizontal: 12 },
+  partnerRow: {
+    paddingVertical: 14, paddingHorizontal: 12,
+    marginBottom: 4, borderRadius: 14,
+    backgroundColor: withAlpha(c.primary, 0.1),
+    alignItems: 'center',
+  },
+  partnerRowText: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.textMain },
+  partnerCancel: {
+    marginHorizontal: 16, marginBottom: 16, marginTop: 8,
+    paddingVertical: 12, borderRadius: 10,
+    backgroundColor: c.primary,
+    alignItems: 'center',
+  },
+  partnerCancelText: { fontSize: FONTS.sub.size, fontWeight: '600', color: c.surface },
 });

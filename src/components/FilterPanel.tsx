@@ -8,9 +8,10 @@ interface FilterPanelProps {
   onClose: () => void;
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
+  top?: number;
 }
 
-export default function FilterPanel({ visible, onClose, children, style }: FilterPanelProps) {
+export default function FilterPanel({ visible, onClose, children, style, top = 100 }: FilterPanelProps) {
   const anim = useRef(new Animated.Value(0)).current;
   const st = getStyles();
   const [mounted, setMounted] = useState(false);
@@ -58,7 +59,7 @@ export default function FilterPanel({ visible, onClose, children, style }: Filte
       <Animated.View
         style={{
           position: 'absolute' as any,
-          top: 100,
+          top: top,
           left: 12,
           right: 12,
           zIndex: 9999,
@@ -92,8 +93,6 @@ const getStyles = () =>
     },
     panel: {
       borderRadius: 16,
-      borderWidth: 0.5,
-      borderColor: 'rgba(255,255,255,0.12)',
       overflow: 'hidden' as any,
     },
     content: {
