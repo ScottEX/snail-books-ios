@@ -1560,7 +1560,7 @@ const getStyles = (c: ThemeColors) =>
     dRow: { flexDirection: 'row', gap: 10 },
     dInput: { width: '100%', paddingVertical: 11, paddingHorizontal: 14, borderWidth: 0, borderRadius: 10, fontSize: FONTS.sub.size, color: c.textMain, minHeight: FONTS.sub.size + 28 },
     dAmountWrap: { position: 'relative' as any },
-    dAmountPrefix: { position: 'absolute' as any, left: 14, top: '50%' as any, fontSize: 14, fontWeight: '600', fontFamily: 'DMMono-Regular' },
+    dAmountPrefix: { position: 'absolute' as any, left: 14, top: '50%' as any, fontSize: FONTS.sub.size, fontWeight: '600', fontFamily: 'DMMono-Regular' },
     dAmountInput: { paddingLeft: 26, fontSize: FONTS.body.size, fontWeight: '700', fontFamily: 'DMMono-Regular', letterSpacing: 0.2 },
     dAmountInputFocus: { fontSize: FONTS.body.size, fontWeight: '700' },
     dTypeRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
