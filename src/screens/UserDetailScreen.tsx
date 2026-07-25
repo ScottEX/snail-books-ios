@@ -742,7 +742,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   partnerBody: { paddingVertical: 4, maxHeight: 360, backgroundColor: c.surface, paddingHorizontal: 12 },
   partnerRow: {
     paddingVertical: 14, paddingHorizontal: 12,
-    marginBottom: 4, borderRadius: 24,
+    marginBottom: 4, borderRadius: 14,
     backgroundColor: c.bg,
     alignItems: 'center',
   },
