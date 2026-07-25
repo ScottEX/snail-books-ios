@@ -201,10 +201,11 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
     // Init pending date from current filter
     if (dateFrom && dateTo) {
       // Check if matches a quick preset
-      const d = Math.round((new Date(dateTo).getTime() - new Date(dateFrom).getTime()) / 86400000);
-      if (d === 6) { setPendingDate({ type: 'quick', days: 7 }); }
-      else if (d === 29) { setPendingDate({ type: 'quick', days: 30 }); }
-      else if (d === 89) { setPendingDate({ type: 'quick', days: 90 }); }
+      const d = new Date(dateTo).getTime() - new Date(dateFrom).getTime();
+      const days = Math.round(d / 86400000);
+      if (days >= 6 && days <= 7) { setPendingDate({ type: 'quick', days: 7 }); }
+      else if (days >= 29 && days <= 30) { setPendingDate({ type: 'quick', days: 30 }); }
+      else if (days >= 89 && days <= 90) { setPendingDate({ type: 'quick', days: 90 }); }
       else { setPendingDate({ type: 'custom', year: dropYear, month: dropMonth }); }
     } else {
       setPendingDate({ type: 'any' });
