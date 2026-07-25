@@ -206,8 +206,8 @@ export interface FontToken {
 // 小屏设备缩放减小，避免字号过大。
 function getFontScale(width: number): number {
   if (width <= 375) return 0.9;
-  if (width >= 430) return 1.15;
-  return 0.9 + ((width - 375) / (430 - 375)) * 0.25;
+  if (width < 430) return 1.0;
+  return 1.15;
 }
 const S = getFontScale(Dimensions.get('window').width);
 
