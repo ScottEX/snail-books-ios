@@ -89,7 +89,7 @@ function lastDayOfMonth(y: number, m: number): string {
 }
 
 export default function UserManagementScreen({ onBack, onSelectUser, reviewedUserId }: Props) {
-  const { colors: c } = useTheme();
+  const { colors: c, theme } = useTheme();
   const sd = useServerDate();
   const s = useMemo(() => getStyles(c), [c]);
   const insets = useSafeAreaInsets();
@@ -277,6 +277,10 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
     ? `${dateFrom || '…'} - ${dateTo || '…'}`
     : t('registrationTime');
 
+  const noUsersHint = theme.id === 'burgundy-warm' ? t('noUsersHintBurgundy') :
+    theme.id === 'obsidian-gold' ? t('noUsersHintObsidian') :
+    t('noUsersHintSpaceBlue');
+
   return (
     <View style={s.container}>
       <HomeBackground />
@@ -348,6 +352,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
             <EmptyState
               icon={<UserEmptyIcon color={c.textSub} />}
               title={t('noUsers') || '暂无用户'}
+              hint={noUsersHint}
             />
           ) : (
             filteredUsers.map((u) => {
