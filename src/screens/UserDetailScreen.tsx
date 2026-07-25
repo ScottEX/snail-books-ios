@@ -746,8 +746,10 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   },
   partnerRowText: { fontSize: FONTS.sub.size, color: c.textMain },
   partnerCancel: {
-    paddingVertical: 14, alignItems: 'center',
-    borderTopWidth: 1, borderTopColor: c.secondary,
+    marginHorizontal: 16, marginBottom: 16, marginTop: 8,
+    paddingVertical: 12, borderRadius: 10,
+    backgroundColor: c.danger,
+    alignItems: 'center',
   },
-  partnerCancelText: { fontSize: FONTS.sub.size, fontWeight: '600', color: c.primary },
+  partnerCancelText: { fontSize: FONTS.sub.size, fontWeight: '600', color: c.surface },
 });
