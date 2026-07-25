@@ -61,8 +61,8 @@ function ChevronRightSvg({ color }: { color: string }) {
 
 function CaretDownSvg({ color }: { color: string }) {
   return (
-    <Svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M6 9l6 6 6-9" />
+    <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M6 9l6 6 6-6" />
     </Svg>
   );
 }
