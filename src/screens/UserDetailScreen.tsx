@@ -243,7 +243,6 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
     setSaving(true);
     try {
       await api.admin.restoreUser(user.id);
-      showToast(getLang() === 'en' ? 'Restored' : '已恢复');
       fetchDetail();
       onChanged();
     } catch (e: any) {
