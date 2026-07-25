@@ -20,6 +20,8 @@ import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import ConfirmModal from '../components/ConfirmModal';
 import ModalOverlay from '../components/ModalOverlay';
+import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
+import ReAnimated, { useAnimatedStyle } from 'react-native-reanimated';
 import Toast from '../components/Toast';
 import HistoryHeader from '../components/HistoryHeader';
 import CloseButton from '../components/CloseButton';
@@ -109,6 +111,10 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
   const { colors: c } = useTheme();
   const insets = useSafeAreaInsets();
   const safeTop = insets.top;
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const kbStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: keyboardHeight.value }],
+  }));
   const isSelf = String(user.id) === (getCurrentUserId() || '');
   const lang = getLang();
   const s = useMemo(() => getStyles(c), [c]);
@@ -315,6 +321,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       : `将于 ${graceDateStr} 永久删除 · ${graceInitiator}发起`;
 
   return (
+    <ReAnimated.View style={[{ flex: 1 }, kbStyle]}>
     <View style={s.container}>
       <HomeBackground />
       <HistoryHeader safeTop={safeTop} onBack={onBack} title={t('userDetail')} />
@@ -681,6 +688,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
 
       <Toast message={toast} visible={!!toast} onDismiss={() => setToast('')} />
     </View>
+    </ReAnimated.View>
   );
 }
 
