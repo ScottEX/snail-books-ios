@@ -153,6 +153,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
   const [partnersLoading, setPartnersLoading] = useState(false);
   const [partnersLoaded, setPartnersLoaded] = useState(false);
   const [toast, setToast] = useState('');
+  const [deleteError, setDeleteError] = useState('');
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
@@ -220,6 +221,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
 
   const handleDelete = async () => {
     setDeleting(true);
+    setDeleteError('');
     try {
       const resp: any = await api.admin.deleteUser(user.id);
       setShowDeleteConfirm(false);
@@ -232,7 +234,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       setIsDisabled(true);
       onChanged();
     } catch (e: any) {
-      showToast(e?.message || t('toastSubmitFailed'));
+      setDeleteError(e?.message || t('toastSubmitFailed'));
     }
     setDeleting(false);
   };
@@ -596,13 +598,18 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       <ConfirmModal
         visible={showDeleteConfirm}
         title={t('deleteUser')}
-        message={t('deleteUserGraceNote')}
+        message={
+          <>
+            <Text style={{ fontSize: FONTS.micro.size, color: c.textSub, textAlign: 'center' }}>{t('deleteUserGraceNote')}</Text>
+            {deleteError ? <Text style={{ fontSize: FONTS.micro.size, color: c.danger, textAlign: 'center', marginTop: 8 }}>{deleteError}</Text> : null}
+          </>
+        }
         confirmLabel={deleting ? (t('loading') || '...') : (t('delete') || '删除')}
         cancelLabel={t('cancel')}
         confirmColor={c.danger}
         loading={deleting}
         onConfirm={handleDelete}
-        onCancel={() => setShowDeleteConfirm(false)}
+        onCancel={() => { setShowDeleteConfirm(false); setDeleteError(''); }}
       />
 
       {/* Partner picker */}
