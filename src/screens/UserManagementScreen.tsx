@@ -112,6 +112,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
   const [dateLayout, setDateLayout] = useState({ top: 0, left: 0, width: 0 });
   const statusChipRef = useRef<View>(null);
   const dateChipRef = useRef<View>(null);
+  const monthPicked = useRef(false);
 
   useEffect(() => {
     if (sd.ready && sd.year !== FALLBACK_YEAR) setDropYear(sd.year);
@@ -185,6 +186,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
       if (left < pad) left = pad;
       setDateLayout({ top: y + height + 4, left, width: DD_W });
     });
+    monthPicked.current = false;
     if (dateFrom && dateFrom.length >= 7) {
       setDropYear(parseInt(dateFrom.slice(0, 4)));
       setDropMonth(parseInt(dateFrom.slice(5, 7)));
@@ -203,13 +205,18 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
   }, [dateFrom, dateTo, fetchUsers]);
 
   const applyPick = useCallback(() => {
+    if (!monthPicked.current && !dateFrom) {
+      // Nothing selected and no prior filter — just close
+      setShowDateDrop(false);
+      return;
+    }
     const from = `${dropYear}-${String(dropMonth).padStart(2, '0')}-01`;
     const to = lastDayOfMonth(dropYear, dropMonth);
     setDateFrom(from);
     setDateTo(to);
     setShowDateDrop(false);
     fetchUsers(statusFilter, from, to);
-  }, [dropYear, dropMonth, statusFilter, fetchUsers]);
+  }, [dropYear, dropMonth, statusFilter, dateFrom, fetchUsers]);
 
   const applyQuick = useCallback((days: number) => {
     setDateFrom(sd.offset(-days));
@@ -451,7 +458,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
                 <TouchableOpacity
                   key={m}
                   style={[s.monthBtn, dateFrom && dropMonth === m && s.monthBtnOn]}
-                  onPress={() => setDropMonth(m)}
+                  onPress={() => { setDropMonth(m); monthPicked.current = true; }}
                 >
                   <Text style={[s.monthBtnText, dateFrom && dropMonth === m && s.monthBtnTextOn]}>
                     {m}{t('monthUnit')}
