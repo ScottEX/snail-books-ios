@@ -169,6 +169,16 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
     setToast(msg);
   }, []);
 
+  const fetchPartnerList = useCallback(async () => {
+    setPartnersLoading(true);
+    try {
+      const data: any = await api.getPartners();
+      setPartnerList(Array.isArray(data) ? data : []);
+    } catch {}
+    setPartnersLoaded(true);
+    setPartnersLoading(false);
+  }, []);
+
   const fetchDetail = useCallback(async () => {
     setLoading(true);
     try {
@@ -189,7 +199,12 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       showToast(t('toastLoadFailed'));
     }
     setLoading(false);
-  }, [user.id, showToast]);
+
+    // 并行拉取合伙人列表
+    if (!partnersLoaded) {
+      fetchPartnerList();
+    }
+  }, [user.id, partnersLoaded, fetchPartnerList, showToast]);
 
   useEffect(() => { fetchDetail(); }, [fetchDetail]);
 
@@ -260,23 +275,6 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
     }
     setSaving(false);
   };
-
-  const fetchPartnerList = useCallback(async () => {
-    setPartnersLoading(true);
-    try {
-      const data: any = await api.getPartners();
-      setPartnerList(Array.isArray(data) ? data : []);
-    } catch {}
-    setPartnersLoaded(true);
-    setPartnersLoading(false);
-  }, []);
-
-  // 加载合伙人列表，用于判断是否有可关联的合伙人
-  useEffect(() => {
-    if (!loading && !partnersLoaded && !linkedPartnerId) {
-      fetchPartnerList();
-    }
-  }, [loading, partnersLoaded, linkedPartnerId, fetchPartnerList]);
 
   const availablePartners = useMemo(() => partnerList.filter((p: any) => !p.linked_user_id), [partnerList]);
 
