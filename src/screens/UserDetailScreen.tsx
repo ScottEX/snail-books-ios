@@ -341,7 +341,11 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
                     setShowDeleteConfirm(true);
                   }} activeOpacity={0.7} disabled={deleting}>
                     <View style={[s.actionBtn, { backgroundColor: withAlpha(c.danger, 0.08) }]}>
-                      <TrashIconSvg color={c.danger} />
+                      {deleting ? (
+                        <LoadingSpinner label={false} size={16} color={c.danger} />
+                      ) : (
+                        <TrashIconSvg color={c.danger} />
+                      )}
                     </View>
                   </TouchableOpacity>
                 )}
