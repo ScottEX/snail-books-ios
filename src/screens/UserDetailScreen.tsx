@@ -114,7 +114,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
   const safeTop = insets.top;
   const { height: windowHeight } = useWindowDimensions();
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const remarkPushCap = -windowHeight * 0.1;
+  const remarkPushCap = -windowHeight * 0.2;
   const pushCapSV = useSharedValue(0);
   const kbStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: Math.max(keyboardHeight.value, pushCapSV.value) }],
