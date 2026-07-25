@@ -650,7 +650,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
         cancelLabel={t('cancel')}
         confirmColor={c.danger}
         loading={saving}
-        onConfirm={handleUnlinkPartner}
+        onConfirm={() => { setShowUnlinkConfirm(false); handleUnlinkPartner(); }}
         onCancel={() => setShowUnlinkConfirm(false)}
       />
 
