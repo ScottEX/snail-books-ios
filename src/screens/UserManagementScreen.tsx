@@ -445,10 +445,10 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
               ).map(y => (
                 <TouchableOpacity
                   key={y}
-                  style={[s.pickerBtn, dropYear === y && s.pickerBtnOn]}
+                  style={[s.pickerBtn, (dateFrom || monthPicked) && dropYear === y && s.pickerBtnOn]}
                   onPress={() => setDropYear(y)}
                 >
-                  <Text style={[s.pickerBtnText, dropYear === y && s.pickerBtnTextOn]}>{y}</Text>
+                  <Text style={[s.pickerBtnText, (dateFrom || monthPicked) && dropYear === y && s.pickerBtnTextOn]}>{y}</Text>
                 </TouchableOpacity>
               ))}
             </View>
