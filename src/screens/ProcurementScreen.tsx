@@ -37,6 +37,7 @@ import PlusIcon from '../components/icons/PlusIcon';
 import { fmtDecInput } from '../utils/numbers';
 import type { PickedImage } from '../utils/imagePicker';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import ImagePreview, { measureThumbLayout, resolveThumbLayout, ThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
 import { useNavigation } from '@react-navigation/native';
@@ -402,6 +403,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   const navigation = useNavigation<any>();
   const closeDrawerForPdf = useRef(false);
   const reopenDrawerRef = useRef(false);
+  const pendingInvoiceBatchRef = useRef<number | null>(null);
 
   // Return from PdfPreview → reopen shopping cart drawer
   useEffect(() => {
@@ -571,6 +573,22 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
   useEffect(() => { refresh(); }, []);
   useEffect(() => { if (subTab !== 'history') return; refresh(); }, [subTab]);
+
+  // 开票完成后返回，只刷新单条 batch 的 invoice_status
+  const handleInvoice = useCallback((batchId: number) => {
+    pendingInvoiceBatchRef.current = batchId;
+    onInvoice?.(batchId);
+  }, [onInvoice]);
+
+  useFocusEffect(useCallback(() => {
+    const batchId = pendingInvoiceBatchRef.current;
+    if (!batchId) return;
+    pendingInvoiceBatchRef.current = null;
+    api.getProcurementBatchDetail(batchId).then((detail: any) => {
+      if (!detail) return;
+      setBatches((prev: BatchRecord[]) => prev.map(b => b.id === batchId ? { ...b, invoice_status: detail.invoice_status } : b));
+    }).catch(() => {});
+  }, []));
 
   const filteredProducts = useMemo(() => {
     let list = products;
@@ -1180,7 +1198,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                     <View style={styles.histActions}>
                       {batch.invoice_status ? (
                         <TouchableOpacity
-                          onPress={(e) => { e.stopPropagation?.(); onInvoice?.(batch.id); }}
+                          onPress={(e) => { e.stopPropagation?.(); handleInvoice(batch.id); }}
                           activeOpacity={0.7}
                           style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: batch.invoice_status === 'done' ? withAlpha(c.success, 0.12) : withAlpha(c.warning, 0.12) }}
                         >
@@ -1190,7 +1208,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                         </TouchableOpacity>
                       ) : (
                         <TouchableOpacity
-                          onPress={(e) => { e.stopPropagation?.(); onInvoice?.(batch.id); }}
+                          onPress={(e) => { e.stopPropagation?.(); handleInvoice(batch.id); }}
                           activeOpacity={0.7}
                           style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, backgroundColor: withAlpha(c.primary, 0.10) }}
                         >
