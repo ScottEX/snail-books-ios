@@ -199,7 +199,7 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
   return (
     <View style={styles.container}>
       <HomeBackground />
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
       <HistoryHeader safeTop={safeTop} onBack={onBack} title={t('procDetail')} />
 
       <ScrollView
