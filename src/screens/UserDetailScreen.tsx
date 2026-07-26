@@ -26,7 +26,7 @@ import ReAnimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-
 import Toast from '../components/Toast';
 import HistoryHeader from '../components/HistoryHeader';
 import CloseButton from '../components/CloseButton';
-import { MODAL_CARD_RADIUS } from '../sharedStyles';
+import { MODAL_CARD_RADIUS, SHEET_RADIUS } from '../sharedStyles';
 import { getCurrentUserId } from '../utils/storage';
 import { translateName } from './partner/usePartnerData';
 
@@ -747,7 +747,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
   },
   sectionTitleLine: { flex: 1, height: 1, backgroundColor: withAlpha(c.textMain, 0.08) },
   card: {
-    backgroundColor: c.surface, borderRadius: 12,
+    backgroundColor: c.surface, borderRadius: SHEET_RADIUS,
     borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.06),
   },
   infoRow: {
