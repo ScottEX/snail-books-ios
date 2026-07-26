@@ -81,7 +81,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
 
   // Swipe-to-back on header
   const headerPan = useRef(PanResponder.create({
-    onMoveShouldSetPanResponder: (_, gs) => gs.dx > 10 && Math.abs(gs.dy) < 5,
+    onMoveShouldSetPanResponder: (evt, gs) => evt.nativeEvent.locationX < 30 && gs.dx > 10 && Math.abs(gs.dy) < 5,
     onPanResponderRelease: (_, gs) => {
       if (gs.dx > 60) onBack();
     },
