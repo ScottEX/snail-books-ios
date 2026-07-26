@@ -1530,7 +1530,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   section: { paddingHorizontal: 20, marginTop: 12 },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 8 },
-  sectionTitleText: { fontSize: FONTS.micro.size, fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase', color: colors.textSub },
+  sectionTitleText: { fontSize: FONTS.tiny.size, fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase', color: colors.textSub },
   sectionTitleLine: { flex: 1, height: 1, backgroundColor: withAlpha(colors.textMain, 0.08) },
   // Icon rows
   iconRow: {
