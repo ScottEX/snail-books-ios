@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Share, PanResponder } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Share } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system';
@@ -78,14 +78,6 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
   const lang = getLang();
   const isLocal = !pdfUrl.startsWith('http');
   const source = isLocal ? { uri: pdfUrl } : { uri: pdfUrl, headers: { 'X-Lang': lang } };
-
-  // Swipe-to-back on header
-  const headerPan = useRef(PanResponder.create({
-    onMoveShouldSetPanResponder: (_, gs) => gs.dx > 10 && Math.abs(gs.dy) < 5,
-    onPanResponderRelease: (_, gs) => {
-      if (gs.dx > 60) onBack();
-    },
-  })).current;
 
   // Skip initial loading spinner for local files (blob URIs, etc.)
   useEffect(() => {
@@ -178,7 +170,7 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
   const isActionLoading = actionLoading !== null;
 
   return (
-    <View style={styles.root} {...headerPan.panHandlers}>
+    <View style={styles.root}>
       <HomeBackground />
       <StatusBar barStyle="dark-content" />
       <HistoryHeader

@@ -25,6 +25,15 @@ export const modalClose = {
 /** Modal card border radius — used by PartnerScreen, ThemePicker, etc. */
 export const MODAL_CARD_RADIUS = 24;
 
+/** 通用 sheet/卡片/弹窗圆角 — CustomActionSheet, MonthPicker, 搜索框等 */
+export const SHEET_RADIUS = 14;
+
+/** Switch 开关公共配色 — 关闭: 灰底(12% 透明), 激活: primary, 滑块: 白 */
+export const switchColors = (colors: ThemeColors) => ({
+  trackColor: { false: withAlpha(colors.textMain, 0.12), true: colors.primary },
+  thumbColor: '#fff' as const,
+});
+
 /** 底部 sheet 抽屉的 ModalOverlay overlayStyle 共用配置 */
 export const bottomSheetOverlay = {
   justifyContent: 'flex-end' as const,

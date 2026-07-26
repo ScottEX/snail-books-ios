@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Svg, { Path } from 'react-native-svg';
 import { FONTS, ThemeColors, withAlpha } from '../theme';
+import { SHEET_RADIUS } from '../sharedStyles';
 import { t } from '../i18n';
 import AnimatedDropdown from './AnimatedDropdown';
 export type MonthValue = 'all' | { year: number; month: number };
@@ -79,7 +80,7 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
         style={{ top: pos.top || 100, left: pos.left || 10, width: 160 }}
       >
         <BlurView intensity={45} tint="dark" style={{
-          borderRadius: 10,
+          borderRadius: SHEET_RADIUS,
           overflow: 'hidden' as const,
         }}>
           <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>

@@ -22,7 +22,7 @@ interface Props {
 
 export default function ImagePickerSheet({ visible, onClose, onPicked, showFileOption = false, position = 'anchor', offsetX = 16, offsetY = 100 }: Props) {
   const { width: screenW } = Dimensions.get('window');
-  const finalX = position === 'center' ? Math.max(8, (screenW - 180) / 2) : Math.min(offsetX, screenW - 196);
+  const finalX = position === 'center' ? Math.max(8, (screenW - 160) / 2) : Math.min(offsetX, screenW - 168);
   const finalY = position === 'center' ? 60 : offsetY;
 
   const handleCamera = async () => {

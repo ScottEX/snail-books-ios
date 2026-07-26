@@ -28,7 +28,7 @@ import ImagePickerSheet from '../components/ImagePickerSheet';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { pickImages, PickedImage } from '../utils/imagePicker';
 import { cacheBackground } from '../utils/backgroundCache';
-import { modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
+import { modalClose, MODAL_CARD_RADIUS, switchColors } from '../sharedStyles';
 import { isBiometricAvailable, saveCredential, promptBiometric, getCredential } from '../utils/biometric';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import ReAnimated, { useAnimatedStyle, useSharedValue, useAnimatedScrollHandler, interpolate, Extrapolation, withTiming, withSpring, cancelAnimation } from 'react-native-reanimated';
@@ -532,7 +532,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
   const openAvatarPicker = () => {
     (avatarRef.current as any)?.measureInWindow?.((x: number, y: number, _w: number, h: number) => {
-      setPickOffsetX(x || 16);
+      setPickOffsetX(Math.max(8, (x || 16) + (_w || 0) - 160));
       setPickOffsetY(Math.max(y - 20, 60));
       setShowAvatarSheet(true);
     }) || setShowAvatarSheet(true);
@@ -966,8 +966,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                   <Switch
                     value={hasFaceID}
                     onValueChange={toggleFaceID}
-                    trackColor={{ false: withAlpha(colors.textMain, 0.18), true: colors.primary }}
-                    thumbColor="#fff"
+                    {...switchColors(colors)}
                     disabled={faceIDLoading}
                     style={{ transform: [{ scale: 0.75 }] }}
                   />
@@ -988,8 +987,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                 <Switch
                   value={enforceSingleSession === 1}
                   onValueChange={toggleEnforceSingleSession}
-                  trackColor={{ false: withAlpha(colors.textMain, 0.18), true: colors.primary }}
-                  thumbColor="#fff"
+                  {...switchColors(colors)}
                   style={{ transform: [{ scale: 0.75 }] }}
                 />
               </View>
@@ -1530,7 +1528,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   section: { paddingHorizontal: 20, marginTop: 12 },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 8 },
-  sectionTitleText: { fontSize: FONTS.micro.size, fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase', color: colors.textSub },
+  sectionTitleText: { fontSize: FONTS.tiny.size, fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase', color: colors.textSub },
   sectionTitleLine: { flex: 1, height: 1, backgroundColor: withAlpha(colors.textMain, 0.08) },
   // Icon rows
   iconRow: {
