@@ -1365,7 +1365,7 @@ const getStyles = (colors: ThemeColors, headerColor: string, bgOpacity: number) 
   datePillText: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub },
   datePillTextActive: { color: colors.surface },
   dateLabel: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub },
-  revInputCard: { flex: 1, backgroundColor: colors.surface, borderRadius: 10, padding: 10, borderWidth: 0.5, borderColor: colors.secondary },
+  revInputCard: { flex: 1, backgroundColor: colors.surface, borderRadius: 10, padding: 10 },
   revInputCardTitle: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.textSub, marginBottom: 2 },
   revInputCardSub: { fontSize: FONTS.micro.size, color: colors.textSub, marginBottom: 8 },
   revInputCardInputWrap: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 6 },
