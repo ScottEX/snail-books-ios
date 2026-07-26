@@ -293,7 +293,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const route = useRoute<any>();
   const [pendingEditBatch, setPendingEditBatch] = useState<any | null>(null);
   const pendingInvoiceBatchRef = useRef<number | null>(null);
-  const [invoiceRefreshBatchId, setInvoiceRefreshBatchId] = useState<number | null>(null);
+  const [invoiceRefresh, setInvoiceRefresh] = useState<{ batchId: number; key: number } | null>(null);
   // Main content is always "home" — stack screens cover it natively
   const isHome = true;
 
@@ -314,7 +314,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
     const batchId = pendingInvoiceBatchRef.current;
     if (!batchId) return;
     pendingInvoiceBatchRef.current = null;
-    setInvoiceRefreshBatchId(batchId);
+    setInvoiceRefresh(prev => ({ batchId, key: (prev?.key ?? 0) + 1 }));
   }, []));
 
   // ── Data state for chart / supply / partner ──
@@ -609,7 +609,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             pendingEditBatch={pendingEditBatch}
             onPendingEditConsumed={() => setPendingEditBatch(null)}
             onInvoice={(batchId: number) => { pendingInvoiceBatchRef.current = batchId; navigation.navigate('Invoice', { filterBatchId: batchId }); }}
-            invoiceRefreshBatchId={invoiceRefreshBatchId}
+            invoiceRefresh={invoiceRefresh}
           />
         ) : isHome && (
         <>

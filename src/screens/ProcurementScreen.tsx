@@ -296,7 +296,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
 // ═══════════════════════════════════════════════
 // Main Component
 // ═══════════════════════════════════════════════
-export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcurementDetail, pendingEditBatch, onPendingEditConsumed, onInvoice, invoiceRefreshBatchId }: { onDrawerOpen?: () => void; onDrawerClose?: () => void; onProcurementDetail?: (batch: BatchRecord) => void; pendingEditBatch?: BatchRecord | null; onPendingEditConsumed?: () => void; onInvoice?: (batchId: number) => void; invoiceRefreshBatchId?: number | null }) {
+export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcurementDetail, pendingEditBatch, onPendingEditConsumed, onInvoice, invoiceRefresh }: { onDrawerOpen?: () => void; onDrawerClose?: () => void; onProcurementDetail?: (batch: BatchRecord) => void; pendingEditBatch?: BatchRecord | null; onPendingEditConsumed?: () => void; onInvoice?: (batchId: number) => void; invoiceRefresh?: { batchId: number; key: number } | null }) {
   const { colors: c } = useTheme();
   const sd = useServerDate();
   const readBgOpacity = (): number => {
@@ -574,14 +574,14 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
   // HomeScreen focus 后刷新单条 batch 的 invoice_status
   useEffect(() => {
-    if (!invoiceRefreshBatchId) return;
-    api.getProcurementBatchDetail(invoiceRefreshBatchId).then((detail: any) => {
+    if (!invoiceRefresh?.batchId) return;
+    api.getProcurementBatchDetail(invoiceRefresh.batchId).then((detail: any) => {
       if (!detail) return;
       const batch = detail.batch || detail.data || detail;
       if (!batch?.invoice_status) return;
-      setBatches((prev: BatchRecord[]) => prev.map(b => b.id === invoiceRefreshBatchId ? { ...b, invoice_status: batch.invoice_status } : b));
+      setBatches((prev: BatchRecord[]) => prev.map(b => b.id === invoiceRefresh.batchId ? { ...b, invoice_status: batch.invoice_status } : b));
     }).catch(() => {});
-  }, [invoiceRefreshBatchId]);
+  }, [invoiceRefresh]);
 
   const filteredProducts = useMemo(() => {
     let list = products;
