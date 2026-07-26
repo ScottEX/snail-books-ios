@@ -147,7 +147,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
   container: { flex: 1, position: 'relative' as const, paddingHorizontal: 16 },
 
   frostedBlock: {
-    marginHorizontal: 0, marginTop: 4, borderRadius: 16, overflow: 'hidden' as const,
+    marginHorizontal: 0, marginTop: 4, borderRadius: SHEET_RADIUS, overflow: 'hidden' as const,
     borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
     backgroundColor: withAlpha(c.surface, 0.65),
   },
@@ -164,7 +164,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
 
   searchSection: { paddingHorizontal: 18, paddingBottom: 8, borderTopWidth: 0 },
   searchRow: { position: 'relative' as const },
-  searchInput: { paddingHorizontal: 12, paddingVertical: 9, paddingRight: 36, borderWidth: 0, borderRadius: 10, fontSize: FONTS.sub.size, color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), outline: 'none' as any },
+  searchInput: { paddingHorizontal: 12, paddingVertical: 9, paddingRight: 36, borderWidth: 0, borderRadius: SHEET_RADIUS, fontSize: FONTS.sub.size, color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), outline: 'none' as any },
   searchClear: { position: 'absolute' as const, right: 8, top: 0, bottom: 0, justifyContent: 'center' as const, alignItems: 'center' as const },
   filterRow: { flexDirection: 'row' as const, gap: 6, marginTop: 8 },
   filterChip: { paddingHorizontal: 13, paddingVertical: 5, borderRadius: 20, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.12) },
