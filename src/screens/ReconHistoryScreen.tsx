@@ -373,7 +373,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   /* Card */
   card: {
     backgroundColor: colors.surface, borderRadius: SHEET_RADIUS, padding: 14,
-    marginBottom: 8, borderWidth: 1, borderColor: colors.secondary,
+    marginBottom: 8,
     gap: 10,
   },
   dateRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2, gap: 8 },

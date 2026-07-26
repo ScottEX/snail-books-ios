@@ -426,7 +426,6 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surface, borderRadius: SHEET_RADIUS,
     paddingVertical: 14, paddingHorizontal: 14,
     marginBottom: 8,
-    borderWidth: 1, borderColor: colors.secondary,
     gap: 6,
   },
   rowTop: {
