@@ -25,6 +25,9 @@ export const modalClose = {
 /** Modal card border radius — used by PartnerScreen, ThemePicker, etc. */
 export const MODAL_CARD_RADIUS = 24;
 
+/** 通用 sheet/卡片/弹窗圆角 — CustomActionSheet, MonthPicker, 搜索框等 */
+export const SHEET_RADIUS = 14;
+
 /** 底部 sheet 抽屉的 ModalOverlay overlayStyle 共用配置 */
 export const bottomSheetOverlay = {
   justifyContent: 'flex-end' as const,

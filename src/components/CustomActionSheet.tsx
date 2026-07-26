@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useTheme, ThemeColors, FONTS, withAlpha, BACKDROP_COLOR } from '../theme';
+import { SHEET_RADIUS } from '../sharedStyles';
 
 export interface ActionItem {
   label: string;
@@ -96,7 +97,7 @@ export default function CustomActionSheet({
           ]}
         >
           {dark ? (
-            <BlurView intensity={70} tint="dark" style={{ borderRadius: 14, overflow: 'hidden' as any }}>
+            <BlurView intensity={70} tint="dark" style={{ borderRadius: SHEET_RADIUS, overflow: 'hidden' as any }}>
               <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
                 {actions.map((action, index) => (
                   <TouchableOpacity
@@ -189,7 +190,7 @@ const getStyles = (c: ThemeColors) => StyleSheet.create({
     width: 140,
     maxWidth: 140,
     backgroundColor: c.surface,
-    borderRadius: 14,
+    borderRadius: SHEET_RADIUS,
     overflow: 'hidden' as any,
     elevation: 24,
     shadowColor: '#000',

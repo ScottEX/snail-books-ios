@@ -18,6 +18,7 @@ import { t, getLang } from '../i18n';
 import { API_BASE, resolveAssetUrl } from '../api/client';
 import { useServerDate } from '../hooks/useServerDate';
 import { useTheme, withAlpha, ThemeColors, FONTS } from '../theme';
+import { SHEET_RADIUS } from '../sharedStyles';
 import EmptyState from '../components/EmptyState';
 import Toast from '../components/Toast';
 import HistoryHeader from '../components/HistoryHeader';
@@ -551,7 +552,7 @@ const getStyles = (c: ThemeColors) => {
       flexDirection: 'row', alignItems: 'center',
       marginHorizontal: 16, marginTop: 16, marginBottom: 10,
       backgroundColor: c.surface,
-      borderRadius: 10, paddingHorizontal: 12, height: 40,
+      borderRadius: SHEET_RADIUS, paddingHorizontal: 12, height: 40,
       borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
     },
     searchInput: {
@@ -565,7 +566,7 @@ const getStyles = (c: ThemeColors) => {
     filterChip: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
       backgroundColor: c.surface,
-      borderRadius: 10, height: 40, paddingHorizontal: 12,
+      borderRadius: SHEET_RADIUS, height: 40, paddingHorizontal: 12,
       borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
     },
     filterChipText: { fontSize: FONTS.small.size, color: c.textSub, flex: 1 },
@@ -630,7 +631,7 @@ const getStyles = (c: ThemeColors) => {
     list: { flex: 1, paddingHorizontal: 16, paddingTop: 4 },
     userRow: {
       flexDirection: 'row', alignItems: 'center',
-      backgroundColor: c.surface, borderRadius: 12,
+      backgroundColor: c.surface, borderRadius: SHEET_RADIUS,
       paddingVertical: 12, paddingHorizontal: 12,
       marginBottom: 6,
       borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.06),
