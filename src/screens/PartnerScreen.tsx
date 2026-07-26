@@ -31,7 +31,7 @@ import CropModal from '../components/CropModal';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 import { FONTS } from '../theme';
-import { modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
+import { modalClose, MODAL_CARD_RADIUS, SHEET_RADIUS } from '../sharedStyles';
 
 import {
   partnerShare, translateName, translateDividendNote, getRoleKey,
@@ -714,7 +714,7 @@ const getS = (colors: ThemeColors) => StyleSheet.create({
   langActive: { color: colors.primary, backgroundColor: withAlpha(colors.danger, 0.1), fontWeight: FONTS.microBold.weight as any },
   statGrid: { flexDirection: 'column', gap: 12, marginTop: 16 },
   statCard: {
-    flex: 1, minWidth: 200, backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1, borderColor: colors.bg,
+    flex: 1, minWidth: 200, backgroundColor: colors.surface, borderRadius: SHEET_RADIUS, borderWidth: 1, borderColor: colors.bg,
     padding: 14, flexDirection: 'row', alignItems: 'center', gap: 14,
   },
   statIconBg: { width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
@@ -726,7 +726,7 @@ const getS = (colors: ThemeColors) => StyleSheet.create({
   dividendBtnText: { color: colors.surface, fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight },
   partnerGrid: { flexDirection: 'column', gap: 12, marginTop: 12 },
   partnerCard: {
-    flex: 1, minWidth: 200, backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1, borderColor: colors.bg,
+    flex: 1, minWidth: 200, backgroundColor: colors.surface, borderRadius: SHEET_RADIUS, borderWidth: 1, borderColor: colors.bg,
     padding: 16, gap: 10,
   },
   partnerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -743,7 +743,7 @@ const getS = (colors: ThemeColors) => StyleSheet.create({
   footerAmt: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.primary },
   footerSub: { fontSize: FONTS.micro.size, color: colors.textSub },
   ledgerCard: {
-    backgroundColor: colors.surface, borderRadius: 16, borderWidth: 1, borderColor: colors.bg, marginTop: 16,
+    backgroundColor: colors.surface, borderRadius: SHEET_RADIUS, borderWidth: 1, borderColor: colors.bg, marginTop: 16,
   },
   ledgerHeader: { padding: 20, borderBottomWidth: 1, borderBottomColor: colors.bg, gap: 12 },
   ledgerTitle: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.textSub, letterSpacing: 0.5 },
