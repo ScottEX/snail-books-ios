@@ -25,6 +25,7 @@ import LogoutConfirmModal from '../components/LogoutConfirmModal';
 import BgCropModal from '../components/BgCropModal';
 import { cacheBackground, getCachedLocalPath, getOrDownloadBackground, clearBackgroundCache } from '../utils/backgroundCache';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { onAvatarChanged } from '../navigation/RootStack';
 import PartnerScreen from './PartnerScreen';
 import ProcurementScreen from './ProcurementScreen';
@@ -291,6 +292,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const [pendingEditBatch, setPendingEditBatch] = useState<any | null>(null);
+  const pendingInvoiceBatchRef = useRef<number | null>(null);
+  const [invoiceRefreshBatchId, setInvoiceRefreshBatchId] = useState<number | null>(null);
   // Main content is always "home" — stack screens cover it natively
   const isHome = true;
 
@@ -305,6 +308,14 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
 
   // ProfileScreen avatar upload → reload header avatar
   useEffect(() => onAvatarChanged(() => loadAvatar()), []);
+
+  // 从 Invoice 页面返回后刷新单条 batch
+  useFocusEffect(useCallback(() => {
+    const batchId = pendingInvoiceBatchRef.current;
+    if (!batchId) return;
+    pendingInvoiceBatchRef.current = null;
+    setInvoiceRefreshBatchId(batchId);
+  }, []));
 
   // ── Data state for chart / supply / partner ──
   const [chartMonthly, setChartMonthly] = useState<any>(null);
@@ -597,7 +608,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             onProcurementDetail={(batch) => navigation.navigate('ProcurementDetail', { batch })}
             pendingEditBatch={pendingEditBatch}
             onPendingEditConsumed={() => setPendingEditBatch(null)}
-            onInvoice={(batchId: number) => navigation.navigate('Invoice', { filterBatchId: batchId })}
+            onInvoice={(batchId: number) => { pendingInvoiceBatchRef.current = batchId; navigation.navigate('Invoice', { filterBatchId: batchId }); }}
+            invoiceRefreshBatchId={invoiceRefreshBatchId}
           />
         ) : isHome && (
         <>
