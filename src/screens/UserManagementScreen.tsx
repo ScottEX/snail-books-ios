@@ -553,7 +553,6 @@ const getStyles = (c: ThemeColors) => {
       marginHorizontal: 16, marginTop: 16, marginBottom: 10,
       backgroundColor: c.surface,
       borderRadius: SHEET_RADIUS, paddingHorizontal: 12, height: 40,
-      borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
     },
     searchInput: {
       flex: 1, marginLeft: 8, fontSize: FONTS.sub.size, color: c.textMain, paddingVertical: 0,
@@ -567,7 +566,6 @@ const getStyles = (c: ThemeColors) => {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
       backgroundColor: c.surface,
       borderRadius: SHEET_RADIUS, height: 40, paddingHorizontal: 12,
-      borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
     },
     filterChipText: { fontSize: FONTS.small.size, color: c.textSub, flex: 1 },
     // Dropdown items
@@ -634,7 +632,6 @@ const getStyles = (c: ThemeColors) => {
       backgroundColor: c.surface, borderRadius: SHEET_RADIUS,
       paddingVertical: 12, paddingHorizontal: 12,
       marginBottom: 6,
-      borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.06),
     },
     avatarWrap: { marginRight: 12 },
     avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.bg },
