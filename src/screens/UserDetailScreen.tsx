@@ -26,7 +26,7 @@ import ReAnimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-
 import Toast from '../components/Toast';
 import HistoryHeader from '../components/HistoryHeader';
 import CloseButton from '../components/CloseButton';
-import { MODAL_CARD_RADIUS, SHEET_RADIUS } from '../sharedStyles';
+import { MODAL_CARD_RADIUS, SHEET_RADIUS, switchColors } from '../sharedStyles';
 import { getCurrentUserId } from '../utils/storage';
 import { translateName } from './partner/usePartnerData';
 
@@ -526,8 +526,7 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
                   <Switch
                     value={!isDisabled}
                     onValueChange={(v) => { if (saving) return; handleToggleDisabled(!v); }}
-                    trackColor={{ false: withAlpha(c.textMain, 0.18), true: c.primary }}
-                    thumbColor="#fff"
+                    {...switchColors(c)}
                     disabled={isGrace}
                     style={{ transform: [{ scale: 0.75 }] }}
                   />

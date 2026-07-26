@@ -12,7 +12,7 @@ import { trCategory, trPayment } from '../i18nHelpers';
 import { api, resolveAssetUrl } from '../api/client';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
-import { MODAL_CARD_RADIUS } from '../sharedStyles';
+import { MODAL_CARD_RADIUS, switchColors } from '../sharedStyles';
 import ConfirmModal from '../components/ConfirmModal';
 import ModalOverlay from '../components/ModalOverlay';
 import ImagePreview, { measureThumbLayout, resolveThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
@@ -222,8 +222,7 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
                 if (v && !cur.settled_at) setShowSettleConfirm(true);
               }}
               disabled={settling || !!cur.settled_at}
-              trackColor={{ false: withAlpha(c.textMain, 0.18), true: '#3DBC75' }}
-              thumbColor="#fff"
+              {...switchColors(c)}
               style={{ transform: [{ scale: 0.75 }] }}
             />
             <TouchableOpacity onPress={downloadPDF} activeOpacity={0.6} style={styles.actionBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
