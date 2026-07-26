@@ -8,7 +8,7 @@ import { BlurView } from 'expo-blur';
 import Svg, { Path, Circle, Line, Text as SvgText } from 'react-native-svg';
 import { t } from '../i18n';
 import { trPayment, payKey } from '../i18nHelpers';
-import { api, resolveAssetUrl } from '../api/client';
+import { api, resolveAssetUrl, setInvoiceDoneHandler } from '../api/client';
 import { getCurrentUserId } from '../utils/storage';
 import { useTheme, withAlpha, ThemeColors, FONTS } from '../theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -296,7 +296,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
 // ═══════════════════════════════════════════════
 // Main Component
 // ═══════════════════════════════════════════════
-export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcurementDetail, pendingEditBatch, onPendingEditConsumed, onInvoice, invoiceRefresh }: { onDrawerOpen?: () => void; onDrawerClose?: () => void; onProcurementDetail?: (batch: BatchRecord) => void; pendingEditBatch?: BatchRecord | null; onPendingEditConsumed?: () => void; onInvoice?: (batchId: number) => void; invoiceRefresh?: { batchId: number; key: number } | null }) {
+export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcurementDetail, pendingEditBatch, onPendingEditConsumed, onInvoice }: { onDrawerOpen?: () => void; onDrawerClose?: () => void; onProcurementDetail?: (batch: BatchRecord) => void; pendingEditBatch?: BatchRecord | null; onPendingEditConsumed?: () => void; onInvoice?: (batchId: number) => void }) {
   const { colors: c } = useTheme();
   const sd = useServerDate();
   const readBgOpacity = (): number => {
@@ -522,6 +522,20 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
     onProcurementDetail?.({ ...batch, _onBatchChanged: handleBatchChanged } as any);
   };
 
+  // 开票完成后刷新单条 batch
+  useEffect(() => {
+    setInvoiceDoneHandler(async (batchId: number) => {
+      try {
+        const detail: any = await api.getProcurementBatchDetail(batchId);
+        if (!detail) return;
+        const batch = detail.batch || detail.data || detail;
+        if (!batch?.invoice_status) return;
+        setBatches((prev: BatchRecord[]) => prev.map(b => b.id === batchId ? { ...b, invoice_status: batch.invoice_status } : b));
+      } catch {}
+    });
+    return () => setInvoiceDoneHandler(null);
+  }, []);
+
   const suppliers = useMemo(() => {
     const set = new Set(products.map(p => p.supplier).filter(Boolean));
     const sorted = Array.from(set).sort(sortByOrder);
@@ -571,17 +585,6 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
   useEffect(() => { refresh(); }, []);
   useEffect(() => { if (subTab !== 'history') return; refresh(); }, [subTab]);
-
-  // HomeScreen focus 后刷新单条 batch 的 invoice_status
-  useEffect(() => {
-    if (!invoiceRefresh?.batchId) return;
-    api.getProcurementBatchDetail(invoiceRefresh.batchId).then((detail: any) => {
-      if (!detail) return;
-      const batch = detail.batch || detail.data || detail;
-      if (!batch?.invoice_status) return;
-      setBatches((prev: BatchRecord[]) => prev.map(b => b.id === invoiceRefresh.batchId ? { ...b, invoice_status: batch.invoice_status } : b));
-    }).catch(() => {});
-  }, [invoiceRefresh]);
 
   const filteredProducts = useMemo(() => {
     let list = products;

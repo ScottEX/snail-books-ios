@@ -525,6 +525,9 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
           });
         }
       }
+      if (payload.procurement_batch_id) {
+        import('../api/client').then(m => m.notifyInvoiceDone(payload.procurement_batch_id!)).catch(() => {});
+      }
       closeDrawer();
       setEditingId(null);
       setDFiles([]);
