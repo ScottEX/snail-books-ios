@@ -14,6 +14,7 @@ import EmptyState from '../components/EmptyState';
 import { useToast } from '../hooks/useToast';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
+import { SHEET_RADIUS } from '../sharedStyles';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DatePickerModal from '../components/DatePickerModal';
@@ -422,10 +423,9 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   list: { flex: 1 },
   /* Row */
   row: {
-    backgroundColor: colors.surface, borderRadius: 12,
+    backgroundColor: colors.surface, borderRadius: SHEET_RADIUS,
     paddingVertical: 14, paddingHorizontal: 14,
     marginBottom: 8,
-    borderWidth: 1, borderColor: colors.secondary,
     gap: 6,
   },
   rowTop: {

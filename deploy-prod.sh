@@ -11,6 +11,8 @@ DERIVED_DATA=~/Library/Developer/Xcode/DerivedData/app-*
 
 echo "🧹 清理旧签名缓存..."
 /bin/rm -rf $DERIVED_DATA
+# 删除旧 Provisioning Profile，强制每次重新生成
+rm -f ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision 2>/dev/null
 
 echo "📦 同步原生依赖..."
 cd "$PROJECT_ROOT/ios" && pod install --silent && cd "$PROJECT_ROOT"

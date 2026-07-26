@@ -10,7 +10,7 @@ import EmptyState from '../components/EmptyState';
 import { useToast } from '../hooks/useToast';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
-import { modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
+import { modalClose, MODAL_CARD_RADIUS, SHEET_RADIUS } from '../sharedStyles';
 import ModalOverlay from '../components/ModalOverlay';
 import { fmtAmtFull } from '../utils/format';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -372,8 +372,8 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   loadingMore: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 20, gap: 8 },
   /* Card */
   card: {
-    backgroundColor: colors.surface, borderRadius: 14, padding: 14,
-    marginBottom: 8, borderWidth: 1, borderColor: colors.secondary,
+    backgroundColor: colors.surface, borderRadius: SHEET_RADIUS, padding: 14,
+    marginBottom: 8,
     gap: 10,
   },
   dateRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2, gap: 8 },

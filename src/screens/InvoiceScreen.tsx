@@ -29,7 +29,7 @@ import SheetHeader from '../components/SheetHeader';
 import ModalOverlay from '../components/ModalOverlay';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import ReAnimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { bottomSheetOverlay } from '../sharedStyles';
+import { bottomSheetOverlay, SHEET_RADIUS } from '../sharedStyles';
 
 /* ═══════════════ ICONS ═══════════════ */
 
@@ -1521,7 +1521,7 @@ const getStyles = (c: ThemeColors) =>
     filterChipText: { fontSize: FONTS.micro.size },
 
     /* INVOICE CARD */
-    invCard: { marginHorizontal: 16, marginBottom: 12, borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.secondary, overflow: 'hidden', position: 'relative' as any },
+    invCard: { marginHorizontal: 16, marginBottom: 12, borderRadius: SHEET_RADIUS, backgroundColor: c.surface, overflow: 'hidden', position: 'relative' as any },
     invTorn: { position: 'absolute' as any, top: 0, left: 0, right: 0, height: 4, opacity: 0.4 },
     invTop: { flexDirection: 'row', gap: 12, alignItems: 'flex-start', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 14, marginTop: 4, borderBottomWidth: 1, borderStyle: 'dashed' as any, borderBottomColor: c.secondary },
     invBadge: { paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6, borderWidth: 1, flexShrink: 0, marginTop: 2 },

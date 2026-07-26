@@ -12,7 +12,7 @@ import { api, resolveAssetUrl } from '../api/client';
 import { getCurrentUserId } from '../utils/storage';
 import { useTheme, withAlpha, ThemeColors, FONTS } from '../theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { bottomSheetOverlay, MODAL_CARD_RADIUS } from '../sharedStyles';
+import { bottomSheetOverlay, MODAL_CARD_RADIUS, SHEET_RADIUS } from '../sharedStyles';
 import SheetHeader from '../components/SheetHeader';
 import { usePaginatedList } from '../hooks/usePaginatedList';
 import { useServerDate } from '../hooks/useServerDate';
@@ -147,7 +147,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
   container: { flex: 1, position: 'relative' as const, paddingHorizontal: 16 },
 
   frostedBlock: {
-    marginHorizontal: 0, marginTop: 4, borderRadius: 16, overflow: 'hidden' as const,
+    marginHorizontal: 0, marginTop: 4, borderRadius: SHEET_RADIUS, overflow: 'hidden' as const,
     borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
     backgroundColor: withAlpha(c.surface, 0.65),
   },
@@ -164,7 +164,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
 
   searchSection: { paddingHorizontal: 18, paddingBottom: 8, borderTopWidth: 0 },
   searchRow: { position: 'relative' as const },
-  searchInput: { paddingHorizontal: 12, paddingVertical: 9, paddingRight: 36, borderWidth: 0, borderRadius: 10, fontSize: FONTS.sub.size, color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), outline: 'none' as any },
+  searchInput: { paddingHorizontal: 12, paddingVertical: 9, paddingRight: 36, borderWidth: 0, borderRadius: SHEET_RADIUS, fontSize: FONTS.sub.size, color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), outline: 'none' as any },
   searchClear: { position: 'absolute' as const, right: 8, top: 0, bottom: 0, justifyContent: 'center' as const, alignItems: 'center' as const },
   filterRow: { flexDirection: 'row' as const, gap: 6, marginTop: 8 },
   filterChip: { paddingHorizontal: 13, paddingVertical: 5, borderRadius: 20, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.12) },
@@ -174,14 +174,14 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
 
   subTabRow: { flexDirection: 'row' as const, borderTopWidth: 0, marginHorizontal: 4, paddingTop: 2, marginBottom: 6 },
   subTab: { flex: 1, flexDirection: 'row' as const, gap: 4, paddingVertical: 10, alignItems: 'center' as const, justifyContent: 'center' as const },
-  subTabOn: { backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 10 },
+  subTabOn: { backgroundColor: withAlpha(c.primary, 0.1), borderRadius: SHEET_RADIUS },
   subTabText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: dimColor },
   subTabTextOn: { color: c.primary, fontWeight: FONTS.subBold.weight },
   subTabCount: { fontSize: FONTS.micro.size, fontWeight: '600' as any, color: dimColor, backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, minWidth: 18, textAlign: 'center' as any, overflow: 'hidden' as const },
   subTabCountOn: { color: c.primary },
 
   sectionHead: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 4, fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: c.primary, textTransform: 'uppercase' as const, letterSpacing: 1 },
-  productCard: { marginHorizontal: 0, marginBottom: 6, backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06), overflow: 'hidden' as const },
+  productCard: { marginHorizontal: 0, marginBottom: 6, backgroundColor: c.surface, borderRadius: SHEET_RADIUS, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06), overflow: 'hidden' as const },
   productCardSel: { borderColor: c.primary, borderWidth: 1.5 },
   prodRow: { flexDirection: 'row' as const, alignItems: 'center' as const, paddingVertical: 10, paddingHorizontal: 18, gap: 10 },
   prodInfo: { flex: 1 },
@@ -241,13 +241,13 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
   submitBtnDisabled: { opacity: 0.45 },
   submitBtnText: { color: c.surface, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight },
 
-  mgmtRow: { flexDirection: 'row' as const, alignItems: 'center' as const, paddingVertical: 10, paddingHorizontal: 18, marginHorizontal: 0, marginBottom: 6, backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06) },
+  mgmtRow: { flexDirection: 'row' as const, alignItems: 'center' as const, paddingVertical: 10, paddingHorizontal: 18, marginHorizontal: 0, marginBottom: 6, backgroundColor: c.surface, borderRadius: SHEET_RADIUS, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06) },
   mgmtInfo: { flex: 1 },
   mgmtName: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textMain },
   mgmtMeta: { fontSize: FONTS.micro.size, color: c.textSub, marginTop: 2 },
   mgmtActions: { flexDirection: 'row' as const, gap: 8 },
   mgmtActionBtn: { width: 32, height: 32, borderRadius: 8, alignItems: 'center' as const, justifyContent: 'center' as const, backgroundColor: withAlpha(c.textMain, 0.05) },
-  mgmtAddBtn: { marginHorizontal: 0, marginTop: 8, marginBottom: 8, flexDirection: 'row' as const, backgroundColor: c.surface, borderRadius: 10, paddingVertical: 11, alignItems: 'center' as const, justifyContent: 'center' as const, gap: 6 },
+  mgmtAddBtn: { marginHorizontal: 0, marginTop: 8, marginBottom: 8, flexDirection: 'row' as const, backgroundColor: c.surface, borderRadius: SHEET_RADIUS, paddingVertical: 11, alignItems: 'center' as const, justifyContent: 'center' as const, gap: 6 },
   mgmtAddBtnText: { fontSize: FONTS.sub.size, fontWeight: FONTS.subBold.weight, color: c.primary },
 
   modalCard: { backgroundColor: c.surface, borderRadius: MODAL_CARD_RADIUS, width: 340, maxWidth: '90%' as any, overflow: 'hidden' as const },
@@ -259,7 +259,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
   modalDeleteText: { fontSize: FONTS.micro.size, color: c.textSub, textAlign: 'center' as const },
 
   historyList: { paddingBottom: 100 },
-  historyCard: { backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06), marginBottom: 10, overflow: 'hidden' as const },
+  historyCard: { backgroundColor: c.surface, borderRadius: SHEET_RADIUS, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06), marginBottom: 10, overflow: 'hidden' as const },
   histHead: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, padding: 10, borderBottomWidth: 1, borderBottomColor: withAlpha(c.textMain, 0.05) },
   histNo: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: c.primary },
   histDate: { fontSize: FONTS.micro.size, color: c.textSub },

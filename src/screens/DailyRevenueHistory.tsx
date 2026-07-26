@@ -11,6 +11,7 @@ import { usePaginatedList } from '../hooks/usePaginatedList';
 import EmptyState from '../components/EmptyState';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
+import { SHEET_RADIUS } from '../sharedStyles';
 import DatePickerModal from '../components/DatePickerModal';
 import HistoryHeader from '../components/HistoryHeader';
 import FilterPanel from '../components/FilterPanel';
@@ -248,10 +249,9 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   list: { flex: 1 },
 
   card: {
-    backgroundColor: colors.surface, borderRadius: 12,
+    backgroundColor: colors.surface, borderRadius: SHEET_RADIUS,
     paddingVertical: 14, paddingHorizontal: 16,
     marginBottom: 8,
-    borderWidth: 1, borderColor: colors.secondary,
     gap: 12,
   } as any,
   cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

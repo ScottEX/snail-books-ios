@@ -30,7 +30,7 @@ import PartnerScreen from './PartnerScreen';
 import ProcurementScreen from './ProcurementScreen';
 import ExpenseScreen from './ExpenseScreen';
 import ChartsPanel from './ChartsPanel';
-import { modalCardAnimation, modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
+import { modalCardAnimation, modalClose, MODAL_CARD_RADIUS, SHEET_RADIUS } from '../sharedStyles';
 import { toDec2Comma } from '../utils/numbers';
 import DateErrorHint from '../components/DateErrorHint';
 import { fmtAmtFull } from '../utils/format';
@@ -1365,14 +1365,14 @@ const getStyles = (colors: ThemeColors, headerColor: string, bgOpacity: number) 
   datePillText: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub },
   datePillTextActive: { color: colors.surface },
   dateLabel: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub },
-  revInputCard: { flex: 1, backgroundColor: colors.surface, borderRadius: 10, padding: 10, borderWidth: 0.5, borderColor: colors.secondary },
+  revInputCard: { flex: 1, backgroundColor: colors.surface, borderRadius: SHEET_RADIUS, padding: 10 },
   revInputCardTitle: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: colors.textSub, marginBottom: 2 },
   revInputCardSub: { fontSize: FONTS.micro.size, color: colors.textSub, marginBottom: 8 },
   revInputCardInputWrap: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 6 },
   revInputCardSymbol: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub, marginRight: 2, marginBottom: 1 },
   revInputCardInput: { flex: 1, fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.textMain, padding: 0 },
   revInputCardFooter: { fontSize: FONTS.micro.size, color: colors.textSub },
-  revNoteInput: { backgroundColor: colors.surface, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: FONTS.sub.size, color: colors.textSub, marginBottom: 14, borderWidth: 1, borderColor: colors.secondary },
+  revNoteInput: { backgroundColor: colors.surface, borderRadius: SHEET_RADIUS, paddingHorizontal: 12, paddingVertical: 10, fontSize: FONTS.sub.size, color: colors.textSub, marginBottom: 14 },
   revArchiveBtn: { backgroundColor: colors.secondary, borderRadius: 12, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
   revArchiveBtnDone: { backgroundColor: withAlpha(colors.primary, 0.1) },
   revArchiveText: { fontSize: FONTS.subBold.size, color: colors.textSub, fontWeight: FONTS.subBold.weight },
@@ -1388,7 +1388,7 @@ const getStyles = (colors: ThemeColors, headerColor: string, bgOpacity: number) 
   revHistoryTitle: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary },
   revHistoryBtn: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary },
   rev7Empty: { paddingVertical: 30, alignItems: 'center' },
-  rev7Card: { backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 16, paddingHorizontal: 16, marginBottom: 10, marginHorizontal: 16, borderWidth: 1, borderColor: colors.secondary, gap: 12 },
+  rev7Card: { backgroundColor: colors.surface, borderRadius: SHEET_RADIUS, paddingVertical: 16, paddingHorizontal: 16, marginBottom: 10, marginHorizontal: 16, gap: 12 },
   rev7CardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   rev7CardDate: { fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.textMain },
   rev7TodayTag: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, backgroundColor: withAlpha(colors.success, 0.1) },

@@ -344,11 +344,6 @@ export default function UserDetailScreen({ user, onBack, onChanged }: Props) {
       {/* Body */}
       <View style={[s.body, { marginTop: safeTop + 44 }]}>
 
-      {loading && (
-        <View style={{ height: 2, backgroundColor: c.primary, opacity: 0.6 }}>
-          <View style={{ height: 2, width: '30%', backgroundColor: c.primary }} />
-        </View>
-      )}
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80, paddingTop: loading ? 10 : 12 }}>
           {/* Avatar + username row */}
           <View style={s.avatarSection}>
