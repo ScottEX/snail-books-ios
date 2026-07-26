@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Share, PanResponder } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar, Share, PanResponder, Dimensions } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system';
@@ -79,11 +79,14 @@ export default function PdfPreviewPage({ batchId, batchNumber, supplier, fileUrl
   const isLocal = !pdfUrl.startsWith('http');
   const source = isLocal ? { uri: pdfUrl } : { uri: pdfUrl, headers: { 'X-Lang': lang } };
 
-  // Swipe-to-back on header
+  // Swipe-to-back: edge swipe from right
   const headerPan = useRef(PanResponder.create({
-    onMoveShouldSetPanResponder: (evt, gs) => evt.nativeEvent.locationX < 30 && gs.dx > 10 && Math.abs(gs.dy) < 5,
+    onMoveShouldSetPanResponder: (evt, gs) => {
+      const { width } = Dimensions.get('window');
+      return evt.nativeEvent.locationX > width - 30 && gs.dx < -10 && Math.abs(gs.dy) < 5;
+    },
     onPanResponderRelease: (_, gs) => {
-      if (gs.dx > 60) onBack();
+      if (gs.dx < -60) onBack();
     },
   })).current;
 
