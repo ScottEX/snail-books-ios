@@ -431,7 +431,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
       >
         <View style={{
           backgroundColor: c.surface,
-          borderRadius: 14,
+          borderRadius: SHEET_RADIUS,
           borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
           overflow: 'hidden' as const,
         }}>
@@ -469,7 +469,7 @@ export default function UserManagementScreen({ onBack, onSelectUser, reviewedUse
       >
         <View style={{
           backgroundColor: c.surface,
-          borderRadius: 14,
+          borderRadius: SHEET_RADIUS,
           borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
           overflow: 'hidden' as const,
         }}>
