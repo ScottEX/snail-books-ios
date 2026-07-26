@@ -347,4 +347,46 @@ iOS 独有(正常):
 - 2026-05-26 `c1b400b` 首次"迁移到 Expo web build"(原计划共享代码,实际未完成)
 - 2026-06-02 `95554ad` 完成迁移:删除 Capacitor 残留,加 RN 依赖,装 globals shim
 - 2026-06-02 `85311ff` HomeScreen 因 web-only 代码炸,临时用 placeholder
+
+---
+
+## 共享常量 (sharedStyles.ts)
+
+所有公共 UI 常量集中定义在 `src/sharedStyles.ts`，避免各处硬编码。
+
+### SHEET_RADIUS = 14
+
+通用 sheet / 卡片 / 弹窗圆角。适用场景：
+
+| 使用位置 | 说明 |
+|---|---|
+| `CustomActionSheet` dark/light 模式 | 选择弹窗外层圆角 |
+| `MonthPicker` | 月份选择弹窗圆角 |
+| `UserManagementScreen` | 搜索框、筛选 chip、用户卡片、下拉弹窗 |
+| `UserDetailScreen` | 详情卡片 |
+| `ProfileScreen` → `ImagePickerSheet` | 封面/头像选择弹窗 |
+
+### MODAL_CARD_RADIUS = 24
+
+Modal 卡片圆角，用于 `ModalOverlay` 弹窗。
+
+### switchColors(colors: ThemeColors)
+
+Switch 开关公共配色，返回 `{ trackColor, thumbColor }`：
+
+- 关闭轨道：`withAlpha(colors.textMain, 0.12)`（浅灰）
+- 激活轨道：`colors.primary`（主题色）
+- 滑块：`#fff`
+
+```tsx
+import { switchColors } from '../sharedStyles';
+
+<Switch {...switchColors(colors)} value={...} onValueChange={...} />
+```
+
+使用位置：`ProfileScreen`、`UserDetailScreen`、`ProcurementDetailScreen`。
+
+### bottomSheetOverlay
+
+底部 sheet 抽屉的 `ModalOverlay` overlayStyle 共用配置：`justifyContent: 'flex-end'` + `padding: 0`。
 - 2026-06-02 `0fe5ebd` API base 切到 8.135.58.90:8601(生产服务器)
