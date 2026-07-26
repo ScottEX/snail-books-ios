@@ -463,11 +463,11 @@ const getStyles = (c: ThemeColors) => {
     batchLabel: {
       fontSize: FONTS.subBold.size,
       fontWeight: FONTS.subBold.weight,
-      color: c.textMain,
+      color: '#1A1410',
     },
     batchDate: {
       fontSize: FONTS.micro.size,
-      color: c.textSub,
+      color: '#1A1410',
       marginTop: 2,
     },
     body: {
