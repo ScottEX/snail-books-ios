@@ -174,7 +174,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
 
   subTabRow: { flexDirection: 'row' as const, borderTopWidth: 0, marginHorizontal: 4, paddingTop: 2, marginBottom: 6 },
   subTab: { flex: 1, flexDirection: 'row' as const, gap: 4, paddingVertical: 10, alignItems: 'center' as const, justifyContent: 'center' as const },
-  subTabOn: { backgroundColor: withAlpha(c.primary, 0.1), borderRadius: 10 },
+  subTabOn: { backgroundColor: withAlpha(c.primary, 0.1), borderRadius: SHEET_RADIUS },
   subTabText: { fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: dimColor },
   subTabTextOn: { color: c.primary, fontWeight: FONTS.subBold.weight },
   subTabCount: { fontSize: FONTS.micro.size, fontWeight: '600' as any, color: dimColor, backgroundColor: withAlpha(c.textMain, 0.06), borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1, minWidth: 18, textAlign: 'center' as any, overflow: 'hidden' as const },
