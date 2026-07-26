@@ -12,7 +12,7 @@ import { api, resolveAssetUrl } from '../api/client';
 import { getCurrentUserId } from '../utils/storage';
 import { useTheme, withAlpha, ThemeColors, FONTS } from '../theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { bottomSheetOverlay, MODAL_CARD_RADIUS } from '../sharedStyles';
+import { bottomSheetOverlay, MODAL_CARD_RADIUS, SHEET_RADIUS } from '../sharedStyles';
 import SheetHeader from '../components/SheetHeader';
 import { usePaginatedList } from '../hooks/usePaginatedList';
 import { useServerDate } from '../hooks/useServerDate';
@@ -181,7 +181,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
   subTabCountOn: { color: c.primary },
 
   sectionHead: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 4, fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: c.primary, textTransform: 'uppercase' as const, letterSpacing: 1 },
-  productCard: { marginHorizontal: 0, marginBottom: 6, backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06), overflow: 'hidden' as const },
+  productCard: { marginHorizontal: 0, marginBottom: 6, backgroundColor: c.surface, borderRadius: SHEET_RADIUS, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06), overflow: 'hidden' as const },
   productCardSel: { borderColor: c.primary, borderWidth: 1.5 },
   prodRow: { flexDirection: 'row' as const, alignItems: 'center' as const, paddingVertical: 10, paddingHorizontal: 18, gap: 10 },
   prodInfo: { flex: 1 },
@@ -241,7 +241,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
   submitBtnDisabled: { opacity: 0.45 },
   submitBtnText: { color: c.surface, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight },
 
-  mgmtRow: { flexDirection: 'row' as const, alignItems: 'center' as const, paddingVertical: 10, paddingHorizontal: 18, marginHorizontal: 0, marginBottom: 6, backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06) },
+  mgmtRow: { flexDirection: 'row' as const, alignItems: 'center' as const, paddingVertical: 10, paddingHorizontal: 18, marginHorizontal: 0, marginBottom: 6, backgroundColor: c.surface, borderRadius: SHEET_RADIUS, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06) },
   mgmtInfo: { flex: 1 },
   mgmtName: { fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: c.textMain },
   mgmtMeta: { fontSize: FONTS.micro.size, color: c.textSub, marginTop: 2 },
@@ -259,7 +259,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
   modalDeleteText: { fontSize: FONTS.micro.size, color: c.textSub, textAlign: 'center' as const },
 
   historyList: { paddingBottom: 100 },
-  historyCard: { backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06), marginBottom: 10, overflow: 'hidden' as const },
+  historyCard: { backgroundColor: c.surface, borderRadius: SHEET_RADIUS, borderWidth: 1, borderColor: withAlpha(c.textMain, 0.06), marginBottom: 10, overflow: 'hidden' as const },
   histHead: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, padding: 10, borderBottomWidth: 1, borderBottomColor: withAlpha(c.textMain, 0.05) },
   histNo: { fontSize: FONTS.microBold.size, fontWeight: FONTS.microBold.weight, color: c.primary },
   histDate: { fontSize: FONTS.micro.size, color: c.textSub },
