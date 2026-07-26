@@ -252,7 +252,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.surface, borderRadius: SHEET_RADIUS,
     paddingVertical: 14, paddingHorizontal: 16,
     marginBottom: 8,
-    borderWidth: 1, borderColor: colors.secondary,
     gap: 12,
   } as any,
   cardTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
