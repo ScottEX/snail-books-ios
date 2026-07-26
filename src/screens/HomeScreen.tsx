@@ -30,7 +30,7 @@ import PartnerScreen from './PartnerScreen';
 import ProcurementScreen from './ProcurementScreen';
 import ExpenseScreen from './ExpenseScreen';
 import ChartsPanel from './ChartsPanel';
-import { modalCardAnimation, modalClose, MODAL_CARD_RADIUS } from '../sharedStyles';
+import { modalCardAnimation, modalClose, MODAL_CARD_RADIUS, SHEET_RADIUS } from '../sharedStyles';
 import { toDec2Comma } from '../utils/numbers';
 import DateErrorHint from '../components/DateErrorHint';
 import { fmtAmtFull } from '../utils/format';
@@ -1388,7 +1388,7 @@ const getStyles = (colors: ThemeColors, headerColor: string, bgOpacity: number) 
   revHistoryTitle: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary },
   revHistoryBtn: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary },
   rev7Empty: { paddingVertical: 30, alignItems: 'center' },
-  rev7Card: { backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 16, paddingHorizontal: 16, marginBottom: 10, marginHorizontal: 16, borderWidth: 1, borderColor: colors.secondary, gap: 12 },
+  rev7Card: { backgroundColor: colors.surface, borderRadius: SHEET_RADIUS, paddingVertical: 16, paddingHorizontal: 16, marginBottom: 10, marginHorizontal: 16, gap: 12 },
   rev7CardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   rev7CardDate: { fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.textMain },
   rev7TodayTag: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, backgroundColor: withAlpha(colors.success, 0.1) },
