@@ -586,7 +586,8 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
     pendingInvoiceBatchRef.current = null;
     api.getProcurementBatchDetail(batchId).then((detail: any) => {
       if (!detail) return;
-      setBatches((prev: BatchRecord[]) => prev.map(b => b.id === batchId ? { ...b, invoice_status: detail.invoice_status } : b));
+      const batch = detail.batch || detail.data || detail;
+      setBatches((prev: BatchRecord[]) => prev.map(b => b.id === batchId ? { ...b, invoice_status: batch.invoice_status } : b));
     }).catch(() => {});
   }, []));
 
