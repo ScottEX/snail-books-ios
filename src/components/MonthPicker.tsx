@@ -79,7 +79,7 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
         style={{ top: pos.top || 100, left: pos.left || 10, width: 160 }}
       >
         <BlurView intensity={45} tint="dark" style={{
-          borderRadius: 10,
+          borderRadius: 14,
           overflow: 'hidden' as const,
         }}>
           <ScrollView style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
