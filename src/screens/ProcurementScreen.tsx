@@ -1057,7 +1057,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
               <View style={{ height: 120 }} />
             </ScrollView>
           ) : (
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
             {groupedProducts.map(([sup, items]) => (
               <View key={sup}>
                 <Text style={styles.sectionHead}>{supplierLabel(sup)}</Text>
