@@ -1057,7 +1057,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
               <View style={{ height: 120 }} />
             </ScrollView>
           ) : (
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
             {groupedProducts.map(([sup, items]) => (
               <View key={sup}>
                 <Text style={styles.sectionHead}>{supplierLabel(sup)}</Text>
@@ -1313,7 +1313,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
             <PlusIcon color={c.primary} />
             <Text style={styles.mgmtAddBtnText}>{t('procAddProduct')}</Text>
           </TouchableOpacity>
-          <ScrollView style={styles.contentArea} contentContainerStyle={{ paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.contentArea} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
           {productsLoading ? (
             [...Array(6)].map((_, i) => (
               <View key={i} style={[styles.mgmtRow, { pointerEvents: 'none' as any }]}>
