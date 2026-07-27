@@ -1110,7 +1110,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                 hint={t('procEmptyNewHint')}
               />
             )}
-            <View style={{ height: 84 }} />
+            <View style={{ height: 148 }} />
           </ScrollView>
           )}
 
