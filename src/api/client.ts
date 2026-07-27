@@ -575,3 +575,12 @@ export const api = {
     } catch { return null; }
   },
 };
+
+// ── 开票完成回调（Procurement 进货记录列表局部刷新） ──
+let _invoiceDoneHandler: ((batchId: number) => void) | null = null;
+export function setInvoiceDoneHandler(fn: ((batchId: number) => void) | null) {
+  _invoiceDoneHandler = fn;
+}
+export async function notifyInvoiceDone(batchId: number) {
+  _invoiceDoneHandler?.(batchId);
+}

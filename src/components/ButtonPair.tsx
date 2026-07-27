@@ -59,7 +59,6 @@ const getStyles = (c: ThemeColors) =>
     },
     left: {
       flex: 1,
-      backgroundColor: withAlpha(c.textMain, 0.06),
       borderRadius: 12,
       paddingVertical: 13,
       alignItems: 'center',

@@ -8,7 +8,7 @@ import { BlurView } from 'expo-blur';
 import Svg, { Path, Circle, Line, Text as SvgText } from 'react-native-svg';
 import { t } from '../i18n';
 import { trPayment, payKey } from '../i18nHelpers';
-import { api, resolveAssetUrl } from '../api/client';
+import { api, resolveAssetUrl, setInvoiceDoneHandler } from '../api/client';
 import { getCurrentUserId } from '../utils/storage';
 import { useTheme, withAlpha, ThemeColors, FONTS } from '../theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -32,7 +32,7 @@ import ReceiptUpload from '../components/ReceiptUpload';
 import PaymentMethodChips from '../components/PaymentMethodChips';
 import ExpenseNoteInput from '../components/ExpenseNoteInput';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
-import ReAnimated, { useAnimatedStyle } from 'react-native-reanimated';
+import ReAnimated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import PlusIcon from '../components/icons/PlusIcon';
 import { fmtDecInput } from '../utils/numbers';
 import type { PickedImage } from '../utils/imagePicker';
@@ -199,7 +199,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
   prodSubtotal: { paddingHorizontal: 12, paddingBottom: 8, fontSize: FONTS.micro.size, color: c.primary, fontWeight: FONTS.micro.weight },
 
   cartBar: {
-    position: 'absolute' as const, bottom: 76, left: 0, right: 0, zIndex: 100,
+    position: 'absolute' as const, bottom: 80, left: 0, right: 0, zIndex: 100,
     marginHorizontal: 0, backgroundColor: withAlpha(c.surface, 0.65), borderRadius: 14,
     borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
   },
@@ -289,7 +289,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
   successBtnViewText: { color: c.textMain, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight },
 
   loadingMore: { paddingVertical: 20, alignItems: 'center' as const },
-  contentArea: { flex: 1, paddingBottom: 150 },
+  contentArea: { flex: 1 },
 });
 };
 
@@ -315,14 +315,14 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   // Drawer keyboard push
   const { height: screenH } = useWindowDimensions();
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const drawerCap = -screenH * 0.38;
-  const newOrderCap = -screenH * 0.25;
+  const drawerCap = useSharedValue(-screenH * 0.38);
+  const newOrderCap = useSharedValue(-screenH * 0.25);
   const productModalCap = -screenH * 0.1;
   const drawerPushStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: Math.max(keyboardHeight.value, drawerCap) }],
+    transform: [{ translateY: Math.max(keyboardHeight.value, drawerCap.value) }],
   }));
   const newOrderPushStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: Math.max(keyboardHeight.value, newOrderCap) }],
+    transform: [{ translateY: Math.max(keyboardHeight.value, newOrderCap.value) }],
   }));
   const productModalPushStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: Math.max(keyboardHeight.value, productModalCap) }],
@@ -343,6 +343,10 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   const [supplierFilter, setSupplierFilter] = useState('全部');
   const [editingPrice, setEditingPrice] = useState<number | null>(null);
   const [editPriceVal, setEditPriceVal] = useState('');
+  // Only push product list on price edit, not on search focus
+  useEffect(() => {
+    newOrderCap.value = editingPrice !== null ? -screenH * 0.25 : 0;
+  }, [editingPrice]);
 
   const [showDrawer, setShowDrawer] = useState(false);
   const drawerCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -390,6 +394,10 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   const [itemsModalIsCart, setItemsModalIsCart] = useState(false);
   const [itemsModalView, setItemsModalView] = useState<'items' | 'products'>('items');
   const [productPickerSearch, setProductPickerSearch] = useState('');
+  // Disable drawer push when items modal is open (its own push handles keyboard)
+  useEffect(() => {
+    drawerCap.value = showItemsModal ? 0 : -screenH * 0.38;
+  }, [showItemsModal]);
 
   const [successTotal, setSuccessTotal] = useState(0);
   const [successBatch, setSuccessBatch] = useState(0);
@@ -521,6 +529,20 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   const openHistoryDetail = (batch: BatchRecord) => {
     onProcurementDetail?.({ ...batch, _onBatchChanged: handleBatchChanged } as any);
   };
+
+  // 开票完成后刷新单条 batch
+  useEffect(() => {
+    setInvoiceDoneHandler(async (batchId: number) => {
+      try {
+        const detail: any = await api.getProcurementBatchDetail(batchId);
+        if (!detail) return;
+        const batch = detail.batch || detail.data || detail;
+        if (!batch?.invoice_status) return;
+        setBatches((prev: BatchRecord[]) => prev.map(b => b.id === batchId ? { ...b, invoice_status: batch.invoice_status } : b));
+      } catch {}
+    });
+    return () => setInvoiceDoneHandler(null);
+  }, []);
 
   const suppliers = useMemo(() => {
     const set = new Set(products.map(p => p.supplier).filter(Boolean));
@@ -1092,7 +1114,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                 hint={t('procEmptyNewHint')}
               />
             )}
-            <View style={{ height: 120 }} />
+            <View style={{ height: cartCount > 0 ? 148 : 80 }} />
           </ScrollView>
           )}
 
@@ -1295,7 +1317,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
             <PlusIcon color={c.primary} />
             <Text style={styles.mgmtAddBtnText}>{t('procAddProduct')}</Text>
           </TouchableOpacity>
-          <ScrollView style={styles.contentArea} showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.contentArea} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
           {productsLoading ? (
             [...Array(6)].map((_, i) => (
               <View key={i} style={[styles.mgmtRow, { pointerEvents: 'none' as any }]}>
@@ -1442,7 +1464,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
 
             <PaymentMethodChips label={t('procPaymentMethod') as string} selected={payMethod} onSelect={(m) => setPayMethod(m as PayMethod)} />
 
-            <View style={{ marginTop: 12, opacity: showItemsModal ? 0 : 1 }}>
+            <View style={{ marginTop: 12 }}>
               <ReceiptUpload
                 existingImages={resolvedExistingImages}
                 newFiles={receipts}
@@ -1508,7 +1530,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
         contentStyle={{ alignItems: 'stretch' } as any}
       >
         {(anims) => (
-          <View style={[styles.itemsModalCard, { width: '90%', maxWidth: 768 * 0.9, maxHeight: Dimensions.get('window').height * 0.6, alignSelf: 'center' } as any]}>
+          <ReAnimated.View style={[productModalPushStyle, styles.itemsModalCard, { width: '90%', maxWidth: 768 * 0.9, maxHeight: Dimensions.get('window').height * 0.6, alignSelf: 'center' } as any]}>
             <Animated.View style={{
               opacity: anims[0],
               transform: [{ translateY: anims[0].interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }]
@@ -1538,16 +1560,25 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
             {itemsModalIsCart && itemsModalView === 'products' ? (
               <View>
                 <View style={{ paddingHorizontal: 18, paddingTop: 12, paddingBottom: 0 }}>
+                  <View style={{ position: 'relative' as const }}>
                   <TextInput
                     value={productPickerSearch}
                     onChangeText={setProductPickerSearch}
                     placeholder={t('procSearchProducts')}
-                    placeholderTextColor={dimColor}
+                    placeholderTextColor={c.textSub}
                     style={{
-                      paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, fontSize: FONTS.sub.size,
-                      color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.04),
+                      paddingHorizontal: 12, paddingVertical: 9, paddingRight: 36, borderRadius: SHEET_RADIUS, fontSize: FONTS.sub.size,
+                      color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03),
                     } as any}
                   />
+                  {productPickerSearch !== '' && (
+                    <TouchableOpacity style={{ position: 'absolute' as const, right: 8, top: 0, bottom: 0, justifyContent: 'center' as const, alignItems: 'center' as const }} onPress={() => setProductPickerSearch('')}>
+                      <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth={2} strokeLinecap="round">
+                        <Path d="M18 6L6 18M6 6l12 12" />
+                      </Svg>
+                    </TouchableOpacity>
+                  )}
+                  </View>
                 </View>
                 <View style={styles.itemsModalBodyWrap}>
                   <ScrollView style={{ paddingHorizontal: 18, maxHeight: Math.max(120, Dimensions.get('window').height * 0.6 - 192) }} showsVerticalScrollIndicator={false}>
@@ -1675,7 +1706,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
               </TouchableOpacity>
             )}
             </Animated.View>
-          </View>
+          </ReAnimated.View>
         )}
       </ModalOverlay>
 

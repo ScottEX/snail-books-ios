@@ -305,7 +305,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
       <HistoryHeader
         safeTop={insets.top}
         onBack={onBack}
-        title={t('expenseDetail')}
+        title={t('expDetail')}
         rightAction={!expense?.procurement_batch_id ? (
           <TouchableOpacity
             onPress={() => setShowDeleteConfirm(true)}
@@ -318,7 +318,7 @@ export default function ExpenseDetailScreen({ expense, onBack, onEdited, onDelet
         ) : undefined}
       />
       {/* Body */}
-      <ScrollView style={[styles.body, { marginTop: 100 }]} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false} keyboardDismissMode="interactive">
+      <ScrollView style={[styles.body, { marginTop: insets.top + 44 }]} contentContainerStyle={styles.bodyContent} showsVerticalScrollIndicator={false} keyboardDismissMode="interactive">
         {/* ── View mode ── */}
         {!editMode && (
           <View>
