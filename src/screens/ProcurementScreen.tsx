@@ -289,7 +289,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
   successBtnViewText: { color: c.textMain, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight },
 
   loadingMore: { paddingVertical: 20, alignItems: 'center' as const },
-  contentArea: { flex: 1, paddingBottom: 150 },
+  contentArea: { flex: 1 },
 });
 };
 
@@ -1313,7 +1313,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
             <PlusIcon color={c.primary} />
             <Text style={styles.mgmtAddBtnText}>{t('procAddProduct')}</Text>
           </TouchableOpacity>
-          <ScrollView style={styles.contentArea} showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.contentArea} contentContainerStyle={{ paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
           {productsLoading ? (
             [...Array(6)].map((_, i) => (
               <View key={i} style={[styles.mgmtRow, { pointerEvents: 'none' as any }]}>
