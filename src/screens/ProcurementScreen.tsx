@@ -199,7 +199,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
   prodSubtotal: { paddingHorizontal: 12, paddingBottom: 8, fontSize: FONTS.micro.size, color: c.primary, fontWeight: FONTS.micro.weight },
 
   cartBar: {
-    position: 'absolute' as const, bottom: 76, left: 0, right: 0, zIndex: 100,
+    position: 'absolute' as const, bottom: 40, left: 0, right: 0, zIndex: 100,
     marginHorizontal: 0, backgroundColor: withAlpha(c.surface, 0.65), borderRadius: 14,
     borderWidth: 0.5, borderColor: withAlpha(c.textMain, 0.08),
   },
