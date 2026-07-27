@@ -1556,16 +1556,25 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
             {itemsModalIsCart && itemsModalView === 'products' ? (
               <View>
                 <View style={{ paddingHorizontal: 18, paddingTop: 12, paddingBottom: 0 }}>
+                  <View style={{ position: 'relative' as const }}>
                   <TextInput
                     value={productPickerSearch}
                     onChangeText={setProductPickerSearch}
                     placeholder={t('procSearchProducts')}
                     placeholderTextColor={c.textSub}
                     style={{
-                      paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, fontSize: FONTS.sub.size,
-                      color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.04),
+                      paddingHorizontal: 12, paddingVertical: 9, paddingRight: 36, borderRadius: SHEET_RADIUS, fontSize: FONTS.sub.size,
+                      color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03),
                     } as any}
                   />
+                  {productPickerSearch !== '' && (
+                    <TouchableOpacity style={{ position: 'absolute' as const, right: 8, top: 0, bottom: 0, justifyContent: 'center' as const, alignItems: 'center' as const }} onPress={() => setProductPickerSearch('')}>
+                      <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={c.textSub} strokeWidth={2} strokeLinecap="round">
+                        <Path d="M18 6L6 18M6 6l12 12" />
+                      </Svg>
+                    </TouchableOpacity>
+                  )}
+                  </View>
                 </View>
                 <View style={styles.itemsModalBodyWrap}>
                   <ScrollView style={{ paddingHorizontal: 18, maxHeight: Math.max(120, Dimensions.get('window').height * 0.6 - 192) }} showsVerticalScrollIndicator={false}>
