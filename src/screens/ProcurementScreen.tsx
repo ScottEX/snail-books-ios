@@ -315,11 +315,11 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   // Drawer keyboard push
   const { height: screenH } = useWindowDimensions();
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
-  const drawerCap = -screenH * 0.38;
+  const drawerCap = useSharedValue(-screenH * 0.38);
   const newOrderCap = useSharedValue(-screenH * 0.25);
   const productModalCap = -screenH * 0.1;
   const drawerPushStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: Math.max(keyboardHeight.value, drawerCap) }],
+    transform: [{ translateY: Math.max(keyboardHeight.value, drawerCap.value) }],
   }));
   const newOrderPushStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: Math.max(keyboardHeight.value, newOrderCap.value) }],
@@ -394,6 +394,10 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   const [itemsModalIsCart, setItemsModalIsCart] = useState(false);
   const [itemsModalView, setItemsModalView] = useState<'items' | 'products'>('items');
   const [productPickerSearch, setProductPickerSearch] = useState('');
+  // Disable drawer push when items modal is open (its own push handles keyboard)
+  useEffect(() => {
+    drawerCap.value = showItemsModal ? 0 : -screenH * 0.38;
+  }, [showItemsModal]);
 
   const [successTotal, setSuccessTotal] = useState(0);
   const [successBatch, setSuccessBatch] = useState(0);
@@ -1526,7 +1530,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
         contentStyle={{ alignItems: 'stretch' } as any}
       >
         {(anims) => (
-          <View style={[styles.itemsModalCard, { width: '90%', maxWidth: 768 * 0.9, maxHeight: Dimensions.get('window').height * 0.6, alignSelf: 'center' } as any]}>
+          <ReAnimated.View style={[productModalPushStyle, styles.itemsModalCard, { width: '90%', maxWidth: 768 * 0.9, maxHeight: Dimensions.get('window').height * 0.6, alignSelf: 'center' } as any]}>
             <Animated.View style={{
               opacity: anims[0],
               transform: [{ translateY: anims[0].interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }]
@@ -1702,7 +1706,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
               </TouchableOpacity>
             )}
             </Animated.View>
-          </View>
+          </ReAnimated.View>
         )}
       </ModalOverlay>
 
