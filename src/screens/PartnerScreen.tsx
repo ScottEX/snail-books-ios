@@ -551,12 +551,12 @@ export default function PartnerScreen({ onBack, onProfile, onInvoice, refreshKey
                 <View style={ds.progressLabel}>
                   <Text style={ds.progressLabelText}>{t('paybackProgress')}</Text>
                   <Text style={[ds.progressLabelText, { fontWeight: '600' }]}>
-                    {t('paybackRate')} {Math.min(100, Math.round((detailPartner.total_dividends || 0) / detailPartner.investment * 100))}%
+                    {t('paybackRate')} {Math.round((detailPartner.total_dividends || 0) / detailPartner.investment * 100)}%
                   </Text>
                 </View>
                 <View style={ds.progressBar}>
                   <View style={[ds.progressFill, {
-                    width: `${Math.min(100, ((detailPartner.total_dividends || 0) / detailPartner.investment * 100))}%` as any,
+                    width: `${((detailPartner.total_dividends || 0) / detailPartner.investment * 100)}%` as any,
                     backgroundColor: (detailPartner.total_dividends || 0) >= detailPartner.investment ? colors.success : colors.primary,
                   }]} />
                 </View>
@@ -720,7 +720,7 @@ const getS = (colors: ThemeColors) => StyleSheet.create({
   statIconBg: { width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   statLabel: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight, letterSpacing: 0.3 },
   statValue: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain, marginTop: 2 },
-  statGreen: { fontSize: FONTS.tiny.size, color: '#1EE69F', fontWeight: FONTS.micro.weight, marginTop: 2 },
+  statGreen: { fontSize: FONTS.tiny.size, color: colors.primary, fontWeight: FONTS.micro.weight, marginTop: 2 },
   statSub: { fontSize: FONTS.micro.size, color: colors.textSub, fontWeight: FONTS.micro.weight, marginTop: 2 },
   dividendBtn: { backgroundColor: colors.primary, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 12 },
   dividendBtnText: { color: colors.surface, fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight },
@@ -733,7 +733,7 @@ const getS = (colors: ThemeColors) => StyleSheet.create({
   partnerName: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textSub },
   partnerPct: { fontSize: FONTS.micro.size, color: colors.textSub },
   paidBadge: { backgroundColor: withAlpha(colors.success, 0.18), borderRadius: 100, paddingHorizontal: 8, paddingVertical: 2 },
-  paidBadgeText: { fontSize: FONTS.tiny.size, fontWeight: FONTS.microBold.weight, color: '#1EE69F' },
+  paidBadgeText: { fontSize: FONTS.tiny.size, fontWeight: FONTS.microBold.weight, color: colors.primary },
   partnerDataRow: { flexDirection: 'row', gap: 4 },
   partnerDataCell: { flex: 1, alignItems: 'center' },
   dataLabel: { fontSize: FONTS.micro.size, color: colors.textSub },

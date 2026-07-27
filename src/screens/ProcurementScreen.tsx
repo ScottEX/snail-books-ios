@@ -32,7 +32,7 @@ import ReceiptUpload from '../components/ReceiptUpload';
 import PaymentMethodChips from '../components/PaymentMethodChips';
 import ExpenseNoteInput from '../components/ExpenseNoteInput';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
-import ReAnimated, { useAnimatedStyle } from 'react-native-reanimated';
+import ReAnimated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import PlusIcon from '../components/icons/PlusIcon';
 import { fmtDecInput } from '../utils/numbers';
 import type { PickedImage } from '../utils/imagePicker';
@@ -316,13 +316,13 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   const { height: screenH } = useWindowDimensions();
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const drawerCap = -screenH * 0.38;
-  const newOrderCap = -screenH * 0.25;
+  const newOrderCap = useSharedValue(-screenH * 0.25);
   const productModalCap = -screenH * 0.1;
   const drawerPushStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: Math.max(keyboardHeight.value, drawerCap) }],
   }));
   const newOrderPushStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: Math.max(keyboardHeight.value, newOrderCap) }],
+    transform: [{ translateY: Math.max(keyboardHeight.value, newOrderCap.value) }],
   }));
   const productModalPushStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: Math.max(keyboardHeight.value, productModalCap) }],
@@ -343,6 +343,10 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
   const [supplierFilter, setSupplierFilter] = useState('全部');
   const [editingPrice, setEditingPrice] = useState<number | null>(null);
   const [editPriceVal, setEditPriceVal] = useState('');
+  // Only push product list on price edit, not on search focus
+  useEffect(() => {
+    newOrderCap.value = editingPrice !== null ? -screenH * 0.25 : 0;
+  }, [editingPrice]);
 
   const [showDrawer, setShowDrawer] = useState(false);
   const drawerCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
