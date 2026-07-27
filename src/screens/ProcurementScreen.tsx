@@ -1560,7 +1560,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                     value={productPickerSearch}
                     onChangeText={setProductPickerSearch}
                     placeholder={t('procSearchProducts')}
-                    placeholderTextColor={dimColor}
+                    placeholderTextColor={c.textSub}
                     style={{
                       paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, fontSize: FONTS.sub.size,
                       color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.04),
