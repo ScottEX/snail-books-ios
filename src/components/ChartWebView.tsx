@@ -155,7 +155,7 @@ export default function ChartWebView(props: Props) {
         onError={(e) => console.log('[ChartWebView] error:', e.nativeEvent)}
       />
       {/* DEBUG: show current WebView container height */}
-      <Text style={styles.debug}>{'H:' + webViewHeight + ' E:' + (errMsg || '-')}</Text>
+      <Text style={styles.debug}>{'H:' + webViewHeight + ' I:' + (intUrl ? intUrl.slice(-25) : '-')}</Text>
     </View>
   );
 }
