@@ -300,25 +300,12 @@ function renderLine() {
   ));
 }
 function reportHeight() {
-  function post() {
-    var end = document.getElementById('__end');
-    var h = end ? end.getBoundingClientRect().top : document.body.scrollHeight;
-    if (!h || h < 100) return;
-    var ceil = Math.ceil(h);
-    // Primary: postMessage (works on modern WKWebView)
-    try {
-      if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'height', height: ceil }));
-      }
-    } catch(e) {}
-    // Fallback: custom URL scheme (works on all WKWebView versions)
-    window.location = 'chartheight://' + ceil;
-  }
-  requestAnimationFrame(function() {
-    requestAnimationFrame(post);
-  });
-  setTimeout(post, 500);
-  setTimeout(post, 1000);
+  var end = document.getElementById('__end');
+  var h = end ? end.getBoundingClientRect().top : document.body.scrollHeight;
+  if (!h || h < 100) return;
+  var ceil = Math.ceil(h);
+  try { if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'height', height: ceil })); } catch(e) {}
+  window.location = 'chartheight://' + ceil;
 }
 renderLine();
 if (DATA.hasDaily) {
@@ -418,6 +405,8 @@ if (DATA.donutData.length > 0) {
     leg.appendChild(div);
   });
 }
+// Always report height — even if donutData is empty
+reportHeight();
 
 // Language update via postMessage
 window.addEventListener('message', function(e) {
