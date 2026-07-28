@@ -320,6 +320,7 @@ if (DATA.hasDaily) {
     reportHeight();
   };
 }
+window.location = 'chartheight://S2';
 
 // ── Profit chart ──
 let showDailyProfit = false;
@@ -344,6 +345,7 @@ function renderProfit() {
   ));
 }
 renderProfit();
+window.location = 'chartheight://S3';
 if (DATA.hasDailyProfit) {
   document.getElementById('toggle-daily-profit').onclick = function() {
     showDailyProfit = !showDailyProfit;
@@ -355,6 +357,7 @@ if (DATA.hasDailyProfit) {
   };
 }
 
+window.location = 'chartheight://S4';
 // ── Category donut / bar chart ──
 let showBar = false;
 if (DATA.donutData.length > 0) {
@@ -407,6 +410,7 @@ if (DATA.donutData.length > 0) {
     leg.appendChild(div);
   });
 }
+window.location = 'chartheight://S5';
 // Always report height — even if donutData is empty
 reportHeight();
 
