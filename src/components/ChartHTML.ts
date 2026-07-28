@@ -311,8 +311,8 @@ function reportHeight() {
         window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'height', height: ceil }));
       }
     } catch(e) {}
-    // Fallback: document.title (works on all iOS versions)
-    document.title = 'h:' + ceil;
+    // Fallback: location.hash (triggers onNavigationStateChange on all iOS)
+    window.location.hash = 'h' + ceil;
   }
   requestAnimationFrame(function() {
     requestAnimationFrame(post);
