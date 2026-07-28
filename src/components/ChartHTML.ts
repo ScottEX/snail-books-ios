@@ -311,8 +311,8 @@ function reportHeight() {
         window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'height', height: ceil }));
       }
     } catch(e) {}
-    // Fallback: history.replaceState (triggers onNavigationStateChange on all WKWebView)
-    try { history.replaceState(null, '', '/h' + ceil); } catch(e) {}
+    // Fallback: custom URL scheme (works on all WKWebView versions)
+    window.location = 'chartheight://' + ceil;
   }
   requestAnimationFrame(function() {
     requestAnimationFrame(post);
