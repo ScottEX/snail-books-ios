@@ -360,6 +360,7 @@ if (DATA.hasDailyProfit) {
 window.location = 'chartheight://S4';
 // ── Category donut / bar chart ──
 let showBar = false;
+try {
 if (DATA.donutData.length > 0) {
   const catColorMap = DATA.catColorMap || {};
   const catColorFallback = DATA.catColorFallback || [];
@@ -410,6 +411,7 @@ if (DATA.donutData.length > 0) {
     leg.appendChild(div);
   });
 }
+} catch(e) {}
 window.location = 'chartheight://S5';
 // Always report height — even if donutData is empty
 reportHeight();
