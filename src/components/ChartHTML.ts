@@ -411,7 +411,9 @@ if (DATA.donutData.length > 0) {
     leg.appendChild(div);
   });
 }
-} catch(e) {}
+} catch(e) {
+  window.location = 'chartheight://ERR_' + (e && e.message ? e.message.substring(0, 20) : '?');
+}
 window.location = 'chartheight://S5';
 // Always report height — deferred to let browser complete layout
 setTimeout(reportHeight, 0);
