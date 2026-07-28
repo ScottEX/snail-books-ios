@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Text } from 'react-native';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { generateChartHTML } from './ChartHTML';
 
@@ -121,6 +121,8 @@ export default function ChartWebView(props: Props) {
         onMessage={onMessage}
         onError={(e) => console.log('[ChartWebView] error:', e.nativeEvent)}
       />
+      {/* DEBUG: show current WebView container height */}
+      <Text style={styles.debug}>{'H:' + webViewHeight + ' L:' + (loaded ? '1' : '0')}</Text>
     </View>
   );
 }
@@ -136,5 +138,18 @@ const styles = StyleSheet.create({
   },
   skeleton: {
     height: SKELETON_HEIGHT,
+  },
+  debug: {
+    position: 'absolute',
+    top: 4,
+    right: 8,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FF0000',
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    zIndex: 999,
   },
 });
