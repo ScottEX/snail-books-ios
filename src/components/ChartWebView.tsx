@@ -51,6 +51,7 @@ export default function ChartWebView(props: Props) {
   const [lastUrl, setLastUrl] = useState('');
 
   const [navCount, setNavCount] = useState(0);
+  const [intUrl, setIntUrl] = useState('');
 
   // HTML only rebuilds when data/theme changes, NOT when language changes
   const html = useMemo(() => generateChartHTML({
@@ -138,6 +139,7 @@ export default function ChartWebView(props: Props) {
         onMessage={onMessage}
         onNavigationStateChange={onNavChange}
         onShouldStartLoadWithRequest={(req: any) => {
+          setIntUrl(req.url ? req.url.slice(-30) : '-');
           if (req.url && req.url.startsWith('chartheight://')) {
             const h = parseInt(req.url.split('chartheight://')[1], 10);
             if (h > 100) setWebViewHeight(h);
@@ -148,7 +150,7 @@ export default function ChartWebView(props: Props) {
         onError={(e) => console.log('[ChartWebView] error:', e.nativeEvent)}
       />
       {/* DEBUG: show current WebView container height */}
-      <Text style={styles.debug}>{'H:' + webViewHeight + ' N:' + navCount + ' U:' + (lastUrl ? lastUrl.slice(-20) : '-')}</Text>
+      <Text style={styles.debug}>{'H:' + webViewHeight + ' N:' + navCount + ' I:' + (intUrl || '-')}</Text>
     </View>
   );
 }
