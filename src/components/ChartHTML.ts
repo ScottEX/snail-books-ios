@@ -365,7 +365,7 @@ if (DATA.hasDailyProfit) {
 window.location = 'chartheight://S4';
 // ── Category donut / bar chart ──
 let showBar = false;
-window.location = 'chartheight://CAT_' + DATA.donutData.length + '_' + (typeof PieChart);
+window.location = 'chartheight://CAT_' + DATA.donutData.length + '_' + (typeof PieChart) + '_' + (_PC ? (typeof _PC.default) + '|' + Object.keys(_PC).slice(0,3).join(',') : 'null');
 try {
 if (DATA.donutData.length > 0 && typeof PieChart !== 'undefined') {
   const catColorMap = DATA.catColorMap || {};
