@@ -145,6 +145,10 @@ export default function ChartWebView(props: Props) {
             setErrMsg(req.url.replace('chartheight://ERR_', ''));
             return false;
           }
+          if (req.url && req.url.startsWith('chartheight://CAT_')) {
+            setErrMsg(req.url.replace('chartheight://CAT_', ''));
+            return false;
+          }
           if (req.url && req.url.startsWith('chartheight://')) {
             const h = parseInt(req.url.split('chartheight://')[1], 10);
             if (h > 100) setWebViewHeight(h);
@@ -155,7 +159,7 @@ export default function ChartWebView(props: Props) {
         onError={(e) => console.log('[ChartWebView] error:', e.nativeEvent)}
       />
       {/* DEBUG: show current WebView container height */}
-      <Text style={styles.debug}>{'H:' + webViewHeight + ' I:' + (intUrl ? intUrl.slice(-25) : '-')}</Text>
+      <Text style={styles.debug}>{'H:' + webViewHeight + ' E:' + (errMsg || (intUrl ? intUrl.slice(-25) : '-'))}</Text>
     </View>
   );
 }
