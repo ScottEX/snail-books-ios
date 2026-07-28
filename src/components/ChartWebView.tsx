@@ -105,14 +105,12 @@ export default function ChartWebView(props: Props) {
   }, []);
 
   return (
-    <View style={[styles.container, { height: webViewHeight }]}>
-      {!loaded && (
-        <View style={styles.skeleton} />
-      )}
+    <View style={{ height: webViewHeight }}>
+      {!loaded && <View style={styles.skeleton} />}
       <WebView
         ref={webViewRef}
         source={{ html }}
-        style={[styles.webview, loaded ? {} : styles.webviewHidden]}
+        style={styles.webview}
         scrollEnabled={false}
         javaScriptEnabled
         domStorageEnabled
@@ -128,19 +126,13 @@ export default function ChartWebView(props: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: 'transparent',
-  },
   webview: {
-    backgroundColor: 'transparent',
-  },
-  webviewHidden: {
-    opacity: 0,
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    backgroundColor: 'transparent',
   },
   skeleton: {
     height: SKELETON_HEIGHT,
