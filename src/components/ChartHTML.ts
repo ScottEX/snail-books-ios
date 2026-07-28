@@ -307,11 +307,10 @@ function renderLine() {
 function reportHeight() {
   var end = document.getElementById('__end');
   var h = end ? end.getBoundingClientRect().top : document.body.scrollHeight;
-  window.location = 'chartheight://RAW_' + h + '_' + (end ? '1' : '0');
   if (!h || h < 100) return;
   var ceil = Math.ceil(h);
   try { if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'height', height: ceil })); } catch(e) {}
-  window.location = 'chartheight://' + ceil;
+  fetch('chartheight://' + ceil).catch(function(){});
 }
 renderLine();
 if (DATA.hasDaily) {
@@ -360,7 +359,6 @@ if (DATA.hasDailyProfit) {
 
 // ── Category donut / bar chart ──
 let showBar = false;
-window.location = 'chartheight://CAT_' + DATA.donutData.length + '_' + (typeof PieChart);
 try {
 if (DATA.donutData.length > 0 && typeof PieChart !== 'undefined') {
   const catColorMap = DATA.catColorMap || {};
@@ -413,7 +411,7 @@ if (DATA.donutData.length > 0 && typeof PieChart !== 'undefined') {
   });
 }
 } catch(e) {
-  window.location = 'chartheight://ERR_' + (e && e.message ? e.message.substring(0, 20) : '?');
+  fetch('chartheight://ERR_' + (e && e.message ? e.message.substring(0, 20) : '?')).catch(function(){});
 }
 // Always report height — deferred to let browser complete layout
 setTimeout(reportHeight, 0);
