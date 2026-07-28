@@ -307,7 +307,9 @@ function reportHeight() {
   try { if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'height', height: ceil })); } catch(e) {}
   window.location = 'chartheight://' + ceil;
 }
+window.location = 'chartheight://S0';
 renderLine();
+window.location = 'chartheight://S1';
 if (DATA.hasDaily) {
   document.getElementById('toggle-daily').onclick = function() {
     showDaily = !showDaily;
