@@ -300,11 +300,13 @@ function renderLine() {
   ));
 }
 function reportHeight() {
-  setTimeout(function() {
-    var end = document.getElementById('__end');
-    var h = end ? end.getBoundingClientRect().top : document.body.scrollHeight;
-    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'height', height: Math.ceil(h) }));
-  }, 300);
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      var end = document.getElementById('__end');
+      var h = end ? end.getBoundingClientRect().top : document.body.scrollHeight;
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'height', height: Math.ceil(h) }));
+    });
+  });
 }
 renderLine();
 if (DATA.hasDaily) {
