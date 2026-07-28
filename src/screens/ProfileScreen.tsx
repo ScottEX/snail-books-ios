@@ -6,6 +6,7 @@ import {
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Defs, LinearGradient as SVGGradient, Stop, Rect } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t, getLang, langs, useLang } from '../i18n';
 import { api, resolveAssetUrl } from '../api/client';
 import * as FileSystem from 'expo-file-system';
@@ -162,6 +163,7 @@ function FaceIDIcon({ color }: { color: string }) {
 /* ════════════ MAIN ════════════ */
 
 export default function ProfileScreen({ onBack, onLogout, onLangChange, onManageUsers, onAvatarChange, refreshKey }: Props) {
+  const insets = useSafeAreaInsets();
   const { colors, theme, setTheme, allThemes } = useTheme();
   const { setLang } = useLang();
   const [toast, setToast] = useState('');
@@ -784,7 +786,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
       <View
         style={[
           st.navBar,
-          { backgroundColor: 'transparent' },
+          { backgroundColor: 'transparent', paddingTop: insets.top + 12 },
         ]}
         pointerEvents="auto">
         <TouchableOpacity onPress={onBack} style={st.navBackBtn} activeOpacity={0.7}>
@@ -1483,7 +1485,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   navBar: {
     position: 'absolute' as any, top: 0, left: 0, right: 0, zIndex: 10,
     flexDirection: 'row', alignItems: 'center',
-    paddingTop: 54, paddingHorizontal: 16, paddingBottom: 12,
+    paddingHorizontal: 16, paddingBottom: 12,
   },
   navBackBtn: {
     width: 36, height: 36, borderRadius: 18,
