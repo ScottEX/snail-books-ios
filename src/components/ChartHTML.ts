@@ -312,9 +312,7 @@ function reportHeight() {
   try { if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'height', height: ceil })); } catch(e) {}
   window.location = 'chartheight://' + ceil;
 }
-window.location = 'chartheight://S0';
 renderLine();
-window.location = 'chartheight://S1';
 if (DATA.hasDaily) {
   document.getElementById('toggle-daily').onclick = function() {
     showDaily = !showDaily;
@@ -325,8 +323,6 @@ if (DATA.hasDaily) {
     reportHeight();
   };
 }
-window.location = 'chartheight://S2';
-
 // ── Profit chart ──
 let showDailyProfit = false;
 function renderProfit() {
@@ -350,7 +346,6 @@ function renderProfit() {
   ));
 }
 renderProfit();
-window.location = 'chartheight://S3';
 if (DATA.hasDailyProfit) {
   document.getElementById('toggle-daily-profit').onclick = function() {
     showDailyProfit = !showDailyProfit;
@@ -362,10 +357,9 @@ if (DATA.hasDailyProfit) {
   };
 }
 
-window.location = 'chartheight://S4';
 // ── Category donut / bar chart ──
 let showBar = false;
-window.location = 'chartheight://CAT_' + DATA.donutData.length + '_' + (typeof PieChart) + '_' + (_PC ? (typeof _PC.default) + '|' + Object.keys(_PC).slice(0,3).join(',') : 'null');
+window.location = 'chartheight://CAT_' + DATA.donutData.length + '_' + (typeof PieChart);
 try {
 if (DATA.donutData.length > 0 && typeof PieChart !== 'undefined') {
   const catColorMap = DATA.catColorMap || {};
@@ -420,7 +414,6 @@ if (DATA.donutData.length > 0 && typeof PieChart !== 'undefined') {
 } catch(e) {
   window.location = 'chartheight://ERR_' + (e && e.message ? e.message.substring(0, 20) : '?');
 }
-window.location = 'chartheight://S5';
 // Always report height — deferred to let browser complete layout
 setTimeout(reportHeight, 0);
 setTimeout(reportHeight, 200);
