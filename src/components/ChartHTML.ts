@@ -241,7 +241,7 @@ var PieChart = unwrap(_PC);
 var Pie = unwrap(_Pie);
 var Cell = unwrap(_Cell);
 var BarChart = unwrap(_BC);
-try { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'dbg', keys: _PC ? Object.keys(_PC).slice(0,6) : [], tPC: typeof _PC, tUP: typeof PieChart })); } catch(e) {}
+try { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'dbg', k: _PC ? Object.keys(_PC).slice(0,3).join(',') : 'null', u: typeof PieChart })); } catch(e) {}
 
 const isLight = DATA.theme.isLight;
 const AXIS = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';

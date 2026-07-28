@@ -105,7 +105,7 @@ export default function ChartWebView(props: Props) {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'dbg') {
-        setErrMsg('DBG:' + JSON.stringify(data));
+        setErrMsg('k=' + (data.k || '?') + ' u=' + (data.u || '?'));
         return;
       }
       if (data.type === 'height' && data.height > 0) {
