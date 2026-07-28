@@ -108,6 +108,10 @@ export default function ChartWebView(props: Props) {
         setErrMsg('k=' + (data.k || '?') + ' u=' + (data.u || '?'));
         return;
       }
+      if (data.type === 'err') {
+        setErrMsg('ERR:' + (data.msg || '?'));
+        return;
+      }
       if (data.type === 'height' && data.height > 0) {
         setWebViewHeight(data.height);
       }

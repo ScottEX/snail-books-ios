@@ -413,7 +413,7 @@ if (DATA.donutData.length > 0 && typeof PieChart !== 'undefined') {
   });
 }
 } catch(e) {
-  fetch('chartheight://ERR_' + (e && e.message ? e.message.substring(0, 20) : '?')).catch(function(){});
+  try { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'err', msg: e && e.message ? e.message.substring(0,30) : '?' })); } catch(_) {}
 }
 // Always report height — deferred to let browser complete layout
 setTimeout(reportHeight, 0);
