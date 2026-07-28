@@ -41,7 +41,7 @@ interface Props {
   };
 }
 
-const SKELETON_HEIGHT = 400;
+const SKELETON_HEIGHT = 300;
 
 export default function ChartWebView(props: Props) {
   const [webViewHeight, setWebViewHeight] = useState(SKELETON_HEIGHT);
@@ -164,7 +164,7 @@ export default function ChartWebView(props: Props) {
         onError={(e) => console.log('[ChartWebView] error:', e.nativeEvent)}
       />
       {/* DEBUG: show current WebView container height */}
-      <Text style={styles.debug}>{'H:' + webViewHeight + ' E:' + (errMsg || (intUrl ? intUrl.slice(-25) : '-'))}</Text>
+      <Text style={styles.debug}>{'NEW H:' + webViewHeight}</Text>
     </View>
   );
 }
