@@ -368,7 +368,7 @@ if (DATA.donutData.length > 0 && typeof PieChart !== 'undefined') {
   function getCatColor(key, i) {
     return catColorMap[key] || catColorFallback[i % catColorFallback.length] || '#888';
   }
-  const catRoot = ReactDOM.createRoot(document.getElementById('cat-container'));
+  var catRoot = ReactDOM.createRoot(document.getElementById('cat-container'));
   function renderCat() {
     const src = DATA.donutData;
     if (showBar) {
