@@ -1,6 +1,6 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { WebView } from 'react-native-webview';
+import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { generateChartHTML } from './ChartHTML';
 
 interface Props {
@@ -41,10 +41,11 @@ interface Props {
   };
 }
 
-/** Fixed height — covers all 3 charts (~900px) with small buffer */
-const CHART_HEIGHT = 950;
+const SKELETON_HEIGHT = 400;
 
 export default function ChartWebView(props: Props) {
+  const [webViewHeight, setWebViewHeight] = useState(SKELETON_HEIGHT);
+  const [loaded, setLoaded] = useState(false);
   const webViewRef = useRef<WebView>(null);
 
   // HTML only rebuilds when data/theme changes, NOT when language changes
@@ -81,12 +82,9 @@ export default function ChartWebView(props: Props) {
     props.surface, props.textSub,
   ]);
 
-  // Track WebView load to post language updates
-  const loadedRef = useRef(false);
-
   // When language changes, update via postMessage
   useEffect(() => {
-    if (loadedRef.current && webViewRef.current) {
+    if (loaded && webViewRef.current) {
       webViewRef.current.postMessage(JSON.stringify({
         type: 'lang',
         labels: props.labels,
@@ -95,28 +93,56 @@ export default function ChartWebView(props: Props) {
         catNames: props.categoryNames,
       }));
     }
-  }, [props.labels, props.monthName, props.monthNames, props.categoryNames]);
+  }, [loaded, props.labels, props.monthName, props.monthNames, props.categoryNames]);
+
+  const onMessage = useCallback((event: WebViewMessageEvent) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === 'height' && data.height > 0) {
+        setWebViewHeight(data.height);
+      }
+    } catch {}
+  }, []);
 
   return (
-    <View style={{ height: CHART_HEIGHT }}>
+    <View style={[styles.container, { height: webViewHeight }]}>
+      {!loaded && (
+        <View style={styles.skeleton} />
+      )}
       <WebView
         ref={webViewRef}
         source={{ html }}
-        style={styles.webview}
+        style={[styles.webview, loaded ? {} : styles.webviewHidden]}
         scrollEnabled={false}
         javaScriptEnabled
         domStorageEnabled
         setSupportMultipleWindows={false}
         originWhitelist={['*']}
         injectedJavaScript={`document.querySelector('html').style.backgroundColor='transparent';true;`}
-        onLoadEnd={() => { loadedRef.current = true; }}
+        onLoadEnd={() => setLoaded(true)}
+        onMessage={onMessage}
+        onError={(e) => console.log('[ChartWebView] error:', e.nativeEvent)}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    backgroundColor: 'transparent',
+  },
   webview: {
     backgroundColor: 'transparent',
+  },
+  webviewHidden: {
+    opacity: 0,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  skeleton: {
+    height: SKELETON_HEIGHT,
   },
 });
