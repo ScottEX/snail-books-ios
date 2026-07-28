@@ -128,6 +128,7 @@ export default function ChartWebView(props: Props) {
       {!loaded && <View style={styles.skeleton} />}
       <WebView
         ref={webViewRef}
+        key={'v5'}
         source={{ html }}
         style={styles.webview}
         scrollEnabled={false}
