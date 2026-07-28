@@ -20,7 +20,7 @@ interface BgCropModalProps {
   src: string;
   onConfirm: (dataUri: string) => void;
   onCancel: () => void;
-  /** 'cover' = horizontal banner ratio 260/stageW; default 'bg' = viewport ratio */
+  /** 'cover' = horizontal banner ratio 260/360; default 'bg' = viewport ratio */
   mode?: 'cover' | 'bg';
 }
 
@@ -42,7 +42,7 @@ export default function BgCropModal({ visible, src, onConfirm, onCancel, mode }:
   const stageW = stageDim.w > 0 ? stageDim.w : WIN_W;
   const stageH2 = stageDim.h > 0 ? stageDim.h : WIN_H;
   const cropAspect = mode === 'cover'
-    ? (stageW > 0 ? 260 / stageW : 260 / 375)
+    ? 260 / 360
     : bgAspect;
   const guideW = !stageDim.w
     ? Math.round(WIN_W * 0.76)

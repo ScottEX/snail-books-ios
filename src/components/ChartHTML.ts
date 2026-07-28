@@ -234,7 +234,13 @@ export function generateChartHTML(data: ChartData): string {
 const DATA = ${json};
 
 const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-        ComposedChart, Area, PieChart, Pie, Cell, BarChart, Bar, Legend } = Recharts;
+        ComposedChart, Area, PieChart: _PC, Pie: _Pie, Cell: _Cell, BarChart: _BC, Bar, Legend } = Recharts;
+// Normalize UMD exports: older builds wrap in { default: Component } or { PieChart: Component }
+function unwrap(raw) { if (typeof raw === 'function') return raw; if (!raw) return raw; return raw.default || raw.PieChart || raw; }
+var PieChart = unwrap(_PC);
+var Pie = unwrap(_Pie);
+var Cell = unwrap(_Cell);
+var BarChart = unwrap(_BC);
 
 const isLight = DATA.theme.isLight;
 const AXIS = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
@@ -300,11 +306,12 @@ function renderLine() {
   ));
 }
 function reportHeight() {
-  setTimeout(function() {
-    var end = document.getElementById('__end');
-    var h = end ? end.getBoundingClientRect().top : document.body.scrollHeight;
-    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'height', height: Math.ceil(h) }));
-  }, 300);
+  var end = document.getElementById('__end');
+  var h = end ? end.getBoundingClientRect().top : document.body.scrollHeight;
+  if (!h || h < 100) return;
+  var ceil = Math.ceil(h);
+  try { if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'height', height: ceil })); } catch(e) {}
+  fetch('chartheight://' + ceil).catch(function(){});
 }
 renderLine();
 if (DATA.hasDaily) {
@@ -317,7 +324,6 @@ if (DATA.hasDaily) {
     reportHeight();
   };
 }
-
 // ── Profit chart ──
 let showDailyProfit = false;
 function renderProfit() {
@@ -354,13 +360,14 @@ if (DATA.hasDailyProfit) {
 
 // ── Category donut / bar chart ──
 let showBar = false;
-if (DATA.donutData.length > 0) {
-  const catColorMap = DATA.catColorMap || {};
-  const catColorFallback = DATA.catColorFallback || [];
+try {
+if (DATA.donutData.length > 0 && typeof PieChart !== 'undefined') {
+  var catColorMap = DATA.catColorMap || {};
+  var catColorFallback = DATA.catColorFallback || [];
   function getCatColor(key, i) {
     return catColorMap[key] || catColorFallback[i % catColorFallback.length] || '#888';
   }
-  const catRoot = ReactDOM.createRoot(document.getElementById('cat-container'));
+  var catRoot = ReactDOM.createRoot(document.getElementById('cat-container'));
   function renderCat() {
     const src = DATA.donutData;
     if (showBar) {
@@ -404,6 +411,11 @@ if (DATA.donutData.length > 0) {
     leg.appendChild(div);
   });
 }
+} catch(e) {}
+// Always report height — deferred to let browser complete layout
+setTimeout(reportHeight, 0);
+setTimeout(reportHeight, 200);
+setTimeout(reportHeight, 600);
 
 // Language update via postMessage
 window.addEventListener('message', function(e) {

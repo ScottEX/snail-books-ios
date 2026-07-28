@@ -613,7 +613,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
         )}
 
         {isHome && (
-        <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
 
           {tab === 'list' ? (
             <DailyRevenueView
@@ -1317,7 +1317,6 @@ const getStyles = (colors: ThemeColors, headerColor: string, bgOpacity: number) 
 
   // Content
   content: { flex: 1 },
-  contentInner: { flexGrow: 1, overflow: 'hidden', maxWidth: 520, width: '100%', alignSelf: 'center' },
 
   // Bottom nav — floating glass pill (mirrors web's center-positioned
 // saturate(220%) blur(30px) capsule).
