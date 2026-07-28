@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
-import { WebView, WebViewMessageEvent } from 'react-native-webview';
+import { WebView, WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
 import { generateChartHTML } from './ChartHTML';
 
 interface Props {
@@ -104,6 +104,13 @@ export default function ChartWebView(props: Props) {
     } catch {}
   }, []);
 
+  const onNavChange = useCallback((navState: WebViewNavigation) => {
+    if (navState.title && navState.title.startsWith('h:')) {
+      const h = parseInt(navState.title.slice(2), 10);
+      if (h > 100) setWebViewHeight(h);
+    }
+  }, []);
+
   return (
     <View style={{ height: webViewHeight }}>
       {!loaded && <View style={styles.skeleton} />}
@@ -119,6 +126,7 @@ export default function ChartWebView(props: Props) {
         injectedJavaScript={`document.querySelector('html').style.backgroundColor='transparent';true;`}
         onLoadEnd={() => setLoaded(true)}
         onMessage={onMessage}
+        onNavigationStateChange={onNavChange}
         onError={(e) => console.log('[ChartWebView] error:', e.nativeEvent)}
       />
       {/* DEBUG: show current WebView container height */}

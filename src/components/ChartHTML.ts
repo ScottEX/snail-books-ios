@@ -304,15 +304,19 @@ function reportHeight() {
     var end = document.getElementById('__end');
     var h = end ? end.getBoundingClientRect().top : document.body.scrollHeight;
     if (!h || h < 100) return;
+    var ceil = Math.ceil(h);
+    // Primary: postMessage (works on modern WKWebView)
     try {
-      (window.ReactNativeWebView || window).postMessage(JSON.stringify({ type: 'height', height: Math.ceil(h) }));
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'height', height: ceil }));
+      }
     } catch(e) {}
+    // Fallback: document.title (works on all iOS versions)
+    document.title = 'h:' + ceil;
   }
-  // Primary: double rAF after paint
   requestAnimationFrame(function() {
     requestAnimationFrame(post);
   });
-  // Fallback: setTimeout for older/slower devices
   setTimeout(post, 500);
   setTimeout(post, 1000);
 }
