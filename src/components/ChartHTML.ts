@@ -363,8 +363,8 @@ if (DATA.hasDailyProfit) {
 let showBar = false;
 try {
 if (DATA.donutData.length > 0 && typeof PieChart !== 'undefined') {
-  const catColorMap = DATA.catColorMap || {};
-  const catColorFallback = DATA.catColorFallback || [];
+  var catColorMap = DATA.catColorMap || {};
+  var catColorFallback = DATA.catColorFallback || [];
   function getCatColor(key, i) {
     return catColorMap[key] || catColorFallback[i % catColorFallback.length] || '#888';
   }
