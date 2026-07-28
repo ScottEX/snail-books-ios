@@ -299,6 +299,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
     // Modal keyboard push
   const { height: screenH, width: screenW } = useWindowDimensions();
+  const coverHeight = Math.round(screenW * 260 / 360);
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const modalCap = -screenH * 0.1;
   const modalCapEmail = -screenH * 0.05;
@@ -801,7 +802,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         }, coverStyle]}
       >
         <TouchableOpacity
-        style={st.coverWrap}
+        style={[st.coverWrap, { height: coverHeight }]}
         onPress={handleCoverPress} activeOpacity={0.9} disabled={uploadingCover}>
         {/* Gradient — always rendered as base; cover image fades in on top */}
         <View style={st.coverGradient}>
@@ -869,7 +870,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         onScroll={scrollHandler}
         scrollEventThrottle={16}>
         {/* Spacer — keeps content below the absolutely-positioned cover */}
-        <View style={{ height: 260 }} />
+        <View style={{ height: coverHeight }} />
 
         {/* ── Profile head ── */}
         <View style={st.profileHead}>
@@ -1342,7 +1343,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
               <Text style={{ fontSize: FONTS.large.size, color: '#1B7A4A' }}>✓</Text>
             </View>
             <Text style={{ fontSize: FONTS.sub.size, fontWeight: '600', color: '#fff' }}>{t('coverUpdated')}</Text>
-            <Image source={{ uri: coverCropResult }} style={{ width: Math.min(screenW * 0.7, 300), height: Math.round(Math.min(screenW * 0.7, 300) * (260 / screenW)), borderRadius: 4, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' }} resizeMode="cover" />
+            <Image source={{ uri: coverCropResult }} style={{ width: Math.min(screenW * 0.7, 300), height: Math.round(Math.min(screenW * 0.7, 300) * 260 / 360), borderRadius: 4, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' }} resizeMode="cover" />
             <Text style={{ fontSize: FONTS.micro.size, color: 'rgba(255,255,255,0.4)' }}>{t('coverHint')}</Text>
             <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
               <TouchableOpacity
