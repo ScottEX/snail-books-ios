@@ -111,9 +111,9 @@ export default function ChartWebView(props: Props) {
   const onNavChange = useCallback((navState: WebViewNavigation) => {
     setNavCount(c => c + 1);
     setLastUrl(navState.url || '');
-    // Parse height from URL hash fallback: about:blank#h885
+    // Parse height from history.replaceState: /h885
     if (navState.url) {
-      const m = navState.url.match(/#h(\d+)/);
+      const m = navState.url.match(/\/h(\d+)/);
       if (m) {
         const h = parseInt(m[1], 10);
         if (h > 100) setWebViewHeight(h);

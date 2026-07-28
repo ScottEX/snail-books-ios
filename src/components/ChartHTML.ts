@@ -311,8 +311,8 @@ function reportHeight() {
         window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'height', height: ceil }));
       }
     } catch(e) {}
-    // Fallback: location.hash (triggers onNavigationStateChange on all iOS)
-    window.location.hash = 'h' + ceil;
+    // Fallback: history.replaceState (triggers onNavigationStateChange on all WKWebView)
+    try { history.replaceState(null, '', '/h' + ceil); } catch(e) {}
   }
   requestAnimationFrame(function() {
     requestAnimationFrame(post);
