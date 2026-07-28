@@ -1317,7 +1317,7 @@ const getStyles = (colors: ThemeColors, headerColor: string, bgOpacity: number) 
 
   // Content
   content: { flex: 1 },
-  contentInner: { flexGrow: 1, maxWidth: 520, width: '100%', alignSelf: 'center' },
+  contentInner: { maxWidth: 520, width: '100%', alignSelf: 'center' },
 
   // Bottom nav — floating glass pill (mirrors web's center-positioned
 // saturate(220%) blur(30px) capsule).
