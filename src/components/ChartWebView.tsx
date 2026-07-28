@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
-import { useLanguage } from '../contexts/LanguageContext';
 import { generateChartHTML } from './ChartHTML';
 
 interface Props {
@@ -12,17 +11,34 @@ interface Props {
   categories: Record<string, number>;
   categoryNames: Record<string, string>;
   monthNames: Record<string, string>;
+  monthName: string;
   dailyDates?: string[];
   dailyIncome?: number[];
   dailyExpense?: number[];
   dailyProfitDates?: string[];
-  dailyProfitValues?: string[];
+  dailyProfitValues?: number[];
   isLight: boolean;
   primary: string;
   accent: string;
   warning: string;
   surface: string;
   textSub: string;
+  labels: {
+    income: string;
+    expense: string;
+    profit: string;
+    monthlyTrend: string;
+    dailyTrend: string;
+    monthlyProfit: string;
+    dailyProfit: string;
+    expenseBreakdown: string;
+    chartSwitchPie: string;
+    chartSwitchBar: string;
+    chartSwitchHint: string;
+    chartXAxis: string;
+    chartXAxisDay: string;
+    chartYAxis: string;
+  };
 }
 
 const SKELETON_HEIGHT = 400;
@@ -31,7 +47,6 @@ export default function ChartWebView(props: Props) {
   const [webViewHeight, setWebViewHeight] = useState(SKELETON_HEIGHT);
   const [loaded, setLoaded] = useState(false);
   const webViewRef = useRef<WebView>(null);
-  const { language } = useLanguage();
 
   // HTML only rebuilds when data/theme changes, NOT when language changes
   const html = useMemo(() => generateChartHTML({
@@ -56,36 +71,29 @@ export default function ChartWebView(props: Props) {
       textSub: props.textSub,
     },
     labels: {
-      income: language === 'zh' ? '收入' : 'Income',
-      expense: language === 'zh' ? '支出' : 'Expense',
-      profit: language === 'zh' ? '利润摘要' : 'Profit Summary',
-      monthlyTrend: language === 'zh' ? '月度趋势' : 'Monthly Trend',
-      dailyTrend: language === 'zh' ? '日趋势' : 'Daily Trend',
-      monthlyProfit: language === 'zh' ? '月度利润' : 'Monthly Profit',
-      dailyProfit: language === 'zh' ? '日利润' : 'Daily Profit',
-      expenseBreakdown: language === 'zh' ? '支出分类' : 'Expense Breakdown',
-      chartSwitchPie: language === 'zh' ? '饼图' : 'Pie',
-      chartSwitchBar: language === 'zh' ? '柱状图' : 'Bar',
-      chartSwitchHint: language === 'zh' ? '点击切换' : 'Tap to switch',
-      chartXAxis: language === 'zh' ? '月份' : 'Month',
-      chartXAxisDay: language === 'zh' ? '日期' : 'Day',
-      chartYAxis: language === 'zh' ? '金额' : 'Amount',
-      monthName: language === 'zh' ? '月' : '',
+      ...props.labels,
+      monthName: props.monthName,
     },
   }), [
     props.months, props.income, props.expense, props.profit,
-    props.categories, props.categoryNames, props.monthNames,
-    props.dailyDates, props.dailyIncome, props.dailyExpense,
-    props.dailyProfitDates, props.dailyProfitValues,
+    props.categories, props.dailyDates, props.dailyIncome,
+    props.dailyExpense, props.dailyProfitDates, props.dailyProfitValues,
     props.isLight, props.primary, props.accent, props.warning,
     props.surface, props.textSub,
-    // Intentionally exclude language to avoid WebView reload on language switch
   ]);
 
-  // Update language via postMessage without regenerating HTML
+  // When language changes, update via postMessage
   useEffect(() => {
-    webViewRef.current?.postMessage(JSON.stringify({ type: 'lang', lang: language }));
-  }, [language]);
+    if (loaded && webViewRef.current) {
+      webViewRef.current.postMessage(JSON.stringify({
+        type: 'lang',
+        labels: props.labels,
+        monthName: props.monthName,
+        monthNames: props.monthNames,
+        catNames: props.categoryNames,
+      }));
+    }
+  }, [loaded, props.labels, props.monthName, props.monthNames, props.categoryNames]);
 
   const onMessage = useCallback((event: WebViewMessageEvent) => {
     try {
