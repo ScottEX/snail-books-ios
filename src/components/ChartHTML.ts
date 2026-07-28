@@ -413,8 +413,10 @@ if (DATA.donutData.length > 0) {
 }
 } catch(e) {}
 window.location = 'chartheight://S5';
-// Always report height — even if donutData is empty
-reportHeight();
+// Always report height — deferred to let browser complete layout
+setTimeout(reportHeight, 0);
+setTimeout(reportHeight, 200);
+setTimeout(reportHeight, 600);
 
 // Language update via postMessage
 window.addEventListener('message', function(e) {
