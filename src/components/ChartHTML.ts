@@ -235,11 +235,12 @@ const DATA = ${json};
 
 const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
         ComposedChart, Area, PieChart: _PC, Pie: _Pie, Cell: _Cell, BarChart: _BC, Bar, Legend } = Recharts;
-// Normalize UMD exports: older builds wrap in { default: Component }
-var PieChart = _PC && _PC.default ? _PC.default : _PC;
-var Pie = _Pie && _Pie.default ? _Pie.default : _Pie;
-var Cell = _Cell && _Cell.default ? _Cell.default : _Cell;
-var BarChart = _BC && _BC.default ? _BC.default : _BC;
+// Normalize UMD exports: older builds wrap in { default: Component } or { PieChart: Component }
+function unwrap(raw) { if (typeof raw === 'function') return raw; if (!raw) return raw; return raw.default || raw.PieChart || raw; }
+var PieChart = unwrap(_PC);
+var Pie = unwrap(_Pie);
+var Cell = unwrap(_Cell);
+var BarChart = unwrap(_BC);
 
 const isLight = DATA.theme.isLight;
 const AXIS = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
