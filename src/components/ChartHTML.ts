@@ -307,6 +307,7 @@ function renderLine() {
 function reportHeight() {
   var end = document.getElementById('__end');
   var h = end ? end.getBoundingClientRect().top : document.body.scrollHeight;
+  window.location = 'chartheight://RAW_' + h + '_' + (end ? '1' : '0');
   if (!h || h < 100) return;
   var ceil = Math.ceil(h);
   try { if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'height', height: ceil })); } catch(e) {}

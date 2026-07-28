@@ -145,6 +145,10 @@ export default function ChartWebView(props: Props) {
             setErrMsg(req.url.replace('chartheight://ERR_', ''));
             return false;
           }
+          if (req.url && req.url.startsWith('chartheight://RAW_')) {
+            setErrMsg('R:' + req.url.replace('chartheight://RAW_', ''));
+            return false;
+          }
           if (req.url && req.url.startsWith('chartheight://CAT_')) {
             setErrMsg(req.url.replace('chartheight://CAT_', ''));
             return false;
