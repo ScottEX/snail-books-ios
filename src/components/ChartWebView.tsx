@@ -104,6 +104,10 @@ export default function ChartWebView(props: Props) {
   const onMessage = useCallback((event: WebViewMessageEvent) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === 'dbg') {
+        setErrMsg('DBG:' + JSON.stringify(data));
+        return;
+      }
       if (data.type === 'height' && data.height > 0) {
         setWebViewHeight(data.height);
       }
