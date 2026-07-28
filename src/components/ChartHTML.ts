@@ -234,7 +234,12 @@ export function generateChartHTML(data: ChartData): string {
 const DATA = ${json};
 
 const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-        ComposedChart, Area, PieChart, Pie, Cell, BarChart, Bar, Legend } = Recharts;
+        ComposedChart, Area, PieChart: _PC, Pie: _Pie, Cell: _Cell, BarChart: _BC, Bar, Legend } = Recharts;
+// Normalize UMD exports: older builds wrap in { default: Component }
+var PieChart = _PC && _PC.default ? _PC.default : _PC;
+var Pie = _Pie && _Pie.default ? _Pie.default : _Pie;
+var Cell = _Cell && _Cell.default ? _Cell.default : _Cell;
+var BarChart = _BC && _BC.default ? _BC.default : _BC;
 
 const isLight = DATA.theme.isLight;
 const AXIS = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
