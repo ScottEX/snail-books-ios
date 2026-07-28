@@ -241,7 +241,6 @@ var PieChart = unwrap(_PC);
 var Pie = unwrap(_Pie);
 var Cell = unwrap(_Cell);
 var BarChart = unwrap(_BC);
-try { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'dbg', k: _PC ? Object.keys(_PC).slice(0,3).join(',') : 'null', u: typeof PieChart })); } catch(e) {}
 
 const isLight = DATA.theme.isLight;
 const AXIS = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
@@ -412,9 +411,7 @@ if (DATA.donutData.length > 0 && typeof PieChart !== 'undefined') {
     leg.appendChild(div);
   });
 }
-} catch(e) {
-  try { window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'err', msg: e && e.message ? e.message.substring(0,30) : '?' })); } catch(_) {}
-}
+} catch(e) {}
 // Always report height — deferred to let browser complete layout
 setTimeout(reportHeight, 0);
 setTimeout(reportHeight, 200);

@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
-import { StyleSheet, View, Text } from 'react-native';
-import { WebView, WebViewMessageEvent, WebViewNavigation } from 'react-native-webview';
+import { StyleSheet, View } from 'react-native';
+import { WebView, WebViewMessageEvent } from 'react-native-webview';
+import { useLanguage } from '../contexts/LanguageContext';
 import { generateChartHTML } from './ChartHTML';
 
 interface Props {
@@ -10,49 +11,27 @@ interface Props {
   profit: number[];
   categories: Record<string, number>;
   categoryNames: Record<string, string>;
+  monthNames: Record<string, string>;
   dailyDates?: string[];
   dailyIncome?: number[];
   dailyExpense?: number[];
   dailyProfitDates?: string[];
-  dailyProfitValues?: number[];
+  dailyProfitValues?: string[];
   isLight: boolean;
   primary: string;
   accent: string;
   warning: string;
   surface: string;
   textSub: string;
-  monthNames: Record<string, string>;
-  monthName: string;
-  labels: {
-    income: string;
-    expense: string;
-    profit: string;
-    monthlyTrend: string;
-    dailyTrend: string;
-    monthlyProfit: string;
-    dailyProfit: string;
-    expenseBreakdown: string;
-    chartSwitchPie: string;
-    chartSwitchBar: string;
-    chartSwitchHint: string;
-    chartXAxis: string;
-    chartXAxisDay: string;
-    chartYAxis: string;
-  };
 }
 
-const SKELETON_HEIGHT = 300;
+const SKELETON_HEIGHT = 400;
 
 export default function ChartWebView(props: Props) {
   const [webViewHeight, setWebViewHeight] = useState(SKELETON_HEIGHT);
   const [loaded, setLoaded] = useState(false);
   const webViewRef = useRef<WebView>(null);
-
-  const [lastUrl, setLastUrl] = useState('');
-
-  const [navCount, setNavCount] = useState(0);
-  const [intUrl, setIntUrl] = useState('');
-  const [errMsg, setErrMsg] = useState('');
+  const { language } = useLanguage();
 
   // HTML only rebuilds when data/theme changes, NOT when language changes
   const html = useMemo(() => generateChartHTML({
@@ -77,58 +56,44 @@ export default function ChartWebView(props: Props) {
       textSub: props.textSub,
     },
     labels: {
-      ...props.labels,
-      monthName: props.monthName,
+      income: language === 'zh' ? '收入' : 'Income',
+      expense: language === 'zh' ? '支出' : 'Expense',
+      profit: language === 'zh' ? '利润摘要' : 'Profit Summary',
+      monthlyTrend: language === 'zh' ? '月度趋势' : 'Monthly Trend',
+      dailyTrend: language === 'zh' ? '日趋势' : 'Daily Trend',
+      monthlyProfit: language === 'zh' ? '月度利润' : 'Monthly Profit',
+      dailyProfit: language === 'zh' ? '日利润' : 'Daily Profit',
+      expenseBreakdown: language === 'zh' ? '支出分类' : 'Expense Breakdown',
+      chartSwitchPie: language === 'zh' ? '饼图' : 'Pie',
+      chartSwitchBar: language === 'zh' ? '柱状图' : 'Bar',
+      chartSwitchHint: language === 'zh' ? '点击切换' : 'Tap to switch',
+      chartXAxis: language === 'zh' ? '月份' : 'Month',
+      chartXAxisDay: language === 'zh' ? '日期' : 'Day',
+      chartYAxis: language === 'zh' ? '金额' : 'Amount',
+      monthName: language === 'zh' ? '月' : '',
     },
   }), [
     props.months, props.income, props.expense, props.profit,
-    props.categories, props.dailyDates, props.dailyIncome,
-    props.dailyExpense, props.dailyProfitDates, props.dailyProfitValues,
+    props.categories, props.categoryNames, props.monthNames,
+    props.dailyDates, props.dailyIncome, props.dailyExpense,
+    props.dailyProfitDates, props.dailyProfitValues,
     props.isLight, props.primary, props.accent, props.warning,
     props.surface, props.textSub,
+    // Intentionally exclude language to avoid WebView reload on language switch
   ]);
 
-  // When language changes, update via postMessage
+  // Update language via postMessage without regenerating HTML
   useEffect(() => {
-    if (loaded && webViewRef.current) {
-      webViewRef.current.postMessage(JSON.stringify({
-        type: 'lang',
-        labels: props.labels,
-        monthName: props.monthName,
-        monthNames: props.monthNames,
-        catNames: props.categoryNames,
-      }));
-    }
-  }, [loaded, props.labels, props.monthName, props.monthNames, props.categoryNames]);
+    webViewRef.current?.postMessage(JSON.stringify({ type: 'lang', lang: language }));
+  }, [language]);
 
   const onMessage = useCallback((event: WebViewMessageEvent) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      if (data.type === 'dbg') {
-        setErrMsg('k=' + (data.k || '?') + ' u=' + (data.u || '?'));
-        return;
-      }
-      if (data.type === 'err') {
-        setErrMsg('ERR:' + (data.msg || '?'));
-        return;
-      }
       if (data.type === 'height' && data.height > 0) {
         setWebViewHeight(data.height);
       }
     } catch {}
-  }, []);
-
-  const onNavChange = useCallback((navState: WebViewNavigation) => {
-    setNavCount(c => c + 1);
-    setLastUrl(navState.url || '');
-    // Parse height from history.replaceState: /h885
-    if (navState.url) {
-      const m = navState.url.match(/\/h(\d+)/);
-      if (m) {
-        const h = parseInt(m[1], 10);
-        if (h > 100) setWebViewHeight(h);
-      }
-    }
   }, []);
 
   return (
@@ -136,7 +101,6 @@ export default function ChartWebView(props: Props) {
       {!loaded && <View style={styles.skeleton} />}
       <WebView
         ref={webViewRef}
-        key={'v5'}
         source={{ html }}
         style={styles.webview}
         scrollEnabled={false}
@@ -147,36 +111,8 @@ export default function ChartWebView(props: Props) {
         injectedJavaScript={`document.querySelector('html').style.backgroundColor='transparent';true;`}
         onLoadEnd={() => setLoaded(true)}
         onMessage={onMessage}
-        onNavigationStateChange={onNavChange}
-        onShouldStartLoadWithRequest={(req: any) => {
-          setIntUrl(req.url ? req.url.slice(-30) : '-');
-          if (req.url && req.url.startsWith('chartheight://ERR_')) {
-            setErrMsg(req.url.replace('chartheight://ERR_', ''));
-            return false;
-          }
-          if (req.url && req.url.startsWith('chartheight://RAW_')) {
-            setErrMsg('R:' + req.url.replace('chartheight://RAW_', ''));
-            return false;
-          }
-          if (req.url && req.url.startsWith('chartheight://DBG_')) {
-            setErrMsg(req.url.replace('chartheight://DBG_', ''));
-            return false;
-          }
-          if (req.url && req.url.startsWith('chartheight://CAT_')) {
-            setErrMsg(req.url.replace('chartheight://CAT_', ''));
-            return false;
-          }
-          if (req.url && req.url.startsWith('chartheight://')) {
-            const h = parseInt(req.url.split('chartheight://')[1], 10);
-            if (h > 100) setWebViewHeight(h);
-            return false;
-          }
-          return true;
-        }}
         onError={(e) => console.log('[ChartWebView] error:', e.nativeEvent)}
       />
-      {/* DEBUG: show current WebView container height */}
-      <Text style={styles.debug}>{'NEW H:' + webViewHeight + ' ' + (errMsg || '-')}</Text>
     </View>
   );
 }
@@ -192,18 +128,6 @@ const styles = StyleSheet.create({
   },
   skeleton: {
     height: SKELETON_HEIGHT,
-  },
-  debug: {
-    position: 'absolute',
-    top: 4,
-    right: 8,
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#FF0000',
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    zIndex: 999,
+    width: '100%',
   },
 });
