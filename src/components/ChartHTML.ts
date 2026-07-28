@@ -300,13 +300,21 @@ function renderLine() {
   ));
 }
 function reportHeight() {
+  function post() {
+    var end = document.getElementById('__end');
+    var h = end ? end.getBoundingClientRect().top : document.body.scrollHeight;
+    if (!h || h < 100) return;
+    try {
+      (window.ReactNativeWebView || window).postMessage(JSON.stringify({ type: 'height', height: Math.ceil(h) }));
+    } catch(e) {}
+  }
+  // Primary: double rAF after paint
   requestAnimationFrame(function() {
-    requestAnimationFrame(function() {
-      var end = document.getElementById('__end');
-      var h = end ? end.getBoundingClientRect().top : document.body.scrollHeight;
-      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'height', height: Math.ceil(h) }));
-    });
+    requestAnimationFrame(post);
   });
+  // Fallback: setTimeout for older/slower devices
+  setTimeout(post, 500);
+  setTimeout(post, 1000);
 }
 renderLine();
 if (DATA.hasDaily) {
