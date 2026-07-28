@@ -360,8 +360,9 @@ if (DATA.hasDailyProfit) {
 window.location = 'chartheight://S4';
 // ── Category donut / bar chart ──
 let showBar = false;
+window.location = 'chartheight://CAT_' + DATA.donutData.length + '_' + (typeof PieChart);
 try {
-if (DATA.donutData.length > 0) {
+if (DATA.donutData.length > 0 && typeof PieChart !== 'undefined') {
   const catColorMap = DATA.catColorMap || {};
   const catColorFallback = DATA.catColorFallback || [];
   function getCatColor(key, i) {
