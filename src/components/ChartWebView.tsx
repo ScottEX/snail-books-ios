@@ -41,8 +41,8 @@ interface Props {
   };
 }
 
-/** Fixed height — generous enough for all 3 charts without dynamic measurement */
-const CHART_HEIGHT = 1200;
+/** Fixed height — covers all 3 charts (~900px) with small buffer */
+const CHART_HEIGHT = 950;
 
 export default function ChartWebView(props: Props) {
   const webViewRef = useRef<WebView>(null);
