@@ -14,7 +14,7 @@ import SubmitButton from '../components/SubmitButton';
 import { getWebAuthnBound, setWebAuthnBound, clearWebAuthn } from '../utils/storage';
 import {
   isBiometricAvailable, promptBiometric, saveCredential, getCredential,
-  hasStoredCredential, clearCredential,
+  hasStoredCredential, clearCredential, BiometryType,
 } from '../utils/biometric';
 
 const BG_IMAGE = require('../../assets/img/bg.jpg');
@@ -98,6 +98,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     } catch { return false; }
   });
   const [faceAvailable, setFaceAvailable] = useState(false);
+  const [biometryType, setBiometryType] = useState<BiometryType | null>(null);
   const [faceEnrolling, setFaceEnrolling] = useState(false);
   const breatheAnim = useRef(new Animated.Value(1)).current;
   const bgFadeAnim = useRef(new Animated.Value(0)).current;
@@ -171,6 +172,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       // 1. Check biometric hardware
       const a = await isBiometricAvailable();
       setFaceAvailable(a.available);
+      setBiometryType(a.biometryType ?? null);
       if (!a.available) return;
 
       // saved_login is read once up front and reused throughout bootstrap
@@ -504,7 +506,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         setLoading(false);
         return;
       }
-      const bio = await promptBiometric(t('faceIDPrompt') || '使用 Face ID 登录柳味探秘');
+      const loginPrompt = biometryType === 'fingerprint'
+        ? (t('fingerprintPrompt') || '使用 Touch ID 登录柳味探秘')
+        : (t('faceIDPrompt') || '使用 Face ID 登录柳味探秘');
+      const bio = await promptBiometric(loginPrompt);
       if (!bio.success) {
         // User cancelled or failed — silently drop back to password mode
         setFaceMode(false);
@@ -590,7 +595,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     if (faceEnrolling || !faceAvailable) return;
     setFaceEnrolling(true);
     try {
-      const bio = await promptBiometric(t('faceIDEnrollPrompt') || '启用 Face ID 登录');
+      const enrollPrompt = biometryType === 'fingerprint'
+        ? (t('fingerprintEnrollPrompt') || '启用 Touch ID 登录')
+        : (t('faceIDEnrollPrompt') || '启用 Face ID 登录');
+      const bio = await promptBiometric(enrollPrompt);
       if (!bio.success) { setFaceEnrolling(false); return; }
       const r = await saveCredential(username, password);
       if (r.ok) {
@@ -908,7 +916,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                       </TouchableOpacity>
                       {pwdHasFaceID && !!keychainUser ? (
                         <TouchableOpacity onPress={switchToFaceMode}>
-                          <Text style={{ fontSize: FONTS.sub.size, color: colors.primary }}>{t('faceIDLogin') || '面容登录'}</Text>
+                          <Text style={{ fontSize: FONTS.sub.size, color: colors.primary }}>{biometryType === 'fingerprint' ? (t('fingerprintLogin') || '指纹登录') : (t('faceIDLogin') || '面容登录')}</Text>
                         </TouchableOpacity>
                       ) : null}
                       <TouchableOpacity onPress={() => { setStep('forgot'); setEmail(''); setPassword(''); reset(); }}>

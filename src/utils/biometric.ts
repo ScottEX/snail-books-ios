@@ -7,6 +7,7 @@
  */
 
 import * as LocalAuthentication from 'expo-local-authentication';
+import { AuthenticationType } from 'expo-local-authentication';
 import * as Keychain from 'react-native-keychain';
 
 const SERVICE_PREFIX = 'snailbooks.biometric.v2';
@@ -18,6 +19,8 @@ export type BiometricCredential = {
   password: string;
 };
 
+export type BiometryType = 'face' | 'fingerprint';
+
 function resolveService(username?: string): string {
   const u = username || (() => { try { return localStorage.getItem('saved_login') || ''; } catch { return ''; } })();
   return u ? `${SERVICE_PREFIX}.${u}` : SERVICE_LEGACY;
@@ -26,6 +29,7 @@ function resolveService(username?: string): string {
 export async function isBiometricAvailable(): Promise<{
   available: boolean;
   reason?: string;
+  biometryType?: BiometryType;
 }> {
   try {
     const hasHardware = await LocalAuthentication.hasHardwareAsync();
@@ -42,7 +46,11 @@ export async function isBiometricAvailable(): Promise<{
     if (!supportedTypes || supportedTypes.length === 0) {
       return { available: false, reason: 'no-types' };
     }
-    return { available: true };
+    // Determine biometry type: fingerprint takes precedence over face
+    // (Touch ID devices can report both; Face ID devices only report face)
+    const type: BiometryType =
+      supportedTypes.includes(AuthenticationType.FINGERPRINT) ? 'fingerprint' : 'face';
+    return { available: true, biometryType: type };
   } catch {
     return { available: false, reason: 'error' };
   }

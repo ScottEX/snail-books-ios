@@ -68,6 +68,7 @@ const I18N: Record<string, Record<string, string>> = {
     confirmDelete: '确认删除？',
     confirmDeleteRecord: '确认删除',
     confirmDisable: '关闭面容',
+    confirmDisableFingerprint: '关闭指纹',
     confirmIssue: '确认发放并记账',
     confirmLogout: '确定退出',
     confirmNewPassword: '确认新密码',
@@ -108,6 +109,7 @@ const I18N: Record<string, Record<string, string>> = {
     deleteUserConfirm: '确认删除该用户，该用户的所有数据（交易记录、进货记录等）也将一并删除',
     deleteUserGraceNote: '账户将进入 5 天冷静期，期满后永久删除并转移经营数据至管理员。冷静期内您可随时恢复。',
     disableFaceIDConfirm: '关闭后需重新设置面容才能再次使用。确定关闭吗？',
+    disableFingerprintConfirm: '关闭后需重新设置指纹才能再次使用。确定关闭吗？',
     devCodeLabel: '🔧 开发模式 — 验证码',
     dineIn: '堂食',
     disabledStatus: '禁用',
@@ -175,6 +177,9 @@ const I18N: Record<string, Record<string, string>> = {
     faceIDDesc: '使用面容快速登录',
     faceIDLabel: '面容登录',
     faceIDLogin: '面容登录',
+    fingerprintDesc: '使用指纹快速登录',
+    fingerprintLabel: '指纹登录',
+    fingerprintLogin: '指纹登录',
     feeAllMonths: '全部',
     feeCurrent: '当前手续费',
     feeDetail: '更新手续费',
@@ -687,6 +692,7 @@ const I18N: Record<string, Record<string, string>> = {
     confirmDelete: '確認刪除？',
     confirmDeleteRecord: '確認刪除',
     confirmDisable: '關閉面容',
+    confirmDisableFingerprint: '關閉指紋',
     confirmIssue: '確認發放並記賬',
     confirmLogout: '確定登出',
     confirmNewPassword: '確認新密碼',
@@ -727,6 +733,7 @@ const I18N: Record<string, Record<string, string>> = {
     deleteUserConfirm: '確認刪除該用戶，該用戶的所有數據（交易記錄、進貨記錄等）也將一併刪除',
     deleteUserGraceNote: '帳戶將進入 5 天冷靜期，期滿後永久刪除並轉移經營數據至管理員。冷靜期內您可隨時恢復。',
     disableFaceIDConfirm: '關閉後需重新設定面容才能再次使用。確定關閉嗎？',
+    disableFingerprintConfirm: '關閉後需重新設定指紋才能再次使用。確定關閉嗎？',
     devCodeLabel: '🔧 開發模式 — 驗證碼',
     dineIn: '堂食',
     disabledStatus: '禁用',
@@ -794,6 +801,9 @@ const I18N: Record<string, Record<string, string>> = {
     faceIDDesc: '使用面容快速登入',
     faceIDLabel: '面容登入',
     faceIDLogin: '面容登入',
+    fingerprintDesc: '使用指紋快速登入',
+    fingerprintLabel: '指紋登入',
+    fingerprintLogin: '指紋登入',
     feeAllMonths: '全部',
     feeCurrent: '當期手續費',
     feeDetail: '更新手續費',
@@ -1356,6 +1366,7 @@ const I18N: Record<string, Record<string, string>> = {
     deleteUserConfirm: 'Are you sure you want to delete this user? All associated data (transactions, procurement records, etc.) will also be deleted.',
     deleteUserGraceNote: 'Account will enter a 5-day grace period before being permanently deleted. Business data will be transferred to admin. You can restore at any time during the grace period.',
     disableFaceIDConfirm: 'When disabled, you will need to re-enable Face ID to use it again. Are you sure?',
+    disableFingerprintConfirm: 'When disabled, you will need to re-enable Touch ID to use it again. Are you sure?',
     devCodeLabel: '🔧 Dev Mode — Verification Code',
     dineIn: 'Dine-in',
     disabledStatus: 'Disabled',
@@ -1423,6 +1434,9 @@ const I18N: Record<string, Record<string, string>> = {
     faceIDDesc: 'Sign in with Face ID',
     faceIDLabel: 'Face ID',
     faceIDLogin: 'Face ID',
+    fingerprintDesc: 'Sign in with Touch ID',
+    fingerprintLabel: 'Touch ID',
+    fingerprintLogin: 'Touch ID',
     feeAllMonths: 'All',
     feeCurrent: 'Current Fee',
     feeDetail: 'Update Fees',
@@ -1939,6 +1953,7 @@ export type I18nKey =
   | 'confirmDelete'
   | 'confirmDeleteRecord'
   | 'confirmDisable'
+  | 'confirmDisableFingerprint'
   | 'confirmIssue'
   | 'confirmLogout'
   | 'confirmNewPassword'
@@ -1979,6 +1994,7 @@ export type I18nKey =
   | 'deleteUserConfirm'
   | 'deleteUserGraceNote'
   | 'disableFaceIDConfirm'
+  | 'disableFingerprintConfirm'
   | 'devCodeLabel'
   | 'dineIn'
   | 'disabledStatus'
@@ -2047,6 +2063,9 @@ export type I18nKey =
   | 'faceIDDesc'
   | 'faceIDLabel'
   | 'faceIDLogin'
+  | 'fingerprintDesc'
+  | 'fingerprintLabel'
+  | 'fingerprintLogin'
   | 'feeAllMonths'
   | 'feeCurrent'
   | 'feeDetail'

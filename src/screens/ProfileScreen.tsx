@@ -30,7 +30,7 @@ import { getCurrentUser, getCurrentUserId } from '../utils/storage';
 import { pickImages, PickedImage } from '../utils/imagePicker';
 import { cacheBackground } from '../utils/backgroundCache';
 import { modalClose, MODAL_CARD_RADIUS, switchColors } from '../sharedStyles';
-import { isBiometricAvailable, saveCredential, promptBiometric, getCredential } from '../utils/biometric';
+import { isBiometricAvailable, saveCredential, promptBiometric, getCredential, BiometryType } from '../utils/biometric';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import ReAnimated, { useAnimatedStyle, useSharedValue, useAnimatedScrollHandler, interpolate, Extrapolation, withTiming, withSpring, cancelAnimation } from 'react-native-reanimated';
 
@@ -196,6 +196,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   // Face ID
   const [faceAvailable, setFaceAvailable] = useState(false);
   const [hasFaceID, setHasFaceID] = useState(false);
+  const [biometryType, setBiometryType] = useState<BiometryType | null>(null);
   const [faceIDLoading, setFaceIDLoading] = useState(false);
   const [showFaceIDSetup, setShowFaceIDSetup] = useState(false);
   const [faceIDPassword, setFaceIDPassword] = useState('');
@@ -385,8 +386,9 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   // Face ID — iOS Keychain only, independent from web WebAuthn.
   const loadFaceIDStatus = async () => {
     try {
-      const { available } = await isBiometricAvailable();
+      const { available, biometryType: type } = await isBiometricAvailable();
       setFaceAvailable(available);
+      setBiometryType(type ?? null);
       if (!available) return;
 
       // Keychain: iOS biometric credential (local-only).
@@ -448,7 +450,10 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         return;
       }
       // 2. Password confirmed — now prompt biometric.
-      const { success, error } = await promptBiometric(t('faceIDEnrollPrompt') || '启用面容登录');
+      const enrollPrompt = biometryType === 'fingerprint'
+        ? t('fingerprintEnrollPrompt') || '启用指纹登录'
+        : t('faceIDEnrollPrompt') || '启用面容登录';
+      const { success, error } = await promptBiometric(enrollPrompt);
       if (!success) {
         setFaceIDLoading(false);
         return;
@@ -964,7 +969,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                 <View style={[st.iconWrap, { backgroundColor: withAlpha(colors.primary, 0.12) }]}>
                   <FaceIDIcon color={colors.primary} />
                 </View>
-                <Text style={st.authLabel}>{t('faceIDLabel') || '面容登录'}</Text>
+                <Text style={st.authLabel}>{biometryType === 'fingerprint' ? (t('fingerprintLabel') || '指纹登录') : (t('faceIDLabel') || '面容登录')}</Text>
                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
                   <Switch
                     value={hasFaceID}
@@ -975,7 +980,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
                   />
                 </View>
               </View>
-              <Text style={st.authDesc}>{t('faceIDDesc') || '使用面容快速登录'}</Text>
+              <Text style={st.authDesc}>{biometryType === 'fingerprint' ? (t('fingerprintDesc') || '使用指纹快速登录') : (t('faceIDDesc') || '使用面容快速登录')}</Text>
             </View>
           )}
           {faceAvailable && <Divider colors={colors} />}
@@ -1097,6 +1102,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         onClose={() => setShowDisableFaceIDModal(false)}
         onDisabled={() => { setShowDisableFaceIDModal(false); setHasFaceID(false); }}
         username={username}
+        biometryType={biometryType}
       />
 
       {/* ══════ Admin block modal ══════ */}
@@ -1391,14 +1397,14 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         <ReAnimated.View style={modalPushStyleEmail}>
           <View style={mo.card}>
             <View style={mo.header}>
-              <Text style={mo.title}>{t('faceIDLabel') || '面容登录'}</Text>
+              <Text style={mo.title}>{biometryType === 'fingerprint' ? (t('fingerprintLabel') || '指纹登录') : (t('faceIDLabel') || '面容登录')}</Text>
               <TouchableOpacity onPress={() => { setShowFaceIDSetup(false); setFaceIDPassword(''); setFaceIDError(''); }}>
                 <Text style={mo.close}>✕</Text>
               </TouchableOpacity>
             </View>
             <View style={mo.body}>
               <Text style={{ color: colors.textMain, fontSize: FONTS.sub.size, lineHeight: 22, textAlign: 'center', marginBottom: 8 }}>
-                请输入密码以启用面容登录
+                {biometryType === 'fingerprint' ? '请输入密码以启用指纹登录' : '请输入密码以启用面容登录'}
               </Text>
               <AppTextInput
                 style={mo.input}
