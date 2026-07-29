@@ -14,7 +14,7 @@ import SubmitButton from '../components/SubmitButton';
 import { getWebAuthnBound, setWebAuthnBound, clearWebAuthn } from '../utils/storage';
 import {
   isBiometricAvailable, promptBiometric, saveCredential, getCredential,
-  hasStoredCredential, clearCredential,
+  hasStoredCredential, clearCredential, BiometryType,
 } from '../utils/biometric';
 
 const BG_IMAGE = require('../../assets/img/bg.jpg');
@@ -26,6 +26,23 @@ function FaceIDIcon({ color = 'rgba(255,255,255,0.85)' }: { color?: string }) {
   return (
     <Svg width={56} height={56} viewBox="0 0 1024 1024" fill="none">
       <Path d="M997.052632 839.787789v-108.94821a24.629895 24.629895 0 0 0-49.25979 0v108.94821a108.112842 108.112842 0 0 1-108.005053 108.005053h-108.94821a24.629895 24.629895 0 0 0 0 49.25979h108.94821A157.453474 157.453474 0 0 0 997.052632 839.787789m-679.262316 132.634948a24.629895 24.629895 0 0 0-24.629895-24.629895H184.212211a108.112842 108.112842 0 0 1-108.005053-108.005053v-108.94821a24.629895 24.629895 0 0 0-49.25979 0v108.94821A157.453474 157.453474 0 0 0 184.212211 997.052632h108.94821c13.608421 0 24.629895-11.048421 24.629895-24.629895M76.207158 293.160421V184.212211a108.112842 108.112842 0 0 1 108.005053-108.005053h108.94821a24.629895 24.629895 0 0 0 0-49.25979H184.212211A157.453474 157.453474 0 0 0 26.947368 184.212211v108.94821a24.629895 24.629895 0 0 0 49.25979 0m920.845474 0V184.212211A157.453474 157.453474 0 0 0 839.787789 26.947368h-108.94821a24.629895 24.629895 0 0 0 0 49.25979h108.94821a108.112842 108.112842 0 0 1 108.005053 108.005053v108.94821a24.629895 24.629895 0 0 0 49.25979 0M681.984 743.962947a25.6 25.6 0 0 0-34.708211-37.591579A198.790737 198.790737 0 0 1 512 759.269053a198.790737 198.790737 0 0 1-135.275789-52.897685 25.6 25.6 0 0 0-34.708211 37.591579A249.802105 249.802105 0 0 0 512 810.415158a249.802105 249.802105 0 0 0 169.984-66.452211m-118.837895-169.445052v-181.894737a25.6 25.6 0 1 0-51.146105 0v181.894737c0 7.841684-6.386526 14.228211-14.201263 14.22821h-20.857263a25.6 25.6 0 1 0 0 51.146106h20.857263a65.455158 65.455158 0 0 0 65.347368-65.374316m176.23579-110.349474v-72.946526a24.144842 24.144842 0 0 0-48.316632 0v72.946526a24.144842 24.144842 0 0 0 48.316632 0m-424.906106 24.144842a24.144842 24.144842 0 0 1-24.171789-24.144842v-72.946526a24.144842 24.144842 0 0 1 48.316632 0v72.946526a24.144842 24.144842 0 0 1-24.144843 24.144842" fill={color} />
+    </Svg>
+  );
+}
+
+
+function FingerprintIcon({ color = 'rgba(255,255,255,0.85)' }: { color?: string }) {
+  return (
+    <Svg width={56} height={56} viewBox="0 0 1024 1024">
+      <Path d="M82.42 239.4a20 20 0 0 1-20-20V143a71 71 0 0 1 70.88-70.91h76.43a20 20 0 0 1 0 40H133.3A30.91 30.91 0 0 0 102.42 143v76.4a20 20 0 0 1-20 20zM209.73 942H133.3a71 71 0 0 1-70.88-70.88v-76.5a20 20 0 0 1 40 0v76.5A30.91 30.91 0 0 0 133.3 902h76.43a20 20 0 1 1 0 40zM927 239.4a20 20 0 0 1-20-20V143a30.91 30.91 0 0 0-30.87-30.88h-76.49a20 20 0 0 1 0-40h76.44A71 71 0 0 1 947 143v76.4a20 20 0 0 1-20 20zM876.08 942h-76.44a20 20 0 1 1 0-40h76.44A30.91 30.91 0 0 0 907 871.16v-76.5a20 20 0 0 1 40 0v76.5A71 71 0 0 1 876.08 942z" fill={color} />
+      <Path d="M332.64 327.27a20 20 0 0 1-13.78-34.5 310.75 310.75 0 0 1 175.81-83.07 20 20 0 0 1 4.92 39.7 272.56 272.56 0 0 0-153.19 72.37 19.88 19.88 0 0 1-13.76 5.5zM744.23 376.26a20 20 0 0 1-17.83-10.91A212.61 212.61 0 0 0 544 249.54a20 20 0 0 1 1.3-40A252.63 252.63 0 0 1 762 347.16a20 20 0 0 1-17.8 29.1zM309.9 506.91h-0.91a20 20 0 0 1-19.09-20.82c0.21-4.82 6-118.67 89.8-173.67a20 20 0 1 1 21.95 33.44c-66.45 43.63-71.74 141-71.79 142a20 20 0 0 1-19.96 19.05z" fill={color} />
+      <Path d="M639.25 340.18a19.94 19.94 0 0 1-12.18-4.18 167.82 167.82 0 0 0-187.52-11.5 20 20 0 1 1-20.31-34.5 207.84 207.84 0 0 1 232.21 14.29 20 20 0 0 1-12.2 35.85zM707.45 699.85a20 20 0 0 1-19.21-25.63c20.23-69 38.91-167 13-242.07-14.94-43.37-37.55-58.27-38.5-58.88l0.24 0.15 20.62-34.28c5 3 121.94 77 43 346.33a20 20 0 0 1-19.15 14.38zM289.52 624.55l-0.22-40a6.14 6.14 0 0 0-0.64 0c0.41 0 10.09-0.88 21.73-12.17 11.92-11.56 27.79-36.09 35.69-87.35 19.73-128 97.84-147.91 101.16-148.69l9.22 38.92 0.3-0.07c-0.56 0.15-13.89 3.9-29.28 19.53-21 21.3-35.43 54.63-41.87 96.4-8.17 53-25.53 91.3-51.61 113.86-21.38 18.52-40.8 19.55-44.48 19.57z" fill={color} />
+      <Path d="M673.78 599a20 20 0 0 1-19.38-25 200.94 200.94 0 0 0-16.62-143.66l-0.27-0.54c-14.89-30.62-42.3-51.82-81.47-63A205.16 205.16 0 0 0 498 359a20 20 0 0 1-1.85-39.95c1.31-0.07 32.6-1.41 69.55 8.9C616.14 342 653.34 371.09 673.35 412a240.86 240.86 0 0 1 19.78 172 20 20 0 0 1-19.35 15zM289.39 684a20 20 0 0 1-3.91-39.61c13.71-2.78 52.2-14.64 65.51-35.84a20 20 0 0 1 33.88 21.26c-10.93 17.42-29.91 31.81-56.41 42.77a206.77 206.77 0 0 1-35.15 11 20.19 20.19 0 0 1-3.92 0.42z" fill={color} />
+      <Path d="M390.68 609.8a20 20 0 0 1-17.61-29.45 143.76 143.76 0 0 0 17-67.85v-0.61c0.86-28.55 10.25-58.95 25.76-83.4 18-28.32 43.08-47.11 70.75-52.92l0.53-0.11A137.68 137.68 0 0 1 641.57 465a20 20 0 1 1-37.71 13.34 97.69 97.69 0 0 0-109.3-63.57c-16.92 3.64-32.86 16.11-44.93 35.14a128.75 128.75 0 0 0-19.55 62.9 184 184 0 0 1-21.75 86.44 20 20 0 0 1-17.65 10.55z" fill={color} />
+      <Path d="M309.86 738.3a20 20 0 0 1-4-39.59c1.05-0.22 86.46-18.91 116.8-90.15 22.3-52.35 22.46-60.87 22.72-75a205.8 205.8 0 0 1 3.28-35.09c5.8-33.72 29.82-60.69 59.77-67.1 13.56-2.91 48.11-5.22 75.86 36l1.55 2.3 0.86 2.64c11.4 34.83 9 48.14 0.82 92.26l-0.16 0.85a613.9 613.9 0 0 1-18.74 76.09 20 20 0 1 1-38.15-12 574 574 0 0 0 17.53-71.2l0.17-0.95c7.45-40.43 8.66-47 1.4-69.8-9.77-13.46-21.34-19.51-32.78-17.06-13.9 3-25.71 17.27-28.72 34.77a165.91 165.91 0 0 0-2.7 29.06c-0.38 20-1.7 33-25.91 89.9C420.72 715.15 318.23 737 313.88 737.89a19.73 19.73 0 0 1-4.02 0.41z" fill={color} />
+      <Path d="M309.87 798.48a20 20 0 0 1-5.26-39.3c1.23-0.34 124.27-34.91 155.92-111.27 44.22-106.69 40.11-133.86 39.7-135.85A20 20 0 0 1 537 496.24c7.11 16 2.23 41.35-2.81 61.62-7 28-19.3 63.45-36.68 105.37C458.3 757.76 321 796.18 315.15 797.77a20.09 20.09 0 0 1-5.28 0.71z m190.53-286z m-0.19-0.51z" fill={color} />
+      <Path d="M429.41 804.6A20 20 0 0 1 418 768.17c20.66-14.35 77.87-59.68 94.36-96.54A20 20 0 0 1 548.87 688c-24.43 54.58-104.67 110.67-108.08 113a19.9 19.9 0 0 1-11.38 3.6z" fill={color} />
+      <Path d="M506.65 804.6a20 20 0 0 1-13.6-34.66 382.09 382.09 0 0 0 93-133l0.22-0.51A235.86 235.86 0 0 0 606.38 519a20 20 0 0 1 39.85-3.46 275.86 275.86 0 0 1-23.4 137.19 421.68 421.68 0 0 1-102.58 146.53 19.89 19.89 0 0 1-13.6 5.34zM604.14 777.62a20 20 0 0 1-17.14-30.3c23.75-39.55 58.53-102.48 61.5-118.54a20 20 0 0 1 39.34 7.27c-1.59 8.57-7.05 26.06-36 78.69-15.39 28-29.91 52.16-30.52 53.17a20 20 0 0 1-17.18 9.71z" fill={color} />
     </Svg>
   );
 }
@@ -98,6 +115,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     } catch { return false; }
   });
   const [faceAvailable, setFaceAvailable] = useState(false);
+  const [biometryType, setBiometryType] = useState<BiometryType | null>(null);
   const [faceEnrolling, setFaceEnrolling] = useState(false);
   const breatheAnim = useRef(new Animated.Value(1)).current;
   const bgFadeAnim = useRef(new Animated.Value(0)).current;
@@ -171,6 +189,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       // 1. Check biometric hardware
       const a = await isBiometricAvailable();
       setFaceAvailable(a.available);
+      setBiometryType(a.biometryType ?? null);
       if (!a.available) return;
 
       // saved_login is read once up front and reused throughout bootstrap
@@ -504,7 +523,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         setLoading(false);
         return;
       }
-      const bio = await promptBiometric(t('faceIDPrompt') || '使用 Face ID 登录柳味探秘');
+      const loginPrompt = biometryType === 'fingerprint'
+        ? (t('fingerprintPrompt') || '使用 Touch ID 登录柳味探秘')
+        : (t('faceIDPrompt') || '使用 Face ID 登录柳味探秘');
+      const bio = await promptBiometric(loginPrompt);
       if (!bio.success) {
         // User cancelled or failed — silently drop back to password mode
         setFaceMode(false);
@@ -590,7 +612,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     if (faceEnrolling || !faceAvailable) return;
     setFaceEnrolling(true);
     try {
-      const bio = await promptBiometric(t('faceIDEnrollPrompt') || '启用 Face ID 登录');
+      const enrollPrompt = biometryType === 'fingerprint'
+        ? (t('fingerprintEnrollPrompt') || '启用 Touch ID 登录')
+        : (t('faceIDEnrollPrompt') || '启用 Face ID 登录');
+      const bio = await promptBiometric(enrollPrompt);
       if (!bio.success) { setFaceEnrolling(false); return; }
       const r = await saveCredential(username, password);
       if (r.ok) {
@@ -846,7 +871,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                         onPress={handleFaceIDLogin}
                         disabled={loading}
                       >
-                        <FaceIDIcon color="rgba(255,255,255,0.85)" />
+                        {biometryType === 'fingerprint' ? <FingerprintIcon color="rgba(255,255,255,0.85)" /> : <FaceIDIcon color="rgba(255,255,255,0.85)" />}
                       </TouchableOpacity>
                     </Animated.View>
                     <Text style={{ fontSize: FONTS.h2.size, fontWeight: '500', color: 'rgba(255,255,255,0.8)', marginBottom: 16 }}>{username}</Text>
@@ -908,7 +933,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                       </TouchableOpacity>
                       {pwdHasFaceID && !!keychainUser ? (
                         <TouchableOpacity onPress={switchToFaceMode}>
-                          <Text style={{ fontSize: FONTS.sub.size, color: colors.primary }}>{t('faceIDLogin') || '面容登录'}</Text>
+                          <Text style={{ fontSize: FONTS.sub.size, color: colors.primary }}>{biometryType === 'fingerprint' ? (t('fingerprintLogin') || '指纹登录') : (t('faceIDLogin') || '面容登录')}</Text>
                         </TouchableOpacity>
                       ) : null}
                       <TouchableOpacity onPress={() => { setStep('forgot'); setEmail(''); setPassword(''); reset(); }}>

@@ -4,7 +4,7 @@ import { useTheme, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 import { MODAL_CARD_RADIUS } from '../sharedStyles';
 import { t } from '../i18n';
-import { clearCredential } from '../utils/biometric';
+import { clearCredential, BiometryType } from '../utils/biometric';
 import ModalOverlay from './ModalOverlay';
 import CloseButton from './CloseButton';
 import LoadingSpinner from './LoadingSpinner';
@@ -14,12 +14,18 @@ interface DisableFaceIDModalProps {
   onClose: () => void;
   onDisabled: () => void;
   username: string;
+  biometryType?: BiometryType | null;
 }
 
-export default function DisableFaceIDModal({ visible, onClose, onDisabled, username }: DisableFaceIDModalProps) {
+export default function DisableFaceIDModal({ visible, onClose, onDisabled, username, biometryType }: DisableFaceIDModalProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
   const [loading, setLoading] = useState(false);
+
+  const isFingerprint = biometryType === 'fingerprint';
+  const labelKey = isFingerprint ? 'fingerprintLabel' : 'faceIDLabel';
+  const confirmKey = isFingerprint ? 'disableFingerprintConfirm' : 'disableFaceIDConfirm';
+  const disableBtnKey = isFingerprint ? 'confirmDisableFingerprint' : 'confirmDisable';
 
   const handleDisable = async () => {
     setLoading(true);
@@ -35,12 +41,12 @@ export default function DisableFaceIDModal({ visible, onClose, onDisabled, usern
     <ModalOverlay visible={visible} onClose={onClose} animation="blurMorph">
       <View style={styles.card}>
         <View style={styles.header}>
-          <Text style={styles.title}>{t('faceIDLabel')}</Text>
+          <Text style={styles.title}>{t(labelKey)}</Text>
           <CloseButton onPress={onClose} />
         </View>
         <View style={styles.body}>
           <Text style={styles.confirmText}>
-            {t('disableFaceIDConfirm')}
+            {t(confirmKey)}
           </Text>
           <View style={styles.btnRow}>
             <TouchableOpacity style={[styles.cancelBtn, loading && { opacity: 0.5 }]} onPress={onClose} disabled={loading}>
@@ -50,7 +56,7 @@ export default function DisableFaceIDModal({ visible, onClose, onDisabled, usern
               {loading ? (
                 <LoadingSpinner label={false} size={20} color={colors.surface} />
               ) : (
-                <Text style={styles.confirmBtnText}>{t('confirmDisable')}</Text>
+                <Text style={styles.confirmBtnText}>{t(disableBtnKey)}</Text>
               )}
             </TouchableOpacity>
           </View>
