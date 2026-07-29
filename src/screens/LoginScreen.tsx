@@ -30,6 +30,31 @@ function FaceIDIcon({ color = 'rgba(255,255,255,0.85)' }: { color?: string }) {
   );
 }
 
+
+function FingerprintIcon({ color = 'rgba(255,255,255,0.85)' }: { color?: string }) {
+  return (
+    <Svg width={56} height={56} viewBox="0 0 1024 1024" fill="none">
+      {/* 外框 — 和 FaceID 一样的圆角方形 */}
+      <Path d="M973 818a131 131 0 0 1-131 131H182a131 131 0 0 1-131-131V206a131 131 0 0 1 131-131h660a131 131 0 0 1 131 131z"
+        stroke={color} strokeWidth="42" fill="none" strokeLinejoin="round" />
+      {/* 指纹纹路 — 5 层同心弧 */}
+      <Path d="M208 530C208 340 356 198 512 198s304 142 304 332"
+        stroke={color} strokeWidth="18" fill="none" strokeLinecap="round" />
+      <Path d="M250 530C250 370 375 250 512 250s262 120 262 280"
+        stroke={color} strokeWidth="16" fill="none" strokeLinecap="round" />
+      <Path d="M295 530C295 402 402 310 512 310s217 92 217 220"
+        stroke={color} strokeWidth="14" fill="none" strokeLinecap="round" />
+      <Path d="M342 530C342 436 428 372 512 372s170 64 170 158"
+        stroke={color} strokeWidth="13" fill="none" strokeLinecap="round" />
+      <Path d="M390 530C390 470 455 435 512 435s122 35 122 95"
+        stroke={color} strokeWidth="12" fill="none" strokeLinecap="round" />
+      {/* 中心椭圆 */}
+      <Path d="M468 525a44 64 0 1 0 88 0a44 64 0 1 0-88 0z"
+        stroke={color} strokeWidth="12" fill="none" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SPECIAL_RE = /[!@#$%^&*(),.?":{}|<>]/;
 
@@ -854,7 +879,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                         onPress={handleFaceIDLogin}
                         disabled={loading}
                       >
-                        <FaceIDIcon color="rgba(255,255,255,0.85)" />
+                        {biometryType === 'fingerprint' ? <FingerprintIcon color="rgba(255,255,255,0.85)" /> : <FaceIDIcon color="rgba(255,255,255,0.85)" />}
                       </TouchableOpacity>
                     </Animated.View>
                     <Text style={{ fontSize: FONTS.h2.size, fontWeight: '500', color: 'rgba(255,255,255,0.8)', marginBottom: 16 }}>{username}</Text>

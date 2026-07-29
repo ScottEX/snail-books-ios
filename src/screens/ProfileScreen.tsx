@@ -160,6 +160,22 @@ function FaceIDIcon({ color }: { color: string }) {
   );
 }
 
+
+function FingerprintIcon({ color }: { color: string }) {
+  return (
+    <Svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M4 8V6a2 2 0 012-2h2" />
+      <Path d="M16 4h2a2 2 0 012 2v2" />
+      <Path d="M4 16v2a2 2 0 002 2h2" />
+      <Path d="M16 20h2a2 2 0 002-2v-2" />
+      <Path d="M6.5 12c0-3.5 2.2-6 5.5-6s5.5 2.5 5.5 6" />
+      <Path d="M8 12c0-2.5 1.6-4.5 4-4.5s4 2 4 4.5" />
+      <Path d="M10 12c0-1.5 1-2.8 2-2.8s2 1.3 2 2.8" />
+      <Path d="M11 12a1 1.5 0 1 0 2 0a1 1.5 0 1 0-2 0z" />
+    </Svg>
+  );
+}
+
 /* ════════════ MAIN ════════════ */
 
 export default function ProfileScreen({ onBack, onLogout, onLangChange, onManageUsers, onAvatarChange, refreshKey }: Props) {
@@ -967,7 +983,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
             <View style={st.authRow}>
               <View style={st.authHeaderRow}>
                 <View style={[st.iconWrap, { backgroundColor: withAlpha(colors.primary, 0.12) }]}>
-                  <FaceIDIcon color={colors.primary} />
+                  {biometryType === 'fingerprint' ? <FingerprintIcon color={colors.primary} /> : <FaceIDIcon color={colors.primary} />}
                 </View>
                 <Text style={st.authLabel}>{biometryType === 'fingerprint' ? (t('fingerprintLabel') || '指纹登录') : (t('faceIDLabel') || '面容登录')}</Text>
                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
