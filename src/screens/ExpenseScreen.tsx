@@ -165,7 +165,7 @@ export default function ExpenseScreen({
     setReconForm(f => ({ ...f, ...vals }));
   const { cardBalance, cashBalance, dineIn, meituan, flashSale, tuan, jd } = reconForm;
 
-  const initReconValues = useRef({ card: '', cash: '', dine: '', mt: '', fs: '', jd: '', tuan: '' });
+  const [initReconValues, setInitReconValues] = useState({ card: '', cash: '', dine: '', mt: '', fs: '', jd: '', tuan: '' });
   const reconLoadId = useRef(0);  // guard against stale async responses
 
   // Load reconciliation data from backend
@@ -182,7 +182,7 @@ export default function ExpenseScreen({
         if (!data || data.length === 0) {
           _reconReady.current = true; // set before batch so diff gate opens with correct values
           setReconBatch({ cardBalance: '', cashBalance: '', dineIn: '', meituan: '', flashSale: '', tuan: '', jd: '' });
-          initReconValues.current = { card: '', cash: '', dine: '', mt: '', fs: '', jd: '', tuan: '' };
+          setInitReconValues({ card: '', cash: '', dine: '', mt: '', fs: '', jd: '', tuan: '' });
           return;
         }
         const last = data[0]; // most recent record
@@ -198,11 +198,11 @@ export default function ExpenseScreen({
             tuan: toDec2(match.tuan),
             jd: toDec2(match.jd),
           });
-          initReconValues.current = {
+          setInitReconValues({
             card: toDec2(match.card_balance), cash: toDec2(match.cash_balance),
             dine: toDec2(match.dine_in), mt: toDec2(match.meituan),
             fs: toDec2(match.flash_sale), jd: toDec2(match.jd), tuan: toDec2(match.tuan),
-          };
+          });
         } else if (recDate.value >= (last.bill_date || '')) {
           _reconReady.current = true; // set before batch so diff gate opens with correct values
           setReconBatch({
@@ -214,14 +214,14 @@ export default function ExpenseScreen({
             tuan: toDec2(last.tuan),
             jd: toDec2(last.jd),
           });
-          initReconValues.current = {
+          setInitReconValues({
             card: toDec2(last.card_balance), cash: toDec2(last.cash_balance),
             dine: toDec2(last.dine_in), mt: toDec2(last.meituan),
             fs: toDec2(last.flash_sale), jd: toDec2(last.jd), tuan: toDec2(last.tuan),
-          };
+          });
         } else {
           setReconBatch({ cardBalance: '', cashBalance: '', dineIn: '', meituan: '', flashSale: '', tuan: '', jd: '' });
-          initReconValues.current = { card: '', cash: '', dine: '', mt: '', fs: '', jd: '', tuan: '' };
+          setInitReconValues({ card: '', cash: '', dine: '', mt: '', fs: '', jd: '', tuan: '' });
         }
       } catch { showToast(t('toastLoadFailed')); }
     })();
@@ -291,13 +291,13 @@ export default function ExpenseScreen({
   const diff = (_reconReady.current && _summaryReady.current) ? (realTotalCents - cashOnHandCents) / 100 : 0;
 
   const hasReconChanges =
-    toNum(cardBalance) !== toNum(initReconValues.current.card) ||
-    toNum(cashBalance) !== toNum(initReconValues.current.cash) ||
-    toNum(dineIn) !== toNum(initReconValues.current.dine) ||
-    toNum(meituan) !== toNum(initReconValues.current.mt) ||
-    toNum(flashSale) !== toNum(initReconValues.current.fs) ||
-    toNum(jd) !== toNum(initReconValues.current.jd) ||
-    toNum(tuan) !== toNum(initReconValues.current.tuan);
+    toNum(cardBalance) !== toNum(initReconValues.card) ||
+    toNum(cashBalance) !== toNum(initReconValues.cash) ||
+    toNum(dineIn) !== toNum(initReconValues.dine) ||
+    toNum(meituan) !== toNum(initReconValues.mt) ||
+    toNum(flashSale) !== toNum(initReconValues.fs) ||
+    toNum(jd) !== toNum(initReconValues.jd) ||
+    toNum(tuan) !== toNum(initReconValues.tuan);
 
   /* ── 模块二：平台手续费 ── */
   const thisYear = sd.year || new Date().getFullYear();
