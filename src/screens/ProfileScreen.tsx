@@ -8,7 +8,7 @@ import Svg, { Path, Defs, LinearGradient as SVGGradient, Stop, Rect } from 'reac
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { t, getLang, langs, useLang } from '../i18n';
-import { api, resolveAssetUrl } from '../api/client';
+import { api, resolveAssetUrl, setIdleTimeoutHours } from '../api/client';
 import * as FileSystem from 'expo-file-system';
 import { useTheme, withAlpha, ThemeColors, DEFAULT_THEME_ID } from '../theme';
 import { FONTS } from '../theme';
@@ -545,6 +545,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
   const pickTimeout = (h: number) => {
     setSessionTimeoutHours(h);
+    setIdleTimeoutHours(h);
     persistAuthPrefs({ session_timeout_hours: h });
   };
 
