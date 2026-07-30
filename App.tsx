@@ -55,6 +55,19 @@ export default function App() {
     });
   }, []);
 
+  // Cold start with cached session — re-apply server's session_timeout_hours
+  // to the local idle timer. goHome() only runs on explicit login, so without
+  // this, the idle timer stays at default 2h on every cold start regardless
+  // of the user's profile setting.
+  useEffect(() => {
+    if (!ready || page !== 'home') return;
+    api.getAuthPrefs().then((data: any) => {
+      if (data?.session_timeout_hours && data.session_timeout_hours > 0) {
+        setIdleTimeoutHours(data.session_timeout_hours);
+      }
+    }).catch(() => {});
+  }, [ready, page]);
+
   useEffect(() => {
     const handleTimeout = () => {
       // Idle timeout — silent redirect to login, same as web
