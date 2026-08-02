@@ -20,7 +20,6 @@ import { useImagePreview } from '../hooks/useImagePreview';
 import { useNavigation } from '@react-navigation/native';
 import { formatDate } from '../utils/format';
 import TrashIcon from '../components/icons/TrashIcon';
-import { getCurrentUser } from '../utils/storage';
 import { parseImages } from '../utils/parseImages';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -48,6 +47,7 @@ interface BatchRecord {
   settled_at?: string | null;
   settled_by?: number | null;
   settled_by_username?: string | null;
+  created_by_username?: string | null;
 }
 
 function ViewIcon({ color }: { color: string }) {
@@ -257,7 +257,7 @@ export default function ProcurementDetailScreen({ batch, onBack, onEdit, onPrevi
           </View>
           <View style={[styles.infoRow, !cur.note && { borderBottomWidth: 0 }]}>
             <Text style={styles.infoLabel}>{t('procOperator')}</Text>
-            <Text style={styles.infoValue}>{getCurrentUser() || '—'}</Text>
+            <Text style={styles.infoValue}>{cur.created_by_username || '—'}</Text>
           </View>
           {cur.note ? (
             <View style={[styles.infoRow, { borderBottomWidth: 0, alignItems: 'flex-start' as const, paddingTop: 12 }]}>
