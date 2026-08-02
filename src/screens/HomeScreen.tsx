@@ -25,7 +25,7 @@ import LogoutConfirmModal from '../components/LogoutConfirmModal';
 import BgCropModal from '../components/BgCropModal';
 import { cacheBackground, getCachedLocalPath, getOrDownloadBackground, clearBackgroundCache } from '../utils/backgroundCache';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { onAvatarChanged } from '../navigation/RootStack';
+import { onAvatarChanged } from '../events/avatarEvents';
 import PartnerScreen from './PartnerScreen';
 import ProcurementScreen from './ProcurementScreen';
 import ExpenseScreen from './ExpenseScreen';
