@@ -33,13 +33,8 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 // ── Session context: onLogout lives in App.tsx, stack screens consume it ──
 export const SessionContext = createContext<{ onLogout: () => void }>({ onLogout: () => {} });
 
-// ── Avatar-changed event: ProfileScreen uploads → HomeScreen header reloads ──
-const avatarListeners = new Set<() => void>();
-export const onAvatarChanged = (fn: () => void) => {
-  avatarListeners.add(fn);
-  return () => { avatarListeners.delete(fn); };
-};
-export const emitAvatarChanged = () => { avatarListeners.forEach(f => f()); };
+import { onAvatarChanged, emitAvatarChanged } from '../events/avatarEvents';
+export { onAvatarChanged, emitAvatarChanged };
 
 // ── Focus-refresh: key increments on each RE-focus (skip first mount) ──
 function useFocusRefreshKey() {
