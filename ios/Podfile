@@ -52,6 +52,13 @@ target 'app' do
       :ccache_enabled => podfile_properties['apple.ccacheEnabled'] == 'true',
     )
 
+    # Force all pods to the app's minimum iOS deployment target (Xcode 27 requires >= 15.0)
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
+      end
+    end
+
     # Patch fmt 11 consteval for Apple Clang >= 21 (Xcode 26+)
     fmt_base = File.join(installer.sandbox.root, 'fmt', 'include', 'fmt', 'base.h')
     if File.exist?(fmt_base)
