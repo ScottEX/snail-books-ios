@@ -30,7 +30,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       }
     },
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "extra": {
       "eas": {
         "projectId": "snail-books"
