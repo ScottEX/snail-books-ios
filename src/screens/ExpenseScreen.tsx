@@ -424,10 +424,12 @@ export default function ExpenseScreen({
   const [expenseAiText, setExpenseAiText] = useState('');
   const [expenseAiBusy, setExpenseAiBusy] = useState(false);
   const [expenseAiError, setExpenseAiError] = useState('');
+  const showExpenseAiButton = activeTab === 1 && !isRefund;
   const expenseAiRequest = useRef<AbortController | null>(null);
   useEffect(() => () => expenseAiRequest.current?.abort(), []);
 
   const closeExpenseAi = () => {
+    Keyboard.dismiss();
     expenseAiRequest.current?.abort();
     expenseAiRequest.current = null;
     setExpenseAiBusy(false);
@@ -656,7 +658,7 @@ export default function ExpenseScreen({
 
       {/* ══════ 内容区（FadeIn 切换） ══════ */}
       <ScrollView style={st.contentScroll} showsVerticalScrollIndicator={false}
-        contentContainerStyle={st.contentInner}>
+        contentContainerStyle={[st.contentInner, showExpenseAiButton && st.contentWithAiButton]}>
 
         {/* ── 模块一：每日对账 ── */}
         {activeTab === 0 && (
@@ -842,18 +844,6 @@ export default function ExpenseScreen({
           <View style={st.card}>
             {/* 录入台 */}
             <View style={st.expForm}>
-              {!isRefund && (
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  disabled={loadingExp}
-                  onPress={() => setShowExpenseAi(true)}
-                  style={{ alignSelf: 'flex-start', paddingVertical: 8 }}
-                >
-                  <Text style={{ color: colors.primary, fontSize: FONTS.subBold.size }}>
-                    {t('expenseAiTitle')}
-                  </Text>
-                </TouchableOpacity>
-              )}
               {/* 大金额输入 */}
               <View style={st.bigAmtWrap}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2, gap: 6 }}>
@@ -950,13 +940,31 @@ export default function ExpenseScreen({
         )}
       </ScrollView>
 
-      <ModalOverlay visible={showExpenseAi} onClose={closeExpenseAi} animation="springScale">
-        <View style={st.modalCard} onStartShouldSetResponder={() => true}>
+      {showExpenseAiButton && (
+        <TouchableOpacity
+          accessibilityRole="button"
+          disabled={loadingExp}
+          onPress={() => setShowExpenseAi(true)}
+          style={[st.expenseAiButton, loadingExp && { opacity: 0.5 }]}
+        >
+          <Svg width={18} height={18} viewBox="0 0 24 24" fill={colors.surface}>
+            <Path d="M12 1.5 14.6 9.4 22.5 12l-7.9 2.6L12 22.5l-2.6-7.9L1.5 12l7.9-2.6L12 1.5Z" />
+          </Svg>
+          <Text style={st.expenseAiButtonText}>{t('expenseAiTitle')}</Text>
+        </TouchableOpacity>
+      )}
+
+      <ModalOverlay visible={showExpenseAi} onClose={closeExpenseAi} animation="springScale" avoidKeyboard>
+        <View style={[st.modalCard, st.expenseAiCard]}>
           <View style={st.modalHeader}>
             <Text style={st.modalTitle}>{t('expenseAiTitle')}</Text>
             <CloseButton onPress={closeExpenseAi} />
           </View>
-          <View style={{ padding: 20, gap: 12 }}>
+          <ScrollView
+            style={st.expenseAiBody}
+            contentContainerStyle={st.expenseAiBodyContent}
+            keyboardShouldPersistTaps="handled"
+          >
             <Text style={{ color: colors.textSub }}>{t('expenseAiPrivacy')}</Text>
             <AppTextInput
               accessibilityLabel={t('expenseAiTitle')}
@@ -970,6 +978,8 @@ export default function ExpenseScreen({
               style={{ color: colors.textMain, minHeight: 80, padding: 12, borderWidth: 1, borderRadius: 8, borderColor: withAlpha(colors.textSub, 0.35) }}
             />
             {!!expenseAiError && <Text accessibilityLiveRegion="polite" style={{ color: colors.danger }}>{expenseAiError}</Text>}
+          </ScrollView>
+          <View style={st.expenseAiActions}>
             <ButtonPair
               leftLabel={t('cancel')}
               leftOnPress={closeExpenseAi}
@@ -1328,6 +1338,20 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   contentInner: {
     paddingHorizontal: 18, paddingBottom: 100, gap: 0, backgroundColor: 'transparent' as const,
   },
+  contentWithAiButton: { paddingBottom: 150 },
+  expenseAiButton: {
+    position: 'absolute', right: 18, bottom: 94, zIndex: 1,
+    minHeight: 44, paddingHorizontal: 16, borderRadius: 24,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.28, shadowRadius: 8, elevation: 4,
+  },
+  expenseAiButtonText: { color: colors.surface, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight },
+  expenseAiCard: { flexShrink: 1 },
+  expenseAiBody: { flexGrow: 0, flexShrink: 1 },
+  expenseAiBodyContent: { padding: 20, paddingBottom: 12, gap: 12 },
+  expenseAiActions: { paddingHorizontal: 20, paddingBottom: 20 },
   moduleWrap: {
     width: '100%',
   },
