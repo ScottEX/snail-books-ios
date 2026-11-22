@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, Dimensions,
-  StatusBar, TouchableOpacity, Modal,
+  View, Text, StyleSheet,
+  StatusBar, TouchableOpacity, Modal, type LayoutChangeEvent,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Image } from 'expo-image';
@@ -16,13 +16,11 @@ import {
   GestureDetector, Gesture,
 } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-const { width: W, height: H } = Dimensions.get('window');
+import { measureWindowRect, relativeWindowRect, type WindowRect } from '../utils/windowLayout';
 
 const MAX_SCALE = 4;
 const OVERSCALE_DAMPING = 0.3;
 const SWIPE_VELOCITY = 400;
-const SWIPE_THRESHOLD = W * 0.3;
 
 const SPRING_CFG = { damping: 32, stiffness: 280, mass: 0.8 };
 // 进出场容器 spring（文档参数）
@@ -30,35 +28,26 @@ const ENTER_CFG = { damping: 30, stiffness: 260, mass: 0.9 };
 const EXIT_CFG = { damping: 32, stiffness: 280, mass: 0.85 };
 
 /** 缩略图在屏幕上的位置/尺寸 */
-export interface ThumbLayout {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+export type ThumbLayout = WindowRect;
 
 /** 关闭时按当前页解析对应缩略图坐标；量不到回调 null */
 export type ThumbLayoutResolver = (index: number, cb: (layout: ThumbLayout | null) => void) => void;
 
 /** 测量某个 View 的屏幕坐标，用于共享元素进出场 */
-export function measureThumbLayout(ref: any, cb: (layout: ThumbLayout) => void) {
-  if (!ref || typeof ref.measureInWindow !== 'function') return;
-  ref.measureInWindow((x: number, y: number, width: number, height: number) => {
-    if (width > 0 && height > 0) cb({ x, y, width, height });
-  });
+export function measureThumbLayout(ref: View | null, cb: (layout?: ThumbLayout) => void) {
+  measureWindowRect(ref, (layout) => cb(layout ?? undefined));
 }
 
-/** 关闭时解析缩略图坐标：ref 失效或已滚出屏幕 → null */
-export function resolveThumbLayout(ref: any, cb: (layout: ThumbLayout | null) => void) {
-  if (!ref || typeof ref.measureInWindow !== 'function') { cb(null); return; }
-  try {
-    ref.measureInWindow((x: number, y: number, width: number, height: number) => {
-      const onScreen = width > 0 && height > 0 && y + height > 0 && y < H;
-      cb(onScreen ? { x, y, width, height } : null);
-    });
-  } catch {
-    cb(null);
-  }
+export function resolveThumbLayout(ref: View | null, cb: (layout: ThumbLayout | null) => void) {
+  measureWindowRect(ref, cb);
+}
+
+function visibleThumbLayout(layout: ThumbLayout | null, viewport: WindowRect) {
+  if (!layout) return null;
+  const rect = relativeWindowRect(layout, viewport);
+  const visible = rect.x + rect.width > 0 && rect.x < viewport.width &&
+    rect.y + rect.height > 0 && rect.y < viewport.height;
+  return visible ? rect : null;
 }
 
 interface Props {
@@ -75,9 +64,12 @@ interface Props {
 export default function ImagePreview({ images, initialIdx = 0, visible, onClose, thumbLayout, getThumbLayout }: Props) {
   const [internalVisible, setInternalVisible] = useState(false);
   const [openCount, setOpenCount] = useState(0);
+  const viewportRef = useRef<View>(null);
+  const [viewport, setViewport] = useState<WindowRect | null>(null);
 
   useEffect(() => {
     if (visible) {
+      setViewport(null);
       setOpenCount(c => c + 1);
       setInternalVisible(true);
     }
@@ -91,6 +83,11 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose,
     onClose();
   }, [onClose]);
 
+  const measureViewport = ({ nativeEvent: { layout: { width, height } } }: LayoutChangeEvent) => {
+    if (width <= 0 || height <= 0) return;
+    measureWindowRect(viewportRef.current, (rect) => setViewport({ x: rect?.x ?? 0, y: rect?.y ?? 0, width, height }));
+  };
+
   return (
     <Modal
       visible={internalVisible}
@@ -102,14 +99,20 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose,
       onRequestClose={handleDismiss}
     >
       <GestureHandlerRootView style={styles.root}>
-        <ContentView
-          key={openCount}
-          images={images}
-          initialIdx={initialIdx}
-          thumbLayout={thumbLayout ?? null}
-          getThumbLayout={getThumbLayout ?? null}
-          onClose={handleDismiss}
-        />
+        <View ref={viewportRef} collapsable={false} style={styles.root} onLayout={measureViewport}>
+          <StatusBar hidden />
+          {viewport && (
+            <ContentView
+              key={openCount}
+              viewport={viewport}
+              images={images}
+              initialIdx={initialIdx}
+              thumbLayout={thumbLayout ?? null}
+              getThumbLayout={getThumbLayout ?? null}
+              onClose={handleDismiss}
+            />
+          )}
+        </View>
       </GestureHandlerRootView>
     </Modal>
   );
@@ -117,31 +120,35 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose,
 
 // ─── Content (keyed for fresh shared values on each open) ──────────────────────
 
-function ContentView({ images, initialIdx, thumbLayout, getThumbLayout, onClose }: {
+function ContentView({ images, initialIdx, viewport, thumbLayout, getThumbLayout, onClose }: {
   images: string[];
   initialIdx: number;
+  viewport: WindowRect;
   thumbLayout: ThumbLayout | null;
   getThumbLayout: ThumbLayoutResolver | null;
   onClose: () => void;
 }) {
+  const { width: W, height: H } = viewport;
   const insets = useSafeAreaInsets();
   const currentIdx = useSharedValue(initialIdx);
   const listOffsetX = useSharedValue(-initialIdx * W);
   const [renderIdx, setRenderIdx] = useState(initialIdx);
 
-  const hasThumb = !!thumbLayout && thumbLayout.width > 0 && thumbLayout.height > 0;
+  const openingThumb = visibleThumbLayout(thumbLayout, viewport);
+  const hasThumb = !!openingThumb;
 
   // ── 容器矩形（从缩略图位置展开到全屏 / 缩回） ──
-  const animX = useSharedValue(hasThumb ? thumbLayout!.x : 0);
-  const animY = useSharedValue(hasThumb ? thumbLayout!.y : 0);
-  const animW = useSharedValue(hasThumb ? thumbLayout!.width : W);
-  const animH = useSharedValue(hasThumb ? thumbLayout!.height : H);
+  const animX = useSharedValue(openingThumb?.x ?? 0);
+  const animY = useSharedValue(openingThumb?.y ?? 0);
+  const animW = useSharedValue(openingThumb?.width ?? W);
+  const animH = useSharedValue(openingThumb?.height ?? H);
   const animRadius = useSharedValue(hasThumb ? 8 : 0);
 
   const bgOpacity = useSharedValue(0);
   const uiOpacity = useSharedValue(0);
   const closeAnim = useSharedValue(0); // 无缩略图时的兜底关闭
   const closing = useSharedValue(false);
+  const lastSize = useRef({ width: W, height: H });
 
   const syncRenderIdx = useCallback((idx: number) => { setRenderIdx(idx); }, []);
 
@@ -161,6 +168,17 @@ function ContentView({ images, initialIdx, thumbLayout, getThumbLayout, onClose 
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (lastSize.current.width === W && lastSize.current.height === H) return;
+    lastSize.current = { width: W, height: H };
+    if (closing.value) return;
+    listOffsetX.value = -currentIdx.value * W;
+    animX.value = 0;
+    animY.value = 0;
+    animW.value = W;
+    animH.value = H;
+  }, [W, H, animH, animW, animX, animY, closing, currentIdx, listOffsetX]);
 
   // ── 关闭执行：有坐标缩回缩略图，无坐标淡出 ──
   const runClose = useCallback((t: ThumbLayout | null, velocity: number) => {
@@ -187,22 +205,23 @@ function ContentView({ images, initialIdx, thumbLayout, getThumbLayout, onClose 
   // ── 关闭入口：优先缩回「当前正在看的」那张，量不到兜底最初点击的 ──
   const closeToThumb = useCallback((velocity = 0) => {
     if (closing.value) return;
-    const fallback = hasThumb ? thumbLayout : null;
+    const index = currentIdx.value;
+    const fallback = index === initialIdx ? visibleThumbLayout(thumbLayout, viewport) : null;
     if (getThumbLayout) {
       let done = false;
       const timer = setTimeout(() => {
         if (!done) { done = true; runClose(fallback, velocity); }
       }, 120);
-      getThumbLayout(currentIdx.value, (layout) => {
+      getThumbLayout(index, (layout) => {
         if (done) return;
         done = true;
         clearTimeout(timer);
-        runClose(layout ?? fallback, velocity);
+        runClose(layout ? visibleThumbLayout(layout, viewport) : fallback, velocity);
       });
     } else {
       runClose(fallback, velocity);
     }
-  }, [getThumbLayout, hasThumb, thumbLayout, runClose]);
+  }, [currentIdx, getThumbLayout, initialIdx, thumbLayout, viewport, runClose]);
 
   const handleClose = useCallback(() => {
     closeToThumb(0);
@@ -247,7 +266,6 @@ function ContentView({ images, initialIdx, thumbLayout, getThumbLayout, onClose 
 
   return (
     <Animated.View style={[{ flex: 1 }, fallbackCloseStyle]}>
-      <StatusBar hidden />
       {/* 黑色背景 */}
       <Animated.View style={[StyleSheet.absoluteFill, bgStyle]} pointerEvents="none" />
 
@@ -263,7 +281,9 @@ function ContentView({ images, initialIdx, thumbLayout, getThumbLayout, onClose 
               listOffsetX={listOffsetX}
               total={images.length}
               bgOpacity={bgOpacity}
-              hasThumb={hasThumb}
+              canReturnToThumb={hasThumb || !!getThumbLayout}
+              width={W}
+              height={H}
               animateEntrance={!hasThumb}
               onClose={onClose}
               onPullClose={handlePullClose}
@@ -305,14 +325,17 @@ interface ItemProps {
   listOffsetX: Animated.SharedValue<number>;
   total: number;
   bgOpacity: Animated.SharedValue<number>;
-  hasThumb: boolean;
+  canReturnToThumb: boolean;
+  width: number;
+  height: number;
   animateEntrance: boolean;
   onClose: () => void;
   onPullClose: (vy: number) => void;
   onIndexChange: (idx: number) => void;
 }
 
-function ImageItem({ uri, index, currentIdx, listOffsetX, total, bgOpacity, hasThumb, animateEntrance, onClose, onPullClose, onIndexChange }: ItemProps) {
+function ImageItem({ uri, index, currentIdx, listOffsetX, total, bgOpacity, canReturnToThumb, width: W, height: H, animateEntrance, onClose, onPullClose, onIndexChange }: ItemProps) {
+  const swipeThreshold = W * 0.3;
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
@@ -483,7 +506,7 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, bgOpacity, hasT
 
           if (shouldClose) {
             isClosing.value = true;
-            if (hasThumb) {
+            if (canReturnToThumb) {
               // 缩回最初点击的缩略图：图片先回中，容器带速度弹回
               dragY.value = withSpring(0, { ...EXIT_CFG, velocity: vy });
               dragScale.value = withSpring(1, EXIT_CFG);
@@ -506,8 +529,8 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, bgOpacity, hasT
           return;
         }
 
-        const shouldNext = vx < -SWIPE_VELOCITY || tx < -SWIPE_THRESHOLD;
-        const shouldPrev = vx > SWIPE_VELOCITY || tx > SWIPE_THRESHOLD;
+        const shouldNext = vx < -SWIPE_VELOCITY || tx < -swipeThreshold;
+        const shouldPrev = vx > SWIPE_VELOCITY || tx > swipeThreshold;
 
         if (shouldNext && currentIdx.value < total - 1) {
           goToIndex(currentIdx.value + 1);
@@ -559,12 +582,12 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, bgOpacity, hasT
   }));
 
   return (
-    <Animated.View style={[styles.itemWrap, { left: index * W }]}>
+    <Animated.View style={[styles.itemWrap, { left: index * W, width: W, height: H }]}>
       <GestureDetector gesture={composed}>
-        <Animated.View style={[styles.imageWrap, imageStyle]}>
+        <Animated.View style={[styles.imageWrap, { width: W, height: H }, imageStyle]}>
           <Image
             source={uri}
-            style={styles.image}
+            style={{ width: W, height: H }}
             contentFit="contain"
             cachePolicy="disk"
           />
@@ -579,14 +602,11 @@ const styles = StyleSheet.create({
   list: { flex: 1, position: 'relative' },
   itemWrap: {
     position: 'absolute',
-    width: W, height: H,
     alignItems: 'center', justifyContent: 'center',
   },
   imageWrap: {
-    width: W, height: H,
     alignItems: 'center', justifyContent: 'center',
   },
-  image: { width: W, height: H },
   header: {
     position: 'absolute', top: 0, left: 0, right: 0,
     flexDirection: 'row', alignItems: 'center',

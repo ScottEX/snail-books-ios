@@ -1,11 +1,12 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView, Animated,
-  StyleSheet, Modal,
+  StyleSheet, Modal, type LayoutChangeEvent,
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useTheme, ThemeColors, FONTS, withAlpha, BACKDROP_COLOR } from '../theme';
 import { SHEET_RADIUS } from '../sharedStyles';
+import { anchoredSheetPosition, measureWindowRect, type WindowRect } from '../utils/windowLayout';
 
 export interface ActionItem {
   label: string;
@@ -25,6 +26,7 @@ interface Props {
   onClose: () => void;
   offsetY?: number;
   offsetX?: number;
+  anchor?: WindowRect | null;
   /** Dark BlurView style — matches 对账人 dropdown */
   dark?: boolean;
   /** Hide backdrop overlay */
@@ -32,11 +34,20 @@ interface Props {
 }
 
 export default function CustomActionSheet({
-  visible, title, message, actions, onClose, offsetY = 0, offsetX = 0, dark = false, noOverlay = false,
+  visible, title, message, actions, onClose, offsetY = 0, offsetX = 0, anchor, dark = false, noOverlay = false,
 }: Props) {
   const { colors: c } = useTheme();
   const anim = useRef(new Animated.Value(0)).current;
   const st = getStyles(c);
+  const viewportRef = useRef<View>(null);
+  const [viewport, setViewport] = useState<WindowRect | null>(null);
+  const [sheetSize, setSheetSize] = useState({ width: 0, height: 0 });
+  const anchorReady = !!(anchor && viewport && sheetSize.width && sheetSize.height);
+  const position = anchor && viewport ? anchoredSheetPosition(anchor, viewport, sheetSize) : null;
+  const measureViewport = ({ nativeEvent: { layout: { width, height } } }: LayoutChangeEvent) => {
+    if (!anchor || width <= 0 || height <= 0) return;
+    measureWindowRect(viewportRef.current, (rect) => setViewport({ x: rect?.x ?? 0, y: rect?.y ?? 0, width, height }));
+  };
 
   useEffect(() => {
     if (visible) {
@@ -46,6 +57,7 @@ export default function CustomActionSheet({
         useNativeDriver: true,
       }).start();
     } else {
+      if (anchor) setViewport(null);
       Animated.timing(anim, {
         toValue: 0, duration: 200,
         useNativeDriver: true,
@@ -79,20 +91,24 @@ export default function CustomActionSheet({
       </TouchableOpacity>
 
       <View
+        ref={viewportRef}
+        collapsable={false}
+        onLayout={anchor ? measureViewport : undefined}
         style={st.sheetOuter}
         pointerEvents="box-none"
       >
         <Animated.View
+          onLayout={anchor ? ({ nativeEvent: { layout: { width, height } } }) => setSheetSize({ width, height }) : undefined}
           style={[
             dark ? { width: 160, alignSelf: 'flex-start' as const } : st.sheet,
+            anchor ? { position: 'absolute' as const, left: position?.left ?? 0, top: position?.top ?? 0 }
+              : { marginTop: offsetY, marginLeft: offsetX },
             {
-              marginTop: offsetY,
-              marginLeft: offsetX,
               transform: [{ scale: anim.interpolate({
                 inputRange: [0, 1],
                 outputRange: [0.9, 1],
               }) }],
-              opacity: anim,
+              opacity: !anchor || anchorReady ? anim : 0,
             },
           ]}
         >
