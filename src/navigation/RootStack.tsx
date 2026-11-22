@@ -1,6 +1,9 @@
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useNavigation, useRoute, useFocusEffect, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect, type NavigationProp, RouteProp, StackActions } from '@react-navigation/native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, Line } from 'react-native-svg';
 import HomeScreen from '../screens/HomeScreen';
 import ExpenseHistoryScreen from '../screens/ExpenseHistoryScreen';
 import DailyRevenueHistory from '../screens/DailyRevenueHistory';
@@ -13,16 +16,19 @@ import ProcurementDetailScreen from '../screens/ProcurementDetailScreen';
 import ExpenseDetailScreen from '../screens/ExpenseDetailScreen';
 import PdfPreviewPage from '../screens/PdfPreviewPage';
 import { api } from '../api/client';
+import AppSearchModal, { type AppSearchTarget } from '../components/AppSearchModal';
+import { t, useLang } from '../i18n';
+import { useTheme } from '../theme';
 
 export type RootStackParamList = {
-  Main: { editBatch?: any } | undefined;
+  Main: { editBatch?: any; searchTab?: 'supply' | 'partner'; searchProduct?: string } | undefined;
   ExpenseHistory: undefined;
-  DailyHistory: undefined;
-  ReconHistory: undefined;
-  Profile: undefined;
+  DailyHistory: { date?: string } | undefined;
+  ReconHistory: { date?: string } | undefined;
+  Profile: { openEmail?: boolean } | undefined;
   UserManagement: undefined;
   UserDetail: { user: any };
-  Invoice: { filterBatchId?: number | null } | undefined;
+  Invoice: { filterBatchId?: number | null; recordId?: number } | undefined;
   ProcurementDetail: { batch: any };
   ExpenseDetail: { expense: any };
   PdfPreview: { id: number; number: number; supplier?: string; fileUrl?: string; title?: string; fileNamePrefix?: string };
@@ -64,17 +70,20 @@ function ExpenseHistoryRoute() {
 
 function DailyHistoryRoute() {
   const navigation = useNavigation<any>();
-  return <DailyRevenueHistory onBack={() => navigation.goBack()} />;
+  const { params } = useRoute<RouteProp<RootStackParamList, 'DailyHistory'>>();
+  return <DailyRevenueHistory initialDate={params?.date} onBack={() => navigation.goBack()} />;
 }
 
 function ReconHistoryRoute() {
   const navigation = useNavigation<any>();
-  return <ReconHistoryScreen onBack={() => navigation.goBack()} />;
+  const { params } = useRoute<RouteProp<RootStackParamList, 'ReconHistory'>>();
+  return <ReconHistoryScreen initialDate={params?.date} onBack={() => navigation.goBack()} />;
 }
 
 function ProfileRoute() {
   const navigation = useNavigation<any>();
   const { onLogout } = useContext(SessionContext);
+  const { params } = useRoute<RouteProp<RootStackParamList, 'Profile'>>();
   const refreshKey = useFocusRefreshKey();
   return (
     <ProfileScreen
@@ -82,6 +91,7 @@ function ProfileRoute() {
       onLogout={onLogout}
       onAvatarChange={emitAvatarChanged}
       onManageUsers={() => navigation.navigate('UserManagement')}
+      openEmail={params?.openEmail}
       refreshKey={refreshKey}
     />
   );
@@ -125,6 +135,7 @@ function InvoiceRoute() {
     <InvoiceScreen
       onBack={() => navigation.goBack()}
       filterBatchId={route.params?.filterBatchId ?? null}
+      initialRecordId={route.params?.recordId}
       onPdfPreview={(url: string, title: string) =>
         navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title })
       }
@@ -177,6 +188,72 @@ function PdfPreviewRoute() {
   );
 }
 
+function GlobalSearch() {
+  useLang();
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const [visible, setVisible] = useState(false);
+
+  const open = async (target: AppSearchTarget, signal: AbortSignal) => {
+    if (typeof target === 'string') {
+      switch (target) {
+        case 'email': return () => navigation.dispatch(StackActions.push('Profile', { openEmail: true }));
+        case 'profile': return () => navigation.navigate('Profile');
+        case 'invoice': return () => navigation.navigate('Invoice');
+        case 'expense': return () => navigation.navigate('ExpenseHistory');
+        case 'revenue': return () => navigation.navigate('DailyHistory');
+        case 'reconciliation': return () => navigation.navigate('ReconHistory');
+        case 'procurement': return () => navigation.dispatch(StackActions.popTo('Main', { searchTab: 'supply' }));
+        case 'partner': return () => navigation.dispatch(StackActions.popTo('Main', { searchTab: 'partner' }));
+      }
+    }
+    switch (target.kind) {
+      case 'expense': {
+        const expense = await api.getTransaction(target.id, signal);
+        return () => navigation.dispatch(StackActions.push('ExpenseDetail', { expense }));
+      }
+      case 'procurement': {
+        const batch = await api.getProcurementBatchDetail(target.id, signal);
+        return () => navigation.dispatch(StackActions.push('ProcurementDetail', { batch }));
+      }
+      case 'invoice': return () => navigation.dispatch(StackActions.push('Invoice', { recordId: target.id }));
+      case 'revenue': return () => navigation.dispatch(StackActions.push('DailyHistory', { date: target.date }));
+      case 'reconciliation': return () => navigation.dispatch(StackActions.push('ReconHistory', { date: target.date }));
+      case 'product': return () => navigation.dispatch(StackActions.popTo('Main', { searchTab: 'supply', searchProduct: target.title }));
+      case 'partner': return () => navigation.dispatch(StackActions.popTo('Main', { searchTab: 'partner' }));
+    }
+  };
+
+  return (
+    <View pointerEvents="box-none" style={searchStyles.overlay}>
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={t('appSearchTitle')}
+        onPress={() => setVisible(true)}
+        style={[searchStyles.button, { left: 16 + insets.left, bottom: Math.max(94, insets.bottom + 16), backgroundColor: colors.primary }]}
+      >
+        <Svg width={22} height={22} viewBox="0 0 24 24" stroke={colors.surface} strokeWidth={2} fill="none">
+          <Circle cx={10.5} cy={10.5} r={5.5} />
+          <Line x1={15} y1={15} x2={20} y2={20} strokeLinecap="round" />
+        </Svg>
+        <Text style={{ color: colors.surface, fontWeight: '600' }}>{t('appSearchFind')}</Text>
+      </TouchableOpacity>
+      <AppSearchModal visible={visible} onClose={() => setVisible(false)} onOpen={open} />
+    </View>
+  );
+}
+
+const searchStyles = StyleSheet.create({
+  overlay: { ...StyleSheet.absoluteFillObject, zIndex: 100 },
+  button: {
+    position: 'absolute', minHeight: 44, borderRadius: 24, paddingHorizontal: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.26,
+    shadowRadius: 6, elevation: 4,
+  },
+});
+
 export default function RootStack({ onLogout }: { onLogout: () => void }) {
   return (
     <SessionContext.Provider value={{ onLogout }}>
@@ -201,6 +278,7 @@ export default function RootStack({ onLogout }: { onLogout: () => void }) {
         <Stack.Screen name="ExpenseDetail" component={ExpenseDetailRoute} />
         <Stack.Screen name="PdfPreview" component={PdfPreviewRoute} />
       </Stack.Navigator>
+      <GlobalSearch />
     </SessionContext.Provider>
   );
 }

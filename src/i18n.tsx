@@ -371,6 +371,19 @@ const I18N: Record<string, Record<string, string>> = {
     partnerTitle: '柳味探秘科技合伙人',
     password: '密码',
     passwordChanged: '密码已修改',
+    appSearchTitle: '全局查找',
+    appSearchFind: '查找',
+    appSearchPlaceholder: '输入页面名、供应商、单号或备注',
+    appSearchPages: '页面',
+    appSearchInvoice: '发票管理',
+    appSearchPartner: '合伙人',
+    appSearchProduct: '商品',
+    appSearchProfile: '个人中心',
+    appSearchNoMatches: '没有找到相关页面或记录。',
+    appSearchFailed: '记录查询失败，请重试。',
+    appSearchOpenFailed: '无法打开这条记录，请重试。',
+    appSearchRelated: '查找相关采购记录',
+    appSearchSupplierBasis: '按已结算采购明细汇总。供应商按商品目前登记的信息匹配。',
     ledgerAiTitle: 'AI 查账',
     ledgerAiPrivacy: '问题会发送给 AI 服务商解析，账本记录由后端查询。请勿输入敏感信息。',
     ledgerAiAsk: '查询',
@@ -1019,6 +1032,19 @@ const I18N: Record<string, Record<string, string>> = {
     partnerTitle: '柳味探秘科技合夥人',
     password: '密碼',
     passwordChanged: '密碼已修改',
+    appSearchTitle: '全域查找',
+    appSearchFind: '查找',
+    appSearchPlaceholder: '輸入頁面名稱、供應商、單號或備註',
+    appSearchPages: '頁面',
+    appSearchInvoice: '發票管理',
+    appSearchPartner: '合夥人',
+    appSearchProduct: '商品',
+    appSearchProfile: '個人中心',
+    appSearchNoMatches: '沒有找到相關頁面或紀錄。',
+    appSearchFailed: '紀錄查詢失敗，請重試。',
+    appSearchOpenFailed: '無法開啟這筆紀錄，請重試。',
+    appSearchRelated: '查找相關採購紀錄',
+    appSearchSupplierBasis: '按已結算採購明細彙總。供應商按商品目前登記的資訊比對。',
     ledgerAiTitle: 'AI 查帳',
     ledgerAiPrivacy: '問題會傳送給 AI 服務商解析，帳本紀錄由後端查詢。請勿輸入敏感資訊。',
     ledgerAiAsk: '查詢',
@@ -1676,6 +1702,19 @@ const I18N: Record<string, Record<string, string>> = {
     partnerTitle: 'LiuWei TanMi Technology Partners',
     password: 'Password',
     passwordChanged: 'Password changed',
+    appSearchTitle: 'Search the app',
+    appSearchFind: 'Search',
+    appSearchPlaceholder: 'Enter a page, supplier, reference number, or note',
+    appSearchPages: 'Pages',
+    appSearchInvoice: 'Invoices',
+    appSearchPartner: 'Partners',
+    appSearchProduct: 'Products',
+    appSearchProfile: 'Profile',
+    appSearchNoMatches: 'No matching pages or records.',
+    appSearchFailed: 'Could not search records. Try again.',
+    appSearchOpenFailed: 'Could not open this record. Try again.',
+    appSearchRelated: 'Find related purchase orders',
+    appSearchSupplierBasis: 'Settled procurement line items grouped by the supplier currently listed on the product.',
     ledgerAiTitle: 'Ask the ledger',
     ledgerAiPrivacy: 'Your question is sent to the AI provider for interpretation. The backend queries the ledger. Avoid entering sensitive information.',
     ledgerAiAsk: 'Ask',
@@ -2326,6 +2365,19 @@ export type I18nKey =
   | 'partnerTitle'
   | 'password'
   | 'passwordChanged'
+  | 'appSearchTitle'
+  | 'appSearchFind'
+  | 'appSearchPlaceholder'
+  | 'appSearchPages'
+  | 'appSearchInvoice'
+  | 'appSearchPartner'
+  | 'appSearchProduct'
+  | 'appSearchProfile'
+  | 'appSearchNoMatches'
+  | 'appSearchFailed'
+  | 'appSearchOpenFailed'
+  | 'appSearchRelated'
+  | 'appSearchSupplierBasis'
   | 'ledgerAiTitle'
   | 'ledgerAiPrivacy'
   | 'ledgerAiAsk'

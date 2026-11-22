@@ -18,9 +18,19 @@ export interface LedgerTotal {
 export interface LedgerAnswer {
   metric: 'turnover' | 'received' | 'expense';
   category: ExpenseDraft['category'];
+  supplier: string | null;
   current: LedgerTotal;
   comparison: LedgerTotal | null;
   difference: number | null;
+}
+
+export interface AppSearchRecord {
+  kind: 'expense' | 'procurement' | 'invoice' | 'product' | 'partner' | 'revenue' | 'reconciliation';
+  id: number;
+  title: string | null;
+  detail: string | null;
+  date: string;
+  amount: number | null;
 }
 
 // ── Event bus ──
@@ -299,6 +309,13 @@ export const api = {
       body: JSON.stringify({ question }),
       signal,
     }),
+  searchApp: (keyword: string, signal: AbortSignal) =>
+    authFetch<{ results: AppSearchRecord[] }>('/api/app/search', {
+      method: 'POST',
+      body: JSON.stringify({ keyword }),
+      signal,
+    }),
+  getTransaction: (id: number, signal?: AbortSignal) => authFetch(`/api/transactions/${id}`, { signal }),
   deleteTransaction: (id: number) => authFetch(`/api/transactions/${id}`, { method: 'DELETE' }),
   updateTransaction: (id: number, data: any) => authFetch(`/api/transactions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 
@@ -516,7 +533,7 @@ export const api = {
   getProcurementStats: () => authFetch('/api/procurement-stats'),
   getProcurementBatches: (page = 1, perPage = 10) => authFetch(`/api/procurement-batches?page=${page}&per_page=${perPage}`),
   createProcurementBatch: (data: any) => authFetch('/api/procurement-batches', { method: 'POST', body: JSON.stringify(data) }),
-  getProcurementBatchDetail: (id: number) => authFetch(`/api/procurement-batches/${id}`),
+  getProcurementBatchDetail: (id: number, signal?: AbortSignal) => authFetch(`/api/procurement-batches/${id}`, { signal }),
   updateProcurementBatch: (id: number, data: any) => authFetch(`/api/procurement-batches/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteProcurementBatch: (id: number) => authFetch(`/api/procurement-batches/${id}`, { method: 'DELETE' }),
   settleProcurementBatch: (id: number) => authFetch(`/api/procurement-batches/${id}/settle`, { method: 'POST' }),

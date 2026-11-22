@@ -296,7 +296,7 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
 // ═══════════════════════════════════════════════
 // Main Component
 // ═══════════════════════════════════════════════
-export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcurementDetail, pendingEditBatch, onPendingEditConsumed, onInvoice }: { onDrawerOpen?: () => void; onDrawerClose?: () => void; onProcurementDetail?: (batch: BatchRecord) => void; pendingEditBatch?: BatchRecord | null; onPendingEditConsumed?: () => void; onInvoice?: (batchId: number) => void }) {
+export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcurementDetail, pendingEditBatch, onPendingEditConsumed, onInvoice, searchProduct }: { onDrawerOpen?: () => void; onDrawerClose?: () => void; onProcurementDetail?: (batch: BatchRecord) => void; pendingEditBatch?: BatchRecord | null; onPendingEditConsumed?: () => void; onInvoice?: (batchId: number) => void; searchProduct?: string }) {
   const { colors: c } = useTheme();
   const sd = useServerDate();
   const readBgOpacity = (): number => {
@@ -335,7 +335,8 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
     } catch { return 'new'; }
   });
   useEffect(() => { try { localStorage.setItem('snail_proc_tab', subTab); } catch {} }, [subTab]);
-  useEffect(() => { setSearch(''); }, [subTab]);
+  useEffect(() => { setSearch(subTab === 'products' ? searchProduct || '' : ''); }, [subTab, searchProduct]);
+  useEffect(() => { if (searchProduct) setSubTab('products'); }, [searchProduct]);
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [cart, setCart] = useState<Record<number, number>>({});

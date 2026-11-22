@@ -248,10 +248,11 @@ function isDash(v: string) { return v === '-' || v === '\u2014'; }
 interface Props {
   onBack: () => void;
   filterBatchId?: number | null;
+  initialRecordId?: number;
   onPdfPreview?: (url: string, title: string) => void;
 }
 
-export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: Props) {
+export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, onPdfPreview }: Props) {
   const { colors: c } = useTheme();
   const sd = useServerDate();
   const insets = useSafeAreaInsets();
@@ -271,7 +272,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
   }));
 
   // Tabs: 0 = info, 1 = records
-  const [tab, setTab] = useState<number>(filterBatchId ? 1 : 0);
+  const [tab, setTab] = useState<number>(filterBatchId || initialRecordId ? 1 : 0);
   const [invType, setInvType] = useState<InvType>('vat');
   const [data, setData] = useState<InvoiceData>(EMPTY_INV);
   const [orig, setOrig] = useState<InvoiceData>(EMPTY_INV);
@@ -376,15 +377,15 @@ export default function InvoiceScreen({ onBack, filterBatchId, onPdfPreview }: P
   // Auto-open drawer when coming from "去开票" — edit if record exists, new otherwise
   const autoOpenedRef = useRef(false);
   useEffect(() => {
-    if (!filterBatchId || recordsLoading || autoOpenedRef.current) return;
+    if ((!filterBatchId && !initialRecordId) || recordsLoading || autoOpenedRef.current) return;
     autoOpenedRef.current = true;
-    const existing = records.find((r: any) => r.procurement_batch_id === filterBatchId);
+    const existing = records.find(r => initialRecordId ? r.id === initialRecordId : r.procurement_batch_id === filterBatchId);
     if (existing) {
       openDrawer(existing);
-    } else {
+    } else if (!initialRecordId) {
       openDrawer(undefined, filterBatchId);
     }
-  }, [filterBatchId, recordsLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filterBatchId, initialRecordId, recordsLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── Load invoice info (info tab) ── */
   useEffect(() => {

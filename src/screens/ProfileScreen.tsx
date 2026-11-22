@@ -41,6 +41,7 @@ interface Props {
   onManageUsers?: () => void;
   onAvatarChange?: () => void;
   refreshKey?: number;
+  openEmail?: boolean;
 }
 
 /* ════════════════ ICONS ════════════════ */
@@ -179,7 +180,7 @@ function FingerprintIcon({ color }: { color: string }) {
 
 /* ════════════ MAIN ════════════ */
 
-export default function ProfileScreen({ onBack, onLogout, onLangChange, onManageUsers, onAvatarChange, refreshKey }: Props) {
+export default function ProfileScreen({ onBack, onLogout, onLangChange, onManageUsers, onAvatarChange, refreshKey, openEmail }: Props) {
   const insets = useSafeAreaInsets();
   const { colors, theme, setTheme, allThemes } = useTheme();
   const { setLang } = useLang();
@@ -221,7 +222,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
   // Modals
   const [showPwModal, setShowPwModal] = useState(false);
-  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(!!openEmail);
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [showCoverCrop, setShowCoverCrop] = useState(false);
   const [coverCropSrc, setCoverCropSrc] = useState('');

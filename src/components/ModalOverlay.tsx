@@ -10,6 +10,7 @@ interface ModalOverlayProps {
   visible?: boolean;
   onClose: () => void;
   onClosed?: () => void;
+  onDismiss?: () => void;
   children: React.ReactNode | ((staggerAnims: Animated.Value[]) => React.ReactNode);
   overlayStyle?: any;
   contentStyle?: any;
@@ -22,7 +23,7 @@ interface ModalOverlayProps {
   backdropColor?: string;
 }
 
-export default function ModalOverlay({ visible = true, onClose, onClosed, children, overlayStyle, contentStyle, avoidKeyboard = false, animation = 'slide', staggerCount = 4, outDuration, backdropColor }: ModalOverlayProps) {
+export default function ModalOverlay({ visible = true, onClose, onClosed, onDismiss, children, overlayStyle, contentStyle, avoidKeyboard = false, animation = 'slide', staggerCount = 4, outDuration, backdropColor }: ModalOverlayProps) {
   const [show, setShow] = useState(false);
   const initialSlide = animation === 'springScale' ? 12 : animation === 'slideUpScale' ? 500 : animation === 'stagger' ? 40 : animation === 'iosSheet' ? 500 : -300;
   const initialScale = animation === 'springScale' ? 0.85 : animation === 'blurMorph' ? 1.04 : animation === 'slideUpScale' ? 0.96 : animation === 'stagger' ? 0.94 : 1;
@@ -168,7 +169,8 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, childr
     }
   }, [visible]);
 
-  if (!show) return null;
+  // Keep the native modal mounted while iOS delivers its dismissal event.
+  if (!show && !onDismiss) return null;
 
   const getTrans = () => {
     if (animation === 'springScale') return [{ scale }, { translateY: slide }];
@@ -195,6 +197,7 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, childr
       transparent
       animationType="none"
       onRequestClose={onClose}
+      onDismiss={onDismiss}
       statusBarTranslucent
     >
       <Animated.View style={[{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }, overlayStyle]}>

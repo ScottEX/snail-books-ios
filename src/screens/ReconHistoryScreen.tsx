@@ -41,9 +41,9 @@ function ReconEmptyIcon({ color }: { color: string }) {
   );
 }
 
-interface Props { onBack: () => void }
+interface Props { onBack: () => void; initialDate?: string }
 
-export default function ReconHistoryScreen({ onBack }: Props) {
+export default function ReconHistoryScreen({ onBack, initialDate }: Props) {
   const sd = useServerDate();
 
   const [selected, setSelected] = useState<any>(null);
@@ -57,8 +57,8 @@ export default function ReconHistoryScreen({ onBack }: Props) {
   const [showFilter, setShowFilter] = useState(false);
 
   // ── Filter state — use server time defaults ──
-  const initFrom = sd.offset(-30);
-  const initTo = sd.today;
+  const initFrom = initialDate || sd.offset(-30);
+  const initTo = initialDate || sd.today;
   const [filDateFrom, setFilDateFrom] = useState(initFrom);
   const [filDateTo, setFilDateTo] = useState(initTo);
   const [filBy, setFilBy] = useState('');
