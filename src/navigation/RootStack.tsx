@@ -1,7 +1,9 @@
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation, useRoute, useFocusEffect, type NavigationProp, RouteProp, StackActions } from '@react-navigation/native';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Line } from 'react-native-svg';
 import HomeScreen from '../screens/HomeScreen';
@@ -19,6 +21,7 @@ import { api } from '../api/client';
 import AppSearchModal, { type AppSearchTarget } from '../components/AppSearchModal';
 import { t, useLang } from '../i18n';
 import { useTheme } from '../theme';
+import { useDraggableButton } from '../hooks/useDraggableButton';
 
 export type RootStackParamList = {
   Main: { editBatch?: any; searchTab?: 'supply' | 'partner'; searchProduct?: string } | undefined;
@@ -194,6 +197,12 @@ function GlobalSearch() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [visible, setVisible] = useState(false);
+  const showSearch = useCallback(() => setVisible(true), []);
+  const left = 16 + insets.left;
+  const bottom = Math.max(94, insets.bottom + 16);
+  const button = useDraggableButton({
+    anchor: 'left', left, right: 16 + insets.right, top: insets.top + 12, bottom, onPress: showSearch,
+  });
 
   const open = async (target: AppSearchTarget, signal: AbortSignal) => {
     if (typeof target === 'string') {
@@ -227,19 +236,23 @@ function GlobalSearch() {
   };
 
   return (
-    <View pointerEvents="box-none" style={searchStyles.overlay}>
-      <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityLabel={t('appSearchTitle')}
-        onPress={() => setVisible(true)}
-        style={[searchStyles.button, { left: 16 + insets.left, bottom: Math.max(94, insets.bottom + 16), backgroundColor: colors.primary }]}
-      >
-        <Svg width={22} height={22} viewBox="0 0 24 24" stroke={colors.surface} strokeWidth={2} fill="none">
-          <Circle cx={10.5} cy={10.5} r={5.5} />
-          <Line x1={15} y1={15} x2={20} y2={20} strokeLinecap="round" />
-        </Svg>
-        <Text style={{ color: colors.surface, fontWeight: '600' }}>{t('appSearchFind')}</Text>
-      </TouchableOpacity>
+    <View pointerEvents="box-none" style={searchStyles.overlay} onLayout={button.onContainerLayout}>
+      <GestureDetector gesture={button.gesture}>
+        <Animated.View
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel={t('appSearchTitle')}
+          onAccessibilityTap={showSearch}
+          onLayout={button.onButtonLayout}
+          style={[searchStyles.button, { left, bottom, backgroundColor: colors.primary }, button.animatedStyle]}
+        >
+          <Svg width={22} height={22} viewBox="0 0 24 24" stroke={colors.surface} strokeWidth={2} fill="none">
+            <Circle cx={10.5} cy={10.5} r={5.5} />
+            <Line x1={15} y1={15} x2={20} y2={20} strokeLinecap="round" />
+          </Svg>
+          <Text style={{ color: colors.surface, fontWeight: '600' }}>{t('appSearchFind')}</Text>
+        </Animated.View>
+      </GestureDetector>
       <AppSearchModal visible={visible} onClose={() => setVisible(false)} onOpen={open} />
     </View>
   );

@@ -3,6 +3,7 @@ import { Keyboard, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, Vie
 import { api, type AppSearchRecord, type LedgerAnswer, type LedgerTotal } from '../api/client';
 import { t } from '../i18n';
 import { FONTS, useTheme, withAlpha } from '../theme';
+import { MODAL_CARD_RADIUS } from '../sharedStyles';
 import { fmtAmtFull, formatDate } from '../utils/format';
 import AppTextInput from './AppTextInput';
 import ButtonPair from './ButtonPair';
@@ -258,7 +259,8 @@ export default function AppSearchModal({ visible, onClose, onOpen }: {
             editable={!busy}
             multiline={mode === 'ask'}
             maxLength={mode === 'search' ? 80 : 300}
-            style={[styles.input, { color: colors.textMain, borderColor: withAlpha(colors.textSub, 0.35) }]}
+            underlineColorAndroid="transparent"
+            style={[styles.input, { color: colors.textMain, backgroundColor: colors.bg }]}
           />
           {mode === 'ask' && !answer && !busy && examples.map(key => (
             <TouchableOpacity key={key} accessibilityRole="button" onPress={() => changeQuestion(t(key))}>
@@ -285,12 +287,12 @@ export default function AppSearchModal({ visible, onClose, onOpen }: {
 }
 
 const styles = StyleSheet.create({
-  card: { width: 360, maxWidth: '100%', flexShrink: 1, borderRadius: 16, overflow: 'hidden' },
+  card: { width: 360, maxWidth: '100%', flexShrink: 1, borderRadius: MODAL_CARD_RADIUS, overflow: 'hidden' },
   header: { paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontSize: FONTS.subBold.size, fontWeight: '700' },
   body: { flexGrow: 0, flexShrink: 1 },
   bodyContent: { padding: 18, paddingBottom: 12, gap: 8 },
-  input: { minHeight: 66, maxHeight: 110, padding: 10, borderWidth: 1, borderRadius: 8 },
+  input: { minHeight: 66, maxHeight: 110, padding: 10, borderRadius: 10 },
   modes: { flexDirection: 'row', gap: 8 },
   mode: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 8 },
   hitList: { gap: 6 },
