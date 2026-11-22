@@ -62,6 +62,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
           value={pickerDate}
           mode="date"
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
+          style={Platform.OS === 'ios' ? styles.inlinePicker : undefined}
           locale={locale}
           minimumDate={minDate ? parseDate(minDate) : undefined}
           maximumDate={maxDate ? parseDate(maxDate) : undefined}
@@ -87,6 +88,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
 
 const styles = StyleSheet.create({
   sheet: { width: '100%' as const, borderRadius: 22, overflow: 'hidden' as const, backgroundColor: '#FFFFFF' },
+  inlinePicker: { alignSelf: 'center', maxWidth: '100%' },
   footer: { flexDirection: 'row' as const, gap: 10, marginTop: 8 },
   footerBtn: { flex: 1, paddingVertical: 10, alignItems: 'center' as const },
 });
