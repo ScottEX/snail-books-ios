@@ -34,6 +34,8 @@ import { isBiometricAvailable, saveCredential, promptBiometric, getCredential, B
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import ReAnimated, { useAnimatedStyle, useSharedValue, useAnimatedScrollHandler, interpolate, Extrapolation, withTiming, withSpring, cancelAnimation } from 'react-native-reanimated';
 
+export type ProfileAccountAction = 'email' | 'password';
+
 interface Props {
   onBack: () => void;
   onLogout: () => void;
@@ -41,7 +43,7 @@ interface Props {
   onManageUsers?: () => void;
   onAvatarChange?: () => void;
   refreshKey?: number;
-  openEmail?: boolean;
+  accountAction?: ProfileAccountAction;
 }
 
 /* ════════════════ ICONS ════════════════ */
@@ -180,7 +182,7 @@ function FingerprintIcon({ color }: { color: string }) {
 
 /* ════════════ MAIN ════════════ */
 
-export default function ProfileScreen({ onBack, onLogout, onLangChange, onManageUsers, onAvatarChange, refreshKey, openEmail }: Props) {
+export default function ProfileScreen({ onBack, onLogout, onLangChange, onManageUsers, onAvatarChange, refreshKey, accountAction }: Props) {
   const insets = useSafeAreaInsets();
   const { colors, theme, setTheme, allThemes } = useTheme();
   const { setLang } = useLang();
@@ -221,8 +223,8 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   const [faceIDError, setFaceIDError] = useState('');
 
   // Modals
-  const [showPwModal, setShowPwModal] = useState(false);
-  const [showEmailModal, setShowEmailModal] = useState(!!openEmail);
+  const [showPwModal, setShowPwModal] = useState(accountAction === 'password');
+  const [showEmailModal, setShowEmailModal] = useState(accountAction === 'email');
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [showCoverCrop, setShowCoverCrop] = useState(false);
   const [coverCropSrc, setCoverCropSrc] = useState('');

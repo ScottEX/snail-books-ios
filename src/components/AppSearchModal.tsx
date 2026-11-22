@@ -21,6 +21,7 @@ const pages = {
   partner: ['appSearchPartner', '合伙人 合夥人 partner'],
   profile: ['appSearchProfile', '个人中心 個人中心 个人资料 個人資料 profile'],
   email: ['changeEmail', '修改邮箱 修改郵箱 更改邮箱 更改郵箱 email'],
+  password: ['changePassword', '改密码 改密碼 更改密码 更改密碼 更换密码 更換密碼 password'],
 } as const;
 
 const recordLabels: Record<AppSearchRecord['kind'], string> = {

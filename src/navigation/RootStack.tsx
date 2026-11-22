@@ -8,7 +8,7 @@ import HomeScreen from '../screens/HomeScreen';
 import ExpenseHistoryScreen from '../screens/ExpenseHistoryScreen';
 import DailyRevenueHistory from '../screens/DailyRevenueHistory';
 import ReconHistoryScreen from '../screens/ReconHistoryScreen';
-import ProfileScreen from '../screens/ProfileScreen';
+import ProfileScreen, { type ProfileAccountAction } from '../screens/ProfileScreen';
 import UserManagementScreen from '../screens/UserManagementScreen';
 import UserDetailScreen from '../screens/UserDetailScreen';
 import InvoiceScreen from '../screens/InvoiceScreen';
@@ -25,7 +25,7 @@ export type RootStackParamList = {
   ExpenseHistory: undefined;
   DailyHistory: { date?: string } | undefined;
   ReconHistory: { date?: string } | undefined;
-  Profile: { openEmail?: boolean } | undefined;
+  Profile: { accountAction?: ProfileAccountAction } | undefined;
   UserManagement: undefined;
   UserDetail: { user: any };
   Invoice: { filterBatchId?: number | null; recordId?: number } | undefined;
@@ -91,7 +91,7 @@ function ProfileRoute() {
       onLogout={onLogout}
       onAvatarChange={emitAvatarChanged}
       onManageUsers={() => navigation.navigate('UserManagement')}
-      openEmail={params?.openEmail}
+      accountAction={params?.accountAction}
       refreshKey={refreshKey}
     />
   );
@@ -198,7 +198,8 @@ function GlobalSearch() {
   const open = async (target: AppSearchTarget, signal: AbortSignal) => {
     if (typeof target === 'string') {
       switch (target) {
-        case 'email': return () => navigation.dispatch(StackActions.push('Profile', { openEmail: true }));
+        case 'email':
+        case 'password': return () => navigation.dispatch(StackActions.push('Profile', { accountAction: target }));
         case 'profile': return () => navigation.navigate('Profile');
         case 'invoice': return () => navigation.navigate('Invoice');
         case 'expense': return () => navigation.navigate('ExpenseHistory');
