@@ -20,7 +20,7 @@ case "$TARGET" in
     ;;
   phone)
     echo "📲 Build & install to device (Debug, requires running Metro)"
-    find ~/Library/MobileDevice/Provisioning\ Profiles/ -name "*.mobileprovision" -delete 2>/dev/null
+    find ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/ -name "*.mobileprovision" -delete 2>/dev/null
     cd "$PROJECT_ROOT/ios" && pod install --silent && cd "$PROJECT_ROOT"
     xcodebuild \
       -workspace "$PROJECT_ROOT/ios/app.xcworkspace" \
