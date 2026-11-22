@@ -1,5 +1,13 @@
 import { getLang } from '../i18n';
 
+export interface ExpenseDraft {
+  amount: string;
+  date: string | null;
+  category: 'daily' | 'rent' | 'salary' | 'goods' | null;
+  account: 'payCash' | 'payWechat' | 'payAlipay' | null;
+  note: string | null;
+}
+
 // ── Event bus ──
 type UserChangeListener = () => void;
 type SessionKickedListener = () => void;
@@ -264,6 +272,12 @@ export const api = {
     return authFetch('/api/transactions?' + params.toString());
   },
   createTransaction: (data: any) => authFetch('/api/transactions', { method: 'POST', body: JSON.stringify(data) }),
+  generateExpenseDraft: (text: string, signal: AbortSignal) =>
+    authFetch<{ status: 'ok'; draft: ExpenseDraft }>('/api/transactions/expense-draft', {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+      signal,
+    }),
   deleteTransaction: (id: number) => authFetch(`/api/transactions/${id}`, { method: 'DELETE' }),
   updateTransaction: (id: number, data: any) => authFetch(`/api/transactions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 

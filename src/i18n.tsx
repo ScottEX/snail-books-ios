@@ -371,6 +371,15 @@ const I18N: Record<string, Record<string, string>> = {
     partnerTitle: '柳味探秘科技合伙人',
     password: '密码',
     passwordChanged: '密码已修改',
+    expenseAiTitle: 'AI 一句话记账',
+    expenseAiExample: '例如：今天买菜花了 86 元，微信付的',
+    expenseAiPrivacy: '输入的文字会发送给 OpenAI 用于识别，请勿填写敏感信息。',
+    expenseAiGenerate: '生成草稿',
+    expenseAiReview: '已填入识别结果，请核对全部字段后确认记账。',
+    expenseAiUnavailable: 'AI 记账暂未配置，请手动录入。',
+    expenseAiRateLimit: '请求过于频繁，请稍后重试。',
+    expenseAiUnclear: '没有识别出一笔明确的支出，请补充金额或手动录入。',
+    expenseAiFailed: '生成草稿失败，请重试或手动录入。',
     payAlipay: '支付宝',
     payBank: '银行卡',
     payCash: '现金',
@@ -995,6 +1004,15 @@ const I18N: Record<string, Record<string, string>> = {
     partnerTitle: '柳味探秘科技合夥人',
     password: '密碼',
     passwordChanged: '密碼已修改',
+    expenseAiTitle: 'AI 一句話記帳',
+    expenseAiExample: '例如：今天買菜花了 86 元，用微信付款',
+    expenseAiPrivacy: '輸入的文字會傳送給 OpenAI 進行辨識，請勿填寫敏感資訊。',
+    expenseAiGenerate: '產生草稿',
+    expenseAiReview: '已填入辨識結果，請核對所有欄位後確認記帳。',
+    expenseAiUnavailable: 'AI 記帳尚未設定，請手動輸入。',
+    expenseAiRateLimit: '請求過於頻繁，請稍後重試。',
+    expenseAiUnclear: '未辨識出一筆明確的支出，請補充金額或手動輸入。',
+    expenseAiFailed: '產生草稿失敗，請重試或手動輸入。',
     payAlipay: '支付寶',
     payBank: '銀行卡',
     payCash: '現金',
@@ -1628,6 +1646,15 @@ const I18N: Record<string, Record<string, string>> = {
     partnerTitle: 'LiuWei TanMi Technology Partners',
     password: 'Password',
     passwordChanged: 'Password changed',
+    expenseAiTitle: 'AI expense entry',
+    expenseAiExample: 'Example: Spent ¥86 on groceries today and paid with WeChat',
+    expenseAiPrivacy: 'Your text is sent to OpenAI for processing. Avoid entering sensitive information.',
+    expenseAiGenerate: 'Generate draft',
+    expenseAiReview: 'Draft filled in. Check every field before saving.',
+    expenseAiUnavailable: 'AI expense entry is unavailable. Enter the expense manually.',
+    expenseAiRateLimit: 'Too many requests. Try again shortly.',
+    expenseAiUnclear: 'No single expense could be identified. Add the amount or enter it manually.',
+    expenseAiFailed: 'Could not generate a draft. Try again or enter it manually.',
     payAlipay: 'Alipay',
     payBank: 'Bank Card',
     payCash: 'Cash',
@@ -2254,6 +2281,15 @@ export type I18nKey =
   | 'partnerTitle'
   | 'password'
   | 'passwordChanged'
+  | 'expenseAiTitle'
+  | 'expenseAiExample'
+  | 'expenseAiPrivacy'
+  | 'expenseAiGenerate'
+  | 'expenseAiReview'
+  | 'expenseAiUnavailable'
+  | 'expenseAiRateLimit'
+  | 'expenseAiUnclear'
+  | 'expenseAiFailed'
   | 'payAlipay'
   | 'payBank'
   | 'payCash'

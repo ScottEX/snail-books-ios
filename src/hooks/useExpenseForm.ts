@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { t } from '../i18n';
 import { api } from '../api/client';
 import { useServerDate } from '../hooks/useServerDate';
@@ -18,8 +18,8 @@ export function useExpenseForm(options: UseExpenseFormOptions) {
   const sd = useServerDate();
 
   /* ── expense form state ── */
-  const [expDate, setExpDate] = useState('');
-  useEffect(() => { if (sd.ready && expDate === '') setExpDate(sd.today); }, [sd.ready, sd.today, expDate]);
+  const [selectedDate, setExpDate] = useState<string | null>(null);
+  const expDate = selectedDate ?? (sd.ready ? sd.today : '');
   const [expDateErr, setExpDateErr] = useState(0);
   const [expAmount, setExpAmount] = useState('');
   const [expCategory, setExpCategory] = useState('daily');
@@ -57,18 +57,19 @@ export function useExpenseForm(options: UseExpenseFormOptions) {
     setExpCategory('daily');
     setPayMethod('payWechat');
     setExpNote('');
-    setExpDate(sd.today || '');
+    setExpDate(null);
     setExpImages([]);
     setExpDateErr(0);
     setLoadingExp(false);
     setUploadingImg(false);
     setIsRefund(false);
-  }, [sd.today]);
+  }, []);
 
   /* ── submit ── */
+  const missingRequiredFields = !expDate || !expCategory || !payMethod;
   const handleAddExpense = useCallback(async () => {
     const raw = parseFloat(expAmount.replace(/,/g, ''));
-    if (!expAmount || raw === 0) return;
+    if (missingRequiredFields || !Number.isFinite(raw) || raw === 0) return;
     if (!isRefund && raw <= 0) return;
     if (sd.ready && sd.isFuture(expDate)) { return; }
     setLoadingExp(true);
@@ -107,11 +108,12 @@ export function useExpenseForm(options: UseExpenseFormOptions) {
     setLoadingExp(false);
   }, [
     expAmount, expDate, expImages, expCategory, payMethod, expNote,
-    isRefund, sd, clearUrlCache, resetForm, onExpenseHistory, onExpenseAdded, onToast,
+    isRefund, sd, missingRequiredFields, clearUrlCache, resetForm, onExpenseHistory, onExpenseAdded, onToast,
   ]);
 
   /* ── derived ── */
-  const isAmountInvalid = !expAmount || parseFloat(expAmount.replace(/,/g, '')) === 0 || loadingExp;
+  const amount = parseFloat(expAmount.replace(/,/g, ''));
+  const isAmountInvalid = missingRequiredFields || !Number.isFinite(amount) || amount === 0 || loadingExp;
 
   return {
     expDate, setExpDate,

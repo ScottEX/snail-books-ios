@@ -420,6 +420,55 @@ export default function ExpenseScreen({
     onToast: showToast,
   });
 
+  const [showExpenseAi, setShowExpenseAi] = useState(false);
+  const [expenseAiText, setExpenseAiText] = useState('');
+  const [expenseAiBusy, setExpenseAiBusy] = useState(false);
+  const [expenseAiError, setExpenseAiError] = useState('');
+  const expenseAiRequest = useRef<AbortController | null>(null);
+  useEffect(() => () => expenseAiRequest.current?.abort(), []);
+
+  const closeExpenseAi = () => {
+    expenseAiRequest.current?.abort();
+    expenseAiRequest.current = null;
+    setExpenseAiBusy(false);
+    setExpenseAiError('');
+    setExpenseAiText('');
+    setShowExpenseAi(false);
+  };
+
+  const generateExpenseDraft = async () => {
+    const text = expenseAiText.trim();
+    if (!text || expenseAiRequest.current) return;
+    const controller = new AbortController();
+    expenseAiRequest.current = controller;
+    setExpenseAiBusy(true);
+    setExpenseAiError('');
+    Keyboard.dismiss();
+    try {
+      const { draft } = await api.generateExpenseDraft(text, controller.signal);
+      if (controller.signal.aborted) return;
+      setExpAmount(draft.amount);
+      setExpDate(draft.date ?? '');
+      setExpDateErr(0);
+      setExpCategory(draft.category ?? '');
+      setPayMethod(draft.account ?? '');
+      setExpNote(draft.note ?? '');
+      setExpenseAiText('');
+      setShowExpenseAi(false);
+      showToast(t('expenseAiReview'));
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      const message = error instanceof Error ? error.message : '';
+      const knownErrors = ['expenseAiUnavailable', 'expenseAiRateLimit', 'expenseAiUnclear'];
+      setExpenseAiError(t(knownErrors.includes(message) ? message : 'expenseAiFailed'));
+    } finally {
+      if (expenseAiRequest.current === controller) {
+        expenseAiRequest.current = null;
+        setExpenseAiBusy(false);
+      }
+    }
+  };
+
   const navigation = useNavigation<any>();
   const { preview, openPreview, closePreview } = useImagePreview();
 
@@ -793,6 +842,18 @@ export default function ExpenseScreen({
           <View style={st.card}>
             {/* 录入台 */}
             <View style={st.expForm}>
+              {!isRefund && (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  disabled={loadingExp}
+                  onPress={() => setShowExpenseAi(true)}
+                  style={{ alignSelf: 'flex-start', paddingVertical: 8 }}
+                >
+                  <Text style={{ color: colors.primary, fontSize: FONTS.subBold.size }}>
+                    {t('expenseAiTitle')}
+                  </Text>
+                </TouchableOpacity>
+              )}
               {/* 大金额输入 */}
               <View style={st.bigAmtWrap}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2, gap: 6 }}>
@@ -859,6 +920,7 @@ export default function ExpenseScreen({
                   >
                     <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary }}>
                       {(() => {
+                        if (!expDate) return t('date');
                         const l = getLang();
                         const [y, m, d] = expDate.split('-');
                         if (l.startsWith('en')) {
@@ -887,6 +949,38 @@ export default function ExpenseScreen({
         </FadeInView>
         )}
       </ScrollView>
+
+      <ModalOverlay visible={showExpenseAi} onClose={closeExpenseAi} animation="springScale">
+        <View style={st.modalCard} onStartShouldSetResponder={() => true}>
+          <View style={st.modalHeader}>
+            <Text style={st.modalTitle}>{t('expenseAiTitle')}</Text>
+            <CloseButton onPress={closeExpenseAi} />
+          </View>
+          <View style={{ padding: 20, gap: 12 }}>
+            <Text style={{ color: colors.textSub }}>{t('expenseAiPrivacy')}</Text>
+            <AppTextInput
+              accessibilityLabel={t('expenseAiTitle')}
+              placeholder={t('expenseAiExample')}
+              placeholderTextColor={colors.textSub}
+              value={expenseAiText}
+              onChangeText={setExpenseAiText}
+              editable={!expenseAiBusy}
+              multiline
+              maxLength={500}
+              style={{ color: colors.textMain, minHeight: 80, padding: 12, borderWidth: 1, borderRadius: 8, borderColor: withAlpha(colors.textSub, 0.35) }}
+            />
+            {!!expenseAiError && <Text accessibilityLiveRegion="polite" style={{ color: colors.danger }}>{expenseAiError}</Text>}
+            <ButtonPair
+              leftLabel={t('cancel')}
+              leftOnPress={closeExpenseAi}
+              rightLabel={t('expenseAiGenerate')}
+              rightOnPress={generateExpenseDraft}
+              rightDisabled={!expenseAiText.trim() || expenseAiBusy}
+              rightLoading={expenseAiBusy}
+            />
+          </View>
+        </View>
+      </ModalOverlay>
 
       {/* 添加提示弹窗 */}
       <ModalOverlay visible={showReconConfirm} onClose={hideReconConfirm} animation="springScale">
@@ -948,7 +1042,7 @@ export default function ExpenseScreen({
       {/* Exp date picker */}
       <DatePickerModal
         visible={showExpDatePicker}
-        value={expDate}
+        value={expDate || sd.today}
         onClose={() => setShowExpDatePicker(false)}
         onSelect={(d) => { if (d <= sd.today) { setExpDate(d); setExpDateErr(0); } else { setExpDateErr(c => c + 1); } }}
         minDate={undefined}
