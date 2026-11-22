@@ -7,11 +7,30 @@
 #
 # Metro (the JS bundler) is required. Run it in another terminal first:
 #   cd snail-books-ios && npx expo start
+#
+# 测试包固定从 develop 分支打包;生产包用 deploy-prod.sh(main)。
+# 构建完成或失败都会自动切回原分支。
 
 set -e
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 TARGET="${1:-sim}"
 DEVICE_ID="${2:-00008150-000231920244401C}"
+DEV_BRANCH="develop"
+
+cd "$PROJECT_ROOT"
+
+# 记录原分支,结束时(含失败)自动恢复
+ORIG_BRANCH="$(git branch --show-current)"
+restore_branch() {
+  cd "$PROJECT_ROOT" || true
+  git checkout "$ORIG_BRANCH" --quiet 2>/dev/null || git checkout develop --quiet 2>/dev/null || true
+}
+trap restore_branch EXIT
+
+echo "🔀 测试包固定从 $DEV_BRANCH 分支打包(原分支: $ORIG_BRANCH)"
+git fetch origin "$DEV_BRANCH" --quiet
+git checkout "$DEV_BRANCH" --quiet
+git pull --ff-only origin "$DEV_BRANCH" --quiet 2>/dev/null || true
 
 case "$TARGET" in
   sim)
