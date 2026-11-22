@@ -1,6 +1,8 @@
 #!/bin/bash
 # deploy-prod.sh — Build & install production Release to device
 # Usage: ./deploy-prod.sh [device_udid]
+# 生产包固定从 main 分支打包;测试包用 deploy.sh(develop)。
+# 构建完成或失败都会自动切回原分支。
 # Does NOT overwrite the debug test app (different bundle ID).
 
 set -e
@@ -8,6 +10,22 @@ PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
 DEVICE_ID="${1:-00008150-000231920244401C}"
 DERIVED_DATA=~/Library/Developer/Xcode/DerivedData/app-*
+PROD_BRANCH="main"
+
+cd "$PROJECT_ROOT"
+
+# 记录原分支,结束时(含失败)自动恢复
+ORIG_BRANCH="$(git branch --show-current)"
+restore_branch() {
+  cd "$PROJECT_ROOT" || true
+  git checkout "$ORIG_BRANCH" --quiet 2>/dev/null || git checkout develop --quiet 2>/dev/null || true
+}
+trap restore_branch EXIT
+
+echo "🔀 生产包固定从 $PROD_BRANCH 分支打包(原分支: $ORIG_BRANCH)"
+git fetch origin "$PROD_BRANCH" --quiet
+git checkout "$PROD_BRANCH" --quiet
+git pull --ff-only origin "$PROD_BRANCH" --quiet 2>/dev/null || true
 
 echo "🧹 清理旧签名缓存..."
 /bin/rm -rf $DERIVED_DATA
@@ -17,7 +35,7 @@ find ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/ -name "*.mobilep
 echo "📦 同步原生依赖..."
 cd "$PROJECT_ROOT/ios" && pod install --silent && cd "$PROJECT_ROOT"
 
-echo "🏗️  构建生产包..."
+echo "🏗️  构建生产包($PROD_BRANCH)..."
 xcodebuild \
   -workspace "$PROJECT_ROOT/ios/app.xcworkspace" \
   -scheme app \
@@ -32,4 +50,4 @@ xcrun devicectl device install app \
   --device "$DEVICE_ID" \
   ~/Library/Developer/Xcode/DerivedData/app-*/Build/Products/Release-iphoneos/app.app
 
-echo "✅ 生产包安装完成 (bundleID: com.lanx.snailbooks.prod)"
+echo "✅ 生产包安装完成 (bundleID: com.lanx.snailbooks.prod, 分支: $PROD_BRANCH)"
