@@ -371,6 +371,21 @@ const I18N: Record<string, Record<string, string>> = {
     partnerTitle: '柳味探秘科技合伙人',
     password: '密码',
     passwordChanged: '密码已修改',
+    ledgerAiTitle: 'AI 查账',
+    ledgerAiPrivacy: '问题会发送给 AI 服务商解析，账本记录由后端查询。请勿输入敏感信息。',
+    ledgerAiAsk: '查询',
+    ledgerAiSalaryExample: '这个月工资一共发了多少？',
+    ledgerAiTurnoverExample: '上周营业额是多少？',
+    ledgerAiGoodsExample: '这个月采购支出比上个月多了多少？',
+    ledgerAiUnavailable: 'AI 查账暂未配置。',
+    ledgerAiFailed: '查询失败，请稍后重试。',
+    ledgerAiUnclear: '暂时无法识别这条问题。请注明要查的账目和日期范围，或试试上面的示例。',
+    ledgerAiNoRecords: '无记录',
+    ledgerAiDifference: '差额',
+    ledgerAiExpenseBasis: '按流水日期汇总支出，包含退款冲减。',
+    ledgerAiGoodsBasis: '按流水日期汇总采购支出，包含退款冲减，未结算采购不计入金额。',
+    ledgerAiReceivedBasis: '汇总营收记录的实收和京东收入，未扣平台手续费。',
+    ledgerAiTurnoverBasis: '按营收记录汇总营业额。',
     expenseAiTitle: 'AI 一句话记账',
     expenseAiExample: '例如：今天买菜花了 86 元，微信付的',
     expenseAiPrivacy: '输入的文字会发送给 AI 服务商（DeepSeek 或 OpenAI）进行识别，请勿填写敏感信息。',
@@ -1004,6 +1019,21 @@ const I18N: Record<string, Record<string, string>> = {
     partnerTitle: '柳味探秘科技合夥人',
     password: '密碼',
     passwordChanged: '密碼已修改',
+    ledgerAiTitle: 'AI 查帳',
+    ledgerAiPrivacy: '問題會傳送給 AI 服務商解析，帳本紀錄由後端查詢。請勿輸入敏感資訊。',
+    ledgerAiAsk: '查詢',
+    ledgerAiSalaryExample: '這個月工資一共發了多少？',
+    ledgerAiTurnoverExample: '上週營業額是多少？',
+    ledgerAiGoodsExample: '這個月採購支出比上個月多了多少？',
+    ledgerAiUnavailable: 'AI 查帳尚未設定。',
+    ledgerAiFailed: '查詢失敗，請稍後重試。',
+    ledgerAiUnclear: '暫時無法識別這個問題。請注明要查的帳目和日期範圍，或試試上面的範例。',
+    ledgerAiNoRecords: '無紀錄',
+    ledgerAiDifference: '差額',
+    ledgerAiExpenseBasis: '按流水日期彙總支出，包含退款沖減。',
+    ledgerAiGoodsBasis: '按流水日期彙總採購支出，包含退款沖減，未結算採購不計入金額。',
+    ledgerAiReceivedBasis: '彙總營收紀錄的實收和京東收入，未扣平台手續費。',
+    ledgerAiTurnoverBasis: '按營收紀錄彙總營業額。',
     expenseAiTitle: 'AI 一句話記帳',
     expenseAiExample: '例如：今天買菜花了 86 元，用微信付款',
     expenseAiPrivacy: '輸入的文字會傳送給 AI 服務商（DeepSeek 或 OpenAI）進行辨識，請勿填寫敏感資訊。',
@@ -1646,6 +1676,21 @@ const I18N: Record<string, Record<string, string>> = {
     partnerTitle: 'LiuWei TanMi Technology Partners',
     password: 'Password',
     passwordChanged: 'Password changed',
+    ledgerAiTitle: 'Ask the ledger',
+    ledgerAiPrivacy: 'Your question is sent to the AI provider for interpretation. The backend queries the ledger. Avoid entering sensitive information.',
+    ledgerAiAsk: 'Ask',
+    ledgerAiSalaryExample: 'How much did we spend on payroll this month?',
+    ledgerAiTurnoverExample: 'What was last week’s turnover?',
+    ledgerAiGoodsExample: 'How much more did we spend on procurement this month than last month?',
+    ledgerAiUnavailable: 'AI ledger queries are unavailable.',
+    ledgerAiFailed: 'The query failed. Try again shortly.',
+    ledgerAiUnclear: 'Specify a metric and date range, or try one of the examples above.',
+    ledgerAiNoRecords: 'No records',
+    ledgerAiDifference: 'Difference',
+    ledgerAiExpenseBasis: 'Expenses by transaction date, net of refunds.',
+    ledgerAiGoodsBasis: 'Procurement expenses by transaction date, net of refunds. Unsettled orders contribute no amount.',
+    ledgerAiReceivedBasis: 'Recorded receipts plus JD revenue, before platform fees.',
+    ledgerAiTurnoverBasis: 'Turnover from daily revenue records.',
     expenseAiTitle: 'AI expense entry',
     expenseAiExample: 'Example: Spent ¥86 on groceries today and paid with WeChat',
     expenseAiPrivacy: 'Your text is sent to the AI provider (DeepSeek or OpenAI) for processing. Avoid entering sensitive information.',
@@ -2281,6 +2326,21 @@ export type I18nKey =
   | 'partnerTitle'
   | 'password'
   | 'passwordChanged'
+  | 'ledgerAiTitle'
+  | 'ledgerAiPrivacy'
+  | 'ledgerAiAsk'
+  | 'ledgerAiSalaryExample'
+  | 'ledgerAiTurnoverExample'
+  | 'ledgerAiGoodsExample'
+  | 'ledgerAiUnavailable'
+  | 'ledgerAiFailed'
+  | 'ledgerAiUnclear'
+  | 'ledgerAiNoRecords'
+  | 'ledgerAiDifference'
+  | 'ledgerAiExpenseBasis'
+  | 'ledgerAiGoodsBasis'
+  | 'ledgerAiReceivedBasis'
+  | 'ledgerAiTurnoverBasis'
   | 'expenseAiTitle'
   | 'expenseAiExample'
   | 'expenseAiPrivacy'

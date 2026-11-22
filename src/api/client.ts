@@ -8,6 +8,21 @@ export interface ExpenseDraft {
   note: string | null;
 }
 
+export interface LedgerTotal {
+  start_date: string;
+  end_date: string;
+  amount: number;
+  records: number;
+}
+
+export interface LedgerAnswer {
+  metric: 'turnover' | 'received' | 'expense';
+  category: ExpenseDraft['category'];
+  current: LedgerTotal;
+  comparison: LedgerTotal | null;
+  difference: number | null;
+}
+
 // ── Event bus ──
 type UserChangeListener = () => void;
 type SessionKickedListener = () => void;
@@ -276,6 +291,12 @@ export const api = {
     authFetch<{ status: 'ok'; draft: ExpenseDraft }>('/api/transactions/expense-draft', {
       method: 'POST',
       body: JSON.stringify({ text }),
+      signal,
+    }),
+  askLedger: (question: string, signal: AbortSignal) =>
+    authFetch<{ status: 'ok'; answer: LedgerAnswer }>('/api/ledger/ask', {
+      method: 'POST',
+      body: JSON.stringify({ question }),
       signal,
     }),
   deleteTransaction: (id: number) => authFetch(`/api/transactions/${id}`, { method: 'DELETE' }),

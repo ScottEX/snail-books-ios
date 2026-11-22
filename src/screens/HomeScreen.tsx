@@ -22,6 +22,7 @@ import DatePickerModal from '../components/DatePickerModal';
 import ModalOverlay from '../components/ModalOverlay';
 import ThemePickerModal from '../components/ThemePickerModal';
 import LogoutConfirmModal from '../components/LogoutConfirmModal';
+import LedgerQueryModal from '../components/LedgerQueryModal';
 import BgCropModal from '../components/BgCropModal';
 import { cacheBackground, getCachedLocalPath, getOrDownloadBackground, clearBackgroundCache } from '../utils/backgroundCache';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -54,6 +55,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   // closure can read it.
   const insets = useSafeAreaInsets();
   const sd = useServerDate();
+  const [showLedgerQuery, setShowLedgerQuery] = useState(false);
 
   // ── Tab state (persisted) ──
   const [tab, setTabState] = useState<Tab>(() => {
@@ -581,6 +583,16 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           </View>
         </View>}
 
+        {isHome && (tab === 'list' || tab === 'chart') && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={() => setShowLedgerQuery(true)}
+            style={styles.ledgerQueryButton}
+          >
+            <Text style={styles.ledgerQueryText}>{t('ledgerAiTitle')}</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Page content — tabs with their own scroll render outside the wrapper ScrollView
             (aligns with web HomeScreen.tsx which also hoists partner/supply out). */}
         {isHome && tab === 'expense' ? (
@@ -739,6 +751,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
 
       {/* Logout modal */}
       <LogoutConfirmModal visible={showLogoutModal} onClose={() => setShowLogoutModal(false)} onLogout={onLogout} />
+      <LedgerQueryModal visible={showLedgerQuery} onClose={() => setShowLedgerQuery(false)} />
 
       <DatePickerModal
         visible={showDatePicker}
@@ -1317,6 +1330,12 @@ const getStyles = (colors: ThemeColors, headerColor: string, bgOpacity: number) 
 
   // Content
   content: { flex: 1 },
+  ledgerQueryButton: {
+    alignSelf: 'flex-end', marginHorizontal: 16, marginVertical: 4,
+    minHeight: 44, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 22,
+    backgroundColor: colors.primary,
+  },
+  ledgerQueryText: { color: colors.surface, fontSize: FONTS.subBold.size, fontWeight: '700' },
 
   // Bottom nav — floating glass pill (mirrors web's center-positioned
 // saturate(220%) blur(30px) capsule).
