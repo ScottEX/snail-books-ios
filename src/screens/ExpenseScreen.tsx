@@ -9,8 +9,9 @@ import { t, getLang } from '../i18n';
 import { api } from '../api/client';
 import { useToast } from '../hooks/useToast';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
-import ReAnimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import ReAnimated, { clamp, runOnJS, useAnimatedStyle, useDerivedValue, useSharedValue, withTiming } from 'react-native-reanimated';
 import DatePickerModal from '../components/DatePickerModal';
 import CategoryChips from '../components/CategoryChips';
 import MonthPicker from '../components/MonthPicker';
@@ -36,6 +37,9 @@ import { useImagePreview } from '../hooks/useImagePreview';
 import ImagePreview, { ThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 
 import FadeInView from '../components/FadeInView';
+
+const EXPENSE_AI_SIDE_MARGIN = 18;
+const EXPENSE_AI_BOTTOM = 94;
 
 /* ── helpers ── */
 // Date helpers replaced by useServerDate() hook (server time, not client)
@@ -428,6 +432,46 @@ export default function ExpenseScreen({
   const expenseAiRequest = useRef<AbortController | null>(null);
   useEffect(() => () => expenseAiRequest.current?.abort(), []);
 
+  const expensePageSize = useSharedValue({ width: 0, height: 0 });
+  const expenseAiButtonSize = useSharedValue({ width: 0, height: 0 });
+  const expenseAiOffset = useSharedValue({ x: 0, y: 0 });
+  const expenseAiDragStart = useSharedValue({ x: 0, y: 0 });
+  const expenseAiDragBounds = useDerivedValue(() => ({
+    minX: Math.min(0, expenseAiButtonSize.value.width + 2 * EXPENSE_AI_SIDE_MARGIN - expensePageSize.value.width),
+    minY: Math.min(0, expenseAiButtonSize.value.height + EXPENSE_AI_BOTTOM + 12 - expensePageSize.value.height),
+  }));
+  const expenseAiButtonPosition = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: clamp(expenseAiOffset.value.x, expenseAiDragBounds.value.minX, 0) },
+      { translateY: clamp(expenseAiOffset.value.y, expenseAiDragBounds.value.minY, 0) },
+    ],
+  }));
+  const openExpenseAi = useCallback(() => setShowExpenseAi(true), []);
+  const expenseAiButtonGesture = useMemo(() => Gesture.Race(
+    Gesture.Pan()
+      .enabled(!loadingExp)
+      .minDistance(8)
+      .maxPointers(1)
+      .onStart(() => {
+        expenseAiDragStart.value = {
+          x: clamp(expenseAiOffset.value.x, expenseAiDragBounds.value.minX, 0),
+          y: clamp(expenseAiOffset.value.y, expenseAiDragBounds.value.minY, 0),
+        };
+      })
+      .onUpdate(({ translationX, translationY }) => {
+        expenseAiOffset.value = {
+          x: clamp(expenseAiDragStart.value.x + translationX, expenseAiDragBounds.value.minX, 0),
+          y: clamp(expenseAiDragStart.value.y + translationY, expenseAiDragBounds.value.minY, 0),
+        };
+      }),
+    Gesture.Tap()
+      .enabled(!loadingExp)
+      .maxDistance(8)
+      .onEnd((_, success) => {
+        if (success) runOnJS(openExpenseAi)();
+      }),
+  ), [expenseAiDragBounds, expenseAiDragStart, expenseAiOffset, loadingExp, openExpenseAi]);
+
   const closeExpenseAi = () => {
     Keyboard.dismiss();
     expenseAiRequest.current?.abort();
@@ -546,7 +590,9 @@ export default function ExpenseScreen({
   return (
     <>
     <ReAnimated.View style={[{ flex: 1 }, contentStyle]}>
-      <View style={st.root}>
+      <View style={st.root} onLayout={({ nativeEvent: { layout: { width, height } } }) => {
+        expensePageSize.value = { width, height };
+      }}>
       {/* ══════ 卡片式Tab ══════ */}
       <View style={st.tabBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
@@ -941,17 +987,24 @@ export default function ExpenseScreen({
       </ScrollView>
 
       {showExpenseAiButton && (
-        <TouchableOpacity
-          accessibilityRole="button"
-          disabled={loadingExp}
-          onPress={() => setShowExpenseAi(true)}
-          style={[st.expenseAiButton, loadingExp && { opacity: 0.5 }]}
-        >
-          <Svg width={18} height={18} viewBox="0 0 24 24" fill={colors.surface}>
-            <Path d="M12 1.5 14.6 9.4 22.5 12l-7.9 2.6L12 22.5l-2.6-7.9L1.5 12l7.9-2.6L12 1.5Z" />
-          </Svg>
-          <Text style={st.expenseAiButtonText}>{t('expenseAiTitle')}</Text>
-        </TouchableOpacity>
+        <GestureDetector gesture={expenseAiButtonGesture}>
+          <ReAnimated.View
+            accessible
+            accessibilityRole="button"
+            accessibilityLabel={t('expenseAiTitle')}
+            accessibilityState={{ disabled: loadingExp }}
+            onAccessibilityTap={loadingExp ? undefined : openExpenseAi}
+            onLayout={({ nativeEvent: { layout: { width, height } } }) => {
+              expenseAiButtonSize.value = { width, height };
+            }}
+            style={[st.expenseAiButton, expenseAiButtonPosition, loadingExp && { opacity: 0.5 }]}
+          >
+            <Svg width={18} height={18} viewBox="0 0 24 24" fill={colors.surface}>
+              <Path d="M12 1.5 14.6 9.4 22.5 12l-7.9 2.6L12 22.5l-2.6-7.9L1.5 12l7.9-2.6L12 1.5Z" />
+            </Svg>
+            <Text style={st.expenseAiButtonText}>{t('expenseAiTitle')}</Text>
+          </ReAnimated.View>
+        </GestureDetector>
       )}
 
       <ModalOverlay visible={showExpenseAi} onClose={closeExpenseAi} animation="springScale" avoidKeyboard>
@@ -1340,7 +1393,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   },
   contentWithAiButton: { paddingBottom: 150 },
   expenseAiButton: {
-    position: 'absolute', right: 18, bottom: 94, zIndex: 1,
+    position: 'absolute', right: EXPENSE_AI_SIDE_MARGIN, bottom: EXPENSE_AI_BOTTOM, zIndex: 1,
     minHeight: 44, paddingHorizontal: 16, borderRadius: 24,
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: colors.primary,
