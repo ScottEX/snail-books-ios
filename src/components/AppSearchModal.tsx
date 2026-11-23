@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Keyboard, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { api, type AppSearchRecord, type ExpenseDraft, type LedgerAnswer, type LedgerTotal } from '../api/client';
-import { t } from '../i18n';
+import { getLang, t } from '../i18n';
 import { FONTS, useTheme, withAlpha } from '../theme';
 import { MODAL_CARD_RADIUS } from '../sharedStyles';
 import { fmtAmtFull, formatDate } from '../utils/format';
+import { translateDividendNote, translateName } from '../screens/partner/usePartnerData';
 import AppTextInput from './AppTextInput';
 import CloseButton from './CloseButton';
 import ModalOverlay from './ModalOverlay';
@@ -12,12 +13,12 @@ import SubmitButton from './SubmitButton';
 
 const modes = {
   search: { label: 'appSearchFind', placeholder: 'appSearchPlaceholder', action: 'appSearchFind', limit: 80 },
-  ask: { label: 'assistantAsk', placeholder: 'ledgerAiTurnoverExample', action: 'ledgerAiAsk', limit: 300 },
+  ask: { label: 'assistantAsk', placeholder: 'ledgerAiProfitExample', action: 'ledgerAiAsk', limit: 300 },
   record: { label: 'assistantRecord', placeholder: 'expenseAiExample', action: 'expenseAiGenerate', limit: 500 },
 } as const;
 type AssistantMode = keyof typeof modes;
 const modelErrors = [
-  'ledgerAiUnavailable', 'ledgerAiUnclear', 'expenseAiRateLimit', 'expenseAiUnavailable', 'expenseAiUnclear',
+  'ledgerAiUnavailable', 'ledgerAiUnclear', 'ledgerAiAdminOnly', 'expenseAiRateLimit', 'expenseAiUnavailable', 'expenseAiUnclear',
 ];
 
 const pages = {
@@ -141,45 +142,92 @@ function SearchResults({ hits, onOpen, disabled }: {
 }
 
 function periodLabel(total: LedgerTotal) {
+  const end = formatDate(total.end_date);
+  if (!total.start_date) return t('ledgerAiThrough').replace('{date}', end);
   const start = formatDate(total.start_date);
-  return total.start_date === total.end_date ? start : `${start} – ${formatDate(total.end_date)}`;
+  return total.start_date === total.end_date ? start : `${start} – ${end}`;
 }
 
-function LedgerResult({ answer, onSearchSupplier }: { answer: LedgerAnswer; onSearchSupplier: (name: string) => void }) {
+const aggregateLabels = {
+  turnover: ['revTurnover', 'ledgerAiTurnoverBasis', 'revenue'],
+  received: ['actualReceived', 'ledgerAiReceivedBasis', 'revenue'],
+  expense: ['expense', 'ledgerAiExpenseBasis', 'expense'],
+  profit: ['profit', 'ledgerAiProfitBasis', 'statistics'],
+  registered_users: ['ledgerAiUsers', 'ledgerAiUsersBasis', 'userManagement'],
+  dividend_amount: ['ledgerAiDividendAmount', 'ledgerAiDividendBasis', 'dividendHistory'],
+  dividend_rounds: ['ledgerAiDividendRounds', 'ledgerAiDividendBasis', 'dividendHistory'],
+} as const;
+
+function countLabel(count: number, unit: 'ledgerAiPeopleUnit' | 'ledgerAiRoundsUnit') {
+  const key = Math.abs(count) !== 1 ? unit : unit === 'ledgerAiPeopleUnit' ? 'ledgerAiPersonUnit' : 'ledgerAiRoundUnit';
+  return t(key).replace('{n}', count.toLocaleString(getLang()));
+}
+
+function LedgerResult({ answer, onOpenPage, onSearchSupplier, disabled }: {
+  answer: LedgerAnswer;
+  onOpenPage: (page: AppSearchPage) => void;
+  onSearchSupplier: (name: string) => void;
+  disabled: boolean;
+}) {
   const { colors } = useTheme();
-  const isExpense = answer.metric === 'expense';
-  const label = isExpense ? answer.category ?? 'expense'
-    : answer.metric === 'received' ? 'actualReceived' : 'revTurnover';
-  const basis = answer.supplier ? 'appSearchSupplierBasis' : isExpense
-    ? answer.category === 'goods' ? 'ledgerAiGoodsBasis' : 'ledgerAiExpenseBasis'
-    : answer.metric === 'received' ? 'ledgerAiReceivedBasis' : 'ledgerAiTurnoverBasis';
-  const comparison = answer.comparison;
+  const resultStyle = [styles.result, { backgroundColor: withAlpha(colors.primary, 0.08) }];
+  const link = (label: string, open: () => void) => (
+    <TouchableOpacity accessibilityRole="button" onPress={open} disabled={disabled} style={styles.resultLink}>
+      <Text style={{ color: colors.primary }}>{label} ›</Text>
+    </TouchableOpacity>
+  );
+  const row = (label: string, value: string, key?: number) => (
+    <View key={key} style={styles.totalRow}>
+      <Text style={[styles.period, { color: colors.textSub }]}>{label}</Text>
+      <Text style={{ color: colors.textMain, fontWeight: '600' }}>{value}</Text>
+    </View>
+  );
+
+  if (answer.metric === 'shareholders') {
+    return (
+      <View style={resultStyle} accessibilityLiveRegion="polite">
+        <Text style={[styles.title, { color: colors.textMain }]}>{t('ledgerAiShareholders')}</Text>
+        <Text style={[styles.caption, { color: colors.textSub }]}>
+          {t('ledgerAiThrough').replace('{date}', formatDate(answer.as_of))}
+        </Text>
+        {answer.shareholders.length
+          ? answer.shareholders.map(({ id, name, share }) => row(
+            translateName(name), `${(share * 100).toLocaleString(getLang(), { maximumFractionDigits: 2 })}%`, id,
+          ))
+          : <Text style={{ color: colors.textSub }}>{t('ledgerAiNoRecords')}</Text>}
+        {link(t('appSearchPartner'), () => onOpenPage('partnerStructure'))}
+      </View>
+    );
+  }
+
+  const [defaultLabel, defaultBasis, page] = aggregateLabels[answer.metric];
+  const { supplier, category, current, comparison, difference } = answer;
+  const label = category ?? defaultLabel;
+  const basis = supplier ? 'appSearchSupplierBasis' : category === 'goods' ? 'ledgerAiGoodsBasis' : defaultBasis;
+  const countUnit = answer.metric === 'registered_users' ? 'ledgerAiPeopleUnit'
+    : answer.metric === 'dividend_rounds' ? 'ledgerAiRoundsUnit' : null;
+  const formatAmount = (amount: number) => countUnit ? countLabel(amount, countUnit) : fmtAmtFull(amount);
+  const totalLabel = (total: LedgerTotal) => countUnit || total.records ? formatAmount(total.amount) : t('ledgerAiNoRecords');
+
   return (
-    <View style={[styles.result, { backgroundColor: withAlpha(colors.primary, 0.08) }]} accessibilityLiveRegion="polite">
-      <Text style={[styles.title, { color: colors.textMain }]}>{t(label)}{answer.supplier ? ` · ${answer.supplier}` : ''}</Text>
-      <Text style={[styles.amount, { color: colors.primary }]}>
-        {answer.current.records ? fmtAmtFull(answer.current.amount) : t('ledgerAiNoRecords')}
+    <View style={resultStyle} accessibilityLiveRegion="polite">
+      <Text style={[styles.title, { color: colors.textMain }]}>{t(label)}{supplier ? ` · ${supplier}` : ''}</Text>
+      <Text style={[styles.amount, { color: colors.primary }]}>{totalLabel(current)}</Text>
+      <Text style={[styles.caption, { color: colors.textSub }]}>
+        {[current.round && translateDividendNote(current.round), periodLabel(current)].filter(Boolean).join(' · ')}
       </Text>
-      <Text style={[styles.caption, { color: colors.textSub }]}>{periodLabel(answer.current)}</Text>
-      {comparison && (
-        <View style={styles.totalRow}>
-          <Text style={[styles.period, styles.caption, { color: colors.textSub }]}>{periodLabel(comparison)}</Text>
-          <Text style={{ color: colors.textMain, fontWeight: '600' }}>
-            {comparison.records ? fmtAmtFull(comparison.amount) : t('ledgerAiNoRecords')}
-          </Text>
-        </View>
-      )}
-      {answer.difference !== null && (
+      {current.awaiting_review !== undefined && row(t('ledgerAiAwaitingReview'), countLabel(current.awaiting_review, 'ledgerAiPeopleUnit'))}
+      {current.disabled !== undefined && row(t('ledgerAiDisabled'), countLabel(current.disabled, 'ledgerAiPeopleUnit'))}
+      {answer.metric === 'dividend_amount' && current.rounds !== undefined && row(t('ledgerAiDividendRounds'), countLabel(current.rounds, 'ledgerAiRoundsUnit'))}
+      {answer.metric === 'dividend_rounds' && current.dividend_amount !== undefined && row(t('ledgerAiDividendAmount'), fmtAmtFull(current.dividend_amount))}
+      {comparison && row(periodLabel(comparison), totalLabel(comparison))}
+      {difference !== null && (
         <Text style={{ color: colors.primary, fontWeight: '600' }}>
-          {t('ledgerAiDifference')} {answer.difference > 0 ? '+' : ''}{fmtAmtFull(answer.difference)}
+          {t('ledgerAiDifference')} {difference > 0 ? '+' : ''}{formatAmount(difference)}
         </Text>
       )}
       <Text style={[styles.caption, { color: colors.textSub }]}>{t(basis)}</Text>
-      {!!answer.supplier && (
-        <TouchableOpacity accessibilityRole="button" onPress={() => onSearchSupplier(answer.supplier!)}>
-          <Text style={{ color: colors.primary }}>{t('appSearchRelated')}</Text>
-        </TouchableOpacity>
-      )}
+      {supplier ? link(t('appSearchRelated'), () => onSearchSupplier(supplier)) : link(t(pages[page][0]), () => onOpenPage(page))}
     </View>
   );
 }
@@ -369,10 +417,11 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
             underlineColorAndroid="transparent"
             style={[styles.input, !isSearch && styles.multilineInput, { color: colors.textMain, backgroundColor: colors.bg }]}
           />
+          {mode === 'ask' && !answer && !error && <Text style={[styles.caption, { color: colors.textSub }]}>{t('ledgerAiTopics')}</Text>}
           {!isSearch && <Text style={[styles.caption, { color: colors.textSub }]}>{t('assistantPrivacy')}</Text>}
           {!!error && <Text accessibilityLiveRegion="polite" style={{ color: colors.danger }}>{error}</Text>}
           {hits && <SearchResults hits={hits} onOpen={openResult} disabled={busy} />}
-          {answer && <LedgerResult answer={answer} onSearchSupplier={searchSupplier} />}
+          {answer && <LedgerResult answer={answer} onSearchSupplier={searchSupplier} onOpenPage={openResult} disabled={busy} />}
           {draft && <DraftResult draft={draft} />}
         </ScrollView>
         <View style={styles.actions}>
@@ -406,6 +455,7 @@ const styles = StyleSheet.create({
   hit: { flexDirection: 'row', alignItems: 'center', minHeight: 44, paddingVertical: 7, gap: 8 },
   hitTitle: { flex: 1 },
   result: { borderRadius: 12, padding: 12, gap: 5 },
+  resultLink: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   totalRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   period: { flex: 1 },
   actions: { alignItems: 'flex-end', paddingHorizontal: 20, paddingTop: 6, paddingBottom: 16 },

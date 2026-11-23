@@ -9,20 +9,31 @@ export interface ExpenseDraft {
 }
 
 export interface LedgerTotal {
-  start_date: string;
+  start_date: string | null;
   end_date: string;
   amount: number;
   records: number;
+  awaiting_review?: number;
+  disabled?: number;
+  rounds?: number;
+  dividend_amount?: number;
+  round?: string;
 }
 
-export interface LedgerAnswer {
-  metric: 'turnover' | 'received' | 'expense';
+interface LedgerAggregateAnswer {
+  metric: 'turnover' | 'received' | 'expense' | 'profit' | 'registered_users' | 'dividend_amount' | 'dividend_rounds';
   category: ExpenseDraft['category'];
   supplier: string | null;
   current: LedgerTotal;
   comparison: LedgerTotal | null;
   difference: number | null;
 }
+
+export type LedgerAnswer = LedgerAggregateAnswer | {
+  metric: 'shareholders';
+  as_of: string;
+  shareholders: { id: number; name: string; share: number }[];
+};
 
 export interface AppSearchRecord {
   kind: 'expense' | 'procurement' | 'invoice' | 'product' | 'partner' | 'revenue' | 'reconciliation';
@@ -169,13 +180,13 @@ async function authFetch<T = any>(url: string, options?: RequestInit): Promise<T
     return Promise.reject(new Error(kickCode ? '__EXPIRING__' : kickMsg || 'Unauthorized'));
   }
   if (resp.status === 403) {
-    let isDisabled = false;
+    let message = '';
     try {
       const body = await resp.clone().json();
-      const msg = (body?.message || '').toLowerCase();
-      isDisabled = msg.includes('disabled') || msg.includes('禁用') || msg.includes('停用');
+      if (typeof body?.message === 'string') message = body.message;
     } catch {}
-    if (isDisabled) {
+    if (url === '/api/ledger/ask' && message === 'ledgerAiAdminOnly') throw new Error(message);
+    if (message.toLowerCase().includes('disabled') || message.includes('禁用') || message.includes('停用')) {
       localStorage.removeItem('user');
       _emitUserChange();
       try { onSessionExpired?.(); } catch {}

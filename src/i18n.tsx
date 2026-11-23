@@ -404,10 +404,27 @@ const I18N: Record<string, Record<string, string>> = {
     ledgerAiAsk: '查询',
     ledgerAiSalaryExample: '这个月工资一共发了多少？',
     ledgerAiTurnoverExample: '上周营业额是多少？',
+    ledgerAiProfitExample: '今天的利润是多少？',
+    ledgerAiTopics: '可以问营业额、利润、股东、分红和注册人数。',
+    ledgerAiAdminOnly: '注册用户统计仅管理员可查。',
+    ledgerAiThrough: '截至 {date}',
+    ledgerAiProfitBasis: '与经营总览一致。已录入实收减支出，未扣平台手续费。',
+    ledgerAiUsers: '已验证注册用户',
+    ledgerAiUsersBasis: '按注册日期统计已验证邮箱的用户，审核和停用人数按当前状态显示。',
+    ledgerAiAwaitingReview: '待审核',
+    ledgerAiDisabled: '审核后停用',
+    ledgerAiShareholders: '股东及持股比例',
+    ledgerAiDividendAmount: '分红金额',
+    ledgerAiDividendRounds: '分红轮次',
+    ledgerAiDividendBasis: '金额按分红记录汇总，轮次按分红历史的分组统计。',
+    ledgerAiPeopleUnit: '{n} 人',
+    ledgerAiRoundsUnit: '{n} 轮',
+    ledgerAiPersonUnit: '{n} 人',
+    ledgerAiRoundUnit: '{n} 轮',
     ledgerAiGoodsExample: '这个月采购支出比上个月多了多少？',
     ledgerAiUnavailable: 'AI 查账暂未配置。',
     ledgerAiFailed: '查询失败，请稍后重试。',
-    ledgerAiUnclear: '暂时无法识别这条问题。请注明要查的账目和日期范围，或试试上面的示例。',
+    ledgerAiUnclear: '暂时无法回答这条问题。可以试试「今天的利润是多少」或「一共分红了几次」。',
     ledgerAiNoRecords: '无记录',
     ledgerAiDifference: '差额',
     ledgerAiExpenseBasis: '按流水日期汇总支出，包含退款冲减。',
@@ -1080,10 +1097,27 @@ const I18N: Record<string, Record<string, string>> = {
     ledgerAiAsk: '查詢',
     ledgerAiSalaryExample: '這個月工資一共發了多少？',
     ledgerAiTurnoverExample: '上週營業額是多少？',
+    ledgerAiProfitExample: '今天的利潤是多少？',
+    ledgerAiTopics: '可以問營業額、利潤、股東、分紅和註冊人數。',
+    ledgerAiAdminOnly: '註冊使用者統計僅管理員可查。',
+    ledgerAiThrough: '截至 {date}',
+    ledgerAiProfitBasis: '與經營總覽一致。已登錄實收減支出，未扣平台手續費。',
+    ledgerAiUsers: '已驗證註冊使用者',
+    ledgerAiUsersBasis: '按註冊日期統計已驗證電子郵件的使用者，審核和停用人數按目前狀態顯示。',
+    ledgerAiAwaitingReview: '待審核',
+    ledgerAiDisabled: '審核後停用',
+    ledgerAiShareholders: '股東及持股比例',
+    ledgerAiDividendAmount: '分紅金額',
+    ledgerAiDividendRounds: '分紅輪次',
+    ledgerAiDividendBasis: '金額按分紅紀錄加總，輪次按分紅歷史的分組統計。',
+    ledgerAiPeopleUnit: '{n} 人',
+    ledgerAiRoundsUnit: '{n} 輪',
+    ledgerAiPersonUnit: '{n} 人',
+    ledgerAiRoundUnit: '{n} 輪',
     ledgerAiGoodsExample: '這個月採購支出比上個月多了多少？',
     ledgerAiUnavailable: 'AI 查帳尚未設定。',
     ledgerAiFailed: '查詢失敗，請稍後重試。',
-    ledgerAiUnclear: '暫時無法識別這個問題。請注明要查的帳目和日期範圍，或試試上面的範例。',
+    ledgerAiUnclear: '暫時無法回答這個問題。可以試試「今天的利潤是多少」或「一共分紅了幾次」。',
     ledgerAiNoRecords: '無紀錄',
     ledgerAiDifference: '差額',
     ledgerAiExpenseBasis: '按流水日期彙總支出，包含退款沖減。',
@@ -1765,10 +1799,27 @@ const I18N: Record<string, Record<string, string>> = {
     ledgerAiAsk: 'Ask',
     ledgerAiSalaryExample: 'How much did we spend on payroll this month?',
     ledgerAiTurnoverExample: 'What was last week’s turnover?',
+    ledgerAiProfitExample: 'What was today’s profit?',
+    ledgerAiTopics: 'Ask about sales, profit, shareholders, dividends, or registrations.',
+    ledgerAiAdminOnly: 'Only administrators can view registration statistics.',
+    ledgerAiThrough: 'Through {date}',
+    ledgerAiProfitBasis: 'Recorded receipts minus expenses, before platform fees.',
+    ledgerAiUsers: 'Verified registrations',
+    ledgerAiUsersBasis: 'Counts email-verified users by registration date. Statuses reflect the current state.',
+    ledgerAiAwaitingReview: 'Awaiting review',
+    ledgerAiDisabled: 'Reviewed and disabled',
+    ledgerAiShareholders: 'Shareholders and ownership',
+    ledgerAiDividendAmount: 'Dividends paid',
+    ledgerAiDividendRounds: 'Dividend rounds',
+    ledgerAiDividendBasis: 'Amounts are summed from dividend records. Rounds follow the groups in dividend history.',
+    ledgerAiPeopleUnit: '{n} people',
+    ledgerAiRoundsUnit: '{n} rounds',
+    ledgerAiPersonUnit: '{n} person',
+    ledgerAiRoundUnit: '{n} round',
     ledgerAiGoodsExample: 'How much more did we spend on procurement this month than last month?',
     ledgerAiUnavailable: 'AI ledger queries are unavailable.',
     ledgerAiFailed: 'The query failed. Try again shortly.',
-    ledgerAiUnclear: 'Specify a metric and date range, or try one of the examples above.',
+    ledgerAiUnclear: 'Try a question such as “What was today’s profit?” or “How many dividend rounds have we paid?”',
     ledgerAiNoRecords: 'No records',
     ledgerAiDifference: 'Difference',
     ledgerAiExpenseBasis: 'Expenses by transaction date, net of refunds.',
@@ -2443,6 +2494,23 @@ export type I18nKey =
   | 'ledgerAiAsk'
   | 'ledgerAiSalaryExample'
   | 'ledgerAiTurnoverExample'
+  | 'ledgerAiProfitExample'
+  | 'ledgerAiTopics'
+  | 'ledgerAiAdminOnly'
+  | 'ledgerAiThrough'
+  | 'ledgerAiProfitBasis'
+  | 'ledgerAiUsers'
+  | 'ledgerAiUsersBasis'
+  | 'ledgerAiAwaitingReview'
+  | 'ledgerAiDisabled'
+  | 'ledgerAiShareholders'
+  | 'ledgerAiDividendAmount'
+  | 'ledgerAiDividendRounds'
+  | 'ledgerAiDividendBasis'
+  | 'ledgerAiPeopleUnit'
+  | 'ledgerAiRoundsUnit'
+  | 'ledgerAiPersonUnit'
+  | 'ledgerAiRoundUnit'
   | 'ledgerAiGoodsExample'
   | 'ledgerAiUnavailable'
   | 'ledgerAiFailed'
