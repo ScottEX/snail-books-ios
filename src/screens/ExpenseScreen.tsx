@@ -30,6 +30,7 @@ import NumberTickerExt from '../components/NumberTicker';
 import { useServerDate } from '../hooks/useServerDate';
 import { useExpenseForm } from '../hooks/useExpenseForm';
 import { useDraggableButton } from '../hooks/useDraggableButton';
+import type { HomeSearchRequest } from '../navigation/homeSearchActions';
 import ModalOverlay from '../components/ModalOverlay';
 import { useDateField } from '../hooks/useDateField';
 import DateErrorHint from '../components/DateErrorHint';
@@ -97,9 +98,13 @@ function InputWithFocus({ style, inputStyle, ...props }: any) {
 export default function ExpenseScreen({
   onReconHistory,
   onExpenseHistory,
+  searchShortcut,
+  onSearchShortcutHandled,
 }: {
   onReconHistory?: () => void;
   onExpenseHistory?: () => void;
+  searchShortcut?: HomeSearchRequest | null;
+  onSearchShortcutHandled?: () => void;
 }) {
   const { colors } = useTheme();
   const sd = useServerDate();
@@ -138,6 +143,9 @@ export default function ExpenseScreen({
   };
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollRef = useRef<ScrollView>(null);
+  const expenseContentRef = useRef<ScrollView>(null);
+  const reconciliationOffset = useRef<number | null>(null);
+  const jumpToReconciliation = useRef(false);
 
   // Auto-scroll to active card when activeTab changes (tap on card)
   useEffect(() => {
@@ -351,6 +359,12 @@ export default function ExpenseScreen({
   const { feeMc, feeMw, feeEw, feeMt } = feeForm;
   const [savingFee, setSavingFee] = useState(false);
   const [negativeMode, setNegativeMode] = useState(false);
+  const openFeeEntry = () => {
+    setFeeForm({ feeMc: '', feeMw: '', feeEw: '', feeMt: '' });
+    setNegativeMode(false);
+    feeDate.setError(0);
+    setShowFeeSheet(true);
+  };
   const feeLoadId = useRef(0);  // guard against stale async responses
 
   const loadFeeData = async () => {
@@ -438,6 +452,50 @@ export default function ExpenseScreen({
     anchor: 'right', left: EXPENSE_AI_SIDE_MARGIN, right: EXPENSE_AI_SIDE_MARGIN,
     top: 12, bottom: EXPENSE_AI_BOTTOM, onPress: openExpenseAi, disabled: loadingExp,
   });
+
+  useEffect(() => {
+    if (!searchShortcut) return;
+    const { action } = searchShortcut;
+    switch (action) {
+      case 'expenseEntry':
+      case 'refund':
+      case 'expenseAi':
+        if (loadingExp) return;
+        setActiveTab(1);
+        setIsRefund(action === 'refund');
+        if (action === 'expenseAi') openExpenseAi();
+        break;
+      case 'feeEntry':
+        if (!sd.ready) return;
+        setFeeMonth({ year: sd.year, month: sd.month });
+        feeDate.setValue(sd.today);
+        openFeeEntry();
+        setActiveTab(0);
+        break;
+      case 'feeHistory':
+        setFeeHistoryFilter('all');
+        setShowFeeHistory(true);
+        setActiveTab(0);
+        break;
+      case 'reconciliationEntry':
+        if (activeTab === 0 && reconciliationOffset.current !== null) {
+          expenseContentRef.current?.scrollTo({ y: reconciliationOffset.current, animated: false });
+        } else {
+          jumpToReconciliation.current = true;
+        }
+        setActiveTab(0);
+        break;
+      case 'fee':
+        setActiveTab(0);
+        break;
+      default: return;
+    }
+    if (action !== 'reconciliationEntry') {
+      jumpToReconciliation.current = false;
+      expenseContentRef.current?.scrollTo({ y: 0, animated: false });
+    }
+    onSearchShortcutHandled?.();
+  }, [searchShortcut, sd.ready, loadingExp]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const closeExpenseAi = () => {
     Keyboard.dismiss();
@@ -668,7 +726,7 @@ export default function ExpenseScreen({
       </View>
 
       {/* ══════ 内容区（FadeIn 切换） ══════ */}
-      <ScrollView style={st.contentScroll} showsVerticalScrollIndicator={false}
+      <ScrollView ref={expenseContentRef} style={st.contentScroll} showsVerticalScrollIndicator={false}
         contentContainerStyle={[st.contentInner, showExpenseAiButton && st.contentWithAiButton]}>
 
         {/* ── 模块一：每日对账 ── */}
@@ -688,9 +746,7 @@ export default function ExpenseScreen({
                   if (feeMonth === 'all') {
                     setShowFeeHistory(true); setFeeHistoryFilter('all');
                   } else {
-                    setFeeForm({ feeMc: '', feeMw: '', feeEw: '', feeMt: '' });
-                    setNegativeMode(false);
-                    feeDate.setError(0); setShowFeeSheet(true);
+                    openFeeEntry();
                   }
                 }}
                 activeOpacity={0.7}
@@ -730,7 +786,13 @@ export default function ExpenseScreen({
             </View>
           </View>
           {/* ── 日记账 ── */}
-          <View style={[st.card, { marginTop: 16 }]}>
+          <View style={[st.card, { marginTop: 16 }]} onLayout={({ nativeEvent: { layout: { y } } }) => {
+            reconciliationOffset.current = y;
+            if (jumpToReconciliation.current) {
+              jumpToReconciliation.current = false;
+              expenseContentRef.current?.scrollTo({ y, animated: false });
+            }
+          }}>
             {/* 日期行 */}
             <View style={st.dateRow}>
               <Text style={{ fontSize: FONTS.sub.size, fontWeight: FONTS.sub.weight, color: colors.textSub }}>{t('billDate')}</Text>

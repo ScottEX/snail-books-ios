@@ -372,6 +372,14 @@ const I18N: Record<string, Record<string, string>> = {
     password: '密码',
     passwordChanged: '密码已修改',
     appSearchTitle: '全局查找',
+    appSearchExpenseEntry: '录入支出',
+    appSearchRefund: '录入退款',
+    appSearchProducts: '商品管理',
+    appSearchCart: '采购购物车',
+    appSearchStatistics: '经营统计',
+    appSearchAvatar: '更换头像',
+    appSearchSignature: '个性签名',
+    appSearchFeeHistory: '手续费历史',
     appSearchFind: '查找',
     appSearchPlaceholder: '输入页面名、供应商、单号或备注',
     appSearchPages: '页面',
@@ -1033,6 +1041,14 @@ const I18N: Record<string, Record<string, string>> = {
     password: '密碼',
     passwordChanged: '密碼已修改',
     appSearchTitle: '全域查找',
+    appSearchExpenseEntry: '錄入支出',
+    appSearchRefund: '錄入退款',
+    appSearchProducts: '商品管理',
+    appSearchCart: '採購購物車',
+    appSearchStatistics: '營運統計',
+    appSearchAvatar: '更換頭像',
+    appSearchSignature: '個性簽名',
+    appSearchFeeHistory: '手續費歷史',
     appSearchFind: '查找',
     appSearchPlaceholder: '輸入頁面名稱、供應商、單號或備註',
     appSearchPages: '頁面',
@@ -1703,6 +1719,14 @@ const I18N: Record<string, Record<string, string>> = {
     password: 'Password',
     passwordChanged: 'Password changed',
     appSearchTitle: 'Search the app',
+    appSearchExpenseEntry: 'Record an expense',
+    appSearchRefund: 'Record a refund',
+    appSearchProducts: 'Manage products',
+    appSearchCart: 'Procurement cart',
+    appSearchStatistics: 'Business statistics',
+    appSearchAvatar: 'Change avatar',
+    appSearchSignature: 'Profile signature',
+    appSearchFeeHistory: 'Platform fee history',
     appSearchFind: 'Search',
     appSearchPlaceholder: 'Enter a page, supplier, reference number, or note',
     appSearchPages: 'Pages',
@@ -2366,6 +2390,14 @@ export type I18nKey =
   | 'password'
   | 'passwordChanged'
   | 'appSearchTitle'
+  | 'appSearchExpenseEntry'
+  | 'appSearchRefund'
+  | 'appSearchProducts'
+  | 'appSearchCart'
+  | 'appSearchStatistics'
+  | 'appSearchAvatar'
+  | 'appSearchSignature'
+  | 'appSearchFeeHistory'
   | 'appSearchFind'
   | 'appSearchPlaceholder'
   | 'appSearchPages'

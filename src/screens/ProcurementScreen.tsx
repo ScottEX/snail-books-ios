@@ -40,6 +40,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ImagePreview, { measureThumbLayout, resolveThumbLayout, ThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
 import { useNavigation } from '@react-navigation/native';
+import type { HomeSearchRequest } from '../navigation/homeSearchActions';
 
 type SubTab = 'new' | 'history' | 'products';
 type PayMethod = 'payCash' | 'payWechat' | 'payAlipay';
@@ -296,7 +297,20 @@ const getStyles = (c: ThemeColors, bgOpacity: number) => {
 // ═══════════════════════════════════════════════
 // Main Component
 // ═══════════════════════════════════════════════
-export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcurementDetail, pendingEditBatch, onPendingEditConsumed, onInvoice, searchProduct }: { onDrawerOpen?: () => void; onDrawerClose?: () => void; onProcurementDetail?: (batch: BatchRecord) => void; pendingEditBatch?: BatchRecord | null; onPendingEditConsumed?: () => void; onInvoice?: (batchId: number) => void; searchProduct?: string }) {
+export default function ProcurementScreen({
+  onDrawerOpen, onDrawerClose, onProcurementDetail, pendingEditBatch, onPendingEditConsumed, onInvoice,
+  searchProduct, searchShortcut, onSearchShortcutHandled,
+}: {
+  onDrawerOpen?: () => void;
+  onDrawerClose?: () => void;
+  onProcurementDetail?: (batch: BatchRecord) => void;
+  pendingEditBatch?: BatchRecord | null;
+  onPendingEditConsumed?: () => void;
+  onInvoice?: (batchId: number) => void;
+  searchProduct?: string;
+  searchShortcut?: HomeSearchRequest | null;
+  onSearchShortcutHandled?: () => void;
+}) {
   const { colors: c } = useTheme();
   const sd = useServerDate();
   const readBgOpacity = (): number => {
@@ -918,6 +932,22 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
     setProdForm({ name: '', spec: '', price: '', supplier: '', note: '' });
     setShowProductModal(true);
   };
+  const openCart = () => {
+    setShowDrawer(true);
+    onDrawerOpen?.();
+  };
+  useEffect(() => {
+    switch (searchShortcut?.action) {
+      case 'newOrder': setSubTab('new'); break;
+      case 'procurementHistory': setSubTab('history'); break;
+      case 'products': setSubTab('products'); break;
+      case 'addProduct': setSubTab('products'); openAddProduct(); break;
+      case 'procurementCart': setSubTab('new'); openCart(); break;
+      default: return;
+    }
+    setSearch('');
+    onSearchShortcutHandled?.();
+  }, [searchShortcut]); // eslint-disable-line react-hooks/exhaustive-deps
   const openEditProduct = (p: Product) => {
     setEditingProduct(p);
     setProdForm({ name: p.name, spec: p.spec, price: String(p.price), supplier: p.supplier, note: p.note || '' });
@@ -1129,7 +1159,7 @@ export default function ProcurementScreen({ onDrawerOpen, onDrawerClose, onProcu
                   pointerEvents="none"
                 />
               </View>
-              <TouchableOpacity style={styles.cartPreview} onPress={() => { setShowDrawer(true); onDrawerOpen?.(); }} activeOpacity={0.8}>
+              <TouchableOpacity style={styles.cartPreview} onPress={openCart} activeOpacity={0.8}>
                 <View style={[styles.cartIconWrap, { backgroundColor: c.primary }]}>
                   <CartIcon color={c.surface} />
                   <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{cartCount}</Text></View>

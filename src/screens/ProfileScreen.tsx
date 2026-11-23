@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  Image, Switch, Modal, useWindowDimensions,
+  Image, Switch, Modal, useWindowDimensions, type LayoutChangeEvent,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Defs, LinearGradient as SVGGradient, Stop, Rect } from 'react-native-svg';
@@ -34,7 +34,8 @@ import { isBiometricAvailable, saveCredential, promptBiometric, getCredential, B
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import ReAnimated, { useAnimatedStyle, useSharedValue, useAnimatedScrollHandler, interpolate, Extrapolation, withTiming, withSpring, cancelAnimation } from 'react-native-reanimated';
 
-export type ProfileAccountAction = 'email' | 'password';
+export type ProfileAccountAction = 'email' | 'password' | 'account' | 'security' | 'avatar' | 'cover' | 'signature' |
+  'theme' | 'language' | 'loginSecurity' | 'faceId' | 'singleSession' | 'sessionTimeout' | 'deleteAccount';
 
 interface Props {
   onBack: () => void;
@@ -225,7 +226,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
   // Modals
   const [showPwModal, setShowPwModal] = useState(accountAction === 'password');
   const [showEmailModal, setShowEmailModal] = useState(accountAction === 'email');
-  const [showThemeModal, setShowThemeModal] = useState(false);
+  const [showThemeModal, setShowThemeModal] = useState(accountAction === 'theme');
   const [showCoverCrop, setShowCoverCrop] = useState(false);
   const [coverCropSrc, setCoverCropSrc] = useState('');
   const [showAvatarCrop, setShowAvatarCrop] = useState(false);
@@ -806,6 +807,18 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
     return th.nameZh;
   };
 
+  const profileScroll = useRef<React.ElementRef<typeof ReAnimated.ScrollView>>(null);
+  const didJump = useRef(false);
+  const jumpTo = (...actions: ProfileAccountAction[]) => {
+    if (!accountAction || !actions.includes(accountAction)) return undefined;
+    return (event: LayoutChangeEvent) => {
+      if (didJump.current || !profileScroll.current) return;
+      didJump.current = true;
+      const y = Math.max(0, event.nativeEvent.layout.y - insets.top - 60);
+      profileScroll.current.scrollTo({ y, animated: false });
+    };
+  };
+
   return (
     <>
     <View style={st.root}>
@@ -891,7 +904,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         </ReAnimated.View>
       </TouchableOpacity>
       </ReAnimated.View>
-      <ReAnimated.ScrollView style={st.scroll} showsVerticalScrollIndicator={false}
+      <ReAnimated.ScrollView ref={profileScroll} style={st.scroll} showsVerticalScrollIndicator={false}
         bounces={true} alwaysBounceVertical={true}
         onScroll={scrollHandler}
         scrollEventThrottle={16}>
@@ -899,7 +912,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         <View style={{ height: coverHeight }} />
 
         {/* ── Profile head ── */}
-        <View style={st.profileHead}>
+        <View style={st.profileHead} onLayout={jumpTo('signature')}>
           <Text style={st.profileName}>{username}</Text>
 
           {/* Signature */}
@@ -927,14 +940,14 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         </View>
 
         {/* ── Section: Account ── */}
-        <Section title={t('accountInfo')} colors={colors} styles={st}>
+        <Section title={t('accountInfo')} colors={colors} styles={st} onLayout={jumpTo('account')}>
           <CardRow colors={colors} styles={st} icon={<UserIcon color="#6499ff" />} label={t('displayName')} value={username} />
           <Divider colors={colors} />
           <CardRow colors={colors} styles={st} icon={<MailIcon color="#64c896" />} label={t('profileEmail')} value={email || '—'} />
         </Section>
 
         {/* ── Section: Security ── */}
-        <Section title={t('securitySettings')} colors={colors} styles={st}>
+        <Section title={t('securitySettings')} colors={colors} styles={st} onLayout={jumpTo('security')}>
           <TouchableOpacity onPress={() => { setShowPwModal(true); setOldPw(''); setNewPw(''); setConfirmPw(''); setPwMsg(''); }} activeOpacity={0.7}>
             <CardRow colors={colors} styles={st} icon={<LockIcon color={colors.primary} />} label={t('changePassword')} right={<ChevronRight color={colors.textSub} />} />
           </TouchableOpacity>
@@ -945,7 +958,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         </Section>
 
         {/* ── Section: Preferences ── */}
-        <Section title={t('preferences')} colors={colors} styles={st}>
+        <Section title={t('preferences')} colors={colors} styles={st} onLayout={jumpTo('language')}>
           {/* Language */}
           <View style={st.iconRow}>
             <View style={[st.iconWrap, { backgroundColor: 'rgba(180,130,220,0.12)' }]}>
@@ -982,7 +995,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         </Section>
 
         {/* ── Section: Sign-in Security ── */}
-        <Section title={t('authSettingsTitle')} colors={colors} styles={st}>
+        <Section title={t('authSettingsTitle')} colors={colors} styles={st} onLayout={jumpTo('loginSecurity', 'faceId', 'singleSession', 'sessionTimeout')}>
           {/* Face ID row */}
           {faceAvailable && (
             <View style={st.authRow}>
@@ -1074,7 +1087,7 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
         </Section>
 
         {/* ── Section: Danger ── */}
-        <Section title={t('dangerZone')} colors={colors} styles={st}>
+        <Section title={t('dangerZone')} colors={colors} styles={st} onLayout={jumpTo('deleteAccount')}>
           <TouchableOpacity onPress={() => {
             if (isAdmin) { setShowAdminBlockModal(true); }
             else if (isPartner) { setShowPartnerBlockModal(true); }
@@ -1477,9 +1490,9 @@ export default function ProfileScreen({ onBack, onLogout, onLangChange, onManage
 
 /* ════════════════ HELPER COMPONENTS ════════════════ */
 
-function Section({ title, children, colors, styles }: any) {
+function Section({ title, children, colors, styles, onLayout }: any) {
   return (
-    <View style={styles.section}>
+    <View style={styles.section} onLayout={onLayout}>
       <View style={styles.sectionTitleRow}>
         <Text style={styles.sectionTitleText}>{title}</Text>
         <View style={styles.sectionTitleLine} />

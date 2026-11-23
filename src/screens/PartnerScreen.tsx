@@ -24,6 +24,7 @@ import { t, useLang } from '../i18n';
 import { useServerDate } from '../hooks/useServerDate';
 import { api } from '../api/client';
 import { useToast } from '../hooks/useToast';
+import type { HomeSearchRequest } from '../navigation/homeSearchActions';
 import ModalOverlay from '../components/ModalOverlay';
 import ConfirmModal from '../components/ConfirmModal';
 
@@ -84,7 +85,16 @@ function IconPeople({ color = '#8C8583' }: { color?: string }) {
 
 /* ========== MAIN SCREEN ========== */
 
-export default function PartnerScreen({ onBack, onProfile, onInvoice, refreshKey = 0 }: { onBack: () => void; onProfile?: () => void; onInvoice?: () => void; refreshKey?: number }) {
+export default function PartnerScreen({
+  onBack, onProfile, onInvoice, refreshKey = 0, searchShortcut, onSearchShortcutHandled,
+}: {
+  onBack: () => void;
+  onProfile?: () => void;
+  onInvoice?: () => void;
+  refreshKey?: number;
+  searchShortcut?: HomeSearchRequest | null;
+  onSearchShortcutHandled?: () => void;
+}) {
   const sd = useServerDate();
   const { showToast, ToastHost } = useToast();
   const {
@@ -115,6 +125,30 @@ export default function PartnerScreen({ onBack, onProfile, onInvoice, refreshKey
   const [divRoundNum, setDivRoundNum] = useState(0);
   const [divPreview, setDivPreview] = useState<any[]>([]);
   const [filter, setFilter] = useState('all');
+  const partnerScroll = useRef<ScrollView>(null);
+  const ledgerTop = useRef<number | null>(null);
+  const jumpToLedger = useRef(false);
+  const openDividend = () => {
+    setDivRoundNum(groupKeys.length + 1);
+    setShowDividend(true);
+  };
+  useEffect(() => {
+    switch (searchShortcut?.action) {
+      case 'partnerStructure': setShowOrg(true); break;
+      case 'issueDividend':
+        if (loadingData) return;
+        openDividend();
+        break;
+      case 'dividendHistory':
+        if (loadingData) return;
+        setFilter('dividend');
+        if (ledgerTop.current === null) jumpToLedger.current = true;
+        else partnerScroll.current?.scrollTo({ y: ledgerTop.current, animated: false });
+        break;
+      default: return;
+    }
+    onSearchShortcutHandled?.();
+  }, [searchShortcut, loadingData]); // eslint-disable-line react-hooks/exhaustive-deps
   const { setLang: setLangState } = useLang();
 
   const [avatarUrl, setAvatarUrl] = useState('');
@@ -223,7 +257,7 @@ export default function PartnerScreen({ onBack, onProfile, onInvoice, refreshKey
 
   return (
     <View style={s.root}>
-      <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={partnerScroll} style={s.scroll} showsVerticalScrollIndicator={false}>
         <View style={s.container}>
 
           {/* ====== HEADER ====== */}
@@ -277,7 +311,7 @@ export default function PartnerScreen({ onBack, onProfile, onInvoice, refreshKey
                   <Text style={s.statSub}>{t('cumulativeByShare')}</Text>
                 </View>
               </View>
-              <TouchableOpacity style={s.dividendBtn} onPress={() => { setDivRoundNum(groupKeys.length + 1); setShowDividend(true); }}>
+              <TouchableOpacity style={s.dividendBtn} onPress={openDividend}>
                 <Text style={s.dividendBtnText}>{t('issueDividend')}</Text>
               </TouchableOpacity>
             </View>
@@ -379,7 +413,13 @@ export default function PartnerScreen({ onBack, onProfile, onInvoice, refreshKey
           </View>
 
           {/* ====== CAPITAL LEDGER ====== */}
-          <View style={s.ledgerCard}>
+          <View style={s.ledgerCard} onLayout={({ nativeEvent: { layout: { y } } }) => {
+            ledgerTop.current = y;
+            if (jumpToLedger.current) {
+              jumpToLedger.current = false;
+              partnerScroll.current?.scrollTo({ y, animated: false });
+            }
+          }}>
             <View style={s.ledgerHeader}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Text style={s.ledgerTitle}>{t('capitalLedger')}</Text>

@@ -22,16 +22,17 @@ import AppSearchModal, { type AppSearchTarget } from '../components/AppSearchMod
 import { t, useLang } from '../i18n';
 import { useTheme } from '../theme';
 import { useDraggableButton } from '../hooks/useDraggableButton';
+import { isHomeSearchAction, type HomeSearchAction } from './homeSearchActions';
 
 export type RootStackParamList = {
-  Main: { editBatch?: any; searchTab?: 'supply' | 'partner'; searchProduct?: string } | undefined;
+  Main: { editBatch?: any; searchTab?: 'supply' | 'partner'; searchProduct?: string; searchAction?: HomeSearchAction } | undefined;
   ExpenseHistory: undefined;
   DailyHistory: { date?: string } | undefined;
   ReconHistory: { date?: string } | undefined;
   Profile: { accountAction?: ProfileAccountAction } | undefined;
   UserManagement: undefined;
   UserDetail: { user: any };
-  Invoice: { filterBatchId?: number | null; recordId?: number } | undefined;
+  Invoice: { filterBatchId?: number | null; recordId?: number; section?: 'info' | 'records' | 'apply' } | undefined;
   ProcurementDetail: { batch: any };
   ExpenseDetail: { expense: any };
   PdfPreview: { id: number; number: number; supplier?: string; fileUrl?: string; title?: string; fileNamePrefix?: string };
@@ -139,6 +140,7 @@ function InvoiceRoute() {
       onBack={() => navigation.goBack()}
       filterBatchId={route.params?.filterBatchId ?? null}
       initialRecordId={route.params?.recordId}
+      initialSection={route.params?.section}
       onPdfPreview={(url: string, title: string) =>
         navigation.navigate('PdfPreview', { id: 0, number: 0, fileUrl: url, title })
       }
@@ -206,12 +208,30 @@ function GlobalSearch() {
 
   const open = async (target: AppSearchTarget, signal: AbortSignal) => {
     if (typeof target === 'string') {
+      if (isHomeSearchAction(target)) {
+        return () => navigation.dispatch(StackActions.popTo('Main', { searchAction: target }));
+      }
       switch (target) {
         case 'email':
+        case 'account':
+        case 'security':
+        case 'avatar':
+        case 'cover':
+        case 'signature':
+        case 'theme':
+        case 'language':
+        case 'loginSecurity':
+        case 'faceId':
+        case 'singleSession':
+        case 'sessionTimeout':
+        case 'deleteAccount':
         case 'password': return () => navigation.dispatch(StackActions.push('Profile', { accountAction: target }));
         case 'profile': return () => navigation.navigate('Profile');
         case 'userManagement': return () => navigation.navigate('UserManagement');
         case 'invoice': return () => navigation.navigate('Invoice');
+        case 'invoiceInfo': return () => navigation.dispatch(StackActions.push('Invoice', { section: 'info' }));
+        case 'invoiceRecords': return () => navigation.dispatch(StackActions.push('Invoice', { section: 'records' }));
+        case 'invoiceApply': return () => navigation.dispatch(StackActions.push('Invoice', { section: 'apply' }));
         case 'expense': return () => navigation.navigate('ExpenseHistory');
         case 'revenue': return () => navigation.navigate('DailyHistory');
         case 'reconciliation': return () => navigation.navigate('ReconHistory');

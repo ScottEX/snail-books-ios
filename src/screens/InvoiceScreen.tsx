@@ -249,10 +249,11 @@ interface Props {
   onBack: () => void;
   filterBatchId?: number | null;
   initialRecordId?: number;
+  initialSection?: 'info' | 'records' | 'apply';
   onPdfPreview?: (url: string, title: string) => void;
 }
 
-export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, onPdfPreview }: Props) {
+export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, initialSection, onPdfPreview }: Props) {
   const { colors: c } = useTheme();
   const sd = useServerDate();
   const insets = useSafeAreaInsets();
@@ -272,7 +273,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, 
   }));
 
   // Tabs: 0 = info, 1 = records
-  const [tab, setTab] = useState<number>(filterBatchId || initialRecordId ? 1 : 0);
+  const [tab, setTab] = useState<number>(filterBatchId || initialRecordId || ['records', 'apply'].includes(initialSection ?? '') ? 1 : 0);
   const [invType, setInvType] = useState<InvType>('vat');
   const [data, setData] = useState<InvoiceData>(EMPTY_INV);
   const [orig, setOrig] = useState<InvoiceData>(EMPTY_INV);
@@ -377,6 +378,11 @@ export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, 
   // Auto-open drawer when coming from "去开票" — edit if record exists, new otherwise
   const autoOpenedRef = useRef(false);
   useEffect(() => {
+    if (initialSection === 'apply' && !autoOpenedRef.current) {
+      autoOpenedRef.current = true;
+      openDrawer();
+      return;
+    }
     if ((!filterBatchId && !initialRecordId) || recordsLoading || autoOpenedRef.current) return;
     autoOpenedRef.current = true;
     const existing = records.find(r => initialRecordId ? r.id === initialRecordId : r.procurement_batch_id === filterBatchId);
@@ -385,7 +391,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, 
     } else if (!initialRecordId) {
       openDrawer(undefined, filterBatchId);
     }
-  }, [filterBatchId, initialRecordId, recordsLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [filterBatchId, initialRecordId, initialSection, recordsLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── Load invoice info (info tab) ── */
   useEffect(() => {

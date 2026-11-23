@@ -25,6 +25,7 @@ import LogoutConfirmModal from '../components/LogoutConfirmModal';
 import BgCropModal from '../components/BgCropModal';
 import { cacheBackground, getCachedLocalPath, getOrDownloadBackground, clearBackgroundCache } from '../utils/backgroundCache';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { homeSearchTabs, isHomeSearchAction, type HomeSearchRequest } from '../navigation/homeSearchActions';
 import { onAvatarChanged } from '../events/avatarEvents';
 import PartnerScreen from './PartnerScreen';
 import ProcurementScreen from './ProcurementScreen';
@@ -292,15 +293,33 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const route = useRoute<any>();
   const [pendingEditBatch, setPendingEditBatch] = useState<any | null>(null);
   const [searchProduct, setSearchProduct] = useState<string | undefined>();
+  const [searchShortcut, setSearchShortcut] = useState<HomeSearchRequest | null>(null);
+  const consumeSearchShortcut = useCallback(() => setSearchShortcut(null), []);
 
   useEffect(() => {
+    const action = route.params?.searchAction;
+    if (typeof action === 'string' && isHomeSearchAction(action)) {
+      const nextTab = homeSearchTabs[action];
+      if (nextTab) {
+        setSearchProduct(undefined);
+        setSearchShortcut(nextTab === 'list' || nextTab === 'chart' ? null : { action });
+        setTab(nextTab);
+      } else if (action === 'themeSettings') {
+        openModal(() => setShowBgModal(true));
+      } else if (action === 'logout') {
+        setShowLogoutModal(true);
+      }
+      navigation.setParams({ searchAction: undefined });
+      return;
+    }
     const nextTab = route.params?.searchTab;
     if (nextTab === 'supply' || nextTab === 'partner') {
+      setSearchShortcut(null);
       setSearchProduct(route.params?.searchProduct || undefined);
       setTab(nextTab);
       navigation.setParams({ searchTab: undefined, searchProduct: undefined });
     }
-  }, [route.params?.searchTab, route.params?.searchProduct]);
+  }, [route.params?.searchAction, route.params?.searchTab, route.params?.searchProduct]);
   // Main content is always "home" — stack screens cover it natively
   const isHome = true;
 
@@ -595,15 +614,20 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             (aligns with web HomeScreen.tsx which also hoists partner/supply out). */}
         {isHome && tab === 'expense' ? (
           <ExpenseScreen
+            searchShortcut={searchShortcut}
+            onSearchShortcutHandled={consumeSearchShortcut}
             onReconHistory={() => navigation.navigate('ReconHistory')}
             onExpenseHistory={() => navigation.navigate('ExpenseHistory')}
           />
         ) : isHome && tab === 'partner' ? (
           <View style={styles.page}>
-            <PartnerScreen onBack={() => setTab('list')} onProfile={() => navigation.navigate('Profile')} onInvoice={() => navigation.navigate('Invoice', {})} refreshKey={partnerRefreshKey} />
+            <PartnerScreen onBack={() => setTab('list')} onProfile={() => navigation.navigate('Profile')} onInvoice={() => navigation.navigate('Invoice', {})} refreshKey={partnerRefreshKey}
+              searchShortcut={searchShortcut} onSearchShortcutHandled={consumeSearchShortcut} />
           </View>
         ) : isHome && tab === 'supply' ? (
           <ProcurementScreen
+            searchShortcut={searchShortcut}
+            onSearchShortcutHandled={consumeSearchShortcut}
             searchProduct={searchProduct}
             onProcurementDetail={(batch) => navigation.navigate('ProcurementDetail', { batch })}
             pendingEditBatch={pendingEditBatch}
