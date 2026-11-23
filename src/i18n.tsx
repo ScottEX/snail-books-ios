@@ -427,7 +427,10 @@ const I18N: Record<string, Record<string, string>> = {
     assistantDraftKeep: '保留当前填写',
     assistantDraftReplace: '换成 AI 草稿',
     assistantSpeechStart: '语音输入',
-    assistantSpeechStop: '结束语音输入',
+    assistantSpeechStop: '结束录音',
+    assistantSpeechListening: '正在听…',
+    assistantSpeechPreparing: '正在开启麦克风…',
+    assistantSpeechTranscribing: '正在转写…',
     assistantSpeechKeyboard: '使用键盘听写',
     assistantSpeechPermission: '请在系统设置里允许麦克风和语音识别，或直接输入。',
     assistantSpeechFailed: '暂时无法识别语音，可以重新录一遍或直接输入。',
@@ -1166,7 +1169,10 @@ const I18N: Record<string, Record<string, string>> = {
     assistantDraftKeep: '保留目前填寫',
     assistantDraftReplace: '換成 AI 草稿',
     assistantSpeechStart: '語音輸入',
-    assistantSpeechStop: '結束語音輸入',
+    assistantSpeechStop: '結束錄音',
+    assistantSpeechListening: '正在聽…',
+    assistantSpeechPreparing: '正在開啟麥克風…',
+    assistantSpeechTranscribing: '正在轉寫…',
     assistantSpeechKeyboard: '使用鍵盤聽寫',
     assistantSpeechPermission: '請在系統設定中允許麥克風和語音辨識，或直接輸入。',
     assistantSpeechFailed: '暫時無法辨識語音，可以重新錄一遍或直接輸入。',
@@ -1913,8 +1919,11 @@ const I18N: Record<string, Record<string, string>> = {
     assistantDraftReplaceBody: 'Applying this AI draft replaces the current form and selected receipts.',
     assistantDraftKeep: 'Keep current form',
     assistantDraftReplace: 'Use AI draft',
-    assistantSpeechStart: 'Start dictation',
-    assistantSpeechStop: 'Stop dictation',
+    assistantSpeechStart: 'Voice input',
+    assistantSpeechStop: 'Stop recording',
+    assistantSpeechListening: 'Listening…',
+    assistantSpeechPreparing: 'Starting microphone…',
+    assistantSpeechTranscribing: 'Transcribing…',
     assistantSpeechKeyboard: 'Use keyboard dictation',
     assistantSpeechPermission: 'Allow microphone and speech recognition in Settings, or type instead.',
     assistantSpeechFailed: 'Speech recognition failed. Try again or type your expense.',
@@ -2656,6 +2665,9 @@ export type I18nKey =
   | 'assistantDraftReplace'
   | 'assistantSpeechStart'
   | 'assistantSpeechStop'
+  | 'assistantSpeechListening'
+  | 'assistantSpeechPreparing'
+  | 'assistantSpeechTranscribing'
   | 'assistantSpeechKeyboard'
   | 'assistantSpeechPermission'
   | 'assistantSpeechFailed'

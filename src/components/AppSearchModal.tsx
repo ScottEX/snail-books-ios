@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Keyboard, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Keyboard, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import Svg, { Path, Rect } from 'react-native-svg';
 import { api, type AppSearchRecord, type ExpenseDraft, type LedgerAction, type LedgerAnswer, type LedgerRequest, type LedgerResponse, type LedgerTotal } from '../api/client';
 import { getLang, t } from '../i18n';
 import { FONTS, useTheme, withAlpha } from '../theme';
@@ -480,6 +481,38 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
     if (ledger?.context) void submit('ask', question, { action, context: ledger.context, offset });
   };
 
+  const listening = speech.status === 'listening';
+  const speechPending = speech.active && !listening;
+  const voiceColor = listening ? colors.danger : colors.primary;
+  const voiceDisabled = busy || speechPending;
+  const voiceLabel = {
+    idle: speech.available ? 'assistantSpeechStart' : 'assistantSpeechKeyboard',
+    permission: 'assistantSpeechPreparing',
+    starting: 'assistantSpeechPreparing',
+    listening: 'assistantSpeechStop',
+    stopping: 'assistantSpeechTranscribing',
+  }[speech.status];
+  const textInput = (
+    <AppTextInput
+      ref={input}
+      accessibilityLabel={t(activeMode.label)}
+      placeholder={t(listening ? 'assistantSpeechListening' : activeMode.placeholder)}
+      placeholderTextColor={colors.textSub}
+      value={question}
+      onChangeText={changeQuestion}
+      editable={!controlsDisabled}
+      multiline={!isSearch}
+      returnKeyType={isSearch ? 'search' : 'default'}
+      onSubmitEditing={isSearch ? () => void submit() : undefined}
+      maxLength={activeMode.limit}
+      underlineColorAndroid="transparent"
+      style={[
+        styles.input, !isSearch && styles.multilineInput,
+        { color: colors.textMain, backgroundColor: colors.bg },
+      ]}
+    />
+  );
+
   return (
     <ModalOverlay
       visible={visible}
@@ -509,21 +542,50 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
           })}
         </View>
         <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} keyboardShouldPersistTaps="handled">
-          <AppTextInput
-            ref={input}
-            accessibilityLabel={t(activeMode.label)}
-            placeholder={t(activeMode.placeholder)}
-            placeholderTextColor={colors.textSub}
-            value={question}
-            onChangeText={changeQuestion}
-            editable={!controlsDisabled}
-            multiline={!isSearch}
-            returnKeyType={isSearch ? 'search' : 'default'}
-            onSubmitEditing={isSearch ? () => void submit() : undefined}
-            maxLength={activeMode.limit}
-            underlineColorAndroid="transparent"
-            style={[styles.input, !isSearch && styles.multilineInput, { color: colors.textMain, backgroundColor: colors.bg }]}
-          />
+          {mode === 'record' ? (
+            <View style={[styles.voiceComposer, { backgroundColor: colors.bg }]}>
+              {textInput}
+              <View style={styles.voiceToolbar}>
+                <TouchableOpacity accessibilityRole="button" accessibilityState={{ disabled: voiceDisabled, busy: speechPending }}
+                  accessibilityLabel={t(voiceLabel)} disabled={voiceDisabled} activeOpacity={0.72}
+                  onPress={() => {
+                    if (!speech.available) {
+                      input.current?.focus();
+                      return;
+                    }
+                    if (!speech.active) speechPrefix.current = question.trim();
+                    Keyboard.dismiss();
+                    void speech.toggle();
+                  }}
+                  style={[
+                    styles.voiceButton,
+                    { backgroundColor: withAlpha(voiceColor, 0.11), opacity: busy ? 0.5 : 1 },
+                  ]}>
+                  {speechPending ? <ActivityIndicator size="small" color={voiceColor} style={styles.voiceSpinner} /> : (
+                    <Svg width={17} height={17} viewBox="0 0 24 24" accessible={false}>
+                      {listening ? <Rect x={5} y={5} width={14} height={14} rx={3} fill={voiceColor} /> : (
+                        <>
+                          <Rect x={9} y={2.5} width={6} height={12} rx={3} stroke={voiceColor} strokeWidth={1.8} />
+                          <Path d="M6 11v.5a6 6 0 0 0 12 0V11M12 17.5V21m-3 0h6"
+                            stroke={voiceColor} strokeWidth={1.8} strokeLinecap="round" fill="none" />
+                        </>
+                      )}
+                    </Svg>
+                  )}
+                  <Text style={[styles.voiceLabel, { color: voiceColor }]}>{t(voiceLabel)}</Text>
+                </TouchableOpacity>
+                {listening && (
+                  <View style={styles.voiceActivity} accessibilityLiveRegion="polite">
+                    <View style={[styles.voiceDot, { backgroundColor: voiceColor }]} />
+                    <Text style={[styles.caption, { color: voiceColor }]}>{t('assistantSpeechListening')}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          ) : textInput}
+          {mode === 'record' && !!speech.error && (
+            <Text accessibilityLiveRegion="polite" style={[styles.caption, { color: colors.danger }]}>{t(speech.error)}</Text>
+          )}
           {isSearch && !question.trim() && !busy && (
             <View style={styles.shortcuts}>
               {discoverShortcuts.map(page => (
@@ -533,24 +595,6 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
                 </TouchableOpacity>
               ))}
             </View>
-          )}
-          {mode === 'record' && (
-            <>
-              <TouchableOpacity accessibilityRole="button" disabled={busy} style={styles.example}
-                onPress={() => {
-                  if (speech.available) {
-                    if (!speech.active) speechPrefix.current = question.trim();
-                    Keyboard.dismiss();
-                    void speech.toggle();
-                  } else {
-                    input.current?.focus();
-                  }
-                }}>
-                <Text style={{ color: colors.primary }}>{t(speech.active ? 'assistantSpeechStop'
-                  : speech.available ? 'assistantSpeechStart' : 'assistantSpeechKeyboard')}</Text>
-              </TouchableOpacity>
-              {!!speech.error && <Text style={[styles.caption, { color: colors.danger }]}>{t(speech.error)}</Text>}
-            </>
           )}
           {mode === 'ask' && !busy && (
             <View>
@@ -643,6 +687,15 @@ const styles = StyleSheet.create({
   bodyContent: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 6, gap: 8 },
   input: { minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12 },
   multilineInput: { minHeight: 70, maxHeight: 108, textAlignVertical: 'top' },
+  voiceComposer: { borderRadius: 14 },
+  voiceToolbar: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 12, rowGap: 4,
+    paddingHorizontal: 10, paddingBottom: 8 },
+  voiceButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 7, paddingHorizontal: 12, borderRadius: 22 },
+  voiceLabel: { fontSize: FONTS.micro.size, fontWeight: '600', flexShrink: 1 },
+  voiceActivity: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  voiceDot: { width: 6, height: 6, borderRadius: 3 },
+  voiceSpinner: { width: 17 },
   modes: { flexDirection: 'row', marginHorizontal: 20, marginTop: 12, padding: 3, gap: 2, borderRadius: 12 },
   mode: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 9 },
   hitList: { gap: 3 },
