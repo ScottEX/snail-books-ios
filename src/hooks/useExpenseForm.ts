@@ -114,6 +114,8 @@ export function useExpenseForm(options: UseExpenseFormOptions) {
   /* ── derived ── */
   const amount = parseFloat(expAmount.replace(/,/g, ''));
   const isAmountInvalid = missingRequiredFields || !Number.isFinite(amount) || amount === 0 || loadingExp;
+  const hasExpenseEdits = !!(expAmount || expNote || expImages.length || isRefund || expDateErr
+    || (selectedDate !== null && selectedDate !== sd.today) || expCategory !== 'daily' || payMethod !== 'payWechat');
 
   return {
     expDate, setExpDate,
@@ -131,5 +133,6 @@ export function useExpenseForm(options: UseExpenseFormOptions) {
     resetForm,
     removeImage,
     isAmountInvalid,
+    hasExpenseEdits,
   };
 }

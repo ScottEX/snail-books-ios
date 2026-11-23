@@ -50,7 +50,18 @@ export interface AppSearchRecord {
   detail: string | null;
   date: string;
   amount: number | null;
+  settled?: boolean;
 }
+
+export type LedgerAction = 'this_month' | 'last_month' | 'compare_last_month' | 'details' | 'order_value' | 'posted_expense';
+export type LedgerRequest =
+  | { question: string; context?: string }
+  | { example: string; question: string }
+  | { action: LedgerAction; context: string; offset?: number };
+export type LedgerResponse =
+  | { status: 'ok'; answer: LedgerAnswer; context?: string | null; actions?: LedgerAction[] }
+  | { status: 'clarify'; reason: 'procurement_basis' | 'period'; context: string; actions: LedgerAction[] }
+  | { status: 'details'; records: AppSearchRecord[]; next_offset: number | null };
 
 // ── Event bus ──
 type UserChangeListener = () => void;
@@ -322,10 +333,10 @@ export const api = {
       body: JSON.stringify({ text }),
       signal,
     }),
-  askLedger: (question: string, signal: AbortSignal) =>
-    authFetch<{ status: 'ok'; answer: LedgerAnswer }>('/api/ledger/ask', {
+  askLedger: (query: LedgerRequest, signal: AbortSignal) =>
+    authFetch<LedgerResponse>('/api/ledger/ask', {
       method: 'POST',
-      body: JSON.stringify({ question, record_queries: true }),
+      body: JSON.stringify({ ...query, record_queries: true, assistant_v2: true }),
       signal,
     }),
   searchApp: (keyword: string, signal: AbortSignal) =>

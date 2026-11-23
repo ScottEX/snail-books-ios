@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
-  View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, Dimensions, Switch, Keyboard,
+  View, Text, TouchableOpacity, ScrollView, StyleSheet, Animated, Dimensions, Switch, Keyboard, Alert,
 } from 'react-native';
 import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
@@ -428,6 +428,8 @@ export default function ExpenseScreen({
     handleAddExpense,
     handleImageSelect,
     removeImage,
+    resetForm,
+    hasExpenseEdits,
     isAmountInvalid,
   } = useExpenseForm({
     onExpenseHistory,
@@ -440,18 +442,28 @@ export default function ExpenseScreen({
 
   useEffect(() => {
     if (!expenseDraft || loadingExp) return;
-    setActiveTab(1);
-    setIsRefund(false);
-    setExpAmount(expenseDraft.amount);
-    setExpDate(expenseDraft.date ?? '');
-    setExpDateErr(0);
-    setExpCategory(expenseDraft.category ?? '');
-    setPayMethod(expenseDraft.account ?? '');
-    setExpNote(expenseDraft.note ?? '');
-    jumpToReconciliation.current = false;
-    expenseContentRef.current?.scrollTo({ y: 0, animated: false });
     onExpenseDraftApplied?.();
-    showToast(t('expenseAiReview'));
+    const applyDraft = () => {
+      expImages.forEach(revokePreviewUrl);
+      resetForm();
+      setActiveTab(1);
+      setExpAmount(expenseDraft.amount);
+      setExpDate(expenseDraft.date ?? '');
+      setExpCategory(expenseDraft.category ?? '');
+      setPayMethod(expenseDraft.account ?? '');
+      setExpNote(expenseDraft.note ?? '');
+      jumpToReconciliation.current = false;
+      expenseContentRef.current?.scrollTo({ y: 0, animated: false });
+      showToast(t('expenseAiReview'));
+    };
+    if (hasExpenseEdits) {
+      Alert.alert(t('assistantDraftReplaceTitle'), t('assistantDraftReplaceBody'), [
+        { text: t('assistantDraftKeep'), style: 'cancel' },
+        { text: t('assistantDraftReplace'), style: 'destructive', onPress: applyDraft },
+      ]);
+    } else {
+      applyDraft();
+    }
   }, [expenseDraft, loadingExp]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

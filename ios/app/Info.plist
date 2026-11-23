@@ -57,7 +57,9 @@
 	<key>NSFaceIDUsageDescription</key>
 	<string>用于使用 Face ID 快速登录柳味探秘</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Allow $(PRODUCT_NAME) to access your microphone</string>
+	<string>用于将口述内容转成记账草稿的文字</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>用于识别口述的记账内容，转写后可编辑确认</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Allow $(PRODUCT_NAME) to access your photos</string>
 	<key>UILaunchStoryboardName</key>

@@ -407,6 +407,30 @@ const I18N: Record<string, Record<string, string>> = {
     ledgerAiTurnoverExample: '上周营业额是多少？',
     ledgerAiProfitExample: '今天的利润是多少？',
     ledgerAiExampleList: '可以问什么',
+    ledgerAiContextRequired: '请先查询一项数据，再选择月份或对比。',
+    ledgerAiContextExpired: '这次查询已过期，请重新查询。',
+    ledgerAiThisMonth: '本月',
+    ledgerAiLastMonth: '上月',
+    ledgerAiCompareLastMonth: '和上月比',
+    ledgerAiDetails: '查看采购单',
+    ledgerAiMoreDetails: '查看更多采购单',
+    ledgerAiOrderValue: '采购单总额',
+    ledgerAiPostedExpense: '已入账采购支出',
+    ledgerAiChoosePeriod: '你想查哪个月份？',
+    ledgerAiChooseBasis: '你想查采购单总额，还是已入账的采购支出？',
+    ledgerAiDraftDate: '日期',
+    ledgerAiDraftCategory: '分类',
+    ledgerAiDraftAccount: '付款方式',
+    ledgerAiDraftMissing: '待补充',
+    assistantDraftReplaceTitle: '已有未保存的支出',
+    assistantDraftReplaceBody: '应用这份 AI 草稿会替换当前表单和已选凭证。',
+    assistantDraftKeep: '保留当前填写',
+    assistantDraftReplace: '换成 AI 草稿',
+    assistantSpeechStart: '语音输入',
+    assistantSpeechStop: '结束语音输入',
+    assistantSpeechKeyboard: '使用键盘听写',
+    assistantSpeechPermission: '请在系统设置里允许麦克风和语音识别，或直接输入。',
+    assistantSpeechFailed: '暂时无法识别语音，可以重新录一遍或直接输入。',
     ledgerAiLatestProcurementExample: '最近一次进货是什么时候？',
     ledgerAiProcurementSummaryExample: '这个月进了几次货，一共多少钱？',
     ledgerAiUnsettledProcurementExample: '还有几单进货没结算？',
@@ -1122,6 +1146,30 @@ const I18N: Record<string, Record<string, string>> = {
     ledgerAiTurnoverExample: '上週營業額是多少？',
     ledgerAiProfitExample: '今天的利潤是多少？',
     ledgerAiExampleList: '可以問什麼',
+    ledgerAiContextRequired: '請先查詢一項資料，再選擇月份或比較。',
+    ledgerAiContextExpired: '這次查詢已過期，請重新查詢。',
+    ledgerAiThisMonth: '本月',
+    ledgerAiLastMonth: '上月',
+    ledgerAiCompareLastMonth: '和上月比',
+    ledgerAiDetails: '查看採購單',
+    ledgerAiMoreDetails: '查看更多採購單',
+    ledgerAiOrderValue: '採購單總額',
+    ledgerAiPostedExpense: '已入帳採購支出',
+    ledgerAiChoosePeriod: '你想查哪個月份？',
+    ledgerAiChooseBasis: '你想查採購單總額，還是已入帳的採購支出？',
+    ledgerAiDraftDate: '日期',
+    ledgerAiDraftCategory: '分類',
+    ledgerAiDraftAccount: '付款方式',
+    ledgerAiDraftMissing: '待補充',
+    assistantDraftReplaceTitle: '已有未儲存的支出',
+    assistantDraftReplaceBody: '套用這份 AI 草稿會取代目前表單和已選憑證。',
+    assistantDraftKeep: '保留目前填寫',
+    assistantDraftReplace: '換成 AI 草稿',
+    assistantSpeechStart: '語音輸入',
+    assistantSpeechStop: '結束語音輸入',
+    assistantSpeechKeyboard: '使用鍵盤聽寫',
+    assistantSpeechPermission: '請在系統設定中允許麥克風和語音辨識，或直接輸入。',
+    assistantSpeechFailed: '暫時無法辨識語音，可以重新錄一遍或直接輸入。',
     ledgerAiLatestProcurementExample: '最近一次進貨是什麼時候？',
     ledgerAiProcurementSummaryExample: '這個月進了幾次貨，一共多少錢？',
     ledgerAiUnsettledProcurementExample: '還有幾單進貨沒結算？',
@@ -1846,6 +1894,30 @@ const I18N: Record<string, Record<string, string>> = {
     ledgerAiTurnoverExample: 'What was last week’s turnover?',
     ledgerAiProfitExample: 'What was today’s profit?',
     ledgerAiExampleList: 'Example questions',
+    ledgerAiContextRequired: 'Ask about a metric first, then choose a month or compare.',
+    ledgerAiContextExpired: 'This query expired. Run it again.',
+    ledgerAiThisMonth: 'This month',
+    ledgerAiLastMonth: 'Last month',
+    ledgerAiCompareLastMonth: 'Compare with last month',
+    ledgerAiDetails: 'View purchase orders',
+    ledgerAiMoreDetails: 'Show more orders',
+    ledgerAiOrderValue: 'Purchase order total',
+    ledgerAiPostedExpense: 'Posted purchase expenses',
+    ledgerAiChoosePeriod: 'Which month should I use?',
+    ledgerAiChooseBasis: 'Do you mean the purchase order total or posted purchase expenses?',
+    ledgerAiDraftDate: 'Date',
+    ledgerAiDraftCategory: 'Category',
+    ledgerAiDraftAccount: 'Payment method',
+    ledgerAiDraftMissing: 'Missing',
+    assistantDraftReplaceTitle: 'Unsaved expense',
+    assistantDraftReplaceBody: 'Applying this AI draft replaces the current form and selected receipts.',
+    assistantDraftKeep: 'Keep current form',
+    assistantDraftReplace: 'Use AI draft',
+    assistantSpeechStart: 'Start dictation',
+    assistantSpeechStop: 'Stop dictation',
+    assistantSpeechKeyboard: 'Use keyboard dictation',
+    assistantSpeechPermission: 'Allow microphone and speech recognition in Settings, or type instead.',
+    assistantSpeechFailed: 'Speech recognition failed. Try again or type your expense.',
     ledgerAiLatestProcurementExample: 'When was our last purchase order?',
     ledgerAiProcurementSummaryExample: 'How many orders did we place this month, and for how much?',
     ledgerAiUnsettledProcurementExample: 'How many purchase orders are still unsettled?',
@@ -2563,6 +2635,30 @@ export type I18nKey =
   | 'ledgerAiTurnoverExample'
   | 'ledgerAiProfitExample'
   | 'ledgerAiExampleList'
+  | 'ledgerAiContextRequired'
+  | 'ledgerAiContextExpired'
+  | 'ledgerAiThisMonth'
+  | 'ledgerAiLastMonth'
+  | 'ledgerAiCompareLastMonth'
+  | 'ledgerAiDetails'
+  | 'ledgerAiMoreDetails'
+  | 'ledgerAiOrderValue'
+  | 'ledgerAiPostedExpense'
+  | 'ledgerAiChoosePeriod'
+  | 'ledgerAiChooseBasis'
+  | 'ledgerAiDraftDate'
+  | 'ledgerAiDraftCategory'
+  | 'ledgerAiDraftAccount'
+  | 'ledgerAiDraftMissing'
+  | 'assistantDraftReplaceTitle'
+  | 'assistantDraftReplaceBody'
+  | 'assistantDraftKeep'
+  | 'assistantDraftReplace'
+  | 'assistantSpeechStart'
+  | 'assistantSpeechStop'
+  | 'assistantSpeechKeyboard'
+  | 'assistantSpeechPermission'
+  | 'assistantSpeechFailed'
   | 'ledgerAiLatestProcurementExample'
   | 'ledgerAiProcurementSummaryExample'
   | 'ledgerAiUnsettledProcurementExample'

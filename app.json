@@ -39,6 +39,13 @@
     "plugins": [
       "expo-asset",
       "expo-localization",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "用于将口述内容转成记账草稿的文字",
+          "speechRecognitionPermission": "用于识别口述的记账内容，转写后可编辑确认"
+        }
+      ],
       "@react-native-community/datetimepicker",
       "./plugins/withTunnelConfig"
     ]

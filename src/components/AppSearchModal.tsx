@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Keyboard, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { api, type AppSearchRecord, type ExpenseDraft, type LedgerAnswer, type LedgerTotal } from '../api/client';
+import { Keyboard, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { api, type AppSearchRecord, type ExpenseDraft, type LedgerAction, type LedgerAnswer, type LedgerRequest, type LedgerResponse, type LedgerTotal } from '../api/client';
 import { getLang, t } from '../i18n';
 import { FONTS, useTheme, withAlpha } from '../theme';
 import { MODAL_CARD_RADIUS } from '../sharedStyles';
@@ -10,6 +10,7 @@ import AppTextInput from './AppTextInput';
 import CloseButton from './CloseButton';
 import ModalOverlay from './ModalOverlay';
 import SubmitButton from './SubmitButton';
+import { useAssistantSpeech } from '../hooks/useAssistantSpeech';
 
 const modes = {
   search: { label: 'assistantDiscover', placeholder: 'appSearchPlaceholder', action: 'appSearchFind', limit: 80 },
@@ -18,15 +19,28 @@ const modes = {
 } as const;
 type AssistantMode = keyof typeof modes;
 const modelErrors = [
-  'ledgerAiUnavailable', 'ledgerAiUnclear', 'ledgerAiAdminOnly', 'expenseAiRateLimit', 'expenseAiUnavailable', 'expenseAiUnclear',
+  'ledgerAiUnavailable', 'ledgerAiUnclear', 'ledgerAiAdminOnly', 'ledgerAiContextRequired', 'ledgerAiContextExpired', 'expenseAiRateLimit', 'expenseAiUnavailable', 'expenseAiUnclear',
 ];
 const askExamples = [
-  'ledgerAiLatestProcurementExample', 'ledgerAiProcurementSummaryExample', 'ledgerAiUnsettledProcurementExample',
-  'ledgerAiTurnoverExample', 'ledgerAiProfitExample', 'ledgerAiSalaryExample',
-  'ledgerAiLatestExpenseExample', 'ledgerAiLatestRevenueExample',
-  'ledgerAiLatestReconciliationExample', 'ledgerAiLatestInvoiceExample',
-  'ledgerAiDividendExample', 'ledgerAiShareholdersExample', 'ledgerAiUsersExample',
+  ['latest_procurement', 'ledgerAiLatestProcurementExample'],
+  ['procurement_summary', 'ledgerAiProcurementSummaryExample'],
+  ['unsettled_procurement', 'ledgerAiUnsettledProcurementExample'],
+  ['turnover', 'ledgerAiTurnoverExample'],
+  ['profit', 'ledgerAiProfitExample'],
+  ['salary', 'ledgerAiSalaryExample'],
+  ['latest_expense', 'ledgerAiLatestExpenseExample'],
+  ['latest_revenue', 'ledgerAiLatestRevenueExample'],
+  ['latest_reconciliation', 'ledgerAiLatestReconciliationExample'],
+  ['latest_invoice', 'ledgerAiLatestInvoiceExample'],
+  ['dividends', 'ledgerAiDividendExample'],
+  ['shareholders', 'ledgerAiShareholdersExample'],
+  ['users', 'ledgerAiUsersExample'],
 ] as const;
+const discoverShortcuts = ['procurementHistory', 'invoice', 'password', 'expense'] as const;
+const actionLabels: Record<LedgerAction, string> = {
+  this_month: 'ledgerAiThisMonth', last_month: 'ledgerAiLastMonth', compare_last_month: 'ledgerAiCompareLastMonth',
+  details: 'ledgerAiDetails', order_value: 'ledgerAiOrderValue', posted_expense: 'ledgerAiPostedExpense',
+};
 
 const pages = {
   invoice: ['appSearchInvoice', '发票|發票|发票管理|開票|开票|票據|invoice'],
@@ -284,15 +298,20 @@ function LedgerResult({ answer, onOpenResult, onSearchSupplier, disabled }: {
 function DraftResult({ draft }: { draft: ExpenseDraft }) {
   const { colors } = useTheme();
   const details = [
-    draft.date && formatDate(draft.date),
-    draft.category && t(draft.category),
-    draft.account && t(draft.account),
-  ].filter(Boolean).join(' · ');
+    ['ledgerAiDraftDate', draft.date && formatDate(draft.date)],
+    ['ledgerAiDraftCategory', draft.category && t(draft.category)],
+    ['ledgerAiDraftAccount', draft.account && t(draft.account)],
+  ] as const;
   return (
     <View style={[styles.result, { backgroundColor: withAlpha(colors.primary, 0.08) }]} accessibilityLiveRegion="polite">
       <Text style={[styles.title, { color: colors.textMain }]}>{t('assistantDraft')}</Text>
       <Text style={[styles.amount, { color: colors.primary }]}>{fmtAmtFull(Number(draft.amount))}</Text>
-      {!!details && <Text style={[styles.caption, { color: colors.textSub }]}>{details}</Text>}
+      {details.map(([label, value]) => (
+        <View key={label} style={styles.totalRow}>
+          <Text style={[styles.period, { color: colors.textSub }]}>{t(label)}</Text>
+          <Text style={{ color: value ? colors.textMain : colors.danger }}>{value || t('ledgerAiDraftMissing')}</Text>
+        </View>
+      ))}
       {!!draft.note && <Text style={{ color: colors.textMain }}>{draft.note}</Text>}
     </View>
   );
@@ -306,7 +325,9 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
 }) {
   const { colors } = useTheme();
   const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState<LedgerAnswer | null>(null);
+  const [ledger, setLedger] = useState<Exclude<LedgerResponse, { status: 'details' }> | null>(null);
+  const [supportingRecords, setSupportingRecords] = useState<Extract<LedgerResponse, { status: 'details' }> | null>(null);
+  const { height } = useWindowDimensions();
   const [draft, setDraft] = useState<ExpenseDraft | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -314,17 +335,28 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
   const [showExamples, setShowExamples] = useState(false);
   const [hits, setHits] = useState<{ pages: AppSearchPage[]; records: AppSearchRecord[] } | null>(null);
   const request = useRef<AbortController | null>(null);
+  const ledgerContext = useRef<string>();
+  const input = useRef<React.ElementRef<typeof AppTextInput>>(null);
+  const speechPrefix = useRef('');
+  const speech = useAssistantSpeech(visible && mode === 'record', transcript => {
+    setQuestion([speechPrefix.current, transcript].filter(Boolean).join(' ').slice(0, modes.record.limit));
+    setDraft(null);
+    setError('');
+  });
   const pendingNavigation = useRef<(() => void) | null>(null);
   useEffect(() => () => request.current?.abort(), []);
 
   const dismiss = (navigate: (() => void) | null = null) => {
     pendingNavigation.current = navigate;
+    speech.cancel();
     Keyboard.dismiss();
     request.current?.abort();
     request.current = null;
     setBusy(false);
     setQuestion('');
-    setAnswer(null);
+    setLedger(null);
+    ledgerContext.current = undefined;
+    setSupportingRecords(null);
     setDraft(null);
     setHits(null);
     setMode('search');
@@ -336,7 +368,6 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
 
   const changeQuestion = (text: string) => {
     setQuestion(text);
-    setAnswer(null);
     setDraft(null);
     setHits(null);
     setError('');
@@ -345,19 +376,24 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
   const switchMode = (next: AssistantMode) => {
     if (next === mode || request.current) return;
     setMode(next);
+    setLedger(null);
+    ledgerContext.current = undefined;
+    setSupportingRecords(null);
     setShowExamples(false);
     changeQuestion('');
   };
 
-  const submit = async (submitMode: AssistantMode = mode, query = question) => {
+  const submit = async (submitMode: AssistantMode = mode, query = question, ledgerRequest?: LedgerRequest) => {
     const text = query.trim();
-    if (!text || request.current) return;
+    if ((!text && !ledgerRequest) || request.current || speech.active) return;
     const controller = new AbortController();
     request.current = controller;
     setBusy(true);
     setShowExamples(false);
     setError('');
-    setAnswer(null);
+    const detailsRequest = ledgerRequest && 'action' in ledgerRequest && ledgerRequest.action === 'details';
+    if (!detailsRequest) setSupportingRecords(null);
+    if (submitMode === 'ask' && (!ledgerRequest || 'example' in ledgerRequest)) setLedger(null);
     setDraft(null);
     setHits(null);
     Keyboard.dismiss();
@@ -369,8 +405,18 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
         const result = await api.searchApp(text, controller.signal);
         if (!controller.signal.aborted) setHits({ pages: matchedPages, records: result.results });
       } else if (submitMode === 'ask') {
-        const result = await api.askLedger(text, controller.signal);
-        if (!controller.signal.aborted) setAnswer(result.answer);
+        const result = await api.askLedger(ledgerRequest ?? { question: text, context: ledgerContext.current }, controller.signal);
+        if (controller.signal.aborted) return;
+        if (result.status === 'details') {
+          setSupportingRecords(previous => ({
+            ...result,
+            records: [...(previous?.records ?? []), ...result.records.filter(record =>
+              !previous?.records.some(item => item.id === record.id))],
+          }));
+        } else {
+          ledgerContext.current = result.context ?? undefined;
+          setLedger(result);
+        }
       } else {
         const result = await api.generateExpenseDraft(text, controller.signal);
         if (!controller.signal.aborted) setDraft(result.draft);
@@ -389,7 +435,7 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
   };
 
   const openResult = async (target: SearchResult) => {
-    if (request.current) return;
+    if (request.current || speech.active) return;
     if (target === 'expenseAi' || target === 'askLedger') {
       switchMode(target === 'expenseAi' ? 'record' : 'ask');
       return;
@@ -419,13 +465,20 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
 
   const searchSupplier = (name: string) => {
     setMode('search');
+    setLedger(null);
+    ledgerContext.current = undefined;
+    setSupportingRecords(null);
     setQuestion(name);
     void submit('search', name);
   };
 
   const activeMode = modes[mode];
   const isSearch = mode === 'search';
-  const disabled = !question.trim() || busy;
+  const controlsDisabled = busy || speech.active;
+  const disabled = !question.trim() || controlsDisabled;
+  const runAction = (action: LedgerAction, offset?: number) => {
+    if (ledger?.context) void submit('ask', question, { action, context: ledger.context, offset });
+  };
 
   return (
     <ModalOverlay
@@ -436,7 +489,7 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
       animation="springScale"
       avoidKeyboard
     >
-      <View style={[styles.card, { backgroundColor: colors.surface }]}>
+      <View style={[styles.card, { backgroundColor: colors.surface, maxHeight: Math.min(560, height * 0.72) }]}>
         <View style={[styles.header, { backgroundColor: colors.primary }]}>
           <Text style={[styles.title, { color: colors.surface }]}>{t('assistantTitle')}</Text>
           <CloseButton onPress={close} accessibilityLabel={t('assistantClose')} />
@@ -445,8 +498,8 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
           {(Object.keys(modes) as AssistantMode[]).map(option => {
             const selected = mode === option;
             return (
-              <TouchableOpacity key={option} accessibilityRole="button" accessibilityState={{ selected, disabled: busy }}
-                disabled={busy} onPress={() => switchMode(option)}
+              <TouchableOpacity key={option} accessibilityRole="button" accessibilityState={{ selected, disabled: controlsDisabled }}
+                disabled={controlsDisabled} onPress={() => switchMode(option)}
                 style={[styles.mode, selected && { backgroundColor: colors.surface }]}>
                 <Text style={{ color: selected ? colors.primary : colors.textSub, fontWeight: selected ? '700' : '500' }}>
                   {t(modes[option].label)}
@@ -457,12 +510,13 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
         </View>
         <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} keyboardShouldPersistTaps="handled">
           <AppTextInput
+            ref={input}
             accessibilityLabel={t(activeMode.label)}
             placeholder={t(activeMode.placeholder)}
             placeholderTextColor={colors.textSub}
             value={question}
             onChangeText={changeQuestion}
-            editable={!busy}
+            editable={!controlsDisabled}
             multiline={!isSearch}
             returnKeyType={isSearch ? 'search' : 'default'}
             onSubmitEditing={isSearch ? () => void submit() : undefined}
@@ -470,27 +524,98 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
             underlineColorAndroid="transparent"
             style={[styles.input, !isSearch && styles.multilineInput, { color: colors.textMain, backgroundColor: colors.bg }]}
           />
+          {isSearch && !question.trim() && !busy && (
+            <View style={styles.shortcuts}>
+              {discoverShortcuts.map(page => (
+                <TouchableOpacity key={page} accessibilityRole="button" onPress={() => void openResult(page)}
+                  style={[styles.shortcut, { backgroundColor: colors.bg }]}>
+                  <Text style={{ color: colors.textMain }}>{t(pages[page][0])}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          {mode === 'record' && (
+            <>
+              <TouchableOpacity accessibilityRole="button" disabled={busy} style={styles.example}
+                onPress={() => {
+                  if (speech.available) {
+                    if (!speech.active) speechPrefix.current = question.trim();
+                    Keyboard.dismiss();
+                    void speech.toggle();
+                  } else {
+                    input.current?.focus();
+                  }
+                }}>
+                <Text style={{ color: colors.primary }}>{t(speech.active ? 'assistantSpeechStop'
+                  : speech.available ? 'assistantSpeechStart' : 'assistantSpeechKeyboard')}</Text>
+              </TouchableOpacity>
+              {!!speech.error && <Text style={[styles.caption, { color: colors.danger }]}>{t(speech.error)}</Text>}
+            </>
+          )}
           {mode === 'ask' && !busy && (
             <View>
               <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: showExamples }}
-                onPress={() => setShowExamples(!showExamples)} style={styles.example}>
+                onPress={() => { Keyboard.dismiss(); setShowExamples(!showExamples); }} style={styles.example}>
                 <Text style={{ color: colors.primary }}>{t('ledgerAiExampleList')} {showExamples ? '▴' : '▾'}</Text>
               </TouchableOpacity>
-              {showExamples && askExamples.map(key => (
-                <TouchableOpacity key={key} accessibilityRole="button" style={styles.example} onPress={() => {
-                  const example = t(key);
-                  changeQuestion(example);
-                  void submit('ask', example);
-                }}>
-                  <Text style={{ color: colors.textMain }}>{t(key)}</Text>
-                </TouchableOpacity>
-              ))}
+              {showExamples && (
+                <ScrollView style={[styles.examplesList, { backgroundColor: colors.bg }]} nestedScrollEnabled
+                  keyboardShouldPersistTaps="always" persistentScrollbar>
+                  {askExamples.map(([example, key]) => (
+                    <TouchableOpacity key={key} accessibilityRole="button" style={styles.exampleRow} onPress={() => {
+                      const text = t(key);
+                      changeQuestion(text);
+                      void submit('ask', text, { example, question: text });
+                    }}>
+                      <Text style={{ color: colors.textMain }}>{t(key)}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
             </View>
           )}
           {!isSearch && <Text style={[styles.caption, { color: colors.textSub }]}>{t('assistantPrivacy')}</Text>}
           {!!error && <Text accessibilityLiveRegion="polite" style={{ color: colors.danger }}>{error}</Text>}
           {hits && <SearchResults hits={hits} onOpen={openResult} disabled={busy} />}
-          {answer && <LedgerResult answer={answer} onSearchSupplier={searchSupplier} onOpenResult={openResult} disabled={busy} />}
+          {mode === 'ask' && ledger?.status === 'ok' && (
+            <LedgerResult answer={ledger.answer} onSearchSupplier={searchSupplier} onOpenResult={openResult} disabled={busy} />
+          )}
+          {mode === 'ask' && ledger?.status === 'clarify' && (
+            <Text style={{ color: colors.textMain }}>{t(ledger.reason === 'period' ? 'ledgerAiChoosePeriod' : 'ledgerAiChooseBasis')}</Text>
+          )}
+          {mode === 'ask' && !!ledger?.actions?.length && (
+            <View style={styles.shortcuts}>
+              {ledger.actions.filter(action => action !== 'details' || !supportingRecords).map(action => (
+                <TouchableOpacity key={action} accessibilityRole="button" disabled={busy} onPress={() => runAction(action)}
+                  style={[styles.shortcut, { backgroundColor: colors.bg }]}>
+                  <Text style={{ color: colors.primary }}>{t(actionLabels[action])}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          {!!supportingRecords && (
+            <>
+              {supportingRecords.records.map(record => (
+                <TouchableOpacity key={record.id} accessibilityRole="button" disabled={busy}
+                  onPress={() => void openResult(record)} style={styles.hit}>
+                  <View style={styles.hitTitle}>
+                    <Text style={{ color: colors.textMain }}>{t('procNowBatch').replace('{n}', record.title ?? '')}</Text>
+                    <Text style={[styles.caption, { color: colors.textSub }]}>
+                      {formatDate(record.date)} · {t(record.settled ? 'procSettled' : 'procUnsettled')}
+                    </Text>
+                  </View>
+                  {record.amount !== null && <Text style={{ color: colors.textMain }}>{fmtAmtFull(record.amount)}</Text>}
+                </TouchableOpacity>
+              ))}
+              {!supportingRecords.records.length && <Text style={{ color: colors.textSub }}>{t('ledgerAiNoRecords')}</Text>}
+              {supportingRecords.next_offset !== null && (
+                <TouchableOpacity accessibilityRole="button" disabled={busy} style={styles.example}
+                  onPress={() => runAction('details', supportingRecords.next_offset ?? undefined)}>
+                  <Text style={{ color: colors.primary }}>{t('ledgerAiMoreDetails')}</Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
           {draft && <DraftResult draft={draft} />}
         </ScrollView>
         <View style={styles.actions}>
@@ -526,6 +651,10 @@ const styles = StyleSheet.create({
   result: { borderRadius: 12, padding: 12, gap: 5 },
   resultLink: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   example: { minHeight: 44, justifyContent: 'center' },
+  examplesList: { maxHeight: 140, borderRadius: 10 },
+  exampleRow: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 12 },
+  shortcuts: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  shortcut: { minHeight: 44, paddingHorizontal: 10, justifyContent: 'center', borderRadius: 8 },
   totalRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   period: { flex: 1 },
   actions: { alignItems: 'flex-end', paddingHorizontal: 20, paddingTop: 6, paddingBottom: 16 },
