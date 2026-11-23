@@ -1,11 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { BlurView } from 'expo-blur';
-import Svg, { Path } from 'react-native-svg';
 import { FONTS, ThemeColors, withAlpha } from '../theme';
 import { SHEET_RADIUS } from '../sharedStyles';
 import { t } from '../i18n';
 import AnimatedDropdown from './AnimatedDropdown';
+import DropdownArrow from './DropdownArrow';
 export type MonthValue = 'all' | { year: number; month: number };
 
 interface MonthPickerProps {
@@ -67,9 +67,7 @@ export default function MonthPicker({ selected, onSelect, months, colors, allLab
         <Text style={{ fontSize: FONTS.microBold.size, color: colors.primary, fontWeight: FONTS.microBold.weight }}>
           {displayText}
         </Text>
-        <Svg width={14} height={14} viewBox="0 0 1024 1024" style={{ marginLeft: 2, transform: [{ rotate: visible ? '180deg' : '0deg' }] }}>
-          <Path d="M836.899 399.237l-218.01 335.037c-47.506 73.007-166.272 73.007-213.778 0l-218.01-335.037C139.595 326.23 198.977 234.97 293.99 234.97h436.02c95.013 0 154.395 91.26 106.889 164.267z" fill={colors.primary} />
-        </Svg>
+        <DropdownArrow color={colors.primary} expanded={visible} />
       </TouchableOpacity>
 
       {/* Dropdown */}

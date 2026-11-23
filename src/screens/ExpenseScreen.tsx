@@ -333,6 +333,7 @@ export default function ExpenseScreen({
   const feeMonthInited = useRef(false);
   useEffect(() => { if (sd.ready && !feeMonthInited.current) { feeMonthInited.current = true; setFeeMonth({ year: sd.year, month: sd.month }); } }, [sd.ready, sd.year, sd.month]);
   const [showFeeSheet, setShowFeeSheet] = useState(false);
+  const [showFeeDatePicker, setShowFeeDatePicker] = useState(false);
   const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
   const cap = -Dimensions.get('window').height * 0.28;
   const expenseCapAmount = -Dimensions.get('window').height * 0.12;
@@ -347,7 +348,12 @@ export default function ExpenseScreen({
   const sheetStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: keyboardHeight.value }],
   }));
-  const closeFeeSheet = () => { Keyboard.dismiss(); setTimeout(() => setShowFeeSheet(false), 50); };
+  const closeFeeDatePicker = () => setShowFeeDatePicker(false);
+  const closeFeeSheet = () => {
+    closeFeeDatePicker();
+    Keyboard.dismiss();
+    setTimeout(() => setShowFeeSheet(false), 50);
+  };
   const [showFeeHistory, setShowFeeHistory] = useState(false);
   const [feeHistoryFilter, setFeeHistoryFilter] = useState<'all' | { year: number; month: number }>('all');
   const feeDate = useDateField({ sd, initial: '' });
@@ -551,7 +557,6 @@ export default function ExpenseScreen({
   // Image upload handlers
   const [showRecDatePicker, setShowRecDatePicker] = useState(false);
   const [showExpDatePicker, setShowExpDatePicker] = useState(false);
-  const [showFeeDatePicker, setShowFeeDatePicker] = useState(false);
 
   /* ── 卡片摘要数据 ── */
   const feeTotal = feeMonth === 'all'
@@ -1048,20 +1053,22 @@ export default function ExpenseScreen({
         maxDate={sd.today}
         title={t('billDate')}
       />
-      {/* Fee date picker */}
-      <DatePickerModal
-        visible={showFeeDatePicker}
-        value={feeDate.value}
-        onClose={() => setShowFeeDatePicker(false)}
-        onSelect={(d) => { if (d <= sd.today) { feeDate.setValue(d); feeDate.setError(0); } else { feeDate.setError(Date.now()); } }}
-        maxDate={sd.today}
-        title={t('entryDate')}
-      />
       </View>
       {/* Fee entry bottom sheet */}
-      <ModalOverlay visible={showFeeSheet} onClose={closeFeeSheet} animation="slideUpScale"
+      <ModalOverlay visible={showFeeSheet} onClose={showFeeDatePicker ? closeFeeDatePicker : closeFeeSheet} animation="slideUpScale"
           overlayStyle={bottomSheetOverlay as any}
-          contentStyle={{ alignItems: 'stretch' } as any}>
+          contentStyle={{ alignItems: 'stretch' } as any}
+          overlayContent={
+            <DatePickerModal
+              inline
+              visible={showFeeDatePicker}
+              value={feeDate.value || sd.today}
+              onClose={closeFeeDatePicker}
+              onSelect={(date) => { feeDate.setValue(date); feeDate.setError(0); }}
+              maxDate={sd.today}
+              title={t('entryDate')}
+            />
+          }>
           <ReAnimated.View style={sheetStyle}>
           <View style={[st.feeSheet, { width: '100%', maxWidth: 768, alignSelf: 'center' }]}>
             {/* Sheet header: handle on top, title + close button row below */}
@@ -1081,14 +1088,19 @@ export default function ExpenseScreen({
             <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 12 }}>
               {/* Date + Negative toggle */}
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 }}>
-                <Text style={{ fontSize: FONTS.sub.size, color: colors.textSub, fontWeight: FONTS.sub.weight }}>{t('entryDate')}</Text>
                 <View style={{ flex: 1 }}>
-                  <TouchableOpacity onPress={() => setShowFeeDatePicker(true)} style={{ flexDirection: 'row', alignItems: 'center', gap: 1 }} activeOpacity={0.7}>
+                  <TouchableOpacity accessibilityRole="button" onPress={() => {
+                    Keyboard.dismiss();
+                    setShowFeeDatePicker(true);
+                  }} style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 2 }} activeOpacity={0.7}>
+                    <Text style={{ fontSize: FONTS.sub.size, color: colors.textSub, fontWeight: FONTS.sub.weight, marginRight: 4 }}>
+                      {t('entryDate')}
+                    </Text>
                     <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
                       <Rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><Line x1="16" y1="2" x2="16" y2="6" /><Line x1="8" y1="2" x2="8" y2="6" /><Line x1="3" y1="10" x2="21" y2="10" />
                     </Svg>
                     <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.primary }}>
-                      {fmtLocalDate(feeDate.value)}
+                      {fmtLocalDate(feeDate.value || sd.today)}
                     </Text>
                     <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.primary} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                       <Path d="M8 5l8 7-8 7" />

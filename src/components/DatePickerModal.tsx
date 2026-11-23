@@ -14,6 +14,7 @@ interface Props {
   minDate?: string;
   maxDate?: string;
   title?: string;
+  inline?: boolean;
 }
 
 const fmtDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -24,7 +25,7 @@ const parseDate = (s: string): Date => {
   return new Date(y, m-1, d);
 };
 
-export default function DatePickerModal({ visible, value, onClose, onSelect, minDate, maxDate }: Props) {
+export default function DatePickerModal({ visible, value, onClose, onSelect, minDate, maxDate, inline }: Props) {
   const [draft, setDraft] = useState(value);
   const insets = useSafeAreaInsets();
 
@@ -52,6 +53,7 @@ export default function DatePickerModal({ visible, value, onClose, onSelect, min
   return (
     <ModalOverlay
       visible={visible}
+      inline={inline}
       onClose={onClose}
       animation="iosSheet"
       overlayStyle={{ justifyContent: 'flex-end', padding: 0 }}

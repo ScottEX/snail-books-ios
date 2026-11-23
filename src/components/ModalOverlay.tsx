@@ -2,7 +2,7 @@
 // ModalOverlay — 全屏遮罩 + 动画弹窗 (对齐 web)
 // ═══════════════════════════════════════════════════════════════
 
-import { Modal, TouchableOpacity, Animated, Easing, KeyboardAvoidingView, Platform } from 'react-native';
+import { Modal, TouchableOpacity, Animated, Easing, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { BACKDROP_COLOR } from '../theme';
 
@@ -21,9 +21,12 @@ interface ModalOverlayProps {
   outDuration?: number;
   /** Override backdrop color. Defaults to BACKDROP_COLOR. */
   backdropColor?: string;
+  /** Render above the content of an existing modal, without presenting another native modal. */
+  inline?: boolean;
+  overlayContent?: React.ReactNode;
 }
 
-export default function ModalOverlay({ visible = true, onClose, onClosed, onDismiss, children, overlayStyle, contentStyle, avoidKeyboard = false, animation = 'slide', staggerCount = 4, outDuration, backdropColor }: ModalOverlayProps) {
+export default function ModalOverlay({ visible = true, onClose, onClosed, onDismiss, children, overlayStyle, contentStyle, avoidKeyboard = false, animation = 'slide', staggerCount = 4, outDuration, backdropColor, inline = false, overlayContent }: ModalOverlayProps) {
   const [show, setShow] = useState(false);
   const initialSlide = animation === 'springScale' ? 12 : animation === 'slideUpScale' ? 500 : animation === 'stagger' ? 40 : animation === 'iosSheet' ? 500 : -300;
   const initialScale = animation === 'springScale' ? 0.85 : animation === 'blurMorph' ? 1.04 : animation === 'slideUpScale' ? 0.96 : animation === 'stagger' ? 0.94 : 1;
@@ -191,6 +194,34 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, onDism
     </Animated.View>
   );
 
+  const overlay = (
+    <Animated.View accessibilityViewIsModal={inline || undefined} style={[
+      { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 },
+      inline && { ...StyleSheet.absoluteFillObject, zIndex: 1 },
+      overlayStyle,
+    ]}>
+      <TouchableOpacity
+        activeOpacity={1}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        onPress={onClose}
+      >
+        <Animated.View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: backdropColor ?? BACKDROP_COLOR, opacity: back }} />
+      </TouchableOpacity>
+      {avoidKeyboard ? (
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          pointerEvents="box-none"
+          style={{ flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' }}
+        >
+          {content}
+        </KeyboardAvoidingView>
+      ) : content}
+      {overlayContent}
+    </Animated.View>
+  );
+
+  if (inline) return show ? overlay : null;
+
   return (
     <Modal
       visible={show}
@@ -200,24 +231,7 @@ export default function ModalOverlay({ visible = true, onClose, onClosed, onDism
       onDismiss={onDismiss}
       statusBarTranslucent
     >
-      <Animated.View style={[{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 16 }, overlayStyle]}>
-        <TouchableOpacity
-          activeOpacity={1}
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-          onPress={onClose}
-        >
-          <Animated.View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: backdropColor ?? BACKDROP_COLOR, opacity: back }} />
-        </TouchableOpacity>
-        {avoidKeyboard ? (
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            pointerEvents="box-none"
-            style={{ flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' }}
-          >
-            {content}
-          </KeyboardAvoidingView>
-        ) : content}
-      </Animated.View>
+      {overlay}
     </Modal>
   );
 }

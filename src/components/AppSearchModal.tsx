@@ -9,6 +9,7 @@ import { fmtAmtFull, formatDate } from '../utils/format';
 import { translateDividendNote, translateName } from '../screens/partner/usePartnerData';
 import AppTextInput from './AppTextInput';
 import CloseButton from './CloseButton';
+import DropdownArrow from './DropdownArrow';
 import ModalOverlay from './ModalOverlay';
 import SubmitButton from './SubmitButton';
 import { useAssistantSpeech } from '../hooks/useAssistantSpeech';
@@ -634,8 +635,9 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
           {mode === 'ask' && !busy && (
             <View>
               <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: showExamples }}
-                onPress={() => { Keyboard.dismiss(); setShowExamples(!showExamples); }} style={styles.example}>
-                <Text style={{ color: colors.primary }}>{t('ledgerAiExampleList')} {showExamples ? '▴' : '▾'}</Text>
+                onPress={() => { Keyboard.dismiss(); setShowExamples(!showExamples); }} style={styles.examplesTrigger}>
+                <Text style={{ color: colors.primary }}>{t('ledgerAiExampleList')}</Text>
+                <DropdownArrow color={colors.primary} expanded={showExamples} />
               </TouchableOpacity>
               {showExamples && (
                 <ScrollView style={[styles.examplesList, { backgroundColor: colors.bg }]} nestedScrollEnabled
@@ -739,6 +741,7 @@ const styles = StyleSheet.create({
   result: { borderRadius: 12, padding: 12, gap: 5 },
   resultLink: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   example: { minHeight: 44, justifyContent: 'center' },
+  examplesTrigger: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 2 },
   examplesList: { maxHeight: 140, borderRadius: 10 },
   exampleRow: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 12 },
   shortcuts: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
