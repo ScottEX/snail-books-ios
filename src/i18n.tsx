@@ -405,7 +405,28 @@ const I18N: Record<string, Record<string, string>> = {
     ledgerAiSalaryExample: '这个月工资一共发了多少？',
     ledgerAiTurnoverExample: '上周营业额是多少？',
     ledgerAiProfitExample: '今天的利润是多少？',
-    ledgerAiTopics: '可以问营业额、利润、股东、分红和注册人数。',
+    ledgerAiExampleList: '可以问什么',
+    ledgerAiLatestProcurementExample: '最近一次进货是什么时候？',
+    ledgerAiProcurementSummaryExample: '这个月进了几次货，一共多少钱？',
+    ledgerAiUnsettledProcurementExample: '还有几单进货没结算？',
+    ledgerAiLatestExpenseExample: '最近一笔支出是什么时候？',
+    ledgerAiLatestRevenueExample: '上次录入的营收是哪天？',
+    ledgerAiLatestReconciliationExample: '上次对账是哪天？',
+    ledgerAiLatestInvoiceExample: '最近一条发票记录是哪天？',
+    ledgerAiDividendExample: '一共分红了多少钱，分了几次？',
+    ledgerAiShareholdersExample: '股东有哪些人？',
+    ledgerAiUsersExample: '注册用户有多少？（管理员）',
+    ledgerAiLatestProcurement: '最近一次进货',
+    ledgerAiLatestExpense: '最近一笔支出',
+    ledgerAiLatestRevenue: '最近一条营收记录',
+    ledgerAiLatestReconciliation: '最近一次对账提交',
+    ledgerAiLatestInvoice: '最近一条发票记录',
+    ledgerAiOpenRecord: '查看原始记录',
+    ledgerAiProcurementSummary: '进货订单',
+    ledgerAiUnsettledProcurement: '未结算货款',
+    ledgerAiProcurementSummaryBasis: '按进货日期汇总采购单，包含未结算订单。',
+    ledgerAiUnsettledProcurementBasis: '按进货日期筛选，汇总目前还未结算的采购单。',
+    ledgerAiProcurementSupplierBasis: '金额只汇总该供应商对应的采购明细，供应商按商品当前登记信息匹配。',
     ledgerAiAdminOnly: '注册用户统计仅管理员可查。',
     ledgerAiThrough: '截至 {date}',
     ledgerAiProfitBasis: '与经营总览一致。已录入实收减支出，未扣平台手续费。',
@@ -424,7 +445,7 @@ const I18N: Record<string, Record<string, string>> = {
     ledgerAiGoodsExample: '这个月采购支出比上个月多了多少？',
     ledgerAiUnavailable: 'AI 查账暂未配置。',
     ledgerAiFailed: '查询失败，请稍后重试。',
-    ledgerAiUnclear: '暂时无法回答这条问题。可以试试「今天的利润是多少」或「一共分红了几次」。',
+    ledgerAiUnclear: '暂时无法回答这条问题。可以展开「可以问什么」查看示例。',
     ledgerAiNoRecords: '无记录',
     ledgerAiDifference: '差额',
     ledgerAiExpenseBasis: '按流水日期汇总支出，包含退款冲减。',
@@ -1098,7 +1119,28 @@ const I18N: Record<string, Record<string, string>> = {
     ledgerAiSalaryExample: '這個月工資一共發了多少？',
     ledgerAiTurnoverExample: '上週營業額是多少？',
     ledgerAiProfitExample: '今天的利潤是多少？',
-    ledgerAiTopics: '可以問營業額、利潤、股東、分紅和註冊人數。',
+    ledgerAiExampleList: '可以問什麼',
+    ledgerAiLatestProcurementExample: '最近一次進貨是什麼時候？',
+    ledgerAiProcurementSummaryExample: '這個月進了幾次貨，一共多少錢？',
+    ledgerAiUnsettledProcurementExample: '還有幾單進貨沒結算？',
+    ledgerAiLatestExpenseExample: '最近一筆支出是什麼時候？',
+    ledgerAiLatestRevenueExample: '上次登錄的營收是哪天？',
+    ledgerAiLatestReconciliationExample: '上次對帳是哪天？',
+    ledgerAiLatestInvoiceExample: '最近一筆發票紀錄是哪天？',
+    ledgerAiDividendExample: '一共分紅了多少錢，分了幾次？',
+    ledgerAiShareholdersExample: '股東有哪些人？',
+    ledgerAiUsersExample: '註冊使用者有多少？（管理員）',
+    ledgerAiLatestProcurement: '最近一次進貨',
+    ledgerAiLatestExpense: '最近一筆支出',
+    ledgerAiLatestRevenue: '最近一筆營收紀錄',
+    ledgerAiLatestReconciliation: '最近一次對帳提交',
+    ledgerAiLatestInvoice: '最近一筆發票紀錄',
+    ledgerAiOpenRecord: '查看原始紀錄',
+    ledgerAiProcurementSummary: '進貨訂單',
+    ledgerAiUnsettledProcurement: '未結算貨款',
+    ledgerAiProcurementSummaryBasis: '按進貨日期統計採購單，包含未結算訂單。',
+    ledgerAiUnsettledProcurementBasis: '按進貨日期篩選，統計目前還未結算的採購單。',
+    ledgerAiProcurementSupplierBasis: '金額只加總該供應商的採購明細，供應商按商品目前登記資訊比對。',
     ledgerAiAdminOnly: '註冊使用者統計僅管理員可查。',
     ledgerAiThrough: '截至 {date}',
     ledgerAiProfitBasis: '與經營總覽一致。已登錄實收減支出，未扣平台手續費。',
@@ -1117,7 +1159,7 @@ const I18N: Record<string, Record<string, string>> = {
     ledgerAiGoodsExample: '這個月採購支出比上個月多了多少？',
     ledgerAiUnavailable: 'AI 查帳尚未設定。',
     ledgerAiFailed: '查詢失敗，請稍後重試。',
-    ledgerAiUnclear: '暫時無法回答這個問題。可以試試「今天的利潤是多少」或「一共分紅了幾次」。',
+    ledgerAiUnclear: '暫時無法回答這個問題。可以展開「可以問什麼」查看範例。',
     ledgerAiNoRecords: '無紀錄',
     ledgerAiDifference: '差額',
     ledgerAiExpenseBasis: '按流水日期彙總支出，包含退款沖減。',
@@ -1800,7 +1842,28 @@ const I18N: Record<string, Record<string, string>> = {
     ledgerAiSalaryExample: 'How much did we spend on payroll this month?',
     ledgerAiTurnoverExample: 'What was last week’s turnover?',
     ledgerAiProfitExample: 'What was today’s profit?',
-    ledgerAiTopics: 'Ask about sales, profit, shareholders, dividends, or registrations.',
+    ledgerAiExampleList: 'Example questions',
+    ledgerAiLatestProcurementExample: 'When was our last purchase order?',
+    ledgerAiProcurementSummaryExample: 'How many orders did we place this month, and for how much?',
+    ledgerAiUnsettledProcurementExample: 'How many purchase orders are still unsettled?',
+    ledgerAiLatestExpenseExample: 'When was our last expense?',
+    ledgerAiLatestRevenueExample: 'What is the date of the latest sales entry?',
+    ledgerAiLatestReconciliationExample: 'When was the last reconciliation submitted?',
+    ledgerAiLatestInvoiceExample: 'What is the date of the latest invoice record?',
+    ledgerAiDividendExample: 'How much did we pay in dividends, and in how many rounds?',
+    ledgerAiShareholdersExample: 'Who are our shareholders?',
+    ledgerAiUsersExample: 'How many registered users are there? (Admin only)',
+    ledgerAiLatestProcurement: 'Latest purchase order',
+    ledgerAiLatestExpense: 'Latest expense',
+    ledgerAiLatestRevenue: 'Latest sales entry',
+    ledgerAiLatestReconciliation: 'Latest reconciliation submission',
+    ledgerAiLatestInvoice: 'Latest invoice record',
+    ledgerAiOpenRecord: 'Open record',
+    ledgerAiProcurementSummary: 'Purchase orders',
+    ledgerAiUnsettledProcurement: 'Unsettled purchase orders',
+    ledgerAiProcurementSummaryBasis: 'Orders are grouped by purchase date and include unsettled orders.',
+    ledgerAiUnsettledProcurementBasis: 'Shows orders still unsettled today, filtered by purchase date.',
+    ledgerAiProcurementSupplierBasis: 'Amounts include matching line items only, based on the supplier currently listed on the product.',
     ledgerAiAdminOnly: 'Only administrators can view registration statistics.',
     ledgerAiThrough: 'Through {date}',
     ledgerAiProfitBasis: 'Recorded receipts minus expenses, before platform fees.',
@@ -1819,7 +1882,7 @@ const I18N: Record<string, Record<string, string>> = {
     ledgerAiGoodsExample: 'How much more did we spend on procurement this month than last month?',
     ledgerAiUnavailable: 'AI ledger queries are unavailable.',
     ledgerAiFailed: 'The query failed. Try again shortly.',
-    ledgerAiUnclear: 'Try a question such as “What was today’s profit?” or “How many dividend rounds have we paid?”',
+    ledgerAiUnclear: 'This question could not be answered. Open “Example questions” to see what you can ask.',
     ledgerAiNoRecords: 'No records',
     ledgerAiDifference: 'Difference',
     ledgerAiExpenseBasis: 'Expenses by transaction date, net of refunds.',
@@ -2495,7 +2558,28 @@ export type I18nKey =
   | 'ledgerAiSalaryExample'
   | 'ledgerAiTurnoverExample'
   | 'ledgerAiProfitExample'
-  | 'ledgerAiTopics'
+  | 'ledgerAiExampleList'
+  | 'ledgerAiLatestProcurementExample'
+  | 'ledgerAiProcurementSummaryExample'
+  | 'ledgerAiUnsettledProcurementExample'
+  | 'ledgerAiLatestExpenseExample'
+  | 'ledgerAiLatestRevenueExample'
+  | 'ledgerAiLatestReconciliationExample'
+  | 'ledgerAiLatestInvoiceExample'
+  | 'ledgerAiDividendExample'
+  | 'ledgerAiShareholdersExample'
+  | 'ledgerAiUsersExample'
+  | 'ledgerAiLatestProcurement'
+  | 'ledgerAiLatestExpense'
+  | 'ledgerAiLatestRevenue'
+  | 'ledgerAiLatestReconciliation'
+  | 'ledgerAiLatestInvoice'
+  | 'ledgerAiOpenRecord'
+  | 'ledgerAiProcurementSummary'
+  | 'ledgerAiUnsettledProcurement'
+  | 'ledgerAiProcurementSummaryBasis'
+  | 'ledgerAiUnsettledProcurementBasis'
+  | 'ledgerAiProcurementSupplierBasis'
   | 'ledgerAiAdminOnly'
   | 'ledgerAiThrough'
   | 'ledgerAiProfitBasis'

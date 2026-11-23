@@ -21,7 +21,8 @@ export interface LedgerTotal {
 }
 
 interface LedgerAggregateAnswer {
-  metric: 'turnover' | 'received' | 'expense' | 'profit' | 'registered_users' | 'dividend_amount' | 'dividend_rounds';
+  metric: 'turnover' | 'received' | 'expense' | 'profit' | 'registered_users' | 'dividend_amount' | 'dividend_rounds'
+    | 'procurement_summary' | 'unsettled_procurement';
   category: ExpenseDraft['category'];
   supplier: string | null;
   current: LedgerTotal;
@@ -33,6 +34,13 @@ export type LedgerAnswer = LedgerAggregateAnswer | {
   metric: 'shareholders';
   as_of: string;
   shareholders: { id: number; name: string; share: number }[];
+} | {
+  metric: 'latest_procurement' | 'latest_expense' | 'latest_revenue' | 'latest_reconciliation' | 'latest_invoice';
+  record: (AppSearchRecord & { settled?: boolean }) | null;
+  category: ExpenseDraft['category'];
+  supplier: string | null;
+  start_date: string | null;
+  end_date: string;
 };
 
 export interface AppSearchRecord {
@@ -317,7 +325,7 @@ export const api = {
   askLedger: (question: string, signal: AbortSignal) =>
     authFetch<{ status: 'ok'; answer: LedgerAnswer }>('/api/ledger/ask', {
       method: 'POST',
-      body: JSON.stringify({ question }),
+      body: JSON.stringify({ question, record_queries: true }),
       signal,
     }),
   searchApp: (keyword: string, signal: AbortSignal) =>

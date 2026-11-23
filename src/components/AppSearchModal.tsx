@@ -13,13 +13,20 @@ import SubmitButton from './SubmitButton';
 
 const modes = {
   search: { label: 'appSearchFind', placeholder: 'appSearchPlaceholder', action: 'appSearchFind', limit: 80 },
-  ask: { label: 'assistantAsk', placeholder: 'ledgerAiProfitExample', action: 'ledgerAiAsk', limit: 300 },
+  ask: { label: 'assistantAsk', placeholder: 'ledgerAiLatestProcurementExample', action: 'ledgerAiAsk', limit: 300 },
   record: { label: 'assistantRecord', placeholder: 'expenseAiExample', action: 'expenseAiGenerate', limit: 500 },
 } as const;
 type AssistantMode = keyof typeof modes;
 const modelErrors = [
   'ledgerAiUnavailable', 'ledgerAiUnclear', 'ledgerAiAdminOnly', 'expenseAiRateLimit', 'expenseAiUnavailable', 'expenseAiUnclear',
 ];
+const askExamples = [
+  'ledgerAiLatestProcurementExample', 'ledgerAiProcurementSummaryExample', 'ledgerAiUnsettledProcurementExample',
+  'ledgerAiTurnoverExample', 'ledgerAiProfitExample', 'ledgerAiSalaryExample',
+  'ledgerAiLatestExpenseExample', 'ledgerAiLatestRevenueExample',
+  'ledgerAiLatestReconciliationExample', 'ledgerAiLatestInvoiceExample',
+  'ledgerAiDividendExample', 'ledgerAiShareholdersExample', 'ledgerAiUsersExample',
+] as const;
 
 const pages = {
   invoice: ['appSearchInvoice', '发票|發票|发票管理|開票|开票|票據|invoice'],
@@ -141,7 +148,7 @@ function SearchResults({ hits, onOpen, disabled }: {
   );
 }
 
-function periodLabel(total: LedgerTotal) {
+function periodLabel(total: Pick<LedgerTotal, 'start_date' | 'end_date'>) {
   const end = formatDate(total.end_date);
   if (!total.start_date) return t('ledgerAiThrough').replace('{date}', end);
   const start = formatDate(total.start_date);
@@ -156,6 +163,16 @@ const aggregateLabels = {
   registered_users: ['ledgerAiUsers', 'ledgerAiUsersBasis', 'userManagement'],
   dividend_amount: ['ledgerAiDividendAmount', 'ledgerAiDividendBasis', 'dividendHistory'],
   dividend_rounds: ['ledgerAiDividendRounds', 'ledgerAiDividendBasis', 'dividendHistory'],
+  procurement_summary: ['ledgerAiProcurementSummary', 'ledgerAiProcurementSummaryBasis', 'procurementHistory'],
+  unsettled_procurement: ['ledgerAiUnsettledProcurement', 'ledgerAiUnsettledProcurementBasis', 'procurementHistory'],
+} as const;
+
+const latestLabels = {
+  latest_procurement: 'ledgerAiLatestProcurement',
+  latest_expense: 'ledgerAiLatestExpense',
+  latest_revenue: 'ledgerAiLatestRevenue',
+  latest_reconciliation: 'ledgerAiLatestReconciliation',
+  latest_invoice: 'ledgerAiLatestInvoice',
 } as const;
 
 function countLabel(count: number, unit: 'ledgerAiPeopleUnit' | 'ledgerAiRoundsUnit') {
@@ -163,9 +180,9 @@ function countLabel(count: number, unit: 'ledgerAiPeopleUnit' | 'ledgerAiRoundsU
   return t(key).replace('{n}', count.toLocaleString(getLang()));
 }
 
-function LedgerResult({ answer, onOpenPage, onSearchSupplier, disabled }: {
+function LedgerResult({ answer, onOpenResult, onSearchSupplier, disabled }: {
   answer: LedgerAnswer;
-  onOpenPage: (page: AppSearchPage) => void;
+  onOpenResult: (target: SearchResult) => void;
   onSearchSupplier: (name: string) => void;
   disabled: boolean;
 }) {
@@ -195,7 +212,33 @@ function LedgerResult({ answer, onOpenPage, onSearchSupplier, disabled }: {
             translateName(name), `${(share * 100).toLocaleString(getLang(), { maximumFractionDigits: 2 })}%`, id,
           ))
           : <Text style={{ color: colors.textSub }}>{t('ledgerAiNoRecords')}</Text>}
-        {link(t('appSearchPartner'), () => onOpenPage('partnerStructure'))}
+        {link(t('appSearchPartner'), () => onOpenResult('partnerStructure'))}
+      </View>
+    );
+  }
+
+  if ('record' in answer) {
+    const { record, category, supplier } = answer;
+    const title = [t(latestLabels[answer.metric]), category && t(category), supplier].filter(Boolean).join(' · ');
+    const reference = record?.kind === 'procurement' && record.title
+      ? t('procNowBatch').replace('{n}', record.title) : record?.title;
+    return (
+      <View style={resultStyle} accessibilityLiveRegion="polite">
+        <Text style={[styles.title, { color: colors.textMain }]}>{title}</Text>
+        <Text style={[styles.amount, { color: colors.primary }]}>
+          {record ? formatDate(record.date) : t('ledgerAiNoRecords')}
+        </Text>
+        {record ? (
+          <>
+            {!!reference && <Text style={{ color: colors.textMain }}>{reference}</Text>}
+            {record.amount !== null && row(t(record.kind === 'revenue' ? 'revTurnover'
+              : record.kind === 'procurement' ? 'procThisBatch' : 'amount'), fmtAmtFull(record.amount))}
+            {record.settled !== undefined && <Text style={{ color: colors.textSub }}>
+              {t(record.settled ? 'procSettled' : 'procUnsettled')}
+            </Text>}
+            {link(t('ledgerAiOpenRecord'), () => onOpenResult(record))}
+          </>
+        ) : <Text style={[styles.caption, { color: colors.textSub }]}>{periodLabel(answer)}</Text>}
       </View>
     );
   }
@@ -203,11 +246,13 @@ function LedgerResult({ answer, onOpenPage, onSearchSupplier, disabled }: {
   const [defaultLabel, defaultBasis, page] = aggregateLabels[answer.metric];
   const { supplier, category, current, comparison, difference } = answer;
   const label = category ?? defaultLabel;
-  const basis = supplier ? 'appSearchSupplierBasis' : category === 'goods' ? 'ledgerAiGoodsBasis' : defaultBasis;
+  const isProcurement = answer.metric === 'procurement_summary' || answer.metric === 'unsettled_procurement';
+  const basis = supplier && !isProcurement ? 'appSearchSupplierBasis'
+    : category === 'goods' ? 'ledgerAiGoodsBasis' : defaultBasis;
   const countUnit = answer.metric === 'registered_users' ? 'ledgerAiPeopleUnit'
     : answer.metric === 'dividend_rounds' ? 'ledgerAiRoundsUnit' : null;
   const formatAmount = (amount: number) => countUnit ? countLabel(amount, countUnit) : fmtAmtFull(amount);
-  const totalLabel = (total: LedgerTotal) => countUnit || total.records ? formatAmount(total.amount) : t('ledgerAiNoRecords');
+  const totalLabel = (total: LedgerTotal) => countUnit || total.records || isProcurement ? formatAmount(total.amount) : t('ledgerAiNoRecords');
 
   return (
     <View style={resultStyle} accessibilityLiveRegion="polite">
@@ -218,6 +263,7 @@ function LedgerResult({ answer, onOpenPage, onSearchSupplier, disabled }: {
       </Text>
       {current.awaiting_review !== undefined && row(t('ledgerAiAwaitingReview'), countLabel(current.awaiting_review, 'ledgerAiPeopleUnit'))}
       {current.disabled !== undefined && row(t('ledgerAiDisabled'), countLabel(current.disabled, 'ledgerAiPeopleUnit'))}
+      {isProcurement && row(t('procBatchLabel'), current.records.toLocaleString(getLang()))}
       {answer.metric === 'dividend_amount' && current.rounds !== undefined && row(t('ledgerAiDividendRounds'), countLabel(current.rounds, 'ledgerAiRoundsUnit'))}
       {answer.metric === 'dividend_rounds' && current.dividend_amount !== undefined && row(t('ledgerAiDividendAmount'), fmtAmtFull(current.dividend_amount))}
       {comparison && row(periodLabel(comparison), totalLabel(comparison))}
@@ -227,7 +273,10 @@ function LedgerResult({ answer, onOpenPage, onSearchSupplier, disabled }: {
         </Text>
       )}
       <Text style={[styles.caption, { color: colors.textSub }]}>{t(basis)}</Text>
-      {supplier ? link(t('appSearchRelated'), () => onSearchSupplier(supplier)) : link(t(pages[page][0]), () => onOpenPage(page))}
+      {!!supplier && isProcurement && <Text style={[styles.caption, { color: colors.textSub }]}>{t('ledgerAiProcurementSupplierBasis')}</Text>}
+      {supplier && !isProcurement
+        ? link(t('appSearchRelated'), () => onSearchSupplier(supplier))
+        : link(t(pages[page][0]), () => onOpenResult(page))}
     </View>
   );
 }
@@ -262,6 +311,7 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState<AssistantMode>('search');
+  const [showExamples, setShowExamples] = useState(false);
   const [hits, setHits] = useState<{ pages: AppSearchPage[]; records: AppSearchRecord[] } | null>(null);
   const request = useRef<AbortController | null>(null);
   const pendingNavigation = useRef<(() => void) | null>(null);
@@ -278,6 +328,7 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
     setDraft(null);
     setHits(null);
     setMode('search');
+    setShowExamples(false);
     setError('');
     onClose();
   };
@@ -294,6 +345,7 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
   const switchMode = (next: AssistantMode) => {
     if (next === mode || request.current) return;
     setMode(next);
+    setShowExamples(false);
     changeQuestion('');
   };
 
@@ -303,6 +355,7 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
     const controller = new AbortController();
     request.current = controller;
     setBusy(true);
+    setShowExamples(false);
     setError('');
     setAnswer(null);
     setDraft(null);
@@ -417,11 +470,27 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
             underlineColorAndroid="transparent"
             style={[styles.input, !isSearch && styles.multilineInput, { color: colors.textMain, backgroundColor: colors.bg }]}
           />
-          {mode === 'ask' && !answer && !error && <Text style={[styles.caption, { color: colors.textSub }]}>{t('ledgerAiTopics')}</Text>}
+          {mode === 'ask' && !busy && (
+            <View>
+              <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: showExamples }}
+                onPress={() => setShowExamples(!showExamples)} style={styles.example}>
+                <Text style={{ color: colors.primary }}>{t('ledgerAiExampleList')} {showExamples ? '▴' : '▾'}</Text>
+              </TouchableOpacity>
+              {showExamples && askExamples.map(key => (
+                <TouchableOpacity key={key} accessibilityRole="button" style={styles.example} onPress={() => {
+                  const example = t(key);
+                  changeQuestion(example);
+                  void submit('ask', example);
+                }}>
+                  <Text style={{ color: colors.textMain }}>{t(key)}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
           {!isSearch && <Text style={[styles.caption, { color: colors.textSub }]}>{t('assistantPrivacy')}</Text>}
           {!!error && <Text accessibilityLiveRegion="polite" style={{ color: colors.danger }}>{error}</Text>}
           {hits && <SearchResults hits={hits} onOpen={openResult} disabled={busy} />}
-          {answer && <LedgerResult answer={answer} onSearchSupplier={searchSupplier} onOpenPage={openResult} disabled={busy} />}
+          {answer && <LedgerResult answer={answer} onSearchSupplier={searchSupplier} onOpenResult={openResult} disabled={busy} />}
           {draft && <DraftResult draft={draft} />}
         </ScrollView>
         <View style={styles.actions}>
@@ -456,6 +525,7 @@ const styles = StyleSheet.create({
   hitTitle: { flex: 1 },
   result: { borderRadius: 12, padding: 12, gap: 5 },
   resultLink: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
+  example: { minHeight: 44, justifyContent: 'center' },
   totalRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   period: { flex: 1 },
   actions: { alignItems: 'flex-end', paddingHorizontal: 20, paddingTop: 6, paddingBottom: 16 },
