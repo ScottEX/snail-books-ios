@@ -207,9 +207,10 @@ function GlobalAssistant() {
   const [visible, setVisible] = useState(false);
   const showAssistant = useCallback(() => setVisible(true), []);
   const left = 16 + insets.left;
+  const right = 16 + insets.right;
   const bottom = Math.max(94, insets.bottom + 16);
   const button = useDraggableButton({
-    anchor: 'left', left, right: 16 + insets.right, top: insets.top + 12, bottom, onPress: showAssistant,
+    anchor: 'right', left, right, top: insets.top + 12, bottom, onPress: showAssistant,
   });
 
   const open = async (target: AppSearchTarget, signal: AbortSignal) => {
@@ -271,7 +272,7 @@ function GlobalAssistant() {
           accessibilityLabel={t('assistantTitle')}
           onAccessibilityTap={showAssistant}
           onLayout={button.onButtonLayout}
-          style={[searchStyles.button, { left, bottom, backgroundColor: colors.primary }, button.animatedStyle]}
+          style={[searchStyles.button, { right, bottom, backgroundColor: colors.primary }, button.animatedStyle]}
         >
           <Svg width={20} height={20} viewBox="0 0 24 24" stroke={colors.surface} strokeWidth={1.6} fill="none" strokeLinejoin="round">
             <Path d="M10 3.5 12.1 9.9 18.5 12l-6.4 2.1L10 20.5l-2.1-6.4L1.5 12l6.4-2.1L10 3.5Z" />
