@@ -5,7 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Line } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import HomeScreen from '../screens/HomeScreen';
 import ExpenseHistoryScreen from '../screens/ExpenseHistoryScreen';
 import DailyRevenueHistory from '../screens/DailyRevenueHistory';
@@ -17,7 +17,7 @@ import InvoiceScreen from '../screens/InvoiceScreen';
 import ProcurementDetailScreen from '../screens/ProcurementDetailScreen';
 import ExpenseDetailScreen from '../screens/ExpenseDetailScreen';
 import PdfPreviewPage from '../screens/PdfPreviewPage';
-import { api } from '../api/client';
+import { api, type ExpenseDraft } from '../api/client';
 import AppSearchModal, { type AppSearchTarget } from '../components/AppSearchModal';
 import { t, useLang } from '../i18n';
 import { useTheme } from '../theme';
@@ -25,7 +25,13 @@ import { useDraggableButton } from '../hooks/useDraggableButton';
 import { isHomeSearchAction, type HomeSearchAction } from './homeSearchActions';
 
 export type RootStackParamList = {
-  Main: { editBatch?: any; searchTab?: 'supply' | 'partner'; searchProduct?: string; searchAction?: HomeSearchAction } | undefined;
+  Main: {
+    editBatch?: any;
+    searchTab?: 'supply' | 'partner';
+    searchProduct?: string;
+    searchAction?: HomeSearchAction;
+    expenseDraft?: ExpenseDraft;
+  } | undefined;
   ExpenseHistory: undefined;
   DailyHistory: { date?: string } | undefined;
   ReconHistory: { date?: string } | undefined;
@@ -193,17 +199,17 @@ function PdfPreviewRoute() {
   );
 }
 
-function GlobalSearch() {
+function GlobalAssistant() {
   useLang();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [visible, setVisible] = useState(false);
-  const showSearch = useCallback(() => setVisible(true), []);
+  const showAssistant = useCallback(() => setVisible(true), []);
   const left = 16 + insets.left;
   const bottom = Math.max(94, insets.bottom + 16);
   const button = useDraggableButton({
-    anchor: 'left', left, right: 16 + insets.right, top: insets.top + 12, bottom, onPress: showSearch,
+    anchor: 'left', left, right: 16 + insets.right, top: insets.top + 12, bottom, onPress: showAssistant,
   });
 
   const open = async (target: AppSearchTarget, signal: AbortSignal) => {
@@ -262,19 +268,24 @@ function GlobalSearch() {
         <Animated.View
           accessible
           accessibilityRole="button"
-          accessibilityLabel={t('appSearchTitle')}
-          onAccessibilityTap={showSearch}
+          accessibilityLabel={t('assistantTitle')}
+          onAccessibilityTap={showAssistant}
           onLayout={button.onButtonLayout}
           style={[searchStyles.button, { left, bottom, backgroundColor: colors.primary }, button.animatedStyle]}
         >
-          <Svg width={22} height={22} viewBox="0 0 24 24" stroke={colors.surface} strokeWidth={2} fill="none">
-            <Circle cx={10.5} cy={10.5} r={5.5} />
-            <Line x1={15} y1={15} x2={20} y2={20} strokeLinecap="round" />
+          <Svg width={20} height={20} viewBox="0 0 24 24" stroke={colors.surface} strokeWidth={1.6} fill="none" strokeLinejoin="round">
+            <Path d="M10 3.5 12.1 9.9 18.5 12l-6.4 2.1L10 20.5l-2.1-6.4L1.5 12l6.4-2.1L10 3.5Z" />
+            <Path d="M19 2v6m-3-3h6" strokeLinecap="round" />
           </Svg>
-          <Text style={{ color: colors.surface, fontWeight: '600' }}>{t('appSearchFind')}</Text>
+          <Text style={{ color: colors.surface, fontWeight: '600' }}>{t('assistantTitle')}</Text>
         </Animated.View>
       </GestureDetector>
-      <AppSearchModal visible={visible} onClose={() => setVisible(false)} onOpen={open} />
+      <AppSearchModal
+        visible={visible}
+        onClose={() => setVisible(false)}
+        onOpen={open}
+        onReviewDraft={draft => navigation.dispatch(StackActions.popTo('Main', { expenseDraft: draft }))}
+      />
     </View>
   );
 }
@@ -313,7 +324,7 @@ export default function RootStack({ onLogout }: { onLogout: () => void }) {
         <Stack.Screen name="ExpenseDetail" component={ExpenseDetailRoute} />
         <Stack.Screen name="PdfPreview" component={PdfPreviewRoute} />
       </Stack.Navigator>
-      <GlobalSearch />
+      <GlobalAssistant />
     </SessionContext.Provider>
   );
 }

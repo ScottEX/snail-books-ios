@@ -6,10 +6,9 @@ import AppTextInput from '../components/AppTextInput';
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import { t, getLang } from '../i18n';
-import { api } from '../api/client';
+import { api, type ExpenseDraft } from '../api/client';
 import { useToast } from '../hooks/useToast';
 import { getCurrentUser, getCurrentUserId } from '../utils/storage';
-import { GestureDetector } from 'react-native-gesture-handler';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import ReAnimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import DatePickerModal from '../components/DatePickerModal';
@@ -29,7 +28,6 @@ import { blockNeg, fmtDecInput, toDec2, fmtRefundInput } from '../utils/numbers'
 import NumberTickerExt from '../components/NumberTicker';
 import { useServerDate } from '../hooks/useServerDate';
 import { useExpenseForm } from '../hooks/useExpenseForm';
-import { useDraggableButton } from '../hooks/useDraggableButton';
 import type { HomeSearchRequest } from '../navigation/homeSearchActions';
 import ModalOverlay from '../components/ModalOverlay';
 import { useDateField } from '../hooks/useDateField';
@@ -39,9 +37,6 @@ import { useImagePreview } from '../hooks/useImagePreview';
 import ImagePreview, { ThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 
 import FadeInView from '../components/FadeInView';
-
-const EXPENSE_AI_SIDE_MARGIN = 18;
-const EXPENSE_AI_BOTTOM = 94;
 
 /* ── helpers ── */
 // Date helpers replaced by useServerDate() hook (server time, not client)
@@ -98,11 +93,15 @@ function InputWithFocus({ style, inputStyle, ...props }: any) {
 export default function ExpenseScreen({
   onReconHistory,
   onExpenseHistory,
+  expenseDraft,
+  onExpenseDraftApplied,
   searchShortcut,
   onSearchShortcutHandled,
 }: {
   onReconHistory?: () => void;
   onExpenseHistory?: () => void;
+  expenseDraft?: ExpenseDraft | null;
+  onExpenseDraftApplied?: () => void;
   searchShortcut?: HomeSearchRequest | null;
   onSearchShortcutHandled?: () => void;
 }) {
@@ -439,19 +438,21 @@ export default function ExpenseScreen({
     onToast: showToast,
   });
 
-  const [showExpenseAi, setShowExpenseAi] = useState(false);
-  const [expenseAiText, setExpenseAiText] = useState('');
-  const [expenseAiBusy, setExpenseAiBusy] = useState(false);
-  const [expenseAiError, setExpenseAiError] = useState('');
-  const showExpenseAiButton = activeTab === 1 && !isRefund;
-  const expenseAiRequest = useRef<AbortController | null>(null);
-  useEffect(() => () => expenseAiRequest.current?.abort(), []);
-
-  const openExpenseAi = useCallback(() => setShowExpenseAi(true), []);
-  const expenseAiButton = useDraggableButton({
-    anchor: 'right', left: EXPENSE_AI_SIDE_MARGIN, right: EXPENSE_AI_SIDE_MARGIN,
-    top: 12, bottom: EXPENSE_AI_BOTTOM, onPress: openExpenseAi, disabled: loadingExp,
-  });
+  useEffect(() => {
+    if (!expenseDraft || loadingExp) return;
+    setActiveTab(1);
+    setIsRefund(false);
+    setExpAmount(expenseDraft.amount);
+    setExpDate(expenseDraft.date ?? '');
+    setExpDateErr(0);
+    setExpCategory(expenseDraft.category ?? '');
+    setPayMethod(expenseDraft.account ?? '');
+    setExpNote(expenseDraft.note ?? '');
+    jumpToReconciliation.current = false;
+    expenseContentRef.current?.scrollTo({ y: 0, animated: false });
+    onExpenseDraftApplied?.();
+    showToast(t('expenseAiReview'));
+  }, [expenseDraft, loadingExp]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!searchShortcut) return;
@@ -459,11 +460,9 @@ export default function ExpenseScreen({
     switch (action) {
       case 'expenseEntry':
       case 'refund':
-      case 'expenseAi':
         if (loadingExp) return;
         setActiveTab(1);
         setIsRefund(action === 'refund');
-        if (action === 'expenseAi') openExpenseAi();
         break;
       case 'feeEntry':
         if (!sd.ready) return;
@@ -496,49 +495,6 @@ export default function ExpenseScreen({
     }
     onSearchShortcutHandled?.();
   }, [searchShortcut, sd.ready, loadingExp]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const closeExpenseAi = () => {
-    Keyboard.dismiss();
-    expenseAiRequest.current?.abort();
-    expenseAiRequest.current = null;
-    setExpenseAiBusy(false);
-    setExpenseAiError('');
-    setExpenseAiText('');
-    setShowExpenseAi(false);
-  };
-
-  const generateExpenseDraft = async () => {
-    const text = expenseAiText.trim();
-    if (!text || expenseAiRequest.current) return;
-    const controller = new AbortController();
-    expenseAiRequest.current = controller;
-    setExpenseAiBusy(true);
-    setExpenseAiError('');
-    Keyboard.dismiss();
-    try {
-      const { draft } = await api.generateExpenseDraft(text, controller.signal);
-      if (controller.signal.aborted) return;
-      setExpAmount(draft.amount);
-      setExpDate(draft.date ?? '');
-      setExpDateErr(0);
-      setExpCategory(draft.category ?? '');
-      setPayMethod(draft.account ?? '');
-      setExpNote(draft.note ?? '');
-      setExpenseAiText('');
-      setShowExpenseAi(false);
-      showToast(t('expenseAiReview'));
-    } catch (error) {
-      if (controller.signal.aborted) return;
-      const message = error instanceof Error ? error.message : '';
-      const knownErrors = ['expenseAiUnavailable', 'expenseAiRateLimit', 'expenseAiUnclear'];
-      setExpenseAiError(t(knownErrors.includes(message) ? message : 'expenseAiFailed'));
-    } finally {
-      if (expenseAiRequest.current === controller) {
-        expenseAiRequest.current = null;
-        setExpenseAiBusy(false);
-      }
-    }
-  };
 
   const navigation = useNavigation<any>();
   const { preview, openPreview, closePreview } = useImagePreview();
@@ -615,7 +571,7 @@ export default function ExpenseScreen({
   return (
     <>
     <ReAnimated.View style={[{ flex: 1 }, contentStyle]}>
-      <View style={st.root} onLayout={expenseAiButton.onContainerLayout}>
+      <View style={st.root}>
       {/* ══════ 卡片式Tab ══════ */}
       <View style={st.tabBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
@@ -727,7 +683,7 @@ export default function ExpenseScreen({
 
       {/* ══════ 内容区（FadeIn 切换） ══════ */}
       <ScrollView ref={expenseContentRef} style={st.contentScroll} showsVerticalScrollIndicator={false}
-        contentContainerStyle={[st.contentInner, showExpenseAiButton && st.contentWithAiButton]}>
+        contentContainerStyle={[st.contentInner, activeTab === 1 && !isRefund && st.contentWithAssistant]}>
 
         {/* ── 模块一：每日对账 ── */}
         {activeTab === 0 && (
@@ -1012,63 +968,6 @@ export default function ExpenseScreen({
         </FadeInView>
         )}
       </ScrollView>
-
-      {showExpenseAiButton && (
-        <GestureDetector gesture={expenseAiButton.gesture}>
-          <ReAnimated.View
-            accessible
-            accessibilityRole="button"
-            accessibilityLabel={t('expenseAiTitle')}
-            accessibilityState={{ disabled: loadingExp }}
-            onAccessibilityTap={loadingExp ? undefined : openExpenseAi}
-            onLayout={expenseAiButton.onButtonLayout}
-            style={[st.expenseAiButton, expenseAiButton.animatedStyle, loadingExp && { opacity: 0.5 }]}
-          >
-            <Svg width={18} height={18} viewBox="0 0 24 24" fill={colors.surface}>
-              <Path d="M12 1.5 14.6 9.4 22.5 12l-7.9 2.6L12 22.5l-2.6-7.9L1.5 12l7.9-2.6L12 1.5Z" />
-            </Svg>
-            <Text style={st.expenseAiButtonText}>{t('expenseAiTitle')}</Text>
-          </ReAnimated.View>
-        </GestureDetector>
-      )}
-
-      <ModalOverlay visible={showExpenseAi} onClose={closeExpenseAi} animation="springScale" avoidKeyboard>
-        <View style={[st.modalCard, st.expenseAiCard]}>
-          <View style={st.modalHeader}>
-            <Text style={st.modalTitle}>{t('expenseAiTitle')}</Text>
-            <CloseButton onPress={closeExpenseAi} />
-          </View>
-          <ScrollView
-            style={st.expenseAiBody}
-            contentContainerStyle={st.expenseAiBodyContent}
-            keyboardShouldPersistTaps="handled"
-          >
-            <Text style={{ color: colors.textSub }}>{t('expenseAiPrivacy')}</Text>
-            <AppTextInput
-              accessibilityLabel={t('expenseAiTitle')}
-              placeholder={t('expenseAiExample')}
-              placeholderTextColor={colors.textSub}
-              value={expenseAiText}
-              onChangeText={setExpenseAiText}
-              editable={!expenseAiBusy}
-              multiline
-              maxLength={500}
-              style={{ color: colors.textMain, minHeight: 80, padding: 12, borderWidth: 1, borderRadius: 8, borderColor: withAlpha(colors.textSub, 0.35) }}
-            />
-            {!!expenseAiError && <Text accessibilityLiveRegion="polite" style={{ color: colors.danger }}>{expenseAiError}</Text>}
-          </ScrollView>
-          <View style={st.expenseAiActions}>
-            <ButtonPair
-              leftLabel={t('cancel')}
-              leftOnPress={closeExpenseAi}
-              rightLabel={t('expenseAiGenerate')}
-              rightOnPress={generateExpenseDraft}
-              rightDisabled={!expenseAiText.trim() || expenseAiBusy}
-              rightLoading={expenseAiBusy}
-            />
-          </View>
-        </View>
-      </ModalOverlay>
 
       {/* 添加提示弹窗 */}
       <ModalOverlay visible={showReconConfirm} onClose={hideReconConfirm} animation="springScale">
@@ -1416,20 +1315,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
   contentInner: {
     paddingHorizontal: 18, paddingBottom: 100, gap: 0, backgroundColor: 'transparent' as const,
   },
-  contentWithAiButton: { paddingBottom: 150 },
-  expenseAiButton: {
-    position: 'absolute', right: EXPENSE_AI_SIDE_MARGIN, bottom: EXPENSE_AI_BOTTOM, zIndex: 1,
-    minHeight: 44, paddingHorizontal: 16, borderRadius: 24,
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: colors.primary,
-    shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.28, shadowRadius: 8, elevation: 4,
-  },
-  expenseAiButtonText: { color: colors.surface, fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight },
-  expenseAiCard: { flexShrink: 1 },
-  expenseAiBody: { flexGrow: 0, flexShrink: 1 },
-  expenseAiBodyContent: { padding: 20, paddingBottom: 12, gap: 12 },
-  expenseAiActions: { paddingHorizontal: 20, paddingBottom: 20 },
+  contentWithAssistant: { paddingBottom: 150 },
   moduleWrap: {
     width: '100%',
   },

@@ -7,7 +7,6 @@ export const homeSearchTabs = {
   fee: 'expense',
   feeHistory: 'expense',
   feeEntry: 'expense',
-  expenseAi: 'expense',
   newOrder: 'supply',
   procurementHistory: 'supply',
   products: 'supply',

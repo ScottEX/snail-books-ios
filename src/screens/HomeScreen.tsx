@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
 import { t, getLang, langs, useLang } from '../i18n';
-import { api, resolveAssetUrl, bumpActivity } from '../api/client';
+import { api, resolveAssetUrl, bumpActivity, type ExpenseDraft } from '../api/client';
 import * as FileSystem from 'expo-file-system';
 import { useTheme, withAlpha, ThemeColors, DEFAULT_THEME_ID } from '../theme';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -294,7 +294,18 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const [pendingEditBatch, setPendingEditBatch] = useState<any | null>(null);
   const [searchProduct, setSearchProduct] = useState<string | undefined>();
   const [searchShortcut, setSearchShortcut] = useState<HomeSearchRequest | null>(null);
+  const [expenseDraft, setExpenseDraft] = useState<ExpenseDraft | null>(null);
   const consumeSearchShortcut = useCallback(() => setSearchShortcut(null), []);
+  const consumeExpenseDraft = useCallback(() => setExpenseDraft(null), []);
+
+  useEffect(() => {
+    const draft = route.params?.expenseDraft;
+    if (!draft) return;
+    setSearchShortcut(null);
+    setExpenseDraft(draft);
+    setTab('expense');
+    navigation.setParams({ expenseDraft: undefined });
+  }, [route.params?.expenseDraft]);
 
   useEffect(() => {
     const action = route.params?.searchAction;
@@ -614,6 +625,8 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
             (aligns with web HomeScreen.tsx which also hoists partner/supply out). */}
         {isHome && tab === 'expense' ? (
           <ExpenseScreen
+            expenseDraft={expenseDraft}
+            onExpenseDraftApplied={consumeExpenseDraft}
             searchShortcut={searchShortcut}
             onSearchShortcutHandled={consumeSearchShortcut}
             onReconHistory={() => navigation.navigate('ReconHistory')}

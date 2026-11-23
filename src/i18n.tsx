@@ -372,6 +372,13 @@ const I18N: Record<string, Record<string, string>> = {
     password: '密码',
     passwordChanged: '密码已修改',
     appSearchTitle: '全局查找',
+    assistantTitle: '助手',
+    assistantClose: '关闭助手',
+    assistantAsk: '问账',
+    assistantRecord: '记账',
+    assistantPrivacy: '问账和记账会将输入发给 AI 服务，请勿填写敏感信息。',
+    assistantDraft: '支出草稿',
+    assistantReviewDraft: '去核对草稿',
     appSearchExpenseEntry: '录入支出',
     appSearchRefund: '录入退款',
     appSearchProducts: '商品管理',
@@ -1041,6 +1048,13 @@ const I18N: Record<string, Record<string, string>> = {
     password: '密碼',
     passwordChanged: '密碼已修改',
     appSearchTitle: '全域查找',
+    assistantTitle: '助手',
+    assistantClose: '關閉助手',
+    assistantAsk: '問帳',
+    assistantRecord: '記帳',
+    assistantPrivacy: '問帳和記帳會將輸入傳送給 AI 服務，請勿填寫敏感資訊。',
+    assistantDraft: '支出草稿',
+    assistantReviewDraft: '前往核對草稿',
     appSearchExpenseEntry: '錄入支出',
     appSearchRefund: '錄入退款',
     appSearchProducts: '商品管理',
@@ -1719,6 +1733,13 @@ const I18N: Record<string, Record<string, string>> = {
     password: 'Password',
     passwordChanged: 'Password changed',
     appSearchTitle: 'Search the app',
+    assistantTitle: 'Assistant',
+    assistantClose: 'Close assistant',
+    assistantAsk: 'Ask',
+    assistantRecord: 'Record',
+    assistantPrivacy: 'Ask and Record send your text to the AI provider. Avoid entering sensitive information.',
+    assistantDraft: 'Expense draft',
+    assistantReviewDraft: 'Review draft',
     appSearchExpenseEntry: 'Record an expense',
     appSearchRefund: 'Record a refund',
     appSearchProducts: 'Manage products',
@@ -1728,7 +1749,7 @@ const I18N: Record<string, Record<string, string>> = {
     appSearchSignature: 'Profile signature',
     appSearchFeeHistory: 'Platform fee history',
     appSearchFind: 'Search',
-    appSearchPlaceholder: 'Enter a page, supplier, reference number, or note',
+    appSearchPlaceholder: 'Page, supplier, reference number, or note',
     appSearchPages: 'Pages',
     appSearchInvoice: 'Invoices',
     appSearchPartner: 'Partners',
@@ -2390,6 +2411,13 @@ export type I18nKey =
   | 'password'
   | 'passwordChanged'
   | 'appSearchTitle'
+  | 'assistantTitle'
+  | 'assistantClose'
+  | 'assistantAsk'
+  | 'assistantRecord'
+  | 'assistantPrivacy'
+  | 'assistantDraft'
+  | 'assistantReviewDraft'
   | 'appSearchExpenseEntry'
   | 'appSearchRefund'
   | 'appSearchProducts'

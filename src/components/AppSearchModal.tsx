@@ -1,17 +1,23 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Keyboard, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { api, type AppSearchRecord, type LedgerAnswer, type LedgerTotal } from '../api/client';
+import { api, type AppSearchRecord, type ExpenseDraft, type LedgerAnswer, type LedgerTotal } from '../api/client';
 import { t } from '../i18n';
 import { FONTS, useTheme, withAlpha } from '../theme';
 import { MODAL_CARD_RADIUS } from '../sharedStyles';
 import { fmtAmtFull, formatDate } from '../utils/format';
 import AppTextInput from './AppTextInput';
-import ButtonPair from './ButtonPair';
-import CloseButton from './CloseButton';
 import ModalOverlay from './ModalOverlay';
+import SubmitButton from './SubmitButton';
 
-const examples = ['ledgerAiSalaryExample', 'ledgerAiTurnoverExample', 'ledgerAiGoodsExample'];
-const knownErrors = ['ledgerAiUnavailable', 'ledgerAiUnclear', 'expenseAiRateLimit'];
+const modes = {
+  search: { label: 'appSearchFind', placeholder: 'appSearchPlaceholder', action: 'appSearchFind', limit: 80 },
+  ask: { label: 'assistantAsk', placeholder: 'ledgerAiTurnoverExample', action: 'ledgerAiAsk', limit: 300 },
+  record: { label: 'assistantRecord', placeholder: 'expenseAiExample', action: 'expenseAiGenerate', limit: 500 },
+} as const;
+type AssistantMode = keyof typeof modes;
+const modelErrors = [
+  'ledgerAiUnavailable', 'ledgerAiUnclear', 'expenseAiRateLimit', 'expenseAiUnavailable', 'expenseAiUnclear',
+];
 
 const pages = {
   invoice: ['appSearchInvoice', '发票|發票|发票管理|開票|开票|票據|invoice'],
@@ -22,6 +28,7 @@ const pages = {
   expenseEntry: ['appSearchExpenseEntry', '记账|記帳|录入支出|輸入支出|凭证上传|憑證上傳|add expense'],
   refund: ['appSearchRefund', '退款|退费|退費|refund'],
   expenseAi: ['expenseAiTitle', '一句话记账|一句話記帳|智能记账|智慧記帳|ai expense'],
+  askLedger: ['assistantAsk', 'ai 查账|ai 查帳|ai查账|ai查帳|查账|查帳|问账|問帳|ask the ledger'],
   procurement: ['procTitle', '采购管理|採購管理|进货管理|進貨管理|procurement'],
   newOrder: ['procNewOrder', '采购|採購|进货|進貨|新建采购单|新增採購單|new purchase order'],
   procurementHistory: ['procHistory', '采购记录|採購記錄|采购历史|採購歷史|进货记录|進貨記錄|清账|清賬|采购结算|採購結算|采购单PDF|採購單PDF|purchase history|settlement'],
@@ -66,7 +73,8 @@ const recordLabels: Record<AppSearchRecord['kind'], string> = {
 };
 
 export type AppSearchPage = keyof typeof pages;
-export type AppSearchTarget = AppSearchPage | AppSearchRecord;
+type SearchResult = AppSearchPage | AppSearchRecord;
+export type AppSearchTarget = Exclude<SearchResult, 'expenseAi' | 'askLedger'>;
 
 function findPages(keyword: string) {
   const query = keyword.toLowerCase();
@@ -89,7 +97,7 @@ async function findVisiblePages(keyword: string, signal: AbortSignal) {
 
 function SearchResults({ hits, onOpen, disabled }: {
   hits: { pages: AppSearchPage[]; records: AppSearchRecord[] };
-  onOpen: (target: AppSearchTarget) => void;
+  onOpen: (target: SearchResult) => void;
   disabled: boolean;
 }) {
   const { colors } = useTheme();
@@ -98,7 +106,8 @@ function SearchResults({ hits, onOpen, disabled }: {
       {hits.pages.length > 0 && <Text style={{ color: colors.textSub }}>{t('appSearchPages')}</Text>}
       {hits.pages.map(page => (
         <TouchableOpacity key={page} accessibilityRole="button" disabled={disabled} onPress={() => onOpen(page)} style={styles.hit}>
-          <Text style={{ color: colors.primary }}>{t(pages[page][0])}</Text>
+          <Text style={[styles.hitTitle, { color: colors.textMain }]}>{t(pages[page][0])}</Text>
+          <Text style={{ color: colors.textSub }}>›</Text>
         </TouchableOpacity>
       ))}
       {(Object.keys(recordLabels) as AppSearchRecord['kind'][]).map(kind => {
@@ -114,8 +123,11 @@ function SearchResults({ hits, onOpen, disabled }: {
               return (
                 <TouchableOpacity key={record.id} accessibilityRole="button" disabled={disabled}
                   onPress={() => onOpen(record)} style={styles.hit}>
-                  <Text style={{ color: colors.primary }} numberOfLines={2}>{record.title || t(recordLabels[record.kind])}</Text>
-                  {!!subtitle && <Text style={{ color: colors.textSub }} numberOfLines={2}>{subtitle}</Text>}
+                  <View style={styles.hitTitle}>
+                    <Text style={{ color: colors.textMain }} numberOfLines={2}>{record.title || t(recordLabels[record.kind])}</Text>
+                    {!!subtitle && <Text style={[styles.caption, { color: colors.textSub }]} numberOfLines={2}>{subtitle}</Text>}
+                  </View>
+                  <Text style={{ color: colors.textSub }}>›</Text>
                 </TouchableOpacity>
               );
             })}
@@ -140,23 +152,28 @@ function LedgerResult({ answer, onSearchSupplier }: { answer: LedgerAnswer; onSe
   const basis = answer.supplier ? 'appSearchSupplierBasis' : isExpense
     ? answer.category === 'goods' ? 'ledgerAiGoodsBasis' : 'ledgerAiExpenseBasis'
     : answer.metric === 'received' ? 'ledgerAiReceivedBasis' : 'ledgerAiTurnoverBasis';
+  const comparison = answer.comparison;
   return (
     <View style={[styles.result, { backgroundColor: withAlpha(colors.primary, 0.08) }]} accessibilityLiveRegion="polite">
       <Text style={[styles.title, { color: colors.textMain }]}>{t(label)}{answer.supplier ? ` · ${answer.supplier}` : ''}</Text>
-      {[answer.current, answer.comparison].map((total, index) => total && (
-        <View key={index} style={styles.totalRow}>
-          <Text style={[styles.period, { color: colors.textSub }]}>{periodLabel(total)}</Text>
+      <Text style={[styles.amount, { color: colors.primary }]}>
+        {answer.current.records ? fmtAmtFull(answer.current.amount) : t('ledgerAiNoRecords')}
+      </Text>
+      <Text style={[styles.caption, { color: colors.textSub }]}>{periodLabel(answer.current)}</Text>
+      {comparison && (
+        <View style={styles.totalRow}>
+          <Text style={[styles.period, styles.caption, { color: colors.textSub }]}>{periodLabel(comparison)}</Text>
           <Text style={{ color: colors.textMain, fontWeight: '600' }}>
-            {total.records ? fmtAmtFull(total.amount) : t('ledgerAiNoRecords')}
+            {comparison.records ? fmtAmtFull(comparison.amount) : t('ledgerAiNoRecords')}
           </Text>
         </View>
-      ))}
+      )}
       {answer.difference !== null && (
         <Text style={{ color: colors.primary, fontWeight: '600' }}>
           {t('ledgerAiDifference')} {answer.difference > 0 ? '+' : ''}{fmtAmtFull(answer.difference)}
         </Text>
       )}
-      <Text style={{ color: colors.textSub }}>{t(basis)}</Text>
+      <Text style={[styles.caption, { color: colors.textSub }]}>{t(basis)}</Text>
       {!!answer.supplier && (
         <TouchableOpacity accessibilityRole="button" onPress={() => onSearchSupplier(answer.supplier!)}>
           <Text style={{ color: colors.primary }}>{t('appSearchRelated')}</Text>
@@ -166,44 +183,72 @@ function LedgerResult({ answer, onSearchSupplier }: { answer: LedgerAnswer; onSe
   );
 }
 
-export default function AppSearchModal({ visible, onClose, onOpen }: {
+function DraftResult({ draft }: { draft: ExpenseDraft }) {
+  const { colors } = useTheme();
+  const details = [
+    draft.date && formatDate(draft.date),
+    draft.category && t(draft.category),
+    draft.account && t(draft.account),
+  ].filter(Boolean).join(' · ');
+  return (
+    <View style={[styles.result, { backgroundColor: withAlpha(colors.primary, 0.08) }]} accessibilityLiveRegion="polite">
+      <Text style={[styles.title, { color: colors.textMain }]}>{t('assistantDraft')}</Text>
+      <Text style={[styles.amount, { color: colors.primary }]}>{fmtAmtFull(Number(draft.amount))}</Text>
+      {!!details && <Text style={[styles.caption, { color: colors.textSub }]}>{details}</Text>}
+      {!!draft.note && <Text style={{ color: colors.textMain }}>{draft.note}</Text>}
+    </View>
+  );
+}
+
+export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft }: {
   visible: boolean;
   onClose: () => void;
   onOpen: (target: AppSearchTarget, signal: AbortSignal) => Promise<() => void>;
+  onReviewDraft: (draft: ExpenseDraft) => void;
 }) {
   const { colors } = useTheme();
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState<LedgerAnswer | null>(null);
+  const [draft, setDraft] = useState<ExpenseDraft | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState<'search' | 'ask'>('search');
+  const [mode, setMode] = useState<AssistantMode>('search');
   const [hits, setHits] = useState<{ pages: AppSearchPage[]; records: AppSearchRecord[] } | null>(null);
   const request = useRef<AbortController | null>(null);
   const pendingNavigation = useRef<(() => void) | null>(null);
   useEffect(() => () => request.current?.abort(), []);
 
-  const close = () => {
-    pendingNavigation.current = null;
+  const dismiss = (navigate: (() => void) | null = null) => {
+    pendingNavigation.current = navigate;
     Keyboard.dismiss();
     request.current?.abort();
     request.current = null;
     setBusy(false);
     setQuestion('');
     setAnswer(null);
+    setDraft(null);
     setHits(null);
     setMode('search');
     setError('');
     onClose();
   };
+  const close = () => dismiss();
 
   const changeQuestion = (text: string) => {
     setQuestion(text);
     setAnswer(null);
+    setDraft(null);
     setHits(null);
     setError('');
   };
 
-  const submit = async (searchMode = mode, query = question) => {
+  const switchMode = (next: AssistantMode) => {
+    if (next === mode || request.current) return;
+    setMode(next);
+    changeQuestion('');
+  };
+
+  const submit = async (submitMode: AssistantMode = mode, query = question) => {
     const text = query.trim();
     if (!text || request.current) return;
     const controller = new AbortController();
@@ -211,23 +256,28 @@ export default function AppSearchModal({ visible, onClose, onOpen }: {
     setBusy(true);
     setError('');
     setAnswer(null);
+    setDraft(null);
     setHits(null);
     Keyboard.dismiss();
     try {
-      if (searchMode === 'search') {
+      if (submitMode === 'search') {
         const matchedPages = await findVisiblePages(text, controller.signal);
         if (controller.signal.aborted) return;
         if (matchedPages.length) setHits({ pages: matchedPages, records: [] });
         const result = await api.searchApp(text, controller.signal);
         if (!controller.signal.aborted) setHits({ pages: matchedPages, records: result.results });
-      } else {
+      } else if (submitMode === 'ask') {
         const result = await api.askLedger(text, controller.signal);
         if (!controller.signal.aborted) setAnswer(result.answer);
+      } else {
+        const result = await api.generateExpenseDraft(text, controller.signal);
+        if (!controller.signal.aborted) setDraft(result.draft);
       }
     } catch (failure) {
       if (controller.signal.aborted) return;
       const message = failure instanceof Error ? failure.message : '';
-      setError(t(searchMode === 'search' ? 'appSearchFailed' : knownErrors.includes(message) ? message : 'ledgerAiFailed'));
+      const fallback = submitMode === 'ask' ? 'ledgerAiFailed' : 'expenseAiFailed';
+      setError(t(submitMode === 'search' ? 'appSearchFailed' : modelErrors.includes(message) ? message : fallback));
     } finally {
       if (request.current === controller) {
         request.current = null;
@@ -236,18 +286,19 @@ export default function AppSearchModal({ visible, onClose, onOpen }: {
     }
   };
 
-  const openResult = async (target: AppSearchTarget) => {
+  const openResult = async (target: SearchResult) => {
     if (request.current) return;
+    if (target === 'expenseAi' || target === 'askLedger') {
+      switchMode(target === 'expenseAi' ? 'record' : 'ask');
+      return;
+    }
     const controller = new AbortController();
     request.current = controller;
     setBusy(true);
     setError('');
     try {
       const navigate = await onOpen(target, controller.signal);
-      if (!controller.signal.aborted) {
-        close();
-        pendingNavigation.current = navigate;
-      }
+      if (!controller.signal.aborted) dismiss(navigate);
     } catch {
       if (!controller.signal.aborted) setError(t('appSearchOpenFailed'));
     } finally {
@@ -270,6 +321,10 @@ export default function AppSearchModal({ visible, onClose, onOpen }: {
     void submit('search', name);
   };
 
+  const activeMode = modes[mode];
+  const isSearch = mode === 'search';
+  const disabled = !question.trim() || busy;
+
   return (
     <ModalOverlay
       visible={visible}
@@ -280,50 +335,56 @@ export default function AppSearchModal({ visible, onClose, onOpen }: {
       avoidKeyboard
     >
       <View style={[styles.card, { backgroundColor: colors.surface }]}>
-        <View style={[styles.header, { backgroundColor: colors.primary }]}>
-          <Text style={[styles.title, { color: colors.surface }]}>{t('appSearchTitle')}</Text>
-          <CloseButton onPress={close} />
+        <View style={styles.header}>
+          <Text style={[styles.headerTitle, { color: colors.textMain }]}>{t('assistantTitle')}</Text>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('assistantClose')}
+            onPress={close} hitSlop={8} style={[styles.close, { backgroundColor: colors.bg }]}>
+            <Text style={{ color: colors.textSub, fontSize: 19 }}>×</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={[styles.modes, { backgroundColor: colors.bg }]}>
+          {(Object.keys(modes) as AssistantMode[]).map(option => {
+            const selected = mode === option;
+            return (
+              <TouchableOpacity key={option} accessibilityRole="button" accessibilityState={{ selected, disabled: busy }}
+                disabled={busy} onPress={() => switchMode(option)}
+                style={[styles.mode, selected && { backgroundColor: colors.surface }]}>
+                <Text style={{ color: selected ? colors.primary : colors.textSub, fontWeight: selected ? '700' : '500' }}>
+                  {t(modes[option].label)}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
         <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} keyboardShouldPersistTaps="handled">
-          <View style={styles.modes}>
-            {(['search', 'ask'] as const).map(option => (
-              <TouchableOpacity key={option} accessibilityRole="button" accessibilityState={{ selected: mode === option }}
-                disabled={busy} onPress={() => { setMode(option); changeQuestion(''); }}
-                style={[styles.mode, { backgroundColor: mode === option ? withAlpha(colors.primary, 0.12) : colors.surface }]}>
-                <Text style={{ color: colors.primary }}>{t(option === 'search' ? 'appSearchFind' : 'ledgerAiTitle')}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          {mode === 'ask' && <Text style={{ color: colors.textSub }}>{t('ledgerAiPrivacy')}</Text>}
           <AppTextInput
-            accessibilityLabel={t('appSearchTitle')}
-            placeholder={t(mode === 'search' ? 'appSearchPlaceholder' : 'ledgerAiTurnoverExample')}
+            accessibilityLabel={t(activeMode.label)}
+            placeholder={t(activeMode.placeholder)}
             placeholderTextColor={colors.textSub}
             value={question}
             onChangeText={changeQuestion}
             editable={!busy}
-            multiline={mode === 'ask'}
-            maxLength={mode === 'search' ? 80 : 300}
+            multiline={!isSearch}
+            returnKeyType={isSearch ? 'search' : 'default'}
+            onSubmitEditing={isSearch ? () => void submit() : undefined}
+            maxLength={activeMode.limit}
             underlineColorAndroid="transparent"
-            style={[styles.input, { color: colors.textMain, backgroundColor: colors.bg }]}
+            style={[styles.input, !isSearch && styles.multilineInput, { color: colors.textMain, backgroundColor: colors.bg }]}
           />
-          {mode === 'ask' && !answer && !busy && examples.map(key => (
-            <TouchableOpacity key={key} accessibilityRole="button" onPress={() => changeQuestion(t(key))}>
-              <Text style={{ color: colors.primary, paddingVertical: 4 }}>{t(key)}</Text>
-            </TouchableOpacity>
-          ))}
+          {!isSearch && <Text style={[styles.caption, { color: colors.textSub }]}>{t('assistantPrivacy')}</Text>}
           {!!error && <Text accessibilityLiveRegion="polite" style={{ color: colors.danger }}>{error}</Text>}
           {hits && <SearchResults hits={hits} onOpen={openResult} disabled={busy} />}
           {answer && <LedgerResult answer={answer} onSearchSupplier={searchSupplier} />}
+          {draft && <DraftResult draft={draft} />}
         </ScrollView>
         <View style={styles.actions}>
-          <ButtonPair
-            leftLabel={t('cancel')}
-            leftOnPress={close}
-            rightLabel={t(mode === 'search' ? 'appSearchFind' : 'ledgerAiAsk')}
-            rightOnPress={() => void submit()}
-            rightDisabled={!question.trim() || busy}
-            rightLoading={busy}
+          <SubmitButton
+            label={t(draft ? 'assistantReviewDraft' : activeMode.action)}
+            onPress={() => draft ? dismiss(() => onReviewDraft(draft)) : void submit()}
+            disabled={disabled}
+            loading={busy}
+            style={[styles.submit, { backgroundColor: colors.primary, opacity: disabled && !busy ? 0.45 : 1 }]}
+            textStyle={{ color: colors.surface, fontWeight: '700' }}
           />
         </View>
       </View>
@@ -333,17 +394,24 @@ export default function AppSearchModal({ visible, onClose, onOpen }: {
 
 const styles = StyleSheet.create({
   card: { width: 360, maxWidth: '100%', flexShrink: 1, borderRadius: MODAL_CARD_RADIUS, overflow: 'hidden' },
-  header: { paddingHorizontal: 18, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerTitle: { fontSize: FONTS.h2.size, fontWeight: '700' },
+  close: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: FONTS.subBold.size, fontWeight: '700' },
+  amount: { fontSize: FONTS.h2.size, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  caption: { fontSize: FONTS.micro.size, lineHeight: 17 },
   body: { flexGrow: 0, flexShrink: 1 },
-  bodyContent: { padding: 18, paddingBottom: 12, gap: 8 },
-  input: { minHeight: 66, maxHeight: 110, padding: 10, borderRadius: 10 },
-  modes: { flexDirection: 'row', gap: 8 },
-  mode: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 8 },
-  hitList: { gap: 6 },
-  hit: { paddingVertical: 7, gap: 3 },
-  result: { borderRadius: 10, padding: 12, gap: 10 },
+  bodyContent: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 6, gap: 8 },
+  input: { minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12 },
+  multilineInput: { minHeight: 70, maxHeight: 108, textAlignVertical: 'top' },
+  modes: { flexDirection: 'row', marginHorizontal: 20, padding: 3, gap: 2, borderRadius: 12 },
+  mode: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 9 },
+  hitList: { gap: 3 },
+  hit: { flexDirection: 'row', alignItems: 'center', minHeight: 44, paddingVertical: 7, gap: 8 },
+  hitTitle: { flex: 1 },
+  result: { borderRadius: 12, padding: 12, gap: 5 },
   totalRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   period: { flex: 1 },
-  actions: { paddingHorizontal: 18, paddingBottom: 18 },
+  actions: { alignItems: 'flex-end', paddingHorizontal: 20, paddingTop: 6, paddingBottom: 16 },
+  submit: { minHeight: 44, minWidth: 94, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
 });
