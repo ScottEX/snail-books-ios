@@ -6,6 +6,7 @@ import { FONTS, useTheme, withAlpha } from '../theme';
 import { MODAL_CARD_RADIUS } from '../sharedStyles';
 import { fmtAmtFull, formatDate } from '../utils/format';
 import AppTextInput from './AppTextInput';
+import CloseButton from './CloseButton';
 import ModalOverlay from './ModalOverlay';
 import SubmitButton from './SubmitButton';
 
@@ -335,12 +336,9 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
       avoidKeyboard
     >
       <View style={[styles.card, { backgroundColor: colors.surface }]}>
-        <View style={styles.header}>
-          <Text style={[styles.headerTitle, { color: colors.textMain }]}>{t('assistantTitle')}</Text>
-          <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('assistantClose')}
-            onPress={close} hitSlop={8} style={[styles.close, { backgroundColor: colors.bg }]}>
-            <Text style={{ color: colors.textSub, fontSize: 19 }}>×</Text>
-          </TouchableOpacity>
+        <View style={[styles.header, { backgroundColor: colors.primary }]}>
+          <Text style={[styles.title, { color: colors.surface }]}>{t('assistantTitle')}</Text>
+          <CloseButton onPress={close} accessibilityLabel={t('assistantClose')} />
         </View>
         <View style={[styles.modes, { backgroundColor: colors.bg }]}>
           {(Object.keys(modes) as AssistantMode[]).map(option => {
@@ -394,17 +392,15 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
 
 const styles = StyleSheet.create({
   card: { width: 360, maxWidth: '100%', flexShrink: 1, borderRadius: MODAL_CARD_RADIUS, overflow: 'hidden' },
-  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerTitle: { fontSize: FONTS.h2.size, fontWeight: '700' },
-  close: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: FONTS.subBold.size, fontWeight: '700' },
+  header: { paddingHorizontal: 20, paddingVertical: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  title: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight },
   amount: { fontSize: FONTS.h2.size, fontWeight: '700', fontVariant: ['tabular-nums'] },
   caption: { fontSize: FONTS.micro.size, lineHeight: 17 },
   body: { flexGrow: 0, flexShrink: 1 },
   bodyContent: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 6, gap: 8 },
   input: { minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12 },
   multilineInput: { minHeight: 70, maxHeight: 108, textAlignVertical: 'top' },
-  modes: { flexDirection: 'row', marginHorizontal: 20, padding: 3, gap: 2, borderRadius: 12 },
+  modes: { flexDirection: 'row', marginHorizontal: 20, marginTop: 12, padding: 3, gap: 2, borderRadius: 12 },
   mode: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 9 },
   hitList: { gap: 3 },
   hit: { flexDirection: 'row', alignItems: 'center', minHeight: 44, paddingVertical: 7, gap: 8 },

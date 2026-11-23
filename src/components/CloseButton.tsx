@@ -4,6 +4,7 @@ import { FONTS } from '../theme';
 
 interface CloseButtonProps {
   onPress: () => void;
+  accessibilityLabel?: string;
   /** "plain" (default): simple ✕ on dark headers. "circle": 28×28 circle with semi-transparent white bg, for fullscreen dark overlays. */
   variant?: 'plain' | 'circle';
 }
@@ -13,16 +14,16 @@ const circleS = StyleSheet.create({
   text: { color: 'rgba(255,255,255,0.7)', fontSize: FONTS.body.size, lineHeight: 20 },
 });
 
-export default function CloseButton({ onPress, variant = 'plain' }: CloseButtonProps) {
+export default function CloseButton({ onPress, accessibilityLabel, variant = 'plain' }: CloseButtonProps) {
   if (variant === 'circle') {
     return (
-      <TouchableOpacity onPress={onPress} style={circleS.btn}>
+      <TouchableOpacity onPress={onPress} accessibilityRole="button" accessibilityLabel={accessibilityLabel} style={circleS.btn}>
         <Text style={circleS.text}>✕</Text>
       </TouchableOpacity>
     );
   }
   return (
-    <TouchableOpacity onPress={onPress}>
+    <TouchableOpacity onPress={onPress} accessibilityRole="button" accessibilityLabel={accessibilityLabel}>
       <Text style={modalClose}>✕</Text>
     </TouchableOpacity>
   );
