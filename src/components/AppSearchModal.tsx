@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Keyboard, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
-import { api, type AppSearchRecord, type ExpenseDraft, type LedgerAction, type LedgerAnswer, type LedgerRequest, type LedgerResponse, type LedgerTotal } from '../api/client';
+import { api, API_BASE, type AppSearchRecord, type ExpenseDraft, type LedgerAction, type LedgerAnswer, type LedgerRequest, type LedgerResponse, type LedgerTotal } from '../api/client';
 import { getLang, t } from '../i18n';
 import { FONTS, useTheme, withAlpha } from '../theme';
 import { MODAL_CARD_RADIUS } from '../sharedStyles';
@@ -12,6 +12,8 @@ import CloseButton from './CloseButton';
 import ModalOverlay from './ModalOverlay';
 import SubmitButton from './SubmitButton';
 import { useAssistantSpeech } from '../hooks/useAssistantSpeech';
+import { discoverUsageKey, rankDiscoverShortcuts, readDiscoverUsage, recordDiscoverOpen } from '../utils/discoverUsage';
+import { getCurrentUserId } from '../utils/storage';
 
 const modes = {
   search: { label: 'assistantDiscover', placeholder: 'appSearchPlaceholder', action: 'appSearchFind', limit: 80 },
@@ -37,7 +39,6 @@ const askExamples = [
   ['shareholders', 'ledgerAiShareholdersExample'],
   ['users', 'ledgerAiUsersExample'],
 ] as const;
-const discoverShortcuts = ['procurementHistory', 'invoice', 'password', 'expense'] as const;
 const actionLabels: Record<LedgerAction, string> = {
   this_month: 'ledgerAiThisMonth', last_month: 'ledgerAiLastMonth', compare_last_month: 'ledgerAiCompareLastMonth',
   details: 'ledgerAiDetails', order_value: 'ledgerAiOrderValue', posted_expense: 'ledgerAiPostedExpense',
@@ -99,6 +100,10 @@ const recordLabels: Record<AppSearchRecord['kind'], string> = {
 export type AppSearchPage = keyof typeof pages;
 type SearchResult = AppSearchPage | AppSearchRecord;
 export type AppSearchTarget = Exclude<SearchResult, 'expenseAi' | 'askLedger'>;
+const defaultDiscoverShortcuts: readonly AppSearchPage[] = ['procurementHistory', 'expense', 'statistics', 'invoice'];
+const discoverPages = (Object.keys(pages) as AppSearchPage[]).filter(page =>
+  !['askLedger', 'expenseAi', 'password', 'deleteAccount', 'logout'].includes(page));
+const publicDiscoverPages = discoverPages.filter(page => page !== 'userManagement');
 
 function findPages(keyword: string) {
   const query = keyword.toLowerCase();
@@ -334,6 +339,7 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState<AssistantMode>('search');
   const [showExamples, setShowExamples] = useState(false);
+  const [adminShortcutKey, setAdminShortcutKey] = useState<string | null>(null);
   const [hits, setHits] = useState<{ pages: AppSearchPage[]; records: AppSearchRecord[] } | null>(null);
   const request = useRef<AbortController | null>(null);
   const ledgerContext = useRef<string>();
@@ -346,6 +352,27 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
   });
   const pendingNavigation = useRef<(() => void) | null>(null);
   useEffect(() => () => request.current?.abort(), []);
+
+  const usageKey = discoverUsageKey(API_BASE, getCurrentUserId());
+  const discoverRankings = useMemo(() => {
+    const usage = readDiscoverUsage(visible ? usageKey : null);
+    return {
+      all: rankDiscoverShortcuts(usage, discoverPages, defaultDiscoverShortcuts),
+      public: rankDiscoverShortcuts(usage, publicDiscoverPages, defaultDiscoverShortcuts),
+    };
+  }, [visible, usageKey]);
+  const needsAdminCheck = discoverRankings.all.includes('userManagement');
+  useEffect(() => {
+    setAdminShortcutKey(null);
+    if (!visible || !usageKey || !needsAdminCheck) return;
+    const controller = new AbortController();
+    api.admin.check(controller.signal).then(({ is_admin }) => {
+      if (!controller.signal.aborted && is_admin === true) setAdminShortcutKey(usageKey);
+    }).catch(() => {});
+    return () => controller.abort();
+  }, [visible, usageKey, needsAdminCheck]);
+  const discoverShortcuts = adminShortcutKey && adminShortcutKey === usageKey
+    ? discoverRankings.all : discoverRankings.public;
 
   const dismiss = (navigate: (() => void) | null = null) => {
     pendingNavigation.current = navigate;
@@ -447,7 +474,15 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
     setError('');
     try {
       const navigate = await onOpen(target, controller.signal);
-      if (!controller.signal.aborted) dismiss(navigate);
+      if (controller.signal.aborted) return;
+      if (mode === 'search' && usageKey && typeof target === 'string' && discoverPages.includes(target)) {
+        dismiss(() => {
+          navigate();
+          if (usageKey === discoverUsageKey(API_BASE, getCurrentUserId())) recordDiscoverOpen(usageKey, target);
+        });
+      } else {
+        dismiss(navigate);
+      }
     } catch {
       if (!controller.signal.aborted) setError(t('appSearchOpenFailed'));
     } finally {

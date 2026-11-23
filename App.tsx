@@ -12,6 +12,7 @@ import { ThemeProvider } from './src/theme';
 import { LangProvider } from './src/i18n';
 import { onSessionKicked, onUserChange, setSessionExpiredHandler, setIdleTimeoutHours, api, bumpActivity } from './src/api/client';
 import { initStorageCache } from './src/platform';
+import { isDiscoverUsageKey } from './src/utils/discoverUsage';
 
 export default function App() {
   const [_page, _setPage] = useState<'login' | 'home'>('login');
@@ -133,7 +134,15 @@ export default function App() {
       bgRemoteUrl = localStorage.getItem('bg-remote-url') || '';
       const themeKey = (() => { try { const { getThemeKey } = require('./src/theme'); return getThemeKey(); } catch { return 'snail-books-theme'; } })();
       themeId = localStorage.getItem(themeKey) || '';
+      const discoverUsage = new Map<string, string>();
+      for (let index = 0; index < localStorage.length; index++) {
+        const key = localStorage.key(index);
+        if (!key || !isDiscoverUsageKey(key)) continue;
+        const value = localStorage.getItem(key);
+        if (value !== null) discoverUsage.set(key, value);
+      }
       localStorage.clear();
+      for (const [key, value] of discoverUsage) localStorage.setItem(key, value);
       if (lang) localStorage.setItem('lang', lang);
       if (rememberMe) localStorage.setItem('remember_me', rememberMe);
       if (savedLogin) localStorage.setItem('saved_login', savedLogin);
