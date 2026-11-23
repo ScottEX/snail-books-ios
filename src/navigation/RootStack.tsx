@@ -210,6 +210,7 @@ function GlobalSearch() {
         case 'email':
         case 'password': return () => navigation.dispatch(StackActions.push('Profile', { accountAction: target }));
         case 'profile': return () => navigation.navigate('Profile');
+        case 'userManagement': return () => navigation.navigate('UserManagement');
         case 'invoice': return () => navigation.navigate('Invoice');
         case 'expense': return () => navigation.navigate('ExpenseHistory');
         case 'revenue': return () => navigation.navigate('DailyHistory');

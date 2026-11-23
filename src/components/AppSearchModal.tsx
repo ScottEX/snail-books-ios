@@ -23,6 +23,7 @@ const pages = {
   profile: ['appSearchProfile', '个人中心 個人中心 个人资料 個人資料 profile'],
   email: ['changeEmail', '修改邮箱 修改郵箱 更改邮箱 更改郵箱 email'],
   password: ['changePassword', '改密码 改密碼 更改密码 更改密碼 更换密码 更換密碼 password'],
+  userManagement: ['userManagement', '用户管理 用戶管理 使用者管理 管理用户 管理用戶 管理使用者 user management manage users'],
 } as const;
 
 const recordLabels: Record<AppSearchRecord['kind'], string> = {
@@ -41,6 +42,13 @@ function findPages(keyword: string) {
     return title.includes(query) || query.includes(title) ||
       aliases.includes(query) || aliases.split(' ').some(alias => query.includes(alias));
   });
+}
+
+async function findVisiblePages(keyword: string, signal: AbortSignal) {
+  const matches = findPages(keyword);
+  if (!matches.includes('userManagement')) return matches;
+  const { is_admin } = await api.admin.check(signal);
+  return is_admin === true ? matches : matches.filter(page => page !== 'userManagement');
 }
 
 function SearchResults({ hits, onOpen, disabled }: {
@@ -171,7 +179,8 @@ export default function AppSearchModal({ visible, onClose, onOpen }: {
     Keyboard.dismiss();
     try {
       if (searchMode === 'search') {
-        const matchedPages = findPages(text);
+        const matchedPages = await findVisiblePages(text, controller.signal);
+        if (controller.signal.aborted) return;
         if (matchedPages.length) setHits({ pages: matchedPages, records: [] });
         const result = await api.searchApp(text, controller.signal);
         if (!controller.signal.aborted) setHits({ pages: matchedPages, records: result.results });

@@ -479,7 +479,7 @@ export const api = {
   deleteAccount: (uid: number) => authFetch(`/api/users/${uid}/delete`, { method: 'POST' }),
 
   admin: {
-    check: () => authFetch('/api/admin/check'),
+    check: (signal?: AbortSignal) => authFetch<{ is_admin: boolean }>('/api/admin/check', { signal }),
     getUnreviewedCount: () => authFetch('/api/admin/users/unreviewed-count'),
     getUser: (id: number | string) => authFetch(`/api/admin/users/${id}`),
     updateUser: (id: number | string, body: Record<string, any>) =>
