@@ -374,9 +374,10 @@ const I18N: Record<string, Record<string, string>> = {
     appSearchTitle: '全局查找',
     assistantTitle: '助手',
     assistantClose: '关闭助手',
-    assistantAsk: '问账',
+    assistantDiscover: '发现',
+    assistantAsk: '问答',
     assistantRecord: '记账',
-    assistantPrivacy: '问账和记账会将输入发给 AI 服务，请勿填写敏感信息。',
+    assistantPrivacy: '问答和记账会将输入发给 AI 服务，请勿填写敏感信息。',
     assistantDraft: '支出草稿',
     assistantReviewDraft: '去核对草稿',
     appSearchExpenseEntry: '录入支出',
@@ -387,7 +388,7 @@ const I18N: Record<string, Record<string, string>> = {
     appSearchAvatar: '更换头像',
     appSearchSignature: '个性签名',
     appSearchFeeHistory: '手续费历史',
-    appSearchFind: '查找',
+    appSearchFind: '搜索',
     appSearchPlaceholder: '输入页面名、供应商、单号或备注',
     appSearchPages: '页面',
     appSearchInvoice: '发票管理',
@@ -1088,9 +1089,10 @@ const I18N: Record<string, Record<string, string>> = {
     appSearchTitle: '全域查找',
     assistantTitle: '助手',
     assistantClose: '關閉助手',
-    assistantAsk: '問帳',
+    assistantDiscover: '發現',
+    assistantAsk: '問答',
     assistantRecord: '記帳',
-    assistantPrivacy: '問帳和記帳會將輸入傳送給 AI 服務，請勿填寫敏感資訊。',
+    assistantPrivacy: '問答和記帳會將輸入傳送給 AI 服務，請勿填寫敏感資訊。',
     assistantDraft: '支出草稿',
     assistantReviewDraft: '前往核對草稿',
     appSearchExpenseEntry: '錄入支出',
@@ -1101,7 +1103,7 @@ const I18N: Record<string, Record<string, string>> = {
     appSearchAvatar: '更換頭像',
     appSearchSignature: '個性簽名',
     appSearchFeeHistory: '手續費歷史',
-    appSearchFind: '查找',
+    appSearchFind: '搜尋',
     appSearchPlaceholder: '輸入頁面名稱、供應商、單號或備註',
     appSearchPages: '頁面',
     appSearchInvoice: '發票管理',
@@ -1811,6 +1813,7 @@ const I18N: Record<string, Record<string, string>> = {
     appSearchTitle: 'Search the app',
     assistantTitle: 'Assistant',
     assistantClose: 'Close assistant',
+    assistantDiscover: 'Discover',
     assistantAsk: 'Ask',
     assistantRecord: 'Record',
     assistantPrivacy: 'Ask and Record send your text to the AI provider. Avoid entering sensitive information.',
@@ -2527,6 +2530,7 @@ export type I18nKey =
   | 'appSearchTitle'
   | 'assistantTitle'
   | 'assistantClose'
+  | 'assistantDiscover'
   | 'assistantAsk'
   | 'assistantRecord'
   | 'assistantPrivacy'

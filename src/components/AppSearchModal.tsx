@@ -12,7 +12,7 @@ import ModalOverlay from './ModalOverlay';
 import SubmitButton from './SubmitButton';
 
 const modes = {
-  search: { label: 'appSearchFind', placeholder: 'appSearchPlaceholder', action: 'appSearchFind', limit: 80 },
+  search: { label: 'assistantDiscover', placeholder: 'appSearchPlaceholder', action: 'appSearchFind', limit: 80 },
   ask: { label: 'assistantAsk', placeholder: 'ledgerAiLatestProcurementExample', action: 'ledgerAiAsk', limit: 300 },
   record: { label: 'assistantRecord', placeholder: 'expenseAiExample', action: 'expenseAiGenerate', limit: 500 },
 } as const;
@@ -37,7 +37,7 @@ const pages = {
   expenseEntry: ['appSearchExpenseEntry', '记账|記帳|录入支出|輸入支出|凭证上传|憑證上傳|add expense'],
   refund: ['appSearchRefund', '退款|退费|退費|refund'],
   expenseAi: ['expenseAiTitle', '一句话记账|一句話記帳|智能记账|智慧記帳|ai expense'],
-  askLedger: ['assistantAsk', 'ai 查账|ai 查帳|ai查账|ai查帳|查账|查帳|问账|問帳|ask the ledger'],
+  askLedger: ['assistantAsk', '问答|問答|ai 查账|ai 查帳|ai查账|ai查帳|查账|查帳|问账|問帳|ask the ledger'],
   procurement: ['procTitle', '采购管理|採購管理|进货管理|進貨管理|procurement'],
   newOrder: ['procNewOrder', '采购|採購|进货|進貨|新建采购单|新增採購單|new purchase order'],
   procurementHistory: ['procHistory', '采购记录|採購記錄|采购历史|採購歷史|进货记录|進貨記錄|清账|清賬|采购结算|採購結算|采购单PDF|採購單PDF|purchase history|settlement'],
