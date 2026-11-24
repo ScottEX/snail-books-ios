@@ -37,6 +37,7 @@ import PlusIcon from '../components/icons/PlusIcon';
 import { fmtDecInput } from '../utils/numbers';
 import type { PickedImage } from '../utils/imagePicker';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { WriteSubmission } from '../utils/writeSubmission';
 import ImagePreview, { measureThumbLayout, resolveThumbLayout, ThumbLayout, ThumbLayoutResolver } from '../components/ImagePreview';
 import { useImagePreview } from '../hooks/useImagePreview';
 import { useNavigation } from '@react-navigation/native';
@@ -770,31 +771,30 @@ export default function ProcurementScreen({
     openPreview(imageUris, imageIndex, layout, wrappedGetLayout);
   }, [receipts, openPreview, openPdf, editingBatchId, editingBatchNumber]);
 
+  const orderSubmission = useRef(new WriteSubmission<Record<string, unknown>>()).current;
+  const orderSubmitting = useRef(false);
   const submitOrder = async () => {
-    if (cartItems.length === 0) return;
+    if (!showDrawer || cartItems.length === 0 || orderSubmitting.current) return;
+    orderSubmitting.current = true;
     setSubmitting(true);
+    const fields = {
+      date: orderDate, payment_method: payMethod, category: 'goods',
+      items: cartItems.map(i => ({ product_id: i.product.id, quantity: i.quantity })),
+      note: orderNote,
+    };
+    const prepare = async () => {
+      if (!receipts.length) return { ...fields, images: [], thumb_images: [] };
+      const result = await api.uploadExpenseImages(receipts);
+      if (result.status !== 'ok') throw new Error(t('uploadFailed'));
+      const images = result.images || [];
+      return { ...fields, images, thumb_images: result.thumb_images?.length ? result.thumb_images : images };
+    };
     try {
-      let newImageUrls: string[] = [];
-      let newThumbUrls: string[] = [];
-      if (receipts.length > 0) {
-        const result = await api.uploadExpenseImages(receipts);
-        if (result.status !== 'ok') {
-          setSubmitting(false);
-          showToast(t('toastSubmitFailed'));
-          return;
-        }
-        newImageUrls = result.images || [];
-        newThumbUrls = (result.thumb_images && result.thumb_images.length > 0)
-          ? result.thumb_images
-          : newImageUrls;
-      }
       if (editingBatchId !== null) {
-        const allImages = [...existingImageUrls, ...newImageUrls];
-        const allThumbs = [...existingThumbUrls, ...newThumbUrls];
+        const payload = await prepare();
         const r = await api.updateProcurementBatch(editingBatchId, {
-          date: orderDate, payment_method: payMethod, category: 'goods',
-          items: cartItems.map(i => ({ product_id: i.product.id, quantity: i.quantity })),
-          images: allImages, thumb_images: allThumbs, note: orderNote,
+          ...payload, images: [...existingImageUrls, ...payload.images],
+          thumb_images: [...existingThumbUrls, ...payload.thumb_images],
         });
         if (r?.status === 'ok') {
           setShowDrawer(false);
@@ -821,14 +821,9 @@ export default function ProcurementScreen({
         } else {
           showToast(t('toastSubmitFailed'));
         }
-        setSubmitting(false);
         return;
       }
-      const r = await api.createProcurementBatch({
-        date: orderDate, payment_method: payMethod, category: 'goods',
-        items: cartItems.map(i => ({ product_id: i.product.id, quantity: i.quantity })),
-        images: newImageUrls, thumb_images: newThumbUrls, note: orderNote,
-      });
+      const r = await orderSubmission.run([fields, receipts], prepare, api.createProcurementBatch);
       if (r?.status === 'ok') {
         setSuccessTotal(r.total); setSuccessBatch(r.batch_number); setSuccessIsEdit(false);
         setShowDrawer(false);
@@ -845,8 +840,10 @@ export default function ProcurementScreen({
     } catch (err) {
       console.error('[procurement] submit error:', err);
       showToast(t('toastSubmitFailed'));
+    } finally {
+      orderSubmitting.current = false;
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   const openEditBatch = (batch: BatchRecord) => {

@@ -120,6 +120,15 @@ const I18N: Record<string, Record<string, string>> = {
     dividendHistory: '分红历史',
     dividendRoundFmt: '第{n}次分红 · {date}',
     dividendRoundOnly: '第{n}次分红',
+    dividendInvalidTotal: '请输入有效的分红总额，最多两位小数。',
+    dividendInvalidShares: '合伙人持股比例需要合计为 100%，请核对后重试。',
+    dividendPreviewChanged: '持股比例或合伙人资料有变化，请核对新的分红预览。',
+    dividendInvalidRound: '请输入有效的分红轮次。',
+    dividendRoundExists: '这轮分红已存在，请查看分红历史。',
+    dividendPreviewFailed: '未能加载分红预览。',
+    dividendPreviewLoading: '正在计算分红金额…',
+    dividendPreviewPrompt: '输入总额后查看分红预览。',
+    dividendPreviewRetry: '重新计算',
     done: '完成',
     downloadImage: '下载图片',
     downloadPdf: '下载PDF',
@@ -862,6 +871,15 @@ const I18N: Record<string, Record<string, string>> = {
     dividendHistory: '分紅歷史',
     dividendRoundFmt: '第{n}次分紅 · {date}',
     dividendRoundOnly: '第{n}次分紅',
+    dividendInvalidTotal: '請輸入有效的分紅總額，最多兩位小數。',
+    dividendInvalidShares: '合夥人持股比例需要合計為 100%，請核對後重試。',
+    dividendPreviewChanged: '持股比例或合夥人資料有變化，請核對新的分紅預覽。',
+    dividendInvalidRound: '請輸入有效的分紅輪次。',
+    dividendRoundExists: '這輪分紅已存在，請查看分紅歷史。',
+    dividendPreviewFailed: '未能載入分紅預覽。',
+    dividendPreviewLoading: '正在計算分紅金額…',
+    dividendPreviewPrompt: '輸入總額後查看分紅預覽。',
+    dividendPreviewRetry: '重新計算',
     done: '完成',
     downloadImage: '下載圖片',
     downloadPdf: '下載PDF',
@@ -1613,6 +1631,15 @@ const I18N: Record<string, Record<string, string>> = {
     dividendHistory: 'Dividend History',
     dividendRoundFmt: 'Dividend #{n} · {date}',
     dividendRoundOnly: 'Dividend #{n}',
+    dividendInvalidTotal: 'Enter a valid dividend amount with up to two decimal places.',
+    dividendInvalidShares: 'Partner shares must add up to 100%. Review the shares and try again.',
+    dividendPreviewChanged: 'Partner details changed. Review the updated dividend preview.',
+    dividendInvalidRound: 'Choose a valid dividend round.',
+    dividendRoundExists: 'This dividend round already exists. Check dividend history.',
+    dividendPreviewFailed: 'Unable to load the dividend preview.',
+    dividendPreviewLoading: 'Calculating dividend amounts…',
+    dividendPreviewPrompt: 'Enter the total to preview the dividend.',
+    dividendPreviewRetry: 'Recalculate',
     done: 'Done',
     downloadImage: 'Download Image',
     downloadPdf: 'Download PDF',
@@ -2359,6 +2386,15 @@ export type I18nKey =
   | 'dividendHistory'
   | 'dividendRoundFmt'
   | 'dividendRoundOnly'
+  | 'dividendInvalidTotal'
+  | 'dividendInvalidShares'
+  | 'dividendPreviewChanged'
+  | 'dividendInvalidRound'
+  | 'dividendRoundExists'
+  | 'dividendPreviewFailed'
+  | 'dividendPreviewLoading'
+  | 'dividendPreviewPrompt'
+  | 'dividendPreviewRetry'
   | 'done'
   | 'downloadImage'
   | 'downloadPdf'

@@ -3,7 +3,6 @@
 // ═══════════════════════════════════════════════════════════════
 //
 // 与 web 端 src/screens/partner/usePartnerData.ts 保持完全一致:
-//   - partnerShare 硬编码
 //   - 翻译函数 (translateName / translateDividendNote / getRoleKey)
 //   - usePartnerData hook 集中管理 partners/dividends/totalDiv
 //
@@ -14,8 +13,6 @@ import { t, getLang, I18nKey } from '../../i18n';
 import { api } from '../../api/client';
 import { formatDate } from '../../utils/format';
 
-// 合伙人持股映射硬编码(与 web 一致)
-export const partnerShare: Record<string, number> = { '张安武': 0.34, '江宽': 0.33, '蓝柳富': 0.33 };
 const nameMap: Record<string, string> = { '张安武': 'nameZhang', '江宽': 'nameJiang', '蓝柳富': 'nameLan' };
 
 export function translateName(name: string, pinyin?: string, tw?: string): string {

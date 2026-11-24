@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════
 //
 // 本次对齐要点:
-//   1. 业务逻辑抽到 src/screens/partner/usePartnerData.ts (partnerShare /
+//   1. 业务逻辑抽到 src/screens/partner/usePartnerData.ts (
 //      translateName / translateDividendNote / getRoleKey / usePartnerData)
 //   2. Toast 用 useToast hook + ToastHost
 //   3. 加 onProfile prop(头像点击跳 profile)
@@ -22,7 +22,7 @@ import AppTextInput from '../components/AppTextInput';
 import Svg, { Path } from 'react-native-svg';
 import { t, useLang } from '../i18n';
 import { useServerDate } from '../hooks/useServerDate';
-import { api } from '../api/client';
+import { api, type DividendPreview } from '../api/client';
 import { useToast } from '../hooks/useToast';
 import type { HomeSearchRequest } from '../navigation/homeSearchActions';
 import ModalOverlay from '../components/ModalOverlay';
@@ -35,7 +35,7 @@ import { FONTS } from '../theme';
 import { modalClose, MODAL_CARD_RADIUS, SHEET_RADIUS } from '../sharedStyles';
 
 import {
-  partnerShare, translateName, translateDividendNote, getRoleKey,
+  translateName, translateDividendNote, getRoleKey,
   usePartnerData,
 } from './partner/usePartnerData';
 
@@ -45,6 +45,7 @@ import MinusIcon from '../components/icons/MinusIcon';
 import { getCurrentUserId } from '../utils/storage';
 import ButtonPair from '../components/ButtonPair';
 import { fmtDecInput } from '../utils/numbers';
+import { WriteSubmission } from '../utils/writeSubmission';
 
 const ROLE_COLORS: Record<string, string> = {
   '董事长': '#C84047',
@@ -123,13 +124,19 @@ export default function PartnerScreen({
   const [showOrg, setShowOrg] = useState(false);
   const [divAmount, setDivAmount] = useState('');
   const [divRoundNum, setDivRoundNum] = useState(0);
-  const [divPreview, setDivPreview] = useState<any[]>([]);
+  const [divPreview, setDivPreview] = useState<{ input: string; result: DividendPreview } | null>(null);
+  const [divPreviewError, setDivPreviewError] = useState('');
+  const [divPreviewRevision, setDivPreviewRevision] = useState(0);
+  const [divSubmitting, setDivSubmitting] = useState(false);
+  const dividendSubmission = useRef(new WriteSubmission<{ total: string; round: number; preview: string }>()).current;
   const [filter, setFilter] = useState('all');
   const partnerScroll = useRef<ScrollView>(null);
   const ledgerTop = useRef<number | null>(null);
   const jumpToLedger = useRef(false);
+  const nextDividendRound = useMemo(() => groupKeys.reduce((highest, note) =>
+    Math.max(highest, Number(note.match(/^第(\d+)次/)?.[1] || 0)), groupKeys.length) + 1, [groupKeys]);
   const openDividend = () => {
-    setDivRoundNum(groupKeys.length + 1);
+    setDivRoundNum(nextDividendRound);
     setShowDividend(true);
   };
   useEffect(() => {
@@ -169,31 +176,51 @@ export default function PartnerScreen({
   const org = useMemo(() => getOrg(colors), [colors]);
   const tg = useMemo(() => getTg(colors), [colors]);
 
-  const calcPreview = (total: number) => {
-    setDivPreview(partners.map((p: any) => ({
-      name: translateName(p.name, p.name_pinyin, p.name_tw),
-      share: (partnerShare[p.name] ?? 0.33) * 100,
-      amount: parseFloat((total * (partnerShare[p.name] ?? 0.33)).toFixed(2)),
-    })));
-  };
+  const currentDivPreview = divPreview?.input === divAmount ? divPreview.result : null;
+  useEffect(() => {
+    setDivPreview(null);
+    setDivPreviewError('');
+    if (!showDividend || !(Number(divAmount) > 0)) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const result = await api.previewDividend(divAmount, controller.signal);
+        if (!controller.signal.aborted) setDivPreview({ input: divAmount, result });
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          const message = error instanceof Error ? error.message : '';
+          setDivPreviewError(message === 'dividendInvalidShares' || message === 'dividendInvalidTotal'
+            ? t(message) : t('dividendPreviewFailed'));
+        }
+      }
+    }, 200);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [showDividend, divAmount, divPreviewRevision]);
 
   const handleDividend = async () => {
-    if (!divAmount) return;
-    const amt = parseFloat(divAmount);
-    const today = new Date().toISOString().slice(0, 10);
-    const items = partners.map((p: any) => ({
-      partner: p.name,
-      amount: parseFloat((amt * (partnerShare[p.name] ?? 0.33)).toFixed(2)),
-      note: `第${divRoundNum}次`,
-      date: today,
-    }));
+    if (!currentDivPreview || dividendSubmission.running) return;
+    const payload = { total: divAmount, round: divRoundNum, preview: currentDivPreview.preview };
+    setDivSubmitting(true);
     try {
-      await api.createDividend({ items });
+      const saved = await dividendSubmission.run(payload, () => payload, api.createDividend);
+      if (saved?.status !== 'ok') return;
       setShowDividend(false);
-      setDivAmount(''); setDivRoundNum(0); setDivPreview([]);
+      setDivAmount(''); setDivRoundNum(0); setDivPreview(null);
       loadData();
-    } catch {
-      showToast(t('toastSubmitFailed'));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '';
+      if (message === 'dividendPreviewChanged' || message === 'dividendInvalidShares') {
+        setDivPreview(null);
+        setDivPreviewRevision(value => value + 1);
+        showToast(t(message));
+      } else if (message === 'dividendRoundExists' || message === 'dividendInvalidRound') {
+        showToast(t(message));
+        if (message === 'dividendRoundExists') loadData();
+      } else {
+        showToast(t('toastSubmitFailed'));
+      }
+    } finally {
+      setDivSubmitting(false);
     }
   };
 
@@ -485,7 +512,8 @@ export default function PartnerScreen({
             <View>
               <Text style={moBody.label}>{t('totalToPool')}</Text>
               <AppTextInput style={moBody.input} placeholder={t('enterAmount')} value={divAmount}
-                onChangeText={(v) => { const clean = fmtDecInput(v); setDivAmount(clean); calcPreview(parseFloat(clean) || 0); }}
+                onChangeText={(v) => setDivAmount(fmtDecInput(v))}
+                editable={!divSubmitting}
                 keyboardType="decimal-pad" placeholderTextColor={colors.textSub} />
             </View>
             <View>
@@ -496,8 +524,8 @@ export default function PartnerScreen({
                   const idx = fmt.indexOf('{n}');
                   const prefix = fmt.slice(0, idx);
                   const suffix = fmt.slice(idx + 3);
-                  const min = groupKeys.length + 1;
-                  const disabled = divRoundNum <= min;
+                  const min = nextDividendRound;
+                  const disabled = divRoundNum <= min || divSubmitting;
                   const btn = { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' } as const;
                   return (<>
                     <Text style={{ fontSize: FONTS.sub.size, color: colors.textSub }}>{prefix}</Text>
@@ -506,7 +534,7 @@ export default function PartnerScreen({
                       <MinusIcon color={colors.primary} size={12} />
                     </TouchableOpacity>
                     <Text style={{ fontSize: FONTS.sub.size, fontWeight: '600', color: colors.textMain, minWidth: 18, textAlign: 'center' }}>{divRoundNum}</Text>
-                    <TouchableOpacity onPress={() => setDivRoundNum(n => n + 1)}
+                    <TouchableOpacity onPress={() => setDivRoundNum(n => n + 1)} disabled={divSubmitting}
                       style={{ ...btn, backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.primary }}>
                       <PlusIcon color={colors.primary} size={12} />
                     </TouchableOpacity>
@@ -517,23 +545,30 @@ export default function PartnerScreen({
             </View>
             <View style={moBody.preview}>
               <Text style={moBody.previewTitle}>{t('shareCalcResult')}</Text>
-              {(divPreview.length > 0 ? divPreview : partners.map((p: any) => ({
-                name: translateName(p.name, p.name_pinyin, p.name_tw),
-                share: (partnerShare[p.name] ?? 0.33) * 100,
-                amount: 0,
-              }))).map((item: any) => (
-                <View key={item.name} style={moBody.previewRow}>
-                  <Text style={moBody.previewName}>{item.name} ({item.share.toFixed(0)}%)</Text>
+              {currentDivPreview?.allocations.map(item => (
+                <View key={item.id} style={moBody.previewRow}>
+                  <Text style={moBody.previewName}>{translateName(item.name)} ({(item.share * 100).toLocaleString(undefined, { maximumFractionDigits: 4 })}%)</Text>
                   <Text style={moBody.previewAmt}>¥ {item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
                 </View>
               ))}
+              {!currentDivPreview && (
+                <Text style={{ color: divPreviewError ? colors.danger : colors.textSub }}>
+                  {divPreviewError || t(Number(divAmount) > 0 ? 'dividendPreviewLoading' : 'dividendPreviewPrompt')}
+                </Text>
+              )}
+              {!!divPreviewError && (
+                <TouchableOpacity accessibilityRole="button" onPress={() => setDivPreviewRevision(value => value + 1)}>
+                  <Text style={{ color: colors.primary, marginTop: 8 }}>{t('dividendPreviewRetry')}</Text>
+                </TouchableOpacity>
+              )}
             </View>
             <ButtonPair
               leftLabel={t('cancel')}
               leftOnPress={() => setShowDividend(false)}
               rightLabel={t('confirmIssue')}
               rightOnPress={handleDividend}
-              rightDisabled={!divAmount || parseFloat(divAmount) <= 0}
+              rightDisabled={!currentDivPreview || divRoundNum < nextDividendRound}
+              rightLoading={divSubmitting}
             />
           </View>
         </ReAnimated.View>

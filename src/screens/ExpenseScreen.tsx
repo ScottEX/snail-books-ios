@@ -28,6 +28,7 @@ import { blockNeg, fmtDecInput, toDec2, fmtRefundInput } from '../utils/numbers'
 import NumberTickerExt from '../components/NumberTicker';
 import { useServerDate } from '../hooks/useServerDate';
 import { useExpenseForm } from '../hooks/useExpenseForm';
+import { WriteSubmission } from '../utils/writeSubmission';
 import type { HomeSearchRequest } from '../navigation/homeSearchActions';
 import ModalOverlay from '../components/ModalOverlay';
 import { useDateField } from '../hooks/useDateField';
@@ -363,6 +364,7 @@ export default function ExpenseScreen({
   const updateFee = (k: keyof typeof feeForm, v: string) => setFeeForm(f => ({ ...f, [k]: v }));
   const { feeMc, feeMw, feeEw, feeMt } = feeForm;
   const [savingFee, setSavingFee] = useState(false);
+  const feeSubmission = useRef(new WriteSubmission<Record<string, unknown>>()).current;
   const [negativeMode, setNegativeMode] = useState(false);
   const openFeeEntry = () => {
     setFeeForm({ feeMc: '', feeMw: '', feeEw: '', feeMt: '' });
@@ -391,26 +393,26 @@ export default function ExpenseScreen({
   useEffect(() => { loadFeeData(); }, [feeMonth]);
 
   const handleAddFee = async () => {
-    if (feeMonth === 'all') return;
+    if (feeMonth === 'all' || feeSubmission.running) return;
     if (sd.isFuture(feeDate.value)) { showToast(t('errDateFuture')); return; }
     const factor = negativeMode ? -1 : 1;
     const mc = toNum(feeMc) * factor, mw = toNum(feeMw) * factor, ew = toNum(feeEw) * factor, mt = toNum(feeMt) * factor;
     if (mc + mw + ew + mt === 0) { showToast(t('atLeastOneFee')); return; }
     setSavingFee(true);
     try {
-      const r = await api.addPlatformFeeEntry({
+      const fields = {
         year: feeMonth.year, month: feeMonth.month,
         entry_date: feeDate.value,
         meituan_cashier: mc, meituan_waimai: mw,
         shangou_waimai: ew, meituan_tuan: mt,
-      });
+      };
+      const r = await feeSubmission.run(fields, () => fields, api.addPlatformFeeEntry);
       if (r?.status === 'ok') {
         setFeeData(r?.data);
         setFeeForm({ feeMc: '', feeMw: '', feeEw: '', feeMt: '' });
         setNegativeMode(false);
         closeFeeSheet();
-        // Reload all months to keep totals accurate
-        api.getPlatformFees().then((all: any) => setAllFees(Array.isArray(all) ? all : [])).catch(() => {});
+        loadFeeData();
         loadBusinessSummary();
       } else {
         showToast(r?.message || t('toastSubmitFailed'));

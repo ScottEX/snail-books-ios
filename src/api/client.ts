@@ -63,6 +63,13 @@ export type LedgerResponse =
   | { status: 'clarify'; reason: 'procurement_basis' | 'period'; context: string; actions: LedgerAction[] }
   | { status: 'details'; records: AppSearchRecord[]; next_offset: number | null };
 
+export interface DividendPreview {
+  status: 'ok';
+  total: number;
+  preview: string;
+  allocations: { id: number; name: string; share: number; amount: number }[];
+}
+
 // ── Event bus ──
 type UserChangeListener = () => void;
 type SessionKickedListener = () => void;
@@ -254,6 +261,15 @@ function _handleRawAuthError(resp: Response, label: string) {
   }
 }
 
+function postWrite<T = any>(path: string, data: unknown, key?: string, signal?: AbortSignal) {
+  return authFetch<T>(path, {
+    method: 'POST',
+    body: JSON.stringify(data),
+    headers: key ? { 'Idempotency-Key': key } : undefined,
+    signal,
+  });
+}
+
 export const api = {
   login: (username: string, password: string, remember = false) => {
     bumpActivity();
@@ -326,7 +342,7 @@ export const api = {
     if (filters) Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
     return authFetch('/api/transactions?' + params.toString());
   },
-  createTransaction: (data: any) => authFetch('/api/transactions', { method: 'POST', body: JSON.stringify(data) }),
+  createTransaction: (data: unknown, key?: string) => postWrite('/api/transactions', data, key),
   generateExpenseDraft: (text: string, signal: AbortSignal) =>
     authFetch<{ status: 'ok'; draft: ExpenseDraft }>('/api/transactions/expense-draft', {
       method: 'POST',
@@ -370,7 +386,9 @@ export const api = {
 
   getPartners: () => authFetch('/api/partners'),
   getDividends: () => authFetch('/api/dividends'),
-  createDividend: (data: any) => authFetch('/api/dividends', { method: 'POST', body: JSON.stringify(data) }),
+  previewDividend: (total: string, signal?: AbortSignal) =>
+    postWrite<DividendPreview>('/api/dividends/preview', { total }, undefined, signal),
+  createDividend: (data: unknown, key?: string) => postWrite<DividendPreview>('/api/dividends', data, key),
   deleteDividend: (id: number) => authFetch(`/api/dividends/${id}`, { method: 'DELETE' }),
   deleteDividendByNote: (note: string) => authFetch('/api/dividends/delete', { method: 'POST', body: JSON.stringify({ note }) }),
 
@@ -468,7 +486,7 @@ export const api = {
   deleteUser: (id: number) => authFetch(`/api/admin/users/${id}/delete`, { method: 'POST' }),
   toggleUserDisabled: (id: number, disabled: boolean) =>
     authFetch(`/api/admin/users/${id}/disabled`, { method: 'POST', body: JSON.stringify({ disabled }) }),
-  addPlatformFeeEntry: (data: any) => authFetch('/api/platform-fees/entry', { method: 'POST', body: JSON.stringify(data) }),
+  addPlatformFeeEntry: (data: unknown, key?: string) => postWrite('/api/platform-fees/entry', data, key),
   updatePlatformFeeEntry: (id: number, data: any) =>
     authFetch(`/api/platform-fees/entry/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deletePlatformFeeEntry: (id: number) =>
@@ -562,7 +580,7 @@ export const api = {
   deleteProcurement: (id: number) => authFetch(`/api/procurements/${id}`, { method: 'DELETE' }),
   getProcurementStats: () => authFetch('/api/procurement-stats'),
   getProcurementBatches: (page = 1, perPage = 10) => authFetch(`/api/procurement-batches?page=${page}&per_page=${perPage}`),
-  createProcurementBatch: (data: any) => authFetch('/api/procurement-batches', { method: 'POST', body: JSON.stringify(data) }),
+  createProcurementBatch: (data: unknown, key?: string) => postWrite('/api/procurement-batches', data, key),
   getProcurementBatchDetail: (id: number, signal?: AbortSignal) => authFetch(`/api/procurement-batches/${id}`, { signal }),
   updateProcurementBatch: (id: number, data: any) => authFetch(`/api/procurement-batches/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteProcurementBatch: (id: number) => authFetch(`/api/procurement-batches/${id}`, { method: 'DELETE' }),

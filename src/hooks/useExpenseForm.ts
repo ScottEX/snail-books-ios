@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { t } from '../i18n';
 import { api } from '../api/client';
 import { useServerDate } from '../hooks/useServerDate';
 import { PickedImage } from '../utils/imagePicker';
+import { WriteSubmission } from '../utils/writeSubmission';
 
 interface UseExpenseFormOptions {
   onExpenseHistory?: () => void;
@@ -29,6 +30,7 @@ export function useExpenseForm(options: UseExpenseFormOptions) {
   const [uploadingImg, setUploadingImg] = useState(false);
   const [isRefund, setIsRefund] = useState(false);
   const [loadingExp, setLoadingExp] = useState(false);
+  const submission = useRef(new WriteSubmission<Record<string, unknown>>()).current;
 
   /* ── image helpers ── */
 
@@ -69,46 +71,33 @@ export function useExpenseForm(options: UseExpenseFormOptions) {
   const missingRequiredFields = !expDate || !expCategory || !payMethod;
   const handleAddExpense = useCallback(async () => {
     const raw = parseFloat(expAmount.replace(/,/g, ''));
-    if (missingRequiredFields || !Number.isFinite(raw) || raw === 0) return;
+    if (submission.running || missingRequiredFields || !Number.isFinite(raw) || raw === 0) return;
     if (!isRefund && raw <= 0) return;
     if (sd.ready && sd.isFuture(expDate)) { return; }
     setLoadingExp(true);
+    const fields = { type: 'expense', amount: raw * (isRefund ? -1 : 1),
+      category: expCategory, account: payMethod, note: expNote, date: expDate };
     try {
-      let imageUrls: string[] = [];
-      let thumbUrls: string[] = [];
-      if (expImages.length > 0) {
+      const saved = await submission.run([fields, expImages], async () => {
+        if (expImages.length === 0) return { ...fields, images: [], thumb_images: [] };
         setUploadingImg(true);
-        const result = await api.uploadExpenseImages(expImages);
-        setUploadingImg(false);
-        if (result.status !== 'ok') {
-          onToast(t('uploadFailed'));
-          setLoadingExp(false);
-          return;
-        }
-        imageUrls = result.images || [];
-        thumbUrls = (result.thumb_images && result.thumb_images.length > 0)
-          ? result.thumb_images
-          : imageUrls;
-      }
-      await api.createTransaction({
-        type: 'expense',
-        amount: parseFloat(expAmount.replace(/,/g, '')) * (isRefund ? -1 : 1),
-        category: expCategory,
-        account: payMethod,
-        note: expNote,
-        date: expDate,
-        images: imageUrls,
-        thumb_images: thumbUrls,
-      });
+        try {
+          const result = await api.uploadExpenseImages(expImages);
+          if (result.status !== 'ok') throw new Error(t('uploadFailed'));
+          const images = result.images || [];
+          return { ...fields, images, thumb_images: result.thumb_images?.length ? result.thumb_images : images };
+        } finally { setUploadingImg(false); }
+      }, api.createTransaction);
+      if (saved?.status !== 'ok') throw new Error(saved?.message || t('toastSubmitFailed'));
       clearUrlCache();
       resetForm();
       onExpenseAdded?.();
       onExpenseHistory?.();
-    } catch { onToast(t('toastSubmitFailed')); }
-    setLoadingExp(false);
+    } catch (error) { onToast(error instanceof Error ? error.message : t('toastSubmitFailed')); }
+    finally { setLoadingExp(false); }
   }, [
     expAmount, expDate, expImages, expCategory, payMethod, expNote,
-    isRefund, sd, missingRequiredFields, clearUrlCache, resetForm, onExpenseHistory, onExpenseAdded, onToast,
+    isRefund, sd, missingRequiredFields, clearUrlCache, resetForm, onExpenseHistory, onExpenseAdded, onToast, submission,
   ]);
 
   /* ── derived ── */
