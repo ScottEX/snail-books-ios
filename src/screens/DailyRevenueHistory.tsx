@@ -18,7 +18,7 @@ import FilterPanel from '../components/FilterPanel';
 import DateErrorHint from '../components/DateErrorHint';
 import LoadingSpinner from '../components/LoadingSpinner';
 
-interface Props { onBack: () => void; initialDate?: string }
+interface Props { onBack: () => void; initialDate?: string; initialRange?: { from: string; to: string } }
 
 /** Strict calendar months between two ISO dates */
 function monthsBetween(from: string, to: string): number {
@@ -50,15 +50,15 @@ const fmtDate = (d: string) => {
   return `${y}年${+m}月${+day}日`;
 };
 
-export default function DailyRevenueHistory({ onBack, initialDate }: Props) {
+export default function DailyRevenueHistory({ onBack, initialDate, initialRange }: Props) {
   const { colors } = useTheme();
   const sd = useServerDate();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   const [showFilter, setShowFilter] = useState(false);
-  const initFrom = initialDate || sd.offset(-30);
-  const initTo = initialDate || sd.today;
+  const initFrom = initialRange?.from || initialDate || sd.offset(-30);
+  const initTo = initialRange?.to || initialDate || sd.today;
   const [dateFrom, setDateFrom] = useState(initFrom);
   const [dateTo, setDateTo] = useState(initTo);
   const [appliedFrom, setAppliedFrom] = useState(initFrom);

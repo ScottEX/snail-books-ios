@@ -78,13 +78,13 @@ export default function ChartsPanel({
       surface={colors.surface}
       textSub={colors.textSub}
       labels={{
-        income: t('income'),
+        income: t('actualReceived'),
         expense: t('expense'),
-        profit: t('profit'),
+        profit: t('operatingProfitBeforeFees'),
         monthlyTrend: t('monthlyTrend'),
         dailyTrend: t('dailyTrend'),
-        monthlyProfit: t('monthlyProfit'),
-        dailyProfit: t('dailyProfit') || t('dailyTrend'),
+        monthlyProfit: t('operatingMonthlyProfitBeforeFees'),
+        dailyProfit: t('operatingDailyProfitBeforeFees'),
         expenseBreakdown: t('expenseBreakdownOfMonth'),
         chartSwitchPie: t('chartSwitchPie'),
         chartSwitchBar: t('chartSwitchBar'),

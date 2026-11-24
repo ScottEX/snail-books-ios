@@ -466,7 +466,25 @@ const I18N: Record<string, Record<string, string>> = {
     ledgerAiProcurementSupplierBasis: '金额只汇总该供应商对应的采购明细，供应商按商品当前登记信息匹配。',
     ledgerAiAdminOnly: '注册用户统计仅管理员可查。',
     ledgerAiThrough: '截至 {date}',
-    ledgerAiProfitBasis: '与经营总览一致。已录入实收减支出，未扣平台手续费。',
+    ledgerAiProfitBasis: '实收减支出，未扣平台手续费。',
+    operatingToday: '今天',
+    operatingYesterday: '昨天',
+    operatingNetReceived: '扣费后收入',
+    operatingProfit: '经营利润',
+    operatingProfitBeforeFees: '扣费前利润',
+    operatingMonthlyProfitBeforeFees: '月度扣费前利润',
+    operatingDailyProfitBeforeFees: '每日扣费前利润',
+    operatingNetBasis: '实收减去平台手续费。',
+    operatingProfitBasis: '经营利润 = 实收 − 平台手续费 − 支出。',
+    operatingFeeGap: '所选时段有未细分到日的手续费，扣费后金额只计入可归属的手续费。',
+    operatingComparisonGap: '对比时段有无法按日归属的手续费。',
+    operatingNetExample: '今天扣费后收入是多少？',
+    operatingDetails: '核对明细',
+    operatingCumulativeReceived: '累计实收',
+    operatingCumulativeTurnover: '累计营业额',
+    operatingCumulativeNet: '累计扣费后收入',
+    invAttachmentRequired: '请先上传发票附件，再标记为已开具。',
+    invResumeUpload: '已保存这张发票及已上传的附件。再次提交会继续处理这张发票。',
     ledgerAiUsers: '已验证注册用户',
     ledgerAiUsersBasis: '按注册日期统计已验证邮箱的用户，审核和停用人数按当前状态显示。',
     ledgerAiAwaitingReview: '待审核',
@@ -1217,7 +1235,25 @@ const I18N: Record<string, Record<string, string>> = {
     ledgerAiProcurementSupplierBasis: '金額只加總該供應商的採購明細，供應商按商品目前登記資訊比對。',
     ledgerAiAdminOnly: '註冊使用者統計僅管理員可查。',
     ledgerAiThrough: '截至 {date}',
-    ledgerAiProfitBasis: '與經營總覽一致。已登錄實收減支出，未扣平台手續費。',
+    ledgerAiProfitBasis: '實收減支出，未扣平台手續費。',
+    operatingToday: '今天',
+    operatingYesterday: '昨天',
+    operatingNetReceived: '扣費後收入',
+    operatingProfit: '營運利潤',
+    operatingProfitBeforeFees: '扣費前利潤',
+    operatingMonthlyProfitBeforeFees: '月度扣費前利潤',
+    operatingDailyProfitBeforeFees: '每日扣費前利潤',
+    operatingNetBasis: '實收減去平台手續費。',
+    operatingProfitBasis: '營運利潤 = 實收 − 平台手續費 − 支出。',
+    operatingFeeGap: '所選時段有未細分到日的手續費，扣費後金額只計入可歸屬的手續費。',
+    operatingComparisonGap: '比較時段有無法按日歸屬的手續費。',
+    operatingNetExample: '今天扣費後收入是多少？',
+    operatingDetails: '核對明細',
+    operatingCumulativeReceived: '累計實收',
+    operatingCumulativeTurnover: '累計營業額',
+    operatingCumulativeNet: '累計扣費後收入',
+    invAttachmentRequired: '請先上傳發票附件，再標記為已開具。',
+    invResumeUpload: '已儲存這張發票及已上傳的附件。再次提交會繼續處理這張發票。',
     ledgerAiUsers: '已驗證註冊使用者',
     ledgerAiUsersBasis: '按註冊日期統計已驗證電子郵件的使用者，審核和停用人數按目前狀態顯示。',
     ledgerAiAwaitingReview: '待審核',
@@ -1978,6 +2014,24 @@ const I18N: Record<string, Record<string, string>> = {
     ledgerAiAdminOnly: 'Only administrators can view registration statistics.',
     ledgerAiThrough: 'Through {date}',
     ledgerAiProfitBasis: 'Recorded receipts minus expenses, before platform fees.',
+    operatingToday: 'Today',
+    operatingYesterday: 'Yesterday',
+    operatingNetReceived: 'Receipts after fees',
+    operatingProfit: 'Operating profit',
+    operatingProfitBeforeFees: 'Profit before platform fees',
+    operatingMonthlyProfitBeforeFees: 'Monthly profit before fees',
+    operatingDailyProfitBeforeFees: 'Daily profit before fees',
+    operatingNetBasis: 'Recorded receipts minus platform fees.',
+    operatingProfitBasis: 'Operating profit = receipts − platform fees − expenses.',
+    operatingFeeGap: 'Some fees lack a daily breakdown. After-fee amounts include only fees attributable to the selected dates.',
+    operatingComparisonGap: 'Some fees in the comparison period cannot be attributed to a day.',
+    operatingNetExample: 'What were today’s receipts after fees?',
+    operatingDetails: 'Check details',
+    operatingCumulativeReceived: 'Total receipts',
+    operatingCumulativeTurnover: 'Total turnover',
+    operatingCumulativeNet: 'Total receipts after fees',
+    invAttachmentRequired: 'Upload the invoice attachment before marking it as issued.',
+    invResumeUpload: 'The invoice and uploaded files are saved. Submit again to continue on this invoice.',
     ledgerAiUsers: 'Verified registrations',
     ledgerAiUsersBasis: 'Counts email-verified users by registration date. Statuses reflect the current state.',
     ledgerAiAwaitingReview: 'Awaiting review',
@@ -2731,6 +2785,24 @@ export type I18nKey =
   | 'ledgerAiAdminOnly'
   | 'ledgerAiThrough'
   | 'ledgerAiProfitBasis'
+  | 'operatingToday'
+  | 'operatingYesterday'
+  | 'operatingNetReceived'
+  | 'operatingProfit'
+  | 'operatingProfitBeforeFees'
+  | 'operatingMonthlyProfitBeforeFees'
+  | 'operatingDailyProfitBeforeFees'
+  | 'operatingNetBasis'
+  | 'operatingProfitBasis'
+  | 'operatingFeeGap'
+  | 'operatingComparisonGap'
+  | 'operatingNetExample'
+  | 'operatingDetails'
+  | 'operatingCumulativeReceived'
+  | 'operatingCumulativeTurnover'
+  | 'operatingCumulativeNet'
+  | 'invAttachmentRequired'
+  | 'invResumeUpload'
   | 'ledgerAiUsers'
   | 'ledgerAiUsersBasis'
   | 'ledgerAiAwaitingReview'

@@ -31,6 +31,7 @@ const askExamples = [
   ['unsettled_procurement', 'ledgerAiUnsettledProcurementExample'],
   ['turnover', 'ledgerAiTurnoverExample'],
   ['profit', 'ledgerAiProfitExample'],
+  ['net_received', 'operatingNetExample'],
   ['salary', 'ledgerAiSalaryExample'],
   ['latest_expense', 'ledgerAiLatestExpenseExample'],
   ['latest_revenue', 'ledgerAiLatestRevenueExample'],
@@ -99,7 +100,11 @@ const recordLabels: Record<AppSearchRecord['kind'], string> = {
 };
 
 export type AppSearchPage = keyof typeof pages;
-type SearchResult = AppSearchPage | AppSearchRecord;
+type SearchResult = AppSearchPage | AppSearchRecord | {
+  kind: 'operatingHistory';
+  screen: 'DailyHistory' | 'ExpenseHistory';
+  range: { from: string; to: string };
+};
 export type AppSearchTarget = Exclude<SearchResult, 'expenseAi' | 'askLedger'>;
 const defaultDiscoverShortcuts: readonly AppSearchPage[] = ['procurementHistory', 'expense', 'statistics', 'invoice'];
 const discoverPages = (Object.keys(pages) as AppSearchPage[]).filter(page =>
@@ -180,7 +185,9 @@ const aggregateLabels = {
   turnover: ['revTurnover', 'ledgerAiTurnoverBasis', 'revenue'],
   received: ['actualReceived', 'ledgerAiReceivedBasis', 'revenue'],
   expense: ['expense', 'ledgerAiExpenseBasis', 'expense'],
-  profit: ['profit', 'ledgerAiProfitBasis', 'statistics'],
+  profit: ['operatingProfitBeforeFees', 'ledgerAiProfitBasis', 'statistics'],
+  net_received: ['operatingNetReceived', 'operatingNetBasis', 'statistics'],
+  operating_profit: ['operatingProfit', 'operatingProfitBasis', 'statistics'],
   registered_users: ['ledgerAiUsers', 'ledgerAiUsersBasis', 'userManagement'],
   dividend_amount: ['ledgerAiDividendAmount', 'ledgerAiDividendBasis', 'dividendHistory'],
   dividend_rounds: ['ledgerAiDividendRounds', 'ledgerAiDividendBasis', 'dividendHistory'],
@@ -266,6 +273,8 @@ function LedgerResult({ answer, onOpenResult, onSearchSupplier, disabled }: {
 
   const [defaultLabel, defaultBasis, page] = aggregateLabels[answer.metric];
   const { supplier, category, current, comparison, difference } = answer;
+  const range = current.start_date ? { from: current.start_date, to: current.end_date } : null;
+  const revenueMetric = ['turnover', 'received', 'net_received', 'operating_profit', 'profit'].includes(answer.metric);
   const label = category ?? defaultLabel;
   const isProcurement = answer.metric === 'procurement_summary' || answer.metric === 'unsettled_procurement';
   const basis = supplier && !isProcurement ? 'appSearchSupplierBasis'
@@ -294,6 +303,18 @@ function LedgerResult({ answer, onOpenResult, onSearchSupplier, disabled }: {
         </Text>
       )}
       <Text style={[styles.caption, { color: colors.textSub }]}>{t(basis)}</Text>
+      {current.fees_complete === false && (
+        <Text style={[styles.caption, { color: colors.warning }]}>{t('operatingFeeGap')}</Text>
+      )}
+      {comparison?.fees_complete === false && current.fees_complete !== false && (
+        <Text style={[styles.caption, { color: colors.warning }]}>{t('operatingComparisonGap')}</Text>
+      )}
+      {current.received !== undefined && row(t('actualReceived'), fmtAmtFull(current.received))}
+      {current.platform_fees !== undefined && row(t('platformFee'), fmtAmtFull(current.platform_fees))}
+      {answer.metric === 'operating_profit' && current.expenses !== undefined && row(t('expense'), fmtAmtFull(current.expenses))}
+      {range && revenueMetric && link(t('revHistoryBtn'), () => onOpenResult({ kind: 'operatingHistory', screen: 'DailyHistory', range }))}
+      {range && answer.metric === 'operating_profit' && link(t('expenseHistory'),
+        () => onOpenResult({ kind: 'operatingHistory', screen: 'ExpenseHistory', range }))}
       {!!supplier && isProcurement && <Text style={[styles.caption, { color: colors.textSub }]}>{t('ledgerAiProcurementSupplierBasis')}</Text>}
       {supplier && !isProcurement
         ? link(t('appSearchRelated'), () => onSearchSupplier(supplier))

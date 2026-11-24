@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Circle, Rect, Line } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
 import { t, getLang, langs, useLang } from '../i18n';
-import { api, resolveAssetUrl, bumpActivity, type ExpenseDraft } from '../api/client';
+import { api, resolveAssetUrl, bumpActivity, type ExpenseDraft, type OperatingMetrics, type OperatingPeriod } from '../api/client';
 import * as FileSystem from 'expo-file-system';
 import { useTheme, withAlpha, ThemeColors, DEFAULT_THEME_ID } from '../theme';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -34,7 +34,7 @@ import ChartsPanel from './ChartsPanel';
 import { modalCardAnimation, modalClose, MODAL_CARD_RADIUS, SHEET_RADIUS } from '../sharedStyles';
 import { toDec2Comma } from '../utils/numbers';
 import DateErrorHint from '../components/DateErrorHint';
-import { fmtAmtFull } from '../utils/format';
+import { fmtAmtFull, formatDate } from '../utils/format';
 import NumberTicker from '../components/NumberTicker';
 
 const BG_IMAGE = require('../../assets/img/bg.jpg');
@@ -350,19 +350,7 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const [chartMonthly, setChartMonthly] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [procurements] = useState<any[]>([]);
-  const [businessSummary, setBusinessSummary] = useState<{
-    cash_on_hand?: number;
-    cumulative_revenue?: number;
-    cumulative_expense?: number;
-    actual_received?: number;
-    receivable?: number;
-    discount?: number;
-    today_expense_amount?: number;
-    month_expense_amount?: number;
-    yesterday_income?: number;
-    yesterday_expense?: number;
-    yesterday_profit?: number;
-  }>({});
+  const [businessSummary, setBusinessSummary] = useState<ChartGlassProps['businessSummary']>({});
   const navScaleAnims = useRef([...Array(5)].map(() => new Animated.Value(1))).current;
 
   // ── Daily revenue state ──
@@ -382,7 +370,6 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   const [last7Records, setLast7Records] = useState<any[]>([]);
   const [yesterdayRev, setYesterdayRev] = useState<any>(null);
   const [weekRev, setWeekRev] = useState<any>(null);
-  const [monthRevRecords, setMonthRevRecords] = useState<any[]>([]);
   const [revMarkedClosed, setRevMarkedClosed] = useState(false);
   const [toast, setToast] = useState('');
 
@@ -432,15 +419,6 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
       setWeekRev(r.totals || null);
     } catch {}
   }, []);
-  const loadMonthRevenues = useCallback(async () => {
-    try {
-      const todayStr = sd.today || new Date().toISOString().slice(0, 10);
-      const monthStart = todayStr.slice(0, 7) + '-01';
-      const r: any = await api.getDailyRevenue(1, 31, undefined, undefined, undefined, undefined, monthStart, todayStr);
-      setMonthRevRecords(r?.records || []);
-    } catch { /* non-fatal */ }
-  }, [sd.today]);
-
   // ── Lazy load on tab change (chart / supply) ──
   const loadChartMonthly = useCallback(async () => {
     try { const d: any = await api.getChartMonthly(); setChartMonthly(d); } catch { setToast(t('toastLoadFailed')); }
@@ -456,16 +434,16 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
   }, []);
   const loadProcurements = useCallback(async () => {}, []);
 
-  useEffect(() => { loadLast7(); loadYesterday(); loadWeekTotals(); loadBusinessSummary(); loadChartMonthly(); loadMonthRevenues(); }, [loadLast7, loadYesterday, loadWeekTotals, loadBusinessSummary, loadChartMonthly, loadMonthRevenues]);
+  useEffect(() => { loadLast7(); loadYesterday(); loadWeekTotals(); loadBusinessSummary(); loadChartMonthly(); }, [loadLast7, loadYesterday, loadWeekTotals, loadBusinessSummary, loadChartMonthly]);
 
   useEffect(() => {
     if (tab === 'list') { loadLast7(); loadYesterday(); loadWeekTotals(); }
   }, [tab, loadLast7, loadYesterday, loadWeekTotals]);
 
   useEffect(() => {
-    if (tab === 'chart') { loadChartMonthly(); loadBusinessSummary(); loadMonthRevenues(); }
+    if (tab === 'chart') { loadChartMonthly(); loadBusinessSummary(); }
     if (tab === 'supply') { loadProducts(); }
-  }, [tab, loadChartMonthly, loadBusinessSummary, loadMonthRevenues, loadProducts, loadProcurements]);
+  }, [tab, loadChartMonthly, loadBusinessSummary, loadProducts, loadProcurements]);
 
   // Check admin status (for User Management nav). Non-blocking — failure just means non-admin.
   useEffect(() => {
@@ -682,10 +660,9 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
           ) : tab === 'chart' ? (
             <ChartTabContent
               colors={colors}
-              weekRev={weekRev}
-              monthRevRecords={monthRevRecords}
               businessSummary={businessSummary}
               chartMonthly={chartMonthly}
+              openHistory={(screen, range) => navigation.push(screen, { range })}
             />
           ) : null}
         </ScrollView>
@@ -807,8 +784,6 @@ export default function HomeScreen({ onLogout }: { onLogout: () => void }) {
 interface ChartGlassProps {
   colors: ThemeColors;
   bgOpacity: number;
-  weekRev: any;
-  monthRevRecords: any[];
   businessSummary: {
     cash_on_hand?: number;
     cumulative_revenue?: number;
@@ -821,59 +796,73 @@ interface ChartGlassProps {
     yesterday_income?: number;
     yesterday_expense?: number;
     yesterday_profit?: number;
+    operating?: Record<OperatingPeriod, OperatingMetrics>;
   };
   chartMonthly: any;
+  openHistory: (screen: 'DailyHistory' | 'ExpenseHistory', range: { from: string; to: string }) => void;
 }
 
-/** 6 张收支卡片：昨日/本月 收入/支出/利润 2x3 grid */
-function ExpenseSummaryCardsInline({
-  yesterdayExpense, monthExpense, yesterdayIncome, monthIncome, colors,
-}: {
-  yesterdayExpense: number; monthExpense: number;
-  yesterdayIncome: number; monthIncome: number;
+const operatingPeriods = { today: 'operatingToday', yesterday: 'operatingYesterday', this_month: 'ledgerAiThisMonth' } as const;
+
+function OperatingSummary({ colors, metrics, openHistory }: {
   colors: ThemeColors;
+  metrics?: Record<OperatingPeriod, OperatingMetrics>;
+  openHistory: ChartGlassProps['openHistory'];
 }) {
-  const yesterdayProfit = yesterdayIncome - yesterdayExpense;
-  const monthProfit = monthIncome - monthExpense;
-
-  const cards = [
-    { label: t('yesterdayIncome'), value: yesterdayIncome, clr: colors.success, isProfit: false },
-    { label: t('yesterdayExpense'), value: yesterdayExpense, clr: colors.danger, isProfit: false },
-    { label: t('monthIncome'), value: monthIncome, clr: colors.success, isProfit: false },
-    { label: t('monthExpense'), value: monthExpense, clr: colors.danger, isProfit: false },
-    { label: t('yesterdayProfit'), value: yesterdayProfit, clr: yesterdayProfit >= 0 ? colors.success : colors.danger, isProfit: true },
-    { label: t('monthProfit'), value: monthProfit, clr: monthProfit >= 0 ? colors.success : colors.danger, isProfit: true },
-  ];
-
+  const [period, setPeriod] = useState<OperatingPeriod>('today');
+  const [showDetails, setShowDetails] = useState(false);
+  const current = metrics?.[period];
+  if (!current) return null;
+  const { start_date: start, end_date: end } = current;
+  const range = { from: start, to: end };
+  const totals = [
+    ['revTurnover', current.turnover], ['actualReceived', current.received],
+    ['operatingNetReceived', current.net_received], ['operatingProfit', current.operating_profit],
+  ] as const;
   return (
-    <View style={{ marginBottom: 12 }}>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {cards.map((c, i) => (
-          <View
-            key={i}
-            style={{
-              width: '48%' as any, flexGrow: 1, flexBasis: '46%' as any,
-              backgroundColor: colors.surface,
-              borderRadius: 12, paddingVertical: 10, paddingHorizontal: 18,
-              borderWidth: 0.5, borderColor: colors.secondary,
-              borderLeftColor: c.clr, borderLeftWidth: 3,
-            }}
-          >
-            <Text style={{ fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: colors.textSub, marginBottom: 4 }}>
-              {c.label}
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-              {c.isProfit ? (
-                <Text style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: c.clr }}>
-                  {c.value >= 0 ? '+' : '-'}{fmtAmtFull(Math.abs(c.value))}
-                </Text>
-              ) : (
-                <NumberTicker value={c.value} style={{ fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain }} formatFn={fmtAmtFull} />
-              )}
-            </View>
+    <View style={{ borderRadius: 14, padding: 16, marginBottom: 12, backgroundColor: colors.surface }}>
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+        {(Object.keys(operatingPeriods) as OperatingPeriod[]).map(key => (
+          <TouchableOpacity key={key} accessibilityRole="button" accessibilityState={{ selected: key === period }}
+            onPress={() => setPeriod(key)} style={{ backgroundColor: key === period ? colors.primary : colors.bg, borderRadius: 9,
+              paddingHorizontal: 12, minHeight: 44, justifyContent: 'center' }}>
+            <Text style={{ color: key === period ? colors.surface : colors.textSub }}>{t(operatingPeriods[key])}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <Text style={{ color: colors.textSub, marginTop: 8 }}>{start === end ? formatDate(start) : `${formatDate(start)} – ${formatDate(end)}`}</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 12, marginTop: 14 }}>
+        {totals.map(([label, value]) => (
+          <View key={label} style={{ width: '50%', paddingRight: 8 }}>
+            <Text style={{ color: colors.textSub }}>{t(label)}</Text>
+            <Text style={{ color: colors.textMain, fontWeight: '700', marginTop: 4 }}>{fmtAmtFull(value)}</Text>
           </View>
         ))}
       </View>
+      {!current.fees_complete && (
+        <Text style={{ color: colors.warning, marginTop: 10 }}>{t('operatingFeeGap')}</Text>
+      )}
+      <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: showDetails }}
+        onPress={() => setShowDetails(!showDetails)} style={{ minHeight: 44, justifyContent: 'center' }}>
+        <Text style={{ color: colors.primary }}>{t('operatingDetails')}</Text>
+      </TouchableOpacity>
+      {showDetails && (
+        <View style={{ gap: 6 }}>
+          <Text style={{ color: colors.textSub }}>{t('platformFee')} · {fmtAmtFull(current.platform_fees)}</Text>
+          <Text style={{ color: colors.textSub }}>{t('expense')} · {fmtAmtFull(current.expenses)}</Text>
+          <Text style={{ color: colors.textSub }}>{t('operatingProfitBasis')}</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14 }}>
+            <TouchableOpacity accessibilityRole="button" onPress={() => openHistory('DailyHistory', range)}
+              style={{ minHeight: 44, justifyContent: 'center' }}>
+              <Text style={{ color: colors.primary }}>{t('revHistoryBtn')} ›</Text>
+            </TouchableOpacity>
+            <TouchableOpacity accessibilityRole="button" onPress={() => openHistory('ExpenseHistory', range)}
+              style={{ minHeight: 44, justifyContent: 'center' }}>
+              <Text style={{ color: colors.primary }}>{t('expenseHistory')} ›</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -899,7 +888,7 @@ function ChartGlassCard({ colors, bgOpacity, businessSummary }: { colors: ThemeC
       </View>
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: 14, gap: 6, borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.20)' } as any}>
-          <Text style={{ fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.70)' }}>{t('cumulativeRevenue')}</Text>
+          <Text style={{ fontSize: FONTS.micro.size, fontWeight: FONTS.micro.weight, color: 'rgba(255,255,255,0.70)' }}>{t('operatingCumulativeNet')}</Text>
           <Text style={{ fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: 'rgba(255,255,255,0.95)' }}>{'¥' + toDec2Comma(businessSummary.cumulative_revenue || 0)}</Text>
         </View>
         <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: 14, gap: 6, borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.20)' } as any}>
@@ -912,7 +901,7 @@ function ChartGlassCard({ colors, bgOpacity, businessSummary }: { colors: ThemeC
   );
 }
 
-function ChartTabContent({ colors, weekRev, monthRevRecords, businessSummary, chartMonthly }: Omit<ChartGlassProps, 'bgOpacity'>) {
+function ChartTabContent({ colors, businessSummary, chartMonthly, openHistory }: Omit<ChartGlassProps, 'bgOpacity'>) {
   const kpiCardStyle: any = {
     borderRadius: 14, paddingTop: 18, paddingHorizontal: 18, paddingBottom: 12,
     backgroundColor: colors.surface, borderWidth: 0.5, borderColor: colors.secondary, marginBottom: 12,
@@ -921,18 +910,14 @@ function ChartTabContent({ colors, weekRev, monthRevRecords, businessSummary, ch
   const kpiValueStyle = { fontSize: FONTS.body.size, fontWeight: FONTS.h2.weight, color: colors.textMain };
 
   const toNum = (v: any) => parseFloat(String(v ?? 0)) || 0;
-  const yesterdayIncome = toNum(businessSummary.yesterday_income);
-  const yesterdayExpense = toNum(businessSummary.yesterday_expense);
-  const monthExpense = toNum(businessSummary.month_expense_amount);
-  const monthIncomeVal = monthRevRecords.reduce((s: number, r: any) => s + (r.revenue || 0) + (r.jd_revenue || 0), 0);
 
   return (
     <View style={{ paddingBottom: 110, paddingTop: 4, paddingHorizontal: 16 }}>
       {/* ── KPI 三行：实收 / 应收 / 优惠减免 (web: surface card + secondary border) ── */}
       <View style={kpiCardStyle}>
         {[
-          { label: t('actualReceived'), val: toNum(businessSummary.actual_received) },
-          { label: t('receivable'), val: toNum(businessSummary.receivable) },
+          { label: t('operatingCumulativeReceived'), val: toNum(businessSummary.actual_received) },
+          { label: t('operatingCumulativeTurnover'), val: toNum(businessSummary.receivable) },
           { label: t('discountAmount'), val: toNum(businessSummary.discount) },
         ].map((item, i) => (
           <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 }}>
@@ -942,14 +927,7 @@ function ChartTabContent({ colors, weekRev, monthRevRecords, businessSummary, ch
         ))}
       </View>
 
-      {/* ── 6 张收支卡片 ── */}
-      <ExpenseSummaryCardsInline
-        yesterdayExpense={yesterdayExpense}
-        monthExpense={monthExpense}
-        yesterdayIncome={yesterdayIncome}
-        monthIncome={monthIncomeVal}
-        colors={colors}
-      />
+      <OperatingSummary colors={colors} metrics={businessSummary.operating} openHistory={openHistory} />
 
       {/* ── 图表：月度趋势 + 分类占比 + 每日收支 ── */}
       {chartMonthly ? (

@@ -9,7 +9,8 @@ import Svg, { Path, Line, Circle, Rect, Polyline, Text as SvgText } from 'react-
 import { t } from '../i18n';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
-import { api } from '../api/client';
+import { api, notifyInvoiceDone } from '../api/client';
+import { WriteSubmission } from '../utils/writeSubmission';
 import Toast from '../components/Toast';
 import EmptyState from '../components/EmptyState';
 import { pickImages, takePhoto, PickedImage } from '../utils/imagePicker';
@@ -187,6 +188,10 @@ interface InvoiceRecord {
   type: InvType;
   company: string;
   tax_id: string;
+  address?: string;
+  phone?: string;
+  bank_name?: string;
+  bank_account?: string;
   amount: number;
   date: string;
   invoice_number: string;
@@ -403,7 +408,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, 
           const d = { ...EMPTY_INV, ...inv.data, email: perUserEmail.email || inv.data.email || '' };
           setData(d);
           setOrig(d);
-          setDEmail(d.email);
+          if (!editOriginal.current) setDEmail(d.email);
           setInvType(inv.data.inv_type || 'vat');
           // Re-detect bank on load
           const acct = (d.bank_account || '').replace(/\s/g, '');
@@ -475,81 +480,94 @@ export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, 
     }
   };
 
+  const createSubmission = useRef(new WriteSubmission<Record<string, unknown>>()).current;
+  const fileSubmission = useRef(new WriteSubmission<PickedImage>()).current;
+  const invoiceSubmitting = useRef(false);
+  const [resumeUpload, setResumeUpload] = useState(false);
+  const sourceInvoice = editOriginal.current;
+  const drawerData = sourceInvoice ? {
+    ...data,
+    company_name: sourceInvoice.company,
+    tax_id: sourceInvoice.tax_id,
+    address: sourceInvoice.address || data.address,
+    phone: sourceInvoice.phone || data.phone,
+    bank_name: sourceInvoice.bank_name || data.bank_name,
+    bank_account: sourceInvoice.bank_account || data.bank_account,
+  } : data;
+
   /* ── Drawer submit ── */
   const handleDrawerSubmit = async () => {
-    if (submitting) return;
+    if (invoiceSubmitting.current || !drawerOpen) return;
     if (!dAmount) { showToast('⚠️ ' + t('invDrawerAmount')); return; }
-    if (!data.company_name || !data.tax_id) { showToast('⚠️ ' + t('invEmpty')); return; }
+    if (!drawerData.company_name || !drawerData.tax_id) { showToast('⚠️ ' + t('invEmpty')); return; }
     if (dStatus === 'done' && !dInvoiceNo.trim()) {
       showToast('⚠️ ' + t('invRecInvoiceNo'));
       return;
     }
+    if (dStatus === 'done' && !dFiles.length && !dExistingFilePath.length) {
+      showToast(t('invAttachmentRequired'));
+      return;
+    }
+    invoiceSubmitting.current = true;
     setSubmitting(true);
+    setResumeUpload(false);
+    let rid = editingId;
     try {
       const payload = {
-        type: dType,
-        amount: Number(dAmount) || 0,
-        date: dDate,
-        company: data.company_name,
-        tax_id: data.tax_id,
-        invoice_number: dInvoiceNo.trim(),
-        email: dEmail.trim(),
-        status: dStatus,
-        procurement_batch_id: dBatchId,
-        note: dNote.trim(),
+        type: dType, amount: Number(dAmount) || 0, date: dDate,
+        company: drawerData.company_name, tax_id: drawerData.tax_id,
+        invoice_number: dInvoiceNo.trim(), email: dEmail.trim(), status: dStatus,
+        procurement_batch_id: dBatchId, note: dNote.trim(),
       };
-      let rid: number;
-      if (editingId) {
-        const uploadedPaths: string[] = [];
-        const uploadedThumbPaths: string[] = [];
-        for (const f of dFiles) {
-          const res: any = await api.uploadInvoiceFile(editingId, f);
-          if (res?.file_path) {
-            uploadedPaths.push(res.file_path);
-            uploadedThumbPaths.push(res.thumb_path || res.file_path);
-          }
-        }
-        const finalFilePath = JSON.stringify([...dExistingFilePath, ...uploadedPaths]);
-        const finalThumbPath = JSON.stringify([...dExistingThumbPaths, ...uploadedThumbPaths]);
-        await api.updateInvoiceRecord(editingId, { ...payload, file_path: finalFilePath, file_thumb_paths: finalThumbPath });
-        rid = editingId;
-      } else {
-        const res: any = await api.createInvoiceRecord(payload);
-        rid = res?.id;
-        if (rid && dFiles.length > 0) {
-          const uploadedFilePaths: string[] = [];
-          const uploadedThumbPaths: string[] = [];
-          for (const f of dFiles) {
-            const upRes: any = await api.uploadInvoiceFile(rid, f);
-            if (upRes?.file_path) {
-              uploadedFilePaths.push(upRes.file_path);
-              uploadedThumbPaths.push(upRes.thumb_path || upRes.file_path);
-            }
-          }
-          await api.updateInvoiceRecord(rid, {
-            file_path: JSON.stringify(uploadedFilePaths),
-            file_thumb_paths: JSON.stringify(uploadedThumbPaths),
-          });
+      const mustFinalize = rid !== null || dStatus === 'done';
+      if (rid === null) {
+        const pending = { ...payload, status: 'pending', defer_notification: dStatus === 'done' };
+        const created = await createSubmission.run(pending, () => pending, api.createInvoiceRecord);
+        if (!created?.id) throw new Error(t('errNetworkError'));
+        rid = created.id;
+        setEditingId(rid);
+      }
+      const invoiceId = rid;
+      const paths = [...dExistingFilePath];
+      const thumbs = dExistingThumbPaths.length === paths.length ? [...dExistingThumbPaths] : [...paths];
+      if (dStatus === 'done') {
+        for (const file of dFiles) {
+          const uploaded = await fileSubmission.run([invoiceId, file], () => file,
+            (body, key) => api.uploadInvoiceFile(invoiceId, body, key));
+          if (uploaded?.status !== 'ok' || !uploaded.file_path) throw new Error(t('errNetworkError'));
+          paths.push(uploaded.file_path);
+          thumbs.push(uploaded.thumb_path || uploaded.file_path);
+          setDExistingFilePath([...paths]);
+          setDExistingThumbPaths([...thumbs]);
+          setDFiles(remaining => remaining.slice(1));
         }
       }
-      if (payload.procurement_batch_id) {
-        import('../api/client').then(m => m.notifyInvoiceDone(payload.procurement_batch_id!)).catch(() => {});
+      if (mustFinalize) {
+        const result = await api.updateInvoiceRecord(invoiceId, {
+          ...payload, file_path: JSON.stringify(paths), file_thumb_paths: JSON.stringify(thumbs),
+        });
+        if (result?.status !== 'ok') throw new Error(result?.message || t('errNetworkError'));
       }
+      if (payload.procurement_batch_id) notifyInvoiceDone(payload.procurement_batch_id).catch(() => {});
       closeDrawer();
-      setEditingId(null);
-      setDFiles([]);
-      setDExistingFilePath([]);
-      setDExistingThumbPaths([]);
       await loadRecords();
-    } catch (e: any) {
-      showToast('⚠️ ' + (e?.message || t('errNetworkError')));
+    } catch (error) {
+      if (rid !== null && dStatus === 'done') {
+        setResumeUpload(true);
+        void loadRecords();
+      }
+      const message = error instanceof Error ? error.message : '';
+      showToast('⚠️ ' + (message === 'invAttachmentRequired' ? t(message) : message || t('errNetworkError')));
     } finally {
+      invoiceSubmitting.current = false;
       setSubmitting(false);
     }
   };
 
   /* ── Drawer open/close ── */
   const openDrawer = (forEdit?: InvoiceRecord, preSelectBatchId?: number | null) => {
+    setResumeUpload(false);
+    setDEmail(forEdit ? forEdit.email || '' : data.email || userEmail);
     setEditingId(forEdit ? forEdit.id : null);
     setDType(forEdit ? (forEdit.type as InvType) : 'general');
     setDAmount(forEdit ? String(forEdit.amount) : '');
@@ -575,25 +593,10 @@ export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, 
         setBatchList(batches);
       } catch { setBatchList([]); }
     })();
-
-    // Auto-fill email
-    try {
-      const stored = localStorage.getItem('email');
-      if (stored) setDEmail(stored);
-    } catch { }
   };
 
   const closeDrawer = () => {
     setDrawerOpen(false);
-    editOriginal.current = null;
-    setTimeout(() => {
-      setEditingId(null);
-      setDStatus('pending');
-      setDInvoiceNo('');
-      setDExistingFilePath([]);
-      setDExistingThumbPaths([]);
-      setDFiles([]);
-    }, 250);
   };
 
   /* ── Batch picker (CustomActionSheet) ── */
@@ -608,16 +611,18 @@ export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, 
 
   /* ── Auto-fill amount when batch selected ── */
   useEffect(() => {
-    if (!dBatchId) return;
+    if (!drawerOpen || !dBatchId || editOriginal.current?.procurement_batch_id === dBatchId) return;
+    const controller = new AbortController();
     (async () => {
       try {
-        const j: any = await api.getProcurementBatchDetail?.(dBatchId);
+        const j: any = await api.getProcurementBatchDetail(dBatchId, controller.signal);
         const batch = j?.batch || j?.data || j;
         const amt = batch?.total || batch?.total_amount || batch?.amount || 0;
-        setDAmount(Number(amt).toFixed(2));
+        if (!controller.signal.aborted && !invoiceSubmitting.current) setDAmount(Number(amt).toFixed(2));
       } catch { }
     })();
-  }, [dBatchId]);
+    return () => controller.abort();
+  }, [dBatchId, drawerOpen]);
 
   /* ── Preview handlers ── */
   const handlePreviewExisting = (index: number, layout?: ThumbLayout, getLayout?: ThumbLayoutResolver) => {
@@ -1044,7 +1049,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, 
       {/* ═══ DRAWER (create/edit) ═══ */}
       <ModalOverlay
         visible={drawerOpen}
-        onClose={closeDrawer}
+        onClose={() => { if (!invoiceSubmitting.current) closeDrawer(); }}
         animation="stagger"
         staggerCount={3}
         overlayStyle={bottomSheetOverlay}
@@ -1052,10 +1057,11 @@ export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, 
       >
         <ReAnimated.View style={[drawerPushStyle, styles.drawer, { backgroundColor: c.surface, maxHeight: drawerMaxH }]}>
             <View style={[styles.drawerHead, { backgroundColor: c.primary, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 14, paddingHorizontal: 20, paddingBottom: 14 }]}>
-              <SheetHeader title={editingId ? t('invRecEditTitle') : t('invRecAddTitle')} onClose={closeDrawer} />
+              <SheetHeader title={editingId ? t('invRecEditTitle') : t('invRecAddTitle')}
+                onClose={() => { if (!invoiceSubmitting.current) closeDrawer(); }} />
             </View>
 
-            <ScrollView style={styles.drawerBody} contentContainerStyle={{ paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
+            <ScrollView pointerEvents={submitting ? 'none' : 'auto'} style={styles.drawerBody} contentContainerStyle={{ paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
               {/* Type */}
               <Text style={styles.dLabel}>{t('invDrawerType')}</Text>
               <View style={styles.dTypeRow}>
@@ -1136,7 +1142,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, 
                 </View>
                 <AppTextInput
                   style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
-                  value={data.company_name}
+                  value={drawerData.company_name}
                   editable={false}
                   placeholder="—"
                   placeholderTextColor={c.textSub}
@@ -1151,7 +1157,7 @@ export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, 
                 </View>
                 <AppTextInput
                   style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), fontFamily: 'DMMono-Regular' }]}
-                  value={data.tax_id}
+                  value={drawerData.tax_id}
                   editable={false}
                   placeholder="—"
                   placeholderTextColor={c.textSub}
@@ -1169,11 +1175,11 @@ export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, 
                   <View style={styles.dField}>
                     <View style={styles.dLabelRow}>
                       <Text style={styles.dLabel}>{t('addressPhone')}<Text style={{ color: c.danger }}> *</Text></Text>
-                      {vatHint(data.address)}
+                      {vatHint(drawerData.address)}
                     </View>
                     <AppTextInput
                       style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
-                      value={isDash(data.address) ? '' : data.address}
+                      value={isDash(drawerData.address) ? '' : drawerData.address}
                       editable={false}
                       placeholder="—"
                       placeholderTextColor={c.textSub}
@@ -1182,11 +1188,11 @@ export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, 
                   <View style={styles.dField}>
                     <View style={styles.dLabelRow}>
                       <Text style={styles.dLabel}>{t('companyPhone')}<Text style={{ color: c.danger }}> *</Text></Text>
-                      {vatHint(data.phone)}
+                      {vatHint(drawerData.phone)}
                     </View>
                     <AppTextInput
                       style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), fontFamily: 'DMMono-Regular' }]}
-                      value={isDash(data.phone) ? '' : data.phone}
+                      value={isDash(drawerData.phone) ? '' : drawerData.phone}
                       editable={false}
                       placeholder="—"
                       placeholderTextColor={c.textSub}
@@ -1195,11 +1201,11 @@ export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, 
                   <View style={styles.dField}>
                     <View style={styles.dLabelRow}>
                       <Text style={styles.dLabel}>{t('bankName')}<Text style={{ color: c.danger }}> *</Text></Text>
-                      {vatHint(data.bank_name)}
+                      {vatHint(drawerData.bank_name)}
                     </View>
                     <AppTextInput
                       style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03) }]}
-                      value={isDash(data.bank_name) ? '' : data.bank_name}
+                      value={isDash(drawerData.bank_name) ? '' : drawerData.bank_name}
                       editable={false}
                       placeholder="—"
                       placeholderTextColor={c.textSub}
@@ -1208,11 +1214,11 @@ export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, 
                   <View style={styles.dField}>
                     <View style={styles.dLabelRow}>
                       <Text style={styles.dLabel}>{t('bankAccount')}<Text style={{ color: c.danger }}> *</Text></Text>
-                      {vatHint(data.bank_account)}
+                      {vatHint(drawerData.bank_account)}
                     </View>
                     <AppTextInput
                       style={[styles.dInput, { color: c.textMain, backgroundColor: withAlpha(c.textMain, 0.03), fontFamily: 'DMMono-Regular' }]}
-                      value={isDash(data.bank_account) ? '' : data.bank_account}
+                      value={isDash(drawerData.bank_account) ? '' : drawerData.bank_account}
                       editable={false}
                       placeholder="—"
                       placeholderTextColor={c.textSub}
@@ -1284,6 +1290,12 @@ export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, 
                 </View>
               )}
 
+              {resumeUpload && (
+                <Text accessibilityLiveRegion="polite" style={{ color: c.danger, marginBottom: 8 }}>
+                  {t('invResumeUpload')}
+                </Text>
+              )}
+
               {/* File upload — only when done */}
               {dStatus === 'done' && (
                 <View style={{ marginBottom: 8 }}>
@@ -1318,14 +1330,14 @@ export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, 
 
             {/* Submit */}
             {(() => {
-              const nonLoadDisabled = !dAmount || !data.company_name || !data.tax_id
+              const nonLoadDisabled = !dAmount || !drawerData.company_name || !drawerData.tax_id
                 || (dStatus === 'done' && !dInvoiceNo.trim())
                 || (dStatus === 'done' && dFiles.length === 0 && dExistingFilePath.length === 0)
                 || (dType === 'vat' && (
-                  !data.address || isDash(data.address) ||
-                  !data.phone || isDash(data.phone) ||
-                  !data.bank_name || isDash(data.bank_name) ||
-                  !data.bank_account || isDash(data.bank_account)
+                  !drawerData.address || isDash(drawerData.address) ||
+                  !drawerData.phone || isDash(drawerData.phone) ||
+                  !drawerData.bank_name || isDash(drawerData.bank_name) ||
+                  !drawerData.bank_account || isDash(drawerData.bank_account)
                 ))
                 || (editingId && editOriginal.current ? (
                   editOriginal.current.type === dType &&

@@ -18,11 +18,15 @@ export interface LedgerTotal {
   rounds?: number;
   dividend_amount?: number;
   round?: string;
+  fees_complete?: boolean;
+  received?: number;
+  platform_fees?: number;
+  expenses?: number;
 }
 
 interface LedgerAggregateAnswer {
   metric: 'turnover' | 'received' | 'expense' | 'profit' | 'registered_users' | 'dividend_amount' | 'dividend_rounds'
-    | 'procurement_summary' | 'unsettled_procurement';
+    | 'procurement_summary' | 'unsettled_procurement' | 'net_received' | 'operating_profit';
   category: ExpenseDraft['category'];
   supplier: string | null;
   current: LedgerTotal;
@@ -69,6 +73,20 @@ export interface DividendPreview {
   preview: string;
   allocations: { id: number; name: string; share: number; amount: number }[];
 }
+
+export interface OperatingMetrics {
+  start_date: string;
+  end_date: string;
+  turnover: number;
+  received: number;
+  net_received: number;
+  operating_profit: number;
+  platform_fees: number;
+  expenses: number;
+  fees_complete: boolean;
+}
+
+export type OperatingPeriod = 'today' | 'yesterday' | 'this_month';
 
 // ── Event bus ──
 type UserChangeListener = () => void;
@@ -352,7 +370,7 @@ export const api = {
   askLedger: (query: LedgerRequest, signal: AbortSignal) =>
     authFetch<LedgerResponse>('/api/ledger/ask', {
       method: 'POST',
-      body: JSON.stringify({ ...query, record_queries: true, assistant_v2: true }),
+      body: JSON.stringify({ ...query, record_queries: true, assistant_v2: true, operating_metrics: true }),
       signal,
     }),
   searchApp: (keyword: string, signal: AbortSignal) =>
@@ -602,15 +620,16 @@ export const api = {
     return authFetch('/api/invoice-records' + (qs ? '?' + qs : ''));
   },
   getInvoiceRecord: (id: number) => authFetch(`/api/invoice-records/${id}`),
-  createInvoiceRecord: (data: Record<string, any>) => authFetch('/api/invoice-records', { method: 'POST', body: JSON.stringify(data) }),
+  createInvoiceRecord: (data: Record<string, unknown>, key?: string) =>
+    postWrite<{ status: 'ok'; id: number }>('/api/invoice-records', data, key),
   updateInvoiceRecord: (id: number, data: Record<string, any>) => authFetch(`/api/invoice-records/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteInvoiceRecord: (id: number) => authFetch(`/api/invoice-records/${id}`, { method: 'DELETE' }),
-  uploadInvoiceFile: async (id: number, file: { uri: string; type?: string; name?: string }) => {
+  uploadInvoiceFile: async (id: number, file: { uri: string; type?: string; name?: string }, key?: string) => {
     const form = new FormData();
     form.append('file', file as any);
     const resp = await fetch(API_BASE + `/api/invoice-records/${id}/file`, {
       method: 'POST',
-      headers: headers(),
+      headers: { ...headers(), ...(key ? { 'Idempotency-Key': key } : {}) },
       body: form,
       credentials: 'include' as RequestCredentials,
     });

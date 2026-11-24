@@ -32,8 +32,8 @@ export type RootStackParamList = {
     searchAction?: HomeSearchAction;
     expenseDraft?: ExpenseDraft;
   } | undefined;
-  ExpenseHistory: undefined;
-  DailyHistory: { date?: string } | undefined;
+  ExpenseHistory: { range?: { from: string; to: string } } | undefined;
+  DailyHistory: { date?: string; range?: { from: string; to: string } } | undefined;
   ReconHistory: { date?: string } | undefined;
   Profile: { accountAction?: ProfileAccountAction } | undefined;
   UserManagement: undefined;
@@ -67,11 +67,13 @@ function useFocusRefreshKey() {
 
 function ExpenseHistoryRoute() {
   const navigation = useNavigation<any>();
+  const { params } = useRoute<RouteProp<RootStackParamList, 'ExpenseHistory'>>();
   const refreshKey = useFocusRefreshKey();
   return (
     <ExpenseHistoryScreen
       onBack={() => navigation.goBack()}
       refreshKey={refreshKey}
+      initialRange={params?.range}
       onExpDetail={(e: any) => navigation.navigate('ExpenseDetail', { expense: e })}
       onInvoice={(batchId: number) => navigation.navigate('Invoice', { filterBatchId: batchId })}
     />
@@ -81,7 +83,7 @@ function ExpenseHistoryRoute() {
 function DailyHistoryRoute() {
   const navigation = useNavigation<any>();
   const { params } = useRoute<RouteProp<RootStackParamList, 'DailyHistory'>>();
-  return <DailyRevenueHistory initialDate={params?.date} onBack={() => navigation.goBack()} />;
+  return <DailyRevenueHistory initialDate={params?.date} initialRange={params?.range} onBack={() => navigation.goBack()} />;
 }
 
 function ReconHistoryRoute() {
@@ -245,6 +247,9 @@ function GlobalAssistant() {
         case 'procurement': return () => navigation.dispatch(StackActions.popTo('Main', { searchTab: 'supply' }));
         case 'partner': return () => navigation.dispatch(StackActions.popTo('Main', { searchTab: 'partner' }));
       }
+    }
+    if (target.kind === 'operatingHistory') {
+      return () => navigation.dispatch(StackActions.push(target.screen, { range: target.range }));
     }
     switch (target.kind) {
       case 'expense': {

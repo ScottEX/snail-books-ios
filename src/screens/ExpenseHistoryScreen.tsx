@@ -69,9 +69,10 @@ interface Props {
   onExpDetail?: (e: any) => void;
   onInvoice?: (batchId: number) => void;
   refreshKey?: number;
+  initialRange?: { from: string; to: string };
 }
 
-export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, refreshKey }: Props) {
+export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, refreshKey, initialRange }: Props) {
   const { colors } = useTheme();
   const st = useMemo(() => getSt(colors), [colors]);
   const sd = useServerDate();
@@ -86,11 +87,11 @@ export default function ExpenseHistoryScreen({ onBack, onExpDetail, onInvoice, r
 
   const [showFilter, setShowFilter] = useState(false);
 
-  const [filDateFrom, setFilDateFrom] = useState(sd.offset ? sd.offset(-30) : '');
-  const [filDateTo, setFilDateTo] = useState(sd.today || '');
+  const [filDateFrom, setFilDateFrom] = useState(initialRange?.from || sd.offset(-30));
+  const [filDateTo, setFilDateTo] = useState(initialRange?.to || sd.today);
   const [filCats, setFilCats] = useState<string[]>([]);
-  const [appliedFrom, setAppliedFrom] = useState(sd.offset ? sd.offset(-30) : '');
-  const [appliedTo, setAppliedTo] = useState(sd.today || '');
+  const [appliedFrom, setAppliedFrom] = useState(filDateFrom);
+  const [appliedTo, setAppliedTo] = useState(filDateTo);
   const [appliedCats, setAppliedCats] = useState('');
 
   // Once server date arrives, backfill the date filter defaults (matches web)
