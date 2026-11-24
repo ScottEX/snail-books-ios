@@ -609,9 +609,10 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
       style={[styles.screen, { backgroundColor: colors.surface }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {active && <StatusBar barStyle="dark-content" />}
+      {active && <StatusBar barStyle={colors.onPrimary === colors.surface ? 'light-content' : 'dark-content'} />}
       <HistoryHeader
         inline
+        appearance="primary"
         safeTop={insets.top}
         title={t('assistantTitle')}
         onBack={() => {
