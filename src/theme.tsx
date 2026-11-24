@@ -14,8 +14,6 @@ export interface ThemeColors {
   surface: string;
   /** 主色调/主按钮 */
   primary: string;
-  /** 主色背景上的标题和图标 */
-  onPrimary: string;
   /** 强调色/金额高亮 */
   accent: string;
   /** 次按钮/默认描边 */
@@ -90,7 +88,6 @@ const theme1: Theme = {
     bg: '#F9F7F4',
     surface: '#FFFFFF',
     primary: '#7D2329',
-    onPrimary: '#FFFFFF',
     accent: '#EAE5E0',
     secondary: '#EAE5E0',
     textMain: '#2C2626',
@@ -121,7 +118,6 @@ const theme2: Theme = {
     bg: '#F3F4F6',
     surface: '#FFFFFF',
     primary: '#C5A880',
-    onPrimary: '#111827',
     accent: '#171A1F',
     secondary: '#E5E7EB',
     textMain: '#111827',
@@ -152,7 +148,6 @@ const theme3: Theme = {
     bg: '#F4F5F4',
     surface: '#FFFFFF',
     primary: '#2A4B4B',
-    onPrimary: '#FFFFFF',
     accent: '#D4C5B2',
     secondary: '#E1E5E4',
     textMain: '#1B2626',

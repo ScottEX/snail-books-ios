@@ -10,6 +10,7 @@ import { translateDividendNote, translateName } from './partner/usePartnerData';
 import AppTextInput from '../components/AppTextInput';
 import DropdownArrow from '../components/DropdownArrow';
 import HistoryHeader from '../components/HistoryHeader';
+import HomeBackground from '../components/HomeBackground';
 import SubmitButton from '../components/SubmitButton';
 import { useAssistantSpeech } from '../hooks/useAssistantSpeech';
 import { discoverUsageKey, rankDiscoverShortcuts, readDiscoverUsage, recordDiscoverOpen } from '../utils/discoverUsage';
@@ -606,13 +607,13 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
 
   return (
     <KeyboardAvoidingView
-      style={[styles.screen, { backgroundColor: colors.surface }]}
+      style={styles.screen}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {active && <StatusBar barStyle={colors.onPrimary === colors.surface ? 'light-content' : 'dark-content'} />}
+      <HomeBackground />
+      {active && <StatusBar barStyle="dark-content" />}
       <HistoryHeader
         inline
-        appearance="primary"
         safeTop={insets.top}
         title={t('assistantTitle')}
         onBack={() => {
@@ -620,7 +621,10 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
           onBack();
         }}
       />
-      <View style={[styles.screen, { paddingLeft: insets.left, paddingRight: insets.right }]}>
+      <View style={[
+        styles.screen,
+        { backgroundColor: colors.surface, paddingLeft: insets.left, paddingRight: insets.right },
+      ]}>
         <View style={[styles.toolbar, styles.contentWidth]}>
           <View accessibilityRole="tablist" style={[styles.modes, { backgroundColor: colors.bg }]}>
             {(Object.keys(modes) as AssistantMode[]).map(option => {
