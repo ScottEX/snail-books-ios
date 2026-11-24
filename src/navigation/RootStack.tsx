@@ -1,6 +1,6 @@
-import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useNavigation, useRoute, useFocusEffect, type NavigationProp, RouteProp, StackActions } from '@react-navigation/native';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createNativeStackNavigator, type NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useNavigation, useRoute, useFocusEffect, useIsFocused, type NavigationContainerRef, RouteProp, StackActions } from '@react-navigation/native';
 import { StyleSheet, Text, View } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
@@ -18,7 +18,7 @@ import ProcurementDetailScreen from '../screens/ProcurementDetailScreen';
 import ExpenseDetailScreen from '../screens/ExpenseDetailScreen';
 import PdfPreviewPage from '../screens/PdfPreviewPage';
 import { api, type ExpenseDraft } from '../api/client';
-import AppSearchModal, { type AppSearchTarget } from '../components/AppSearchModal';
+import AssistantScreen, { type AppSearchTarget } from '../screens/AssistantScreen';
 import { t, useLang } from '../i18n';
 import { useTheme } from '../theme';
 import { useDraggableButton } from '../hooks/useDraggableButton';
@@ -32,6 +32,7 @@ export type RootStackParamList = {
     searchAction?: HomeSearchAction;
     expenseDraft?: ExpenseDraft;
   } | undefined;
+  Assistant: undefined;
   ExpenseHistory: { range?: { from: string; to: string } } | undefined;
   DailyHistory: { date?: string; range?: { from: string; to: string } } | undefined;
   ReconHistory: { date?: string } | undefined;
@@ -201,19 +202,9 @@ function PdfPreviewRoute() {
   );
 }
 
-function GlobalAssistant() {
-  useLang();
-  const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const [visible, setVisible] = useState(false);
-  const showAssistant = useCallback(() => setVisible(true), []);
-  const left = 16 + insets.left;
-  const right = 16 + insets.right;
-  const bottom = Math.max(94, insets.bottom + 16);
-  const button = useDraggableButton({
-    anchor: 'right', left, right, top: insets.top + 12, bottom, onPress: showAssistant,
-  });
+function AssistantRoute() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Assistant'>>();
+  const active = useIsFocused();
 
   const open = async (target: AppSearchTarget, signal: AbortSignal) => {
     if (typeof target === 'string') {
@@ -235,15 +226,15 @@ function GlobalAssistant() {
         case 'sessionTimeout':
         case 'deleteAccount':
         case 'password': return () => navigation.dispatch(StackActions.push('Profile', { accountAction: target }));
-        case 'profile': return () => navigation.navigate('Profile');
-        case 'userManagement': return () => navigation.navigate('UserManagement');
-        case 'invoice': return () => navigation.navigate('Invoice');
+        case 'profile': return () => navigation.push('Profile');
+        case 'userManagement': return () => navigation.push('UserManagement');
+        case 'invoice': return () => navigation.push('Invoice');
         case 'invoiceInfo': return () => navigation.dispatch(StackActions.push('Invoice', { section: 'info' }));
         case 'invoiceRecords': return () => navigation.dispatch(StackActions.push('Invoice', { section: 'records' }));
         case 'invoiceApply': return () => navigation.dispatch(StackActions.push('Invoice', { section: 'apply' }));
-        case 'expense': return () => navigation.navigate('ExpenseHistory');
-        case 'revenue': return () => navigation.navigate('DailyHistory');
-        case 'reconciliation': return () => navigation.navigate('ReconHistory');
+        case 'expense': return () => navigation.push('ExpenseHistory');
+        case 'revenue': return () => navigation.push('DailyHistory');
+        case 'reconciliation': return () => navigation.push('ReconHistory');
         case 'procurement': return () => navigation.dispatch(StackActions.popTo('Main', { searchTab: 'supply' }));
         case 'partner': return () => navigation.dispatch(StackActions.popTo('Main', { searchTab: 'partner' }));
       }
@@ -269,6 +260,42 @@ function GlobalAssistant() {
   };
 
   return (
+    <AssistantScreen
+      active={active}
+      onBack={navigation.goBack}
+      onOpen={open}
+      onReviewDraft={draft => navigation.dispatch(StackActions.popTo('Main', { expenseDraft: draft }))}
+    />
+  );
+}
+
+function GlobalAssistant() {
+  useLang();
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NavigationContainerRef<RootStackParamList>>();
+  const [assistantInStack, setAssistantInStack] = useState(false);
+  const hasAssistantRoute = useCallback(() => {
+    return navigation.getRootState()?.routes.some(route => route.name === 'Assistant') ?? false;
+  }, [navigation]);
+  useEffect(() => {
+    const updateVisibility = () => setAssistantInStack(hasAssistantRoute());
+    updateVisibility();
+    return navigation.addListener('state', updateVisibility);
+  }, [navigation, hasAssistantRoute]);
+  const showAssistant = useCallback(() => {
+    if (!hasAssistantRoute()) navigation.navigate('Assistant');
+  }, [navigation, hasAssistantRoute]);
+  const left = 16 + insets.left;
+  const right = 16 + insets.right;
+  const bottom = Math.max(94, insets.bottom + 16);
+  const button = useDraggableButton({
+    anchor: 'right', left, right, top: insets.top + 12, bottom, onPress: showAssistant,
+  });
+
+  if (assistantInStack) return null;
+
+  return (
     <View pointerEvents="box-none" style={searchStyles.overlay} onLayout={button.onContainerLayout}>
       <GestureDetector gesture={button.gesture}>
         <Animated.View
@@ -286,12 +313,6 @@ function GlobalAssistant() {
           <Text style={{ color: colors.surface, fontWeight: '600' }}>{t('assistantTitle')}</Text>
         </Animated.View>
       </GestureDetector>
-      <AppSearchModal
-        visible={visible}
-        onClose={() => setVisible(false)}
-        onOpen={open}
-        onReviewDraft={draft => navigation.dispatch(StackActions.popTo('Main', { expenseDraft: draft }))}
-      />
     </View>
   );
 }
@@ -319,6 +340,7 @@ export default function RootStack({ onLogout }: { onLogout: () => void }) {
         <Stack.Screen name="Main">
           {() => <HomeScreen onLogout={onLogout} />}
         </Stack.Screen>
+        <Stack.Screen name="Assistant" component={AssistantRoute} />
         <Stack.Screen name="ExpenseHistory" component={ExpenseHistoryRoute} />
         <Stack.Screen name="DailyHistory" component={DailyHistoryRoute} />
         <Stack.Screen name="ReconHistory" component={ReconHistoryRoute} />

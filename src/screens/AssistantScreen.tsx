@@ -1,17 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Keyboard, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
 import { api, API_BASE, type AppSearchRecord, type ExpenseDraft, type LedgerAction, type LedgerAnswer, type LedgerRequest, type LedgerResponse, type LedgerTotal } from '../api/client';
 import { getLang, t } from '../i18n';
 import { FONTS, useTheme, withAlpha } from '../theme';
-import { MODAL_CARD_RADIUS } from '../sharedStyles';
 import { fmtAmtFull, formatDate } from '../utils/format';
-import { translateDividendNote, translateName } from '../screens/partner/usePartnerData';
-import AppTextInput from './AppTextInput';
-import CloseButton from './CloseButton';
-import DropdownArrow from './DropdownArrow';
-import ModalOverlay from './ModalOverlay';
-import SubmitButton from './SubmitButton';
+import { translateDividendNote, translateName } from './partner/usePartnerData';
+import AppTextInput from '../components/AppTextInput';
+import BackArrow from '../components/icons/BackArrow';
+import DropdownArrow from '../components/DropdownArrow';
+import SubmitButton from '../components/SubmitButton';
 import { useAssistantSpeech } from '../hooks/useAssistantSpeech';
 import { discoverUsageKey, rankDiscoverShortcuts, readDiscoverUsage, recordDiscoverOpen } from '../utils/discoverUsage';
 import { getCurrentUserId } from '../utils/storage';
@@ -345,9 +344,9 @@ function DraftResult({ draft }: { draft: ExpenseDraft }) {
   );
 }
 
-export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft }: {
-  visible: boolean;
-  onClose: () => void;
+export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft }: {
+  active: boolean;
+  onBack: () => void;
   onOpen: (target: AppSearchTarget, signal: AbortSignal) => Promise<() => void>;
   onReviewDraft: (draft: ExpenseDraft) => void;
 }) {
@@ -355,7 +354,7 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
   const [question, setQuestion] = useState('');
   const [ledger, setLedger] = useState<Exclude<LedgerResponse, { status: 'details' }> | null>(null);
   const [supportingRecords, setSupportingRecords] = useState<Extract<LedgerResponse, { status: 'details' }> | null>(null);
-  const { height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState<ExpenseDraft | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -367,54 +366,37 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
   const ledgerContext = useRef<string>();
   const input = useRef<React.ElementRef<typeof AppTextInput>>(null);
   const speechPrefix = useRef('');
-  const speech = useAssistantSpeech(visible && mode === 'record', transcript => {
+  const speech = useAssistantSpeech(active && mode === 'record', transcript => {
     setQuestion([speechPrefix.current, transcript].filter(Boolean).join(' ').slice(0, modes.record.limit));
     setDraft(null);
     setError('');
   });
-  const pendingNavigation = useRef<(() => void) | null>(null);
-  useEffect(() => () => request.current?.abort(), []);
+  useEffect(() => {
+    if (active) return () => request.current?.abort();
+    request.current = null;
+    setBusy(false);
+  }, [active]);
 
   const usageKey = discoverUsageKey(API_BASE, getCurrentUserId());
   const discoverRankings = useMemo(() => {
-    const usage = readDiscoverUsage(visible ? usageKey : null);
+    const usage = readDiscoverUsage(active ? usageKey : null);
     return {
       all: rankDiscoverShortcuts(usage, discoverPages, defaultDiscoverShortcuts),
       public: rankDiscoverShortcuts(usage, publicDiscoverPages, defaultDiscoverShortcuts),
     };
-  }, [visible, usageKey]);
+  }, [active, usageKey]);
   const needsAdminCheck = discoverRankings.all.includes('userManagement');
   useEffect(() => {
     setAdminShortcutKey(null);
-    if (!visible || !usageKey || !needsAdminCheck) return;
+    if (!active || !usageKey || !needsAdminCheck) return;
     const controller = new AbortController();
     api.admin.check(controller.signal).then(({ is_admin }) => {
       if (!controller.signal.aborted && is_admin === true) setAdminShortcutKey(usageKey);
     }).catch(() => {});
     return () => controller.abort();
-  }, [visible, usageKey, needsAdminCheck]);
+  }, [active, usageKey, needsAdminCheck]);
   const discoverShortcuts = adminShortcutKey && adminShortcutKey === usageKey
     ? discoverRankings.all : discoverRankings.public;
-
-  const dismiss = (navigate: (() => void) | null = null) => {
-    pendingNavigation.current = navigate;
-    speech.cancel();
-    Keyboard.dismiss();
-    request.current?.abort();
-    request.current = null;
-    setBusy(false);
-    setQuestion('');
-    setLedger(null);
-    ledgerContext.current = undefined;
-    setSupportingRecords(null);
-    setDraft(null);
-    setHits(null);
-    setMode('search');
-    setShowExamples(false);
-    setError('');
-    onClose();
-  };
-  const close = () => dismiss();
 
   const changeQuestion = (text: string) => {
     setQuestion(text);
@@ -497,13 +479,11 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
     try {
       const navigate = await onOpen(target, controller.signal);
       if (controller.signal.aborted) return;
-      if (mode === 'search' && usageKey && typeof target === 'string' && discoverPages.includes(target)) {
-        dismiss(() => {
-          navigate();
-          if (usageKey === discoverUsageKey(API_BASE, getCurrentUserId())) recordDiscoverOpen(usageKey, target);
-        });
-      } else {
-        dismiss(navigate);
+      Keyboard.dismiss();
+      navigate();
+      if (mode === 'search' && usageKey && typeof target === 'string' && discoverPages.includes(target)
+        && usageKey === discoverUsageKey(API_BASE, getCurrentUserId())) {
+        recordDiscoverOpen(usageKey, target);
       }
     } catch {
       if (!controller.signal.aborted) setError(t('appSearchOpenFailed'));
@@ -513,12 +493,6 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
         setBusy(false);
       }
     }
-  };
-
-  const finishNavigation = () => {
-    const navigate = pendingNavigation.current;
-    pendingNavigation.current = null;
-    navigate?.();
   };
 
   const searchSupplier = (name: string) => {
@@ -564,85 +538,119 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
       maxLength={activeMode.limit}
       underlineColorAndroid="transparent"
       style={[
-        styles.input, !isSearch && styles.multilineInput,
+        styles.input, isSearch ? styles.searchInput : styles.multilineInput,
         { color: colors.textMain, backgroundColor: colors.bg },
       ]}
     />
   );
 
-  return (
-    <ModalOverlay
-      visible={visible}
-      onClose={close}
-      onDismiss={Platform.OS === 'ios' ? finishNavigation : undefined}
-      onClosed={Platform.OS === 'ios' ? undefined : finishNavigation}
-      animation="springScale"
-      avoidKeyboard
-    >
-      <View style={[styles.card, { backgroundColor: colors.surface, maxHeight: Math.min(560, height * 0.72) }]}>
-        <View style={[styles.header, { backgroundColor: colors.primary }]}>
-          <Text style={[styles.title, { color: colors.surface }]}>{t('assistantTitle')}</Text>
-          <CloseButton onPress={close} accessibilityLabel={t('assistantClose')} />
-        </View>
-        <View style={[styles.modes, { backgroundColor: colors.bg }]}>
-          {(Object.keys(modes) as AssistantMode[]).map(option => {
-            const selected = mode === option;
-            return (
-              <TouchableOpacity key={option} accessibilityRole="button" accessibilityState={{ selected, disabled: controlsDisabled }}
-                disabled={controlsDisabled} onPress={() => switchMode(option)}
-                style={[styles.mode, selected && { backgroundColor: colors.surface }]}>
-                <Text style={{ color: selected ? colors.primary : colors.textSub, fontWeight: selected ? '700' : '500' }}>
-                  {t(modes[option].label)}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-        <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} keyboardShouldPersistTaps="handled">
-          {mode === 'record' ? (
-            <View style={[styles.voiceComposer, { backgroundColor: colors.bg }]}>
-              {textInput}
-              <View style={styles.voiceToolbar}>
-                <TouchableOpacity accessibilityRole="button" accessibilityState={{ disabled: voiceDisabled, busy: speechPending }}
-                  accessibilityLabel={t(voiceLabel)} disabled={voiceDisabled} activeOpacity={0.72}
-                  onPress={() => {
-                    if (!speech.available) {
-                      input.current?.focus();
-                      return;
-                    }
-                    if (!speech.active) speechPrefix.current = question.trim();
-                    Keyboard.dismiss();
-                    void speech.toggle();
-                  }}
-                  style={[
-                    styles.voiceButton,
-                    { backgroundColor: withAlpha(voiceColor, 0.11), opacity: busy ? 0.5 : 1 },
-                  ]}>
-                  {speechPending ? <ActivityIndicator size="small" color={voiceColor} style={styles.voiceSpinner} /> : (
-                    <Svg width={17} height={17} viewBox="0 0 24 24" accessible={false}>
-                      {listening ? <Rect x={5} y={5} width={14} height={14} rx={3} fill={voiceColor} /> : (
-                        <>
-                          <Rect x={9} y={2.5} width={6} height={12} rx={3} stroke={voiceColor} strokeWidth={1.8} />
-                          <Path d="M6 11v.5a6 6 0 0 0 12 0V11M12 17.5V21m-3 0h6"
-                            stroke={voiceColor} strokeWidth={1.8} strokeLinecap="round" fill="none" />
-                        </>
-                      )}
-                    </Svg>
-                  )}
-                  <Text style={[styles.voiceLabel, { color: voiceColor }]}>{t(voiceLabel)}</Text>
-                </TouchableOpacity>
-                {listening && (
-                  <View style={styles.voiceActivity} accessibilityLiveRegion="polite">
-                    <View style={[styles.voiceDot, { backgroundColor: voiceColor }]} />
-                    <Text style={[styles.caption, { color: voiceColor }]}>{t('assistantSpeechListening')}</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-          ) : textInput}
-          {mode === 'record' && !!speech.error && (
-            <Text accessibilityLiveRegion="polite" style={[styles.caption, { color: colors.danger }]}>{t(speech.error)}</Text>
+  const composerInput = mode === 'record' ? (
+    <View style={[styles.voiceComposer, { backgroundColor: colors.bg }]}>
+      {textInput}
+      <View style={styles.voiceToolbar}>
+        <TouchableOpacity accessibilityRole="button" accessibilityState={{ disabled: voiceDisabled, busy: speechPending }}
+          accessibilityLabel={t(voiceLabel)} disabled={voiceDisabled} activeOpacity={0.72}
+          onPress={() => {
+            if (!speech.available) {
+              input.current?.focus();
+              return;
+            }
+            if (!speech.active) speechPrefix.current = question.trim();
+            Keyboard.dismiss();
+            void speech.toggle();
+          }}
+          style={[
+            styles.voiceButton,
+            { backgroundColor: withAlpha(voiceColor, 0.11), opacity: busy ? 0.5 : 1 },
+          ]}>
+          {speechPending ? <ActivityIndicator size="small" color={voiceColor} style={styles.voiceSpinner} /> : (
+            <Svg width={17} height={17} viewBox="0 0 24 24" accessible={false}>
+              {listening ? <Rect x={5} y={5} width={14} height={14} rx={3} fill={voiceColor} /> : (
+                <>
+                  <Rect x={9} y={2.5} width={6} height={12} rx={3} stroke={voiceColor} strokeWidth={1.8} />
+                  <Path d="M6 11v.5a6 6 0 0 0 12 0V11M12 17.5V21m-3 0h6"
+                    stroke={voiceColor} strokeWidth={1.8} strokeLinecap="round" fill="none" />
+                </>
+              )}
+            </Svg>
           )}
+          <Text style={[styles.voiceLabel, { color: voiceColor }]}>{t(voiceLabel)}</Text>
+        </TouchableOpacity>
+        {listening && (
+          <View style={styles.voiceActivity} accessibilityLiveRegion="polite">
+            <View style={[styles.voiceDot, { backgroundColor: voiceColor }]} />
+            <Text style={[styles.caption, { color: voiceColor }]}>{t('assistantSpeechListening')}</Text>
+          </View>
+        )}
+      </View>
+    </View>
+  ) : textInput;
+
+  const submitButton = (
+    <SubmitButton
+      label={t(draft ? 'assistantReviewDraft' : activeMode.action)}
+      onPress={() => {
+        if (draft) {
+          Keyboard.dismiss();
+          onReviewDraft(draft);
+        } else {
+          void submit();
+        }
+      }}
+      disabled={disabled}
+      loading={busy}
+      style={[styles.submit, { backgroundColor: colors.primary, opacity: disabled && !busy ? 0.45 : 1 }]}
+      textStyle={{ color: colors.surface, fontWeight: '700' }}
+    />
+  );
+
+  return (
+    <KeyboardAvoidingView
+      style={[styles.screen, { backgroundColor: colors.surface }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <View style={{
+        backgroundColor: colors.primary, paddingTop: insets.top,
+        paddingLeft: insets.left, paddingRight: insets.right,
+      }}>
+        <View style={[styles.header, styles.contentWidth]}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={t('back')}
+            onPress={() => { Keyboard.dismiss(); onBack(); }}
+            style={styles.backButton}
+          >
+            <BackArrow color={colors.surface} size={24} />
+          </TouchableOpacity>
+          <Text accessibilityRole="header" style={[styles.title, { color: colors.surface }]}>
+            {t('assistantTitle')}
+          </Text>
+        </View>
+      </View>
+      <View style={[styles.screen, { paddingLeft: insets.left, paddingRight: insets.right }]}>
+        <View style={[styles.toolbar, styles.contentWidth]}>
+          <View accessibilityRole="tablist" style={[styles.modes, { backgroundColor: colors.bg }]}>
+            {(Object.keys(modes) as AssistantMode[]).map(option => {
+              const selected = mode === option;
+              return (
+                <TouchableOpacity key={option} accessibilityRole="tab" accessibilityState={{ selected, disabled: controlsDisabled }}
+                  disabled={controlsDisabled} onPress={() => switchMode(option)}
+                  style={[styles.mode, selected && { backgroundColor: colors.surface }]}>
+                  <Text style={{ color: selected ? colors.primary : colors.textSub, fontWeight: selected ? '700' : '500' }}>
+                    {t(modes[option].label)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          {isSearch && <View style={styles.searchBar}>{textInput}{submitButton}</View>}
+        </View>
+        <ScrollView
+          style={styles.screen}
+          contentContainerStyle={[styles.bodyContent, styles.contentWidth, { paddingBottom: isSearch ? insets.bottom + 12 : 12 }]}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+        >
           {isSearch && !question.trim() && !busy && (
             <View style={styles.shortcuts}>
               {discoverShortcuts.map(page => (
@@ -676,7 +684,6 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
               )}
             </View>
           )}
-          {!isSearch && <Text style={[styles.caption, { color: colors.textSub }]}>{t('assistantPrivacy')}</Text>}
           {!!error && <Text accessibilityLiveRegion="polite" style={{ color: colors.danger }}>{error}</Text>}
           {hits && <SearchResults hits={hits} onOpen={openResult} disabled={busy} />}
           {mode === 'ask' && ledger?.status === 'ok' && (
@@ -720,30 +727,39 @@ export default function AppSearchModal({ visible, onClose, onOpen, onReviewDraft
           )}
           {draft && <DraftResult draft={draft} />}
         </ScrollView>
-        <View style={styles.actions}>
-          <SubmitButton
-            label={t(draft ? 'assistantReviewDraft' : activeMode.action)}
-            onPress={() => draft ? dismiss(() => onReviewDraft(draft)) : void submit()}
-            disabled={disabled}
-            loading={busy}
-            style={[styles.submit, { backgroundColor: colors.primary, opacity: disabled && !busy ? 0.45 : 1 }]}
-            textStyle={{ color: colors.surface, fontWeight: '700' }}
-          />
-        </View>
+        {!isSearch && (
+          <View style={[
+            styles.composer, styles.contentWidth,
+            { borderTopColor: colors.bg, paddingBottom: Math.max(12, insets.bottom) },
+          ]}>
+            {composerInput}
+            {mode === 'record' && !!speech.error && (
+              <Text accessibilityLiveRegion="polite" style={[styles.caption, { color: colors.danger }]}>
+                {t(speech.error)}
+              </Text>
+            )}
+            {submitButton}
+            <Text style={[styles.caption, { color: colors.textSub }]}>{t('assistantPrivacy')}</Text>
+          </View>
+        )}
       </View>
-    </ModalOverlay>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { width: 360, maxWidth: '100%', flexShrink: 1, borderRadius: MODAL_CARD_RADIUS, overflow: 'hidden' },
-  header: { paddingHorizontal: 20, paddingVertical: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  screen: { flex: 1 },
+  contentWidth: { width: '100%', maxWidth: 680, alignSelf: 'center' },
+  header: { paddingHorizontal: 8, minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  backButton: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  toolbar: { paddingHorizontal: 16, paddingTop: 12, gap: 12 },
+  searchBar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight },
   amount: { fontSize: FONTS.h2.size, fontWeight: '700', fontVariant: ['tabular-nums'] },
   caption: { fontSize: FONTS.micro.size, lineHeight: 17 },
-  body: { flexGrow: 0, flexShrink: 1 },
-  bodyContent: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 6, gap: 8 },
+  bodyContent: { paddingHorizontal: 16, paddingTop: 12, gap: 8 },
   input: { minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12 },
+  searchInput: { flex: 1 },
   multilineInput: { minHeight: 70, maxHeight: 108, textAlignVertical: 'top' },
   voiceComposer: { borderRadius: 14 },
   voiceToolbar: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 12, rowGap: 4,
@@ -754,8 +770,8 @@ const styles = StyleSheet.create({
   voiceActivity: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   voiceDot: { width: 6, height: 6, borderRadius: 3 },
   voiceSpinner: { width: 17 },
-  modes: { flexDirection: 'row', marginHorizontal: 20, marginTop: 12, padding: 3, gap: 2, borderRadius: 12 },
-  mode: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 9 },
+  modes: { flexDirection: 'row', padding: 3, gap: 2, borderRadius: 12 },
+  mode: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 44, paddingHorizontal: 4, borderRadius: 9 },
   hitList: { gap: 3 },
   hit: { flexDirection: 'row', alignItems: 'center', minHeight: 44, paddingVertical: 7, gap: 8 },
   hitTitle: { flex: 1 },
@@ -769,6 +785,6 @@ const styles = StyleSheet.create({
   shortcut: { minHeight: 44, paddingHorizontal: 10, justifyContent: 'center', borderRadius: 8 },
   totalRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   period: { flex: 1 },
-  actions: { alignItems: 'flex-end', paddingHorizontal: 20, paddingTop: 6, paddingBottom: 16 },
+  composer: { borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16, paddingTop: 12, gap: 8 },
   submit: { minHeight: 44, minWidth: 94, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
 });
