@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
 import { api, API_BASE, type AppSearchRecord, type ExpenseDraft, type LedgerAction, type LedgerAnswer, type LedgerRequest, type LedgerResponse, type LedgerTotal } from '../api/client';
@@ -8,8 +8,8 @@ import { FONTS, useTheme, withAlpha } from '../theme';
 import { fmtAmtFull, formatDate } from '../utils/format';
 import { translateDividendNote, translateName } from './partner/usePartnerData';
 import AppTextInput from '../components/AppTextInput';
-import BackArrow from '../components/icons/BackArrow';
 import DropdownArrow from '../components/DropdownArrow';
+import HistoryHeader from '../components/HistoryHeader';
 import SubmitButton from '../components/SubmitButton';
 import { useAssistantSpeech } from '../hooks/useAssistantSpeech';
 import { discoverUsageKey, rankDiscoverShortcuts, readDiscoverUsage, recordDiscoverOpen } from '../utils/discoverUsage';
@@ -609,24 +609,16 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
       style={[styles.screen, { backgroundColor: colors.surface }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={{
-        backgroundColor: colors.primary, paddingTop: insets.top,
-        paddingLeft: insets.left, paddingRight: insets.right,
-      }}>
-        <View style={[styles.header, styles.contentWidth]}>
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel={t('back')}
-            onPress={() => { Keyboard.dismiss(); onBack(); }}
-            style={styles.backButton}
-          >
-            <BackArrow color={colors.surface} size={24} />
-          </TouchableOpacity>
-          <Text accessibilityRole="header" style={[styles.title, { color: colors.surface }]}>
-            {t('assistantTitle')}
-          </Text>
-        </View>
-      </View>
+      {active && <StatusBar barStyle="dark-content" />}
+      <HistoryHeader
+        inline
+        safeTop={insets.top}
+        title={t('assistantTitle')}
+        onBack={() => {
+          Keyboard.dismiss();
+          onBack();
+        }}
+      />
       <View style={[styles.screen, { paddingLeft: insets.left, paddingRight: insets.right }]}>
         <View style={[styles.toolbar, styles.contentWidth]}>
           <View accessibilityRole="tablist" style={[styles.modes, { backgroundColor: colors.bg }]}>
@@ -750,8 +742,6 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   contentWidth: { width: '100%', maxWidth: 680, alignSelf: 'center' },
-  header: { paddingHorizontal: 8, minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 4 },
-  backButton: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   toolbar: { paddingHorizontal: 16, paddingTop: 12, gap: 12 },
   searchBar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight },

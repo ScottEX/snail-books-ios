@@ -2,11 +2,13 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Svg, { Path } from 'react-native-svg';
+import { t } from '../i18n';
 import { useTheme, withAlpha, ThemeColors } from '../theme';
 import { FONTS } from '../theme';
 
 interface Props {
   safeTop?: number;
+  inline?: boolean;
   onBack: () => void;
   title: string;
   filterActive?: boolean;
@@ -14,25 +16,25 @@ interface Props {
   rightAction?: React.ReactNode;
 }
 
-export default function HistoryHeader({ safeTop = 56, onBack, title, filterActive, onToggleFilter, rightAction }: Props) {
+export default function HistoryHeader({ safeTop = 56, inline = false, onBack, title, filterActive, onToggleFilter, rightAction }: Props) {
   const { colors } = useTheme();
   const st = getSt(colors);
 
   return (
-    <View style={[st.header, { paddingTop: safeTop }]}>
+    <View style={[st.header, inline && st.inlineHeader, { paddingTop: safeTop }]}>
       <BlurView
         intensity={70}
         tint="regular"
         style={StyleSheet.absoluteFill}
       />
-      <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel={t('back')} onPress={onBack} activeOpacity={0.7}>
         <View style={st.backBtn}>
           <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.textMain} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
             <Path d="M15 18l-6-6 6-6" />
           </Svg>
         </View>
       </TouchableOpacity>
-      <Text style={st.title}>{title}</Text>
+      <Text accessibilityRole="header" style={st.title}>{title}</Text>
       {rightAction ? (
         rightAction
       ) : onToggleFilter ? (
@@ -59,6 +61,7 @@ const getSt = (colors: ThemeColors) => StyleSheet.create({
     paddingHorizontal: 12, paddingBottom: 10,
     overflow: 'hidden',
   },
+  inlineHeader: { position: 'relative' },
   backBtn: { padding: 4 },
   title: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight, color: colors.textMain, flex: 1, textAlign: 'left' },
   filterBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
