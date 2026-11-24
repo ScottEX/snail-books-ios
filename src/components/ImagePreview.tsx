@@ -59,9 +59,11 @@ interface Props {
   thumbLayout?: ThumbLayout | null;
   /** 关闭时按当前页解析缩略图坐标（滑到其他图后缩回当前那张） */
   getThumbLayout?: ThumbLayoutResolver | null;
+  /** Use the containing sheet's modal window when opening from inside it. */
+  inline?: boolean;
 }
 
-export default function ImagePreview({ images, initialIdx = 0, visible, onClose, thumbLayout, getThumbLayout }: Props) {
+export default function ImagePreview({ images, initialIdx = 0, visible, onClose, thumbLayout, getThumbLayout, inline = false }: Props) {
   const [internalVisible, setInternalVisible] = useState(false);
   const [openCount, setOpenCount] = useState(0);
   const viewportRef = useRef<View>(null);
@@ -72,12 +74,15 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose,
       setViewport(null);
       setOpenCount(c => c + 1);
       setInternalVisible(true);
+    } else if (inline) {
+      setInternalVisible(false);
     }
-  }, [visible]);
+  }, [visible, inline]);
 
   const handleDismiss = useCallback(() => {
     setInternalVisible(false);
-  }, []);
+    if (inline) onClose();
+  }, [inline, onClose]);
 
   const handleDismissComplete = useCallback(() => {
     onClose();
@@ -87,6 +92,28 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose,
     if (width <= 0 || height <= 0) return;
     measureWindowRect(viewportRef.current, (rect) => setViewport({ x: rect?.x ?? 0, y: rect?.y ?? 0, width, height }));
   };
+
+  const content = (
+    <GestureHandlerRootView style={inline ? styles.inlineRoot : styles.root}>
+      <View ref={viewportRef} collapsable={false} accessibilityViewIsModal={inline || undefined}
+        style={styles.root} onLayout={measureViewport}>
+        <StatusBar hidden />
+        {viewport && (
+          <ContentView
+            key={openCount}
+            viewport={viewport}
+            images={images}
+            initialIdx={initialIdx}
+            thumbLayout={thumbLayout ?? null}
+            getThumbLayout={getThumbLayout ?? null}
+            onClose={handleDismiss}
+          />
+        )}
+      </View>
+    </GestureHandlerRootView>
+  );
+
+  if (inline) return visible && internalVisible ? content : null;
 
   return (
     <Modal
@@ -98,22 +125,7 @@ export default function ImagePreview({ images, initialIdx = 0, visible, onClose,
       onDismiss={handleDismissComplete}
       onRequestClose={handleDismiss}
     >
-      <GestureHandlerRootView style={styles.root}>
-        <View ref={viewportRef} collapsable={false} style={styles.root} onLayout={measureViewport}>
-          <StatusBar hidden />
-          {viewport && (
-            <ContentView
-              key={openCount}
-              viewport={viewport}
-              images={images}
-              initialIdx={initialIdx}
-              thumbLayout={thumbLayout ?? null}
-              getThumbLayout={getThumbLayout ?? null}
-              onClose={handleDismiss}
-            />
-          )}
-        </View>
-      </GestureHandlerRootView>
+      {content}
     </Modal>
   );
 }
@@ -599,6 +611,7 @@ function ImageItem({ uri, index, currentIdx, listOffsetX, total, bgOpacity, canR
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  inlineRoot: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
   list: { flex: 1, position: 'relative' },
   itemWrap: {
     position: 'absolute',

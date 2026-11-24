@@ -692,11 +692,6 @@ export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, 
     }
   }, []));
 
-  const handleClosePreview = () => {
-    closePreview();
-    setDrawerOpen(true);
-  };
-
   return (
     <>
       <View style={styles.root}>
@@ -1049,11 +1044,25 @@ export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, 
       {/* ═══ DRAWER (create/edit) ═══ */}
       <ModalOverlay
         visible={drawerOpen}
-        onClose={() => { if (!invoiceSubmitting.current) closeDrawer(); }}
+        onClose={() => {
+          if (preview) closePreview();
+          else if (!invoiceSubmitting.current) closeDrawer();
+        }}
         animation="stagger"
         staggerCount={3}
         overlayStyle={bottomSheetOverlay}
         contentStyle={{ alignItems: 'stretch', justifyContent: 'flex-end' }}
+        overlayContent={
+          <ImagePreview
+            inline
+            images={preview?.images ?? []}
+            initialIdx={preview?.idx ?? 0}
+            visible={preview !== null}
+            thumbLayout={preview?.layout}
+            getThumbLayout={preview?.getLayout}
+            onClose={closePreview}
+          />
+        }
       >
         <ReAnimated.View style={[drawerPushStyle, styles.drawer, { backgroundColor: c.surface, maxHeight: drawerMaxH }]}>
             <View style={[styles.drawerHead, { backgroundColor: c.primary, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 14, paddingHorizontal: 20, paddingBottom: 14 }]}>
@@ -1061,7 +1070,8 @@ export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, 
                 onClose={() => { if (!invoiceSubmitting.current) closeDrawer(); }} />
             </View>
 
-            <ScrollView pointerEvents={submitting ? 'none' : 'auto'} style={styles.drawerBody} contentContainerStyle={{ paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
+            <ScrollView pointerEvents={submitting ? 'none' : 'auto'} keyboardShouldPersistTaps="handled"
+              style={styles.drawerBody} contentContainerStyle={{ paddingBottom: 8 }} showsVerticalScrollIndicator={false}>
               {/* Type */}
               <Text style={styles.dLabel}>{t('invDrawerType')}</Text>
               <View style={styles.dTypeRow}>
@@ -1374,14 +1384,6 @@ export default function InvoiceScreen({ onBack, filterBatchId, initialRecordId, 
       />
     </View>
 
-    <ImagePreview
-      images={preview?.images ?? []}
-      initialIdx={preview?.idx ?? 0}
-      visible={preview !== null}
-      thumbLayout={preview?.layout}
-      getThumbLayout={preview?.getLayout}
-      onClose={handleClosePreview}
-    />
     </>
   );
 }
