@@ -383,14 +383,11 @@ const I18N: Record<string, Record<string, string>> = {
     appSearchTitle: '全局查找',
     assistantTitle: 'AI 助手',
     assistantClose: '关闭 AI 助手',
-    assistantDiscover: '发现',
     assistantAsk: '问答',
     assistantChat: '对话',
     assistantChatPlaceholder: '输入你想查的账目或功能',
     assistantChatSend: '发送',
     assistantChatOlder: '查看更早的消息',
-    assistantChatSearchExample: '帮我找 A-01 发票',
-    assistantChatDraftExample: '今天微信付了 86 元买菜',
     assistantMemory: '记忆',
     assistantMemoryClose: '关闭记忆设置',
     assistantMemoryDescription: '这些偏好按账号保存，新对话也会使用。',
@@ -412,11 +409,9 @@ const I18N: Record<string, Record<string, string>> = {
     assistantChatWelcome: '今天想查什么？',
     assistantChatOpen: '打开{page}',
     assistantChatDestination: '你可以打开下面的页面。',
-    assistantChatProfileExample: '我要查看个人信息',
     assistantChatLoadFailed: '加载对话失败，请重试。',
     assistantChatChanged: '对话已在另一处更新，请重新发送。',
     assistantRecord: '记账',
-    assistantPrivacy: '对话和记账会将输入发给 AI 服务，请勿填写敏感信息。',
     assistantDraft: '支出草稿',
     assistantReviewDraft: '去核对草稿',
     appSearchExpenseEntry: '录入支出',
@@ -427,15 +422,11 @@ const I18N: Record<string, Record<string, string>> = {
     appSearchAvatar: '更换头像',
     appSearchSignature: '个性签名',
     appSearchFeeHistory: '手续费历史',
-    appSearchFind: '搜索',
-    appSearchPlaceholder: '输入页面名、供应商、单号或备注',
-    appSearchPages: '页面',
     appSearchInvoice: '发票管理',
     appSearchPartner: '合伙人',
     appSearchProduct: '商品',
     appSearchProfile: '个人中心',
     appSearchNoMatches: '没有找到相关页面或记录。',
-    appSearchFailed: '记录查询失败，请重试。',
     appSearchOpenFailed: '无法打开这条记录，请重试。',
     appSearchRelated: '查找相关采购记录',
     appSearchSupplierBasis: '按已结算采购明细汇总。供应商按商品目前登记的信息匹配。',
@@ -1183,14 +1174,11 @@ const I18N: Record<string, Record<string, string>> = {
     appSearchTitle: '全域查找',
     assistantTitle: 'AI 助手',
     assistantClose: '關閉 AI 助手',
-    assistantDiscover: '發現',
     assistantAsk: '問答',
     assistantChat: '對話',
     assistantChatPlaceholder: '輸入你想查的帳目或功能',
     assistantChatSend: '傳送',
     assistantChatOlder: '查看更早的訊息',
-    assistantChatSearchExample: '幫我找 A-01 發票',
-    assistantChatDraftExample: '今天微信付了 86 元買菜',
     assistantMemory: '記憶',
     assistantMemoryClose: '關閉記憶設定',
     assistantMemoryDescription: '這些偏好按帳號儲存，新對話也會使用。',
@@ -1212,11 +1200,9 @@ const I18N: Record<string, Record<string, string>> = {
     assistantChatWelcome: '今天想查什麼？',
     assistantChatOpen: '開啟{page}',
     assistantChatDestination: '你可以開啟下方的頁面。',
-    assistantChatProfileExample: '我要查看個人資訊',
     assistantChatLoadFailed: '載入對話失敗，請重試。',
     assistantChatChanged: '對話已在另一處更新，請重新傳送。',
     assistantRecord: '記帳',
-    assistantPrivacy: '對話和記帳會將輸入傳送給 AI 服務，請勿填寫敏感資訊。',
     assistantDraft: '支出草稿',
     assistantReviewDraft: '前往核對草稿',
     appSearchExpenseEntry: '錄入支出',
@@ -1227,15 +1213,11 @@ const I18N: Record<string, Record<string, string>> = {
     appSearchAvatar: '更換頭像',
     appSearchSignature: '個性簽名',
     appSearchFeeHistory: '手續費歷史',
-    appSearchFind: '搜尋',
-    appSearchPlaceholder: '輸入頁面名稱、供應商、單號或備註',
-    appSearchPages: '頁面',
     appSearchInvoice: '發票管理',
     appSearchPartner: '合夥人',
     appSearchProduct: '商品',
     appSearchProfile: '個人中心',
     appSearchNoMatches: '沒有找到相關頁面或紀錄。',
-    appSearchFailed: '紀錄查詢失敗，請重試。',
     appSearchOpenFailed: '無法開啟這筆紀錄，請重試。',
     appSearchRelated: '查找相關採購紀錄',
     appSearchSupplierBasis: '按已結算採購明細彙總。供應商按商品目前登記的資訊比對。',
@@ -1992,14 +1974,11 @@ const I18N: Record<string, Record<string, string>> = {
     appSearchTitle: 'Search the app',
     assistantTitle: 'AI Assistant',
     assistantClose: 'Close AI Assistant',
-    assistantDiscover: 'Discover',
     assistantAsk: 'Ask',
     assistantChat: 'Chat',
     assistantChatPlaceholder: 'Ask about your books or find a feature',
     assistantChatSend: 'Send',
     assistantChatOlder: 'View older messages',
-    assistantChatSearchExample: 'Find invoice A-01',
-    assistantChatDraftExample: 'I paid CNY 86 for groceries today with WeChat',
     assistantMemory: 'Memory',
     assistantMemoryClose: 'Close memory settings',
     assistantMemoryDescription: 'These preferences are saved to your account and apply in new chats.',
@@ -2021,11 +2000,9 @@ const I18N: Record<string, Record<string, string>> = {
     assistantChatWelcome: 'What would you like to look up?',
     assistantChatOpen: 'Open {page}',
     assistantChatDestination: 'You can open the following page.',
-    assistantChatProfileExample: 'Show me my profile',
     assistantChatLoadFailed: 'Could not load the conversation. Please retry.',
     assistantChatChanged: 'The conversation was updated elsewhere. Please send again.',
     assistantRecord: 'Record',
-    assistantPrivacy: 'Chat and Record send your text to the AI provider. Avoid entering sensitive information.',
     assistantDraft: 'Expense draft',
     assistantReviewDraft: 'Review draft',
     appSearchExpenseEntry: 'Record an expense',
@@ -2036,15 +2013,11 @@ const I18N: Record<string, Record<string, string>> = {
     appSearchAvatar: 'Change avatar',
     appSearchSignature: 'Profile signature',
     appSearchFeeHistory: 'Platform fee history',
-    appSearchFind: 'Search',
-    appSearchPlaceholder: 'Page, supplier, reference number, or note',
-    appSearchPages: 'Pages',
     appSearchInvoice: 'Invoices',
     appSearchPartner: 'Partners',
     appSearchProduct: 'Products',
     appSearchProfile: 'Profile',
     appSearchNoMatches: 'No matching pages or records.',
-    appSearchFailed: 'Could not search records. Try again.',
     appSearchOpenFailed: 'Could not open this record. Try again.',
     appSearchRelated: 'Find related purchase orders',
     appSearchSupplierBasis: 'Settled procurement line items grouped by the supplier currently listed on the product.',
@@ -2794,14 +2767,11 @@ export type I18nKey =
   | 'appSearchTitle'
   | 'assistantTitle'
   | 'assistantClose'
-  | 'assistantDiscover'
   | 'assistantAsk'
   | 'assistantChat'
   | 'assistantChatPlaceholder'
   | 'assistantChatSend'
   | 'assistantChatOlder'
-  | 'assistantChatSearchExample'
-  | 'assistantChatDraftExample'
   | 'assistantMemory'
   | 'assistantMemoryClose'
   | 'assistantMemoryDescription'
@@ -2823,11 +2793,9 @@ export type I18nKey =
   | 'assistantChatWelcome'
   | 'assistantChatOpen'
   | 'assistantChatDestination'
-  | 'assistantChatProfileExample'
   | 'assistantChatLoadFailed'
   | 'assistantChatChanged'
   | 'assistantRecord'
-  | 'assistantPrivacy'
   | 'assistantDraft'
   | 'assistantReviewDraft'
   | 'appSearchExpenseEntry'
@@ -2838,15 +2806,11 @@ export type I18nKey =
   | 'appSearchAvatar'
   | 'appSearchSignature'
   | 'appSearchFeeHistory'
-  | 'appSearchFind'
-  | 'appSearchPlaceholder'
-  | 'appSearchPages'
   | 'appSearchInvoice'
   | 'appSearchPartner'
   | 'appSearchProduct'
   | 'appSearchProfile'
   | 'appSearchNoMatches'
-  | 'appSearchFailed'
   | 'appSearchOpenFailed'
   | 'appSearchRelated'
   | 'appSearchSupplierBasis'

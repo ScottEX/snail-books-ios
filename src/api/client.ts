@@ -424,12 +424,6 @@ export const api = {
       body: JSON.stringify({ revision, request_id: requestId, text }),
       signal,
     }),
-  searchApp: (keyword: string, signal: AbortSignal) =>
-    authFetch<{ results: AppSearchRecord[] }>('/api/app/search', {
-      method: 'POST',
-      body: JSON.stringify({ keyword }),
-      signal,
-    }),
   getTransaction: (id: number, signal?: AbortSignal) => authFetch(`/api/transactions/${id}`, { signal }),
   deleteTransaction: (id: number) => authFetch(`/api/transactions/${id}`, { method: 'DELETE' }),
   updateTransaction: (id: number, data: any) => authFetch(`/api/transactions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),

@@ -18,7 +18,6 @@ import { getCurrentUserId } from '../utils/storage';
 import { WriteSubmission } from '../utils/writeSubmission';
 
 const modes = {
-  search: { label: 'assistantDiscover', placeholder: 'appSearchPlaceholder', action: 'appSearchFind', limit: 80 },
   ask: { label: 'assistantChat', placeholder: 'assistantChatPlaceholder', action: 'assistantChatSend', limit: 500 },
   record: { label: 'assistantRecord', placeholder: 'expenseAiExample', action: 'expenseAiGenerate', limit: 500 },
 } as const;
@@ -26,58 +25,57 @@ type AssistantMode = keyof typeof modes;
 const modelErrors = [
   'ledgerAiUnavailable', 'ledgerAiUnclear', 'ledgerAiAdminOnly', 'ledgerAiContextRequired', 'ledgerAiContextExpired', 'expenseAiRateLimit', 'expenseAiUnavailable', 'expenseAiUnclear',
 ];
-const chatExamples = ['assistantChatProfileExample', 'assistantChatSearchExample', 'assistantChatDraftExample'];
 const actionLabels: Record<LedgerAction, string> = {
   this_month: 'ledgerAiThisMonth', last_month: 'ledgerAiLastMonth', compare_last_month: 'ledgerAiCompareLastMonth',
   details: 'ledgerAiDetails', order_value: 'ledgerAiOrderValue', posted_expense: 'ledgerAiPostedExpense',
 };
 
 const pages = {
-  invoice: ['appSearchInvoice', '发票|發票|发票管理|開票|开票|票據|invoice'],
-  invoiceInfo: ['invInfoTab', '发票资料|發票資料|开票信息|開票資訊|invoice info|billing details'],
-  invoiceRecords: ['invRecordsTab', '发票记录|發票紀錄|开票记录|開票記錄|发票历史|發票歷史|上传发票|上傳發票|invoice records|upload invoice'],
-  invoiceApply: ['invApply', '申请开票|申請開票|新建发票|新增發票|apply for invoice|new invoice'],
-  expense: ['expenseHistory', '支出记录|支出記錄|支出历史|支出歷史|流水|expense history'],
-  expenseEntry: ['appSearchExpenseEntry', '记账|記帳|录入支出|輸入支出|凭证上传|憑證上傳|add expense'],
-  refund: ['appSearchRefund', '退款|退费|退費|refund'],
-  expenseAi: ['expenseAiTitle', '一句话记账|一句話記帳|智能记账|智慧記帳|ai expense'],
-  askLedger: ['assistantAsk', '问答|問答|ai 查账|ai 查帳|ai查账|ai查帳|查账|查帳|问账|問帳|ask the ledger'],
-  procurement: ['procTitle', '采购管理|採購管理|进货管理|進貨管理|procurement'],
-  newOrder: ['procNewOrder', '采购|採購|进货|進貨|新建采购单|新增採購單|new purchase order'],
-  procurementHistory: ['procHistory', '采购记录|採購記錄|采购历史|採購歷史|进货记录|進貨記錄|清账|清賬|采购结算|採購結算|采购单PDF|採購單PDF|purchase history|settlement'],
-  products: ['appSearchProducts', '商品|产品|產品|商品管理|产品管理|產品管理|编辑商品|編輯商品|编辑产品|編輯產品|供应商|供應商|products|edit product|supplier'],
-  addProduct: ['procAddProduct', '添加商品|新增商品|添加产品|新增產品|add product|new product'],
-  procurementCart: ['appSearchCart', '购物车|購物車|采购车|採購車|采购清单|採購清單|cart'],
-  revenue: ['revHistoryBtn', '营收记录|營收記錄|营收历史|營收歷史|revenue history'],
-  revenueEntry: ['dailyRevenue', '营收|營收|营业额|營業額|录入营收|輸入營收|daily revenue'],
-  statistics: ['appSearchStatistics', '统计|統計|图表|圖表|经营总览|經營總覽|收支总览|收支總覽|收支统计|收支統計|statistics|charts|trends'],
-  reconciliation: ['reconHistory', '对账记录|對帳記錄|對賬記錄|对账历史|對帳歷史|recon history'],
-  reconciliationEntry: ['tabRecon', '对账|對帳|對賬|日记账|日記帳|reconciliation'],
-  fee: ['platformFee', '平台手续费|平台手續費|手续费|手續費|platform fees'],
-  feeHistory: ['appSearchFeeHistory', '手续费历史|手續費歷史|手续费记录|手續費記錄|fee history'],
-  feeEntry: ['addFeeEntry', '录入手续费|錄入手續費|輸入手續費|添加手续费|新增手續費|add platform fee'],
-  partner: ['appSearchPartner', '合伙人|合夥人|股东|股東|partners'],
-  partnerStructure: ['lpStructure', '合伙人结构|合夥人結構|股权结构|股權結構|组织架构|組織架構|partner structure'],
-  issueDividend: ['issueDividend', '发起分红|發起分紅|分红|分紅|issue dividend'],
-  dividendHistory: ['dividendHistory', '分红记录|分紅記錄|分红历史|分紅歷史|dividend history'],
-  profile: ['appSearchProfile', '个人中心|個人中心|个人资料|個人資料|profile'],
-  account: ['accountInfo', '账户信息|帳戶資訊|账号|帳號|昵称|暱稱|account info'],
-  email: ['changeEmail', '修改邮箱|修改郵箱|更改邮箱|更改郵箱|email'],
-  password: ['changePassword', '改密码|改密碼|更改密码|更改密碼|更换密码|更換密碼|password'],
-  security: ['securitySettings', '安全设置|安全設定|账户安全|帳戶安全|account security'],
-  avatar: ['appSearchAvatar', '换头像|換頭像|修改头像|修改頭像|avatar'],
-  cover: ['editCover', '更换封面|更換封面|换封面|換封面|cover photo'],
-  signature: ['appSearchSignature', '签名|簽名|个性签名|個性簽名|signature'],
-  theme: ['themeLabel', '主题|主題|切换主题|切換主題|theme'],
-  themeSettings: ['bgSettings', '背景图|背景圖|背景透明度|背景設定|主题设置|主題設定|background|theme settings'],
-  language: ['language', '语言设置|語言設定|切换语言|切換語言|偏好设置|偏好設定|language|preferences'],
-  loginSecurity: ['authSettingsTitle', '登录安全|登入安全|登录设置|登入設定|sign-in security'],
-  faceId: ['faceIDLabel', '面容登录|面容登入|指纹登录|指紋登入|face id|touch id|biometric login'],
-  singleSession: ['ssoLabel', '单设备登录|單裝置登入|单会话|單會話|single session'],
-  sessionTimeout: ['sessionTimeoutLabel', '会话超时|工作階段逾時|自动登出|自動登出|session timeout'],
-  deleteAccount: ['deleteAccount', '注销账户|註銷帳戶|删除账号|刪除帳號|delete account'],
-  logout: ['logout', '退出登录|登出|注销登录|log out|sign out'],
-  userManagement: ['userManagement', '用户管理|用戶管理|使用者管理|管理用户|管理用戶|管理使用者|审核用户|審核用戶|编辑用户|編輯用戶|user management|manage users|review users'],
+  invoice: 'appSearchInvoice',
+  invoiceInfo: 'invInfoTab',
+  invoiceRecords: 'invRecordsTab',
+  invoiceApply: 'invApply',
+  expense: 'expenseHistory',
+  expenseEntry: 'appSearchExpenseEntry',
+  refund: 'appSearchRefund',
+  expenseAi: 'expenseAiTitle',
+  askLedger: 'assistantAsk',
+  procurement: 'procTitle',
+  newOrder: 'procNewOrder',
+  procurementHistory: 'procHistory',
+  products: 'appSearchProducts',
+  addProduct: 'procAddProduct',
+  procurementCart: 'appSearchCart',
+  revenue: 'revHistoryBtn',
+  revenueEntry: 'dailyRevenue',
+  statistics: 'appSearchStatistics',
+  reconciliation: 'reconHistory',
+  reconciliationEntry: 'tabRecon',
+  fee: 'platformFee',
+  feeHistory: 'appSearchFeeHistory',
+  feeEntry: 'addFeeEntry',
+  partner: 'appSearchPartner',
+  partnerStructure: 'lpStructure',
+  issueDividend: 'issueDividend',
+  dividendHistory: 'dividendHistory',
+  profile: 'appSearchProfile',
+  account: 'accountInfo',
+  email: 'changeEmail',
+  password: 'changePassword',
+  security: 'securitySettings',
+  avatar: 'appSearchAvatar',
+  cover: 'editCover',
+  signature: 'appSearchSignature',
+  theme: 'themeLabel',
+  themeSettings: 'bgSettings',
+  language: 'language',
+  loginSecurity: 'authSettingsTitle',
+  faceId: 'faceIDLabel',
+  singleSession: 'ssoLabel',
+  sessionTimeout: 'sessionTimeoutLabel',
+  deleteAccount: 'deleteAccount',
+  logout: 'logout',
+  userManagement: 'userManagement',
 } as const;
 
 const recordLabels: Record<AppSearchRecord['kind'], string> = {
@@ -97,47 +95,21 @@ const discoverPages = (Object.keys(pages) as AppSearchPage[]).filter(page =>
   !['askLedger', 'expenseAi', 'password', 'deleteAccount', 'logout'].includes(page));
 const publicDiscoverPages = discoverPages.filter(page => page !== 'userManagement');
 
-function findPages(keyword: string) {
-  const query = keyword.toLowerCase();
-  return (Object.keys(pages) as AppSearchPage[]).flatMap(page => {
-    const [label, aliases] = pages[page];
-    const terms = [t(label), ...aliases.split('|')].map(term => term.toLowerCase());
-    const rank = terms.includes(query) ? 0
-      : terms.some(term => query.includes(term) || term.startsWith(query)) ? 1
-      : terms.some(term => term.includes(query)) ? 2 : -1;
-    return rank < 0 ? [] : [{ page, rank }];
-  }).sort((a, b) => a.rank - b.rank).map(match => match.page);
-}
-
-async function findVisiblePages(keyword: string, signal: AbortSignal) {
-  const matches = findPages(keyword);
-  if (!matches.includes('userManagement')) return matches;
-  const { is_admin } = await api.admin.check(signal);
-  return is_admin === true ? matches : matches.filter(page => page !== 'userManagement');
-}
-
-function SearchResults({ hits, onOpen, disabled }: {
-  hits: { pages: AppSearchPage[]; records: AppSearchRecord[] };
+function SearchResults({ records, onOpen, disabled }: {
+  records: AppSearchRecord[];
   onOpen: (target: SearchResult) => void;
   disabled: boolean;
 }) {
   const { colors } = useTheme();
   return (
     <View style={styles.hitList}>
-      {hits.pages.length > 0 && <Text style={{ color: colors.textSub }}>{t('appSearchPages')}</Text>}
-      {hits.pages.map(page => (
-        <TouchableOpacity key={page} accessibilityRole="button" disabled={disabled} onPress={() => onOpen(page)} style={styles.hit}>
-          <Text style={[styles.hitTitle, { color: colors.textMain }]}>{t(pages[page][0])}</Text>
-          <Text style={{ color: colors.textSub }}>›</Text>
-        </TouchableOpacity>
-      ))}
       {(Object.keys(recordLabels) as AppSearchRecord['kind'][]).map(kind => {
-        const records = hits.records.filter(record => record.kind === kind);
-        if (!records.length) return null;
+        const matchingRecords = records.filter(record => record.kind === kind);
+        if (!matchingRecords.length) return null;
         return (
           <View key={kind} style={styles.hitList}>
             <Text style={{ color: colors.textSub }}>{t(recordLabels[kind])}</Text>
-            {records.map(record => {
+            {matchingRecords.map(record => {
               const detail = record.kind === 'expense' && record.detail ? t(record.detail) : record.detail;
               const subtitle = [detail, formatDate(record.date), record.amount !== null ? fmtAmtFull(record.amount) : '']
                 .filter(Boolean).join(' · ');
@@ -155,7 +127,7 @@ function SearchResults({ hits, onOpen, disabled }: {
           </View>
         );
       })}
-      {!hits.pages.length && !hits.records.length && <Text style={{ color: colors.textSub }}>{t('appSearchNoMatches')}</Text>}
+      {!records.length && <Text style={{ color: colors.textSub }}>{t('appSearchNoMatches')}</Text>}
     </View>
   );
 }
@@ -318,7 +290,7 @@ function LedgerResult({ answer, onOpenResult, onSearchSupplier, onShowRegistrati
       {!!supplier && isProcurement && <Text style={[styles.caption, { color: colors.textSub }]}>{t('ledgerAiProcurementSupplierBasis')}</Text>}
       {supplier && !isProcurement
         ? link(t('appSearchRelated'), () => onSearchSupplier(supplier))
-        : !(page === 'userManagement' && hideUserManagement) && link(t(pages[page][0]), () => onOpenResult(page))}
+        : !(page === 'userManagement' && hideUserManagement) && link(t(pages[page]), () => onOpenResult(page))}
     </View>
   );
 }
@@ -364,12 +336,12 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
   const [pendingText, setPendingText] = useState('');
   const [cardUpdates, setCardUpdates] = useState<Record<string, LedgerResponse[]>>({});
   const insets = useSafeAreaInsets();
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [draft, setDraft] = useState<ExpenseDraft | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState<AssistantMode>('ask');
   const [adminShortcutKey, setAdminShortcutKey] = useState<string | null>(null);
-  const [hits, setHits] = useState<{ pages: AppSearchPage[]; records: AppSearchRecord[] } | null>(null);
   const request = useRef<AbortController | null>(null);
   const chatWrite = useRef(new WriteSubmission<{ text: string | null; revision: string | null }>());
   const chatScroll = useRef<ScrollView>(null);
@@ -386,6 +358,19 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
     request.current = null;
     setBusy(false);
     setPendingText('');
+  }, [active]);
+
+  useEffect(() => {
+    if (!active) return;
+    setKeyboardVisible(Keyboard.isVisible());
+    const show = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardVisible(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
   }, [active]);
 
   const usageKey = discoverUsageKey(API_BASE, getCurrentUserId());
@@ -412,7 +397,6 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
   const changeQuestion = (text: string) => {
     setQuestion(text);
     setDraft(null);
-    setHits(null);
     setError('');
   };
 
@@ -512,7 +496,11 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
     setError('');
     followChat.current = true;
     setPendingText(message ?? '');
-    Keyboard.dismiss();
+    if (message === null) {
+      Keyboard.dismiss();
+    } else {
+      setQuestion(current => current.trim() === message ? '' : current);
+    }
     try {
       const next = await chatWrite.current.run(
         { revision: chat.revision, message },
@@ -532,11 +520,14 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
             turns: [...older, ...next.state.turns] } : next.state;
         });
         if (next.state.turns.at(-1)?.saved_preference) void refreshPreferences();
-        setQuestion('');
-        if (message === null) setCardUpdates({});
+        if (message === null) {
+          setQuestion('');
+          setCardUpdates({});
+        }
       }
     } catch (failure) {
       if (controller.signal.aborted) return;
+      if (message !== null) setQuestion(current => current || message);
       if (failure instanceof Error && failure.message === 'assistantChatChanged') {
         await refreshChat(controller.signal);
         if (!controller.signal.aborted) setError(t('assistantChatChanged'));
@@ -552,10 +543,10 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
     }
   };
 
-  const submit = async (submitMode: AssistantMode = mode, query = question) => {
-    const text = query.trim();
+  const submit = async () => {
+    const text = question.trim();
     if (!text || request.current || speech.active) return;
-    if (submitMode === 'ask') {
+    if (mode === 'ask') {
       await submitChat(text);
       return;
     }
@@ -564,23 +555,14 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
     setBusy(true);
     setError('');
     setDraft(null);
-    setHits(null);
     Keyboard.dismiss();
     try {
-      if (submitMode === 'search') {
-        const matchedPages = await findVisiblePages(text, controller.signal);
-        if (controller.signal.aborted) return;
-        if (matchedPages.length) setHits({ pages: matchedPages, records: [] });
-        const result = await api.searchApp(text, controller.signal);
-        if (!controller.signal.aborted) setHits({ pages: matchedPages, records: result.results });
-      } else {
-        const result = await api.generateExpenseDraft(text, controller.signal);
-        if (!controller.signal.aborted) setDraft(result.draft);
-      }
+      const result = await api.generateExpenseDraft(text, controller.signal);
+      if (!controller.signal.aborted) setDraft(result.draft);
     } catch (failure) {
       if (controller.signal.aborted) return;
       const message = failure instanceof Error ? failure.message : '';
-      setError(t(submitMode === 'search' ? 'appSearchFailed' : modelErrors.includes(message) ? message : 'expenseAiFailed'));
+      setError(t(modelErrors.includes(message) ? message : 'expenseAiFailed'));
     } finally {
       if (request.current === controller) {
         request.current = null;
@@ -604,7 +586,7 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
       if (controller.signal.aborted) return;
       Keyboard.dismiss();
       navigate();
-      if (mode === 'search' && usageKey && typeof target === 'string' && discoverPages.includes(target)
+      if (mode === 'ask' && usageKey && typeof target === 'string' && discoverPages.includes(target)
         && usageKey === discoverUsageKey(API_BASE, getCurrentUserId())) {
         recordDiscoverOpen(usageKey, target);
       }
@@ -618,14 +600,8 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
     }
   };
 
-  const searchSupplier = (name: string) => {
-    setMode('search');
-    setQuestion(name);
-    void submit('search', name);
-  };
-
   const activeMode = modes[mode];
-  const isSearch = mode === 'search';
+  const isChat = mode === 'ask';
   const controlsDisabled = busy || speech.active;
   const disabled = !question.trim() || controlsDisabled || (mode === 'ask' && !chat);
 
@@ -705,7 +681,7 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
       {turn.searches?.map((search, index) => (
         <View key={index} style={[styles.result, { backgroundColor: colors.bg }]}>
           <Text style={[styles.title, { color: colors.textMain }]}>{search.keyword}</Text>
-          <SearchResults hits={{ pages: [], records: search.records }} onOpen={openResult} disabled={busy} />
+          <SearchResults records={search.records} onOpen={openResult} disabled={busy} />
         </View>
       ))}
       {turn.draft && (
@@ -733,7 +709,7 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
         return (
           <View key={key} style={styles.chatTurn}>
             {entry.status === 'ok' ? (
-              <LedgerResult answer={entry.answer} onOpenResult={openResult} onSearchSupplier={searchSupplier}
+              <LedgerResult answer={entry.answer} onOpenResult={openResult} onSearchSupplier={name => void submitChat(name)}
                 onShowRegistrations={offset => act('registration_details', offset)} disabled={busy}
                 hideUserManagement={turn.destinations.includes('userManagement')} />
             ) : (
@@ -777,12 +753,12 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
           </View>
         );
       })}
-      {turn.destinations.filter((route): route is Exclude<AppSearchPage, 'expenseAi' | 'askLedger'> =>
-        route !== 'expenseAi' && route !== 'askLedger' && Object.prototype.hasOwnProperty.call(pages, route),
+      {turn.destinations.filter((route): route is AppSearchPage =>
+        Object.prototype.hasOwnProperty.call(pages, route),
       ).map(route => (
         <TouchableOpacity key={route} accessibilityRole="button" disabled={busy} onPress={() => void openResult(route)}
           style={[styles.chatRoute, { backgroundColor: colors.bg }]}>
-          <Text style={{ color: colors.primary }}>{t('assistantChatOpen').replace('{page}', t(pages[route][0]))} ›</Text>
+          <Text style={{ color: colors.primary }}>{t('assistantChatOpen').replace('{page}', t(pages[route]))} ›</Text>
         </TouchableOpacity>
       ))}
     </View>
@@ -807,15 +783,13 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
       placeholderTextColor={colors.textSub}
       value={question}
       onChangeText={changeQuestion}
-      editable={!controlsDisabled && (mode !== 'ask' || !!chat)}
-      multiline={!isSearch}
-      returnKeyType={isSearch ? 'search' : 'default'}
-      onSubmitEditing={isSearch ? () => void submit() : undefined}
+      editable={isChat ? !!chat : !controlsDisabled}
+      multiline
       maxLength={activeMode.limit}
       underlineColorAndroid="transparent"
       style={[
-        styles.input, isSearch ? styles.searchInput : styles.multilineInput,
-        { color: colors.textMain, backgroundColor: colors.bg },
+        styles.input, isChat ? styles.chatInput : styles.multilineInput,
+        { color: colors.textMain, backgroundColor: isChat ? colors.surface : colors.bg },
       ]}
     />
   );
@@ -875,7 +849,7 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
       }}
       disabled={disabled}
       loading={busy}
-      style={[styles.submit, { backgroundColor: colors.primary, opacity: disabled && !busy ? 0.45 : 1 }]}
+      style={[styles.submit, isChat && styles.chatSend, { backgroundColor: colors.primary, opacity: disabled && !busy ? 0.45 : 1 }]}
       textStyle={{ color: colors.surface, fontWeight: '700' }}
     />
   );
@@ -936,7 +910,6 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
               );
             })}
           </View>
-          {isSearch && <View style={styles.searchBar}>{textInput}{submitButton}</View>}
         </View>
         <ScrollView
           ref={chatScroll}
@@ -947,20 +920,10 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
             }
           }}
           style={styles.screen}
-          contentContainerStyle={[styles.bodyContent, styles.contentWidth, { paddingBottom: isSearch ? insets.bottom + 12 : 12 }]}
+          contentContainerStyle={[styles.bodyContent, styles.contentWidth]}
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
         >
-          {isSearch && !question.trim() && !busy && (
-            <View style={styles.shortcuts}>
-              {discoverShortcuts.map(page => (
-                <TouchableOpacity key={page} accessibilityRole="button" onPress={() => void openResult(page)}
-                  style={[styles.shortcut, { backgroundColor: colors.bg }]}>
-                  <Text style={{ color: colors.textMain }}>{t(pages[page][0])}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
           {mode === 'ask' && (
             <>
               {!chat && !chatError && <ActivityIndicator size="small" color={colors.primary} />}
@@ -986,11 +949,10 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
                 <View style={styles.chatTurn}>
                   <Text style={[styles.chatWelcome, { color: colors.textMain }]}>{t('assistantChatWelcome')}</Text>
                   <View style={styles.shortcuts}>
-                    {chatExamples.map(key => (
-                      <TouchableOpacity key={key} accessibilityRole="button" disabled={busy}
-                        onPress={() => { setQuestion(t(key)); void submitChat(t(key)); }}
+                    {discoverShortcuts.map(page => (
+                      <TouchableOpacity key={page} accessibilityRole="button" disabled={busy} onPress={() => void openResult(page)}
                         style={[styles.shortcut, { backgroundColor: colors.bg }]}>
-                        <Text style={{ color: colors.textMain }}>{t(key)}</Text>
+                        <Text style={{ color: colors.textMain }}>{t(pages[page])}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -1005,24 +967,21 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
             </>
           )}
           {!!error && <Text accessibilityLiveRegion="polite" style={{ color: colors.danger }}>{error}</Text>}
-          {hits && <SearchResults hits={hits} onOpen={openResult} disabled={busy} />}
           {draft && <DraftResult draft={draft} />}
         </ScrollView>
-        {!isSearch && (
-          <View style={[
-            styles.composer, styles.contentWidth,
-            { borderTopColor: colors.bg, paddingBottom: Math.max(12, insets.bottom) },
-          ]}>
-            {composerInput}
-            {mode === 'record' && !!speech.error && (
-              <Text accessibilityLiveRegion="polite" style={[styles.caption, { color: colors.danger }]}>
-                {t(speech.error)}
-              </Text>
-            )}
-            {submitButton}
-            <Text style={[styles.caption, { color: colors.textSub }]}>{t('assistantPrivacy')}</Text>
-          </View>
-        )}
+        <View style={[
+          styles.composer, styles.contentWidth, isChat && styles.chatComposer,
+          { borderTopColor: colors.bg, paddingBottom: keyboardVisible ? 10 : Math.max(10, insets.bottom),
+            backgroundColor: isChat ? colors.bg : colors.surface },
+        ]}>
+          {composerInput}
+          {!isChat && !!speech.error && (
+            <Text accessibilityLiveRegion="polite" style={[styles.caption, { color: colors.danger }]}>
+              {t(speech.error)}
+            </Text>
+          )}
+          {submitButton}
+        </View>
       </View>
       <AssistantMemoryPanel visible={memoryVisible} onClose={() => setMemoryVisible(false)} values={preferences}
         busy={memoryBusy} error={memoryError} onEdit={(key, value) => void editPreference(key, value)}
@@ -1035,13 +994,13 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   contentWidth: { width: '100%', maxWidth: 680, alignSelf: 'center' },
   toolbar: { paddingHorizontal: 16, paddingTop: 12, gap: 12 },
-  searchBar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: FONTS.subBold.size, fontWeight: FONTS.subBold.weight },
   amount: { fontSize: FONTS.h2.size, fontWeight: '700', fontVariant: ['tabular-nums'] },
   caption: { fontSize: FONTS.micro.size, lineHeight: 17 },
-  bodyContent: { paddingHorizontal: 16, paddingTop: 12, gap: 8 },
+  bodyContent: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   input: { minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12 },
-  searchInput: { flex: 1 },
+  chatInput: { flex: 1, minWidth: 0, maxHeight: 112 },
+  chatSend: { minWidth: 68 },
   multilineInput: { minHeight: 70, maxHeight: 108, textAlignVertical: 'top' },
   voiceComposer: { borderRadius: 14 },
   voiceToolbar: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 12, rowGap: 4,
@@ -1070,6 +1029,7 @@ const styles = StyleSheet.create({
   shortcut: { minHeight: 44, paddingHorizontal: 10, justifyContent: 'center', borderRadius: 8 },
   totalRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   period: { flex: 1 },
+  chatComposer: { flexDirection: 'row', alignItems: 'flex-end' },
   composer: { borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16, paddingTop: 12, gap: 8 },
   submit: { minHeight: 44, minWidth: 94, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
 });
