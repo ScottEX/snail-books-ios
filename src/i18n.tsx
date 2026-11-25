@@ -385,8 +385,19 @@ const I18N: Record<string, Record<string, string>> = {
     assistantClose: '关闭 AI 助手',
     assistantDiscover: '发现',
     assistantAsk: '问答',
+    assistantChat: '对话',
+    assistantChatPlaceholder: '输入你想查的账目或功能',
+    assistantChatSend: '发送',
+    assistantChatNew: '新对话',
+    assistantChatResetConfirm: '清空当前对话并重新开始？',
+    assistantChatWelcome: '今天想查什么？',
+    assistantChatOpen: '打开{page}',
+    assistantChatDestination: '你可以打开下面的页面。',
+    assistantChatProfileExample: '我要查看个人信息',
+    assistantChatLoadFailed: '加载对话失败，请重试。',
+    assistantChatChanged: '对话已在另一处更新，请重新发送。',
     assistantRecord: '记账',
-    assistantPrivacy: '问答和记账会将输入发给 AI 服务，请勿填写敏感信息。',
+    assistantPrivacy: '对话和记账会将输入发给 AI 服务，请勿填写敏感信息。',
     assistantDraft: '支出草稿',
     assistantReviewDraft: '去核对草稿',
     appSearchExpenseEntry: '录入支出',
@@ -1155,8 +1166,19 @@ const I18N: Record<string, Record<string, string>> = {
     assistantClose: '關閉 AI 助手',
     assistantDiscover: '發現',
     assistantAsk: '問答',
+    assistantChat: '對話',
+    assistantChatPlaceholder: '輸入你想查的帳目或功能',
+    assistantChatSend: '傳送',
+    assistantChatNew: '新對話',
+    assistantChatResetConfirm: '清除目前的對話並重新開始？',
+    assistantChatWelcome: '今天想查什麼？',
+    assistantChatOpen: '開啟{page}',
+    assistantChatDestination: '你可以開啟下方的頁面。',
+    assistantChatProfileExample: '我要查看個人資訊',
+    assistantChatLoadFailed: '載入對話失敗，請重試。',
+    assistantChatChanged: '對話已在另一處更新，請重新傳送。',
     assistantRecord: '記帳',
-    assistantPrivacy: '問答和記帳會將輸入傳送給 AI 服務，請勿填寫敏感資訊。',
+    assistantPrivacy: '對話和記帳會將輸入傳送給 AI 服務，請勿填寫敏感資訊。',
     assistantDraft: '支出草稿',
     assistantReviewDraft: '前往核對草稿',
     appSearchExpenseEntry: '錄入支出',
@@ -1934,8 +1956,19 @@ const I18N: Record<string, Record<string, string>> = {
     assistantClose: 'Close AI Assistant',
     assistantDiscover: 'Discover',
     assistantAsk: 'Ask',
+    assistantChat: 'Chat',
+    assistantChatPlaceholder: 'Ask about your books or find a feature',
+    assistantChatSend: 'Send',
+    assistantChatNew: 'New chat',
+    assistantChatResetConfirm: 'Clear this conversation and start over?',
+    assistantChatWelcome: 'What would you like to look up?',
+    assistantChatOpen: 'Open {page}',
+    assistantChatDestination: 'You can open the following page.',
+    assistantChatProfileExample: 'Show me my profile',
+    assistantChatLoadFailed: 'Could not load the conversation. Please retry.',
+    assistantChatChanged: 'The conversation was updated elsewhere. Please send again.',
     assistantRecord: 'Record',
-    assistantPrivacy: 'Ask and Record send your text to the AI provider. Avoid entering sensitive information.',
+    assistantPrivacy: 'Chat and Record send your text to the AI provider. Avoid entering sensitive information.',
     assistantDraft: 'Expense draft',
     assistantReviewDraft: 'Review draft',
     appSearchExpenseEntry: 'Record an expense',
@@ -2706,6 +2739,17 @@ export type I18nKey =
   | 'assistantClose'
   | 'assistantDiscover'
   | 'assistantAsk'
+  | 'assistantChat'
+  | 'assistantChatPlaceholder'
+  | 'assistantChatSend'
+  | 'assistantChatNew'
+  | 'assistantChatResetConfirm'
+  | 'assistantChatWelcome'
+  | 'assistantChatOpen'
+  | 'assistantChatDestination'
+  | 'assistantChatProfileExample'
+  | 'assistantChatLoadFailed'
+  | 'assistantChatChanged'
   | 'assistantRecord'
   | 'assistantPrivacy'
   | 'assistantDraft'

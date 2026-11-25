@@ -71,6 +71,20 @@ export type LedgerResponse =
   | { status: 'clarify'; reason: 'procurement_basis' | 'period'; context: string; actions: LedgerAction[] }
   | { status: 'details'; records: AppSearchRecord[]; next_offset: number | null };
 
+export interface AssistantChatTurn {
+  id: string;
+  text: string;
+  message: string | null;
+  answers: Exclude<LedgerResponse, { status: 'details' }>[];
+  destinations: string[];
+  notice: string | null;
+}
+
+export interface AssistantChatState {
+  revision: string | null;
+  turns: AssistantChatTurn[];
+}
+
 export interface DividendPreview {
   status: 'ok';
   total: number;
@@ -375,6 +389,14 @@ export const api = {
     authFetch<LedgerResponse>('/api/ledger/ask', {
       method: 'POST',
       body: JSON.stringify({ ...query, record_queries: true, assistant_v2: true, operating_metrics: true }),
+      signal,
+    }),
+  getAssistantChat: (signal: AbortSignal) =>
+    authFetch<AssistantChatState>('/api/assistant/chat', { signal }),
+  updateAssistantChat: (revision: string | null, requestId: string, text: string | null, signal: AbortSignal) =>
+    authFetch<AssistantChatState>('/api/assistant/chat', {
+      method: text === null ? 'DELETE' : 'POST',
+      body: JSON.stringify({ revision, request_id: requestId, text }),
       signal,
     }),
   searchApp: (keyword: string, signal: AbortSignal) =>

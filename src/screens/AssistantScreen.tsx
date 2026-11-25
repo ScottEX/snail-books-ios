@@ -1,46 +1,31 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
-import { api, API_BASE, type AppSearchRecord, type ExpenseDraft, type LedgerAction, type LedgerAnswer, type LedgerRequest, type LedgerResponse, type LedgerTotal } from '../api/client';
+import { api, API_BASE, type AppSearchRecord, type AssistantChatState, type AssistantChatTurn, type ExpenseDraft, type LedgerAction, type LedgerAnswer, type LedgerRequest, type LedgerResponse, type LedgerTotal } from '../api/client';
 import { getLang, t } from '../i18n';
 import { FONTS, useTheme, withAlpha } from '../theme';
 import { fmtAmtFull, formatDate } from '../utils/format';
 import { translateDividendNote, translateName } from './partner/usePartnerData';
 import AppTextInput from '../components/AppTextInput';
-import DropdownArrow from '../components/DropdownArrow';
 import HistoryHeader from '../components/HistoryHeader';
 import HomeBackground from '../components/HomeBackground';
 import SubmitButton from '../components/SubmitButton';
 import { useAssistantSpeech } from '../hooks/useAssistantSpeech';
 import { discoverUsageKey, rankDiscoverShortcuts, readDiscoverUsage, recordDiscoverOpen } from '../utils/discoverUsage';
 import { getCurrentUserId } from '../utils/storage';
+import { WriteSubmission } from '../utils/writeSubmission';
 
 const modes = {
   search: { label: 'assistantDiscover', placeholder: 'appSearchPlaceholder', action: 'appSearchFind', limit: 80 },
-  ask: { label: 'assistantAsk', placeholder: 'ledgerAiLatestProcurementExample', action: 'ledgerAiAsk', limit: 300 },
+  ask: { label: 'assistantChat', placeholder: 'assistantChatPlaceholder', action: 'assistantChatSend', limit: 500 },
   record: { label: 'assistantRecord', placeholder: 'expenseAiExample', action: 'expenseAiGenerate', limit: 500 },
 } as const;
 type AssistantMode = keyof typeof modes;
 const modelErrors = [
   'ledgerAiUnavailable', 'ledgerAiUnclear', 'ledgerAiAdminOnly', 'ledgerAiContextRequired', 'ledgerAiContextExpired', 'expenseAiRateLimit', 'expenseAiUnavailable', 'expenseAiUnclear',
 ];
-const askExamples = [
-  ['latest_procurement', 'ledgerAiLatestProcurementExample'],
-  ['procurement_summary', 'ledgerAiProcurementSummaryExample'],
-  ['unsettled_procurement', 'ledgerAiUnsettledProcurementExample'],
-  ['turnover', 'ledgerAiTurnoverExample'],
-  ['profit', 'ledgerAiProfitExample'],
-  ['net_received', 'operatingNetExample'],
-  ['salary', 'ledgerAiSalaryExample'],
-  ['latest_expense', 'ledgerAiLatestExpenseExample'],
-  ['latest_revenue', 'ledgerAiLatestRevenueExample'],
-  ['latest_reconciliation', 'ledgerAiLatestReconciliationExample'],
-  ['latest_invoice', 'ledgerAiLatestInvoiceExample'],
-  ['dividends', 'ledgerAiDividendExample'],
-  ['shareholders', 'ledgerAiShareholdersExample'],
-  ['users', 'ledgerAiUsersExample'],
-] as const;
+const chatExamples = ['assistantChatProfileExample', 'ledgerAiLatestProcurementExample', 'ledgerAiProfitExample'];
 const actionLabels: Record<LedgerAction, string> = {
   this_month: 'ledgerAiThisMonth', last_month: 'ledgerAiLastMonth', compare_last_month: 'ledgerAiCompareLastMonth',
   details: 'ledgerAiDetails', order_value: 'ledgerAiOrderValue', posted_expense: 'ledgerAiPostedExpense',
@@ -208,11 +193,12 @@ function countLabel(count: number, unit: 'ledgerAiPeopleUnit' | 'ledgerAiRoundsU
   return t(key).replace('{n}', count.toLocaleString(getLang()));
 }
 
-function LedgerResult({ answer, onOpenResult, onSearchSupplier, onShowRegistrations, disabled }: {
+function LedgerResult({ answer, onOpenResult, onSearchSupplier, onShowRegistrations, hideUserManagement, disabled }: {
   answer: LedgerAnswer;
   onOpenResult: (target: SearchResult) => void;
   onSearchSupplier: (name: string) => void;
   onShowRegistrations: (offset?: number) => void;
+  hideUserManagement: boolean;
   disabled: boolean;
 }) {
   const { colors } = useTheme();
@@ -331,7 +317,7 @@ function LedgerResult({ answer, onOpenResult, onSearchSupplier, onShowRegistrati
       {!!supplier && isProcurement && <Text style={[styles.caption, { color: colors.textSub }]}>{t('ledgerAiProcurementSupplierBasis')}</Text>}
       {supplier && !isProcurement
         ? link(t('appSearchRelated'), () => onSearchSupplier(supplier))
-        : link(t(pages[page][0]), () => onOpenResult(page))}
+        : !(page === 'userManagement' && hideUserManagement) && link(t(pages[page][0]), () => onOpenResult(page))}
     </View>
   );
 }
@@ -366,18 +352,22 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
 }) {
   const { colors } = useTheme();
   const [question, setQuestion] = useState('');
-  const [ledger, setLedger] = useState<Exclude<LedgerResponse, { status: 'details' }> | null>(null);
-  const [supportingRecords, setSupportingRecords] = useState<Extract<LedgerResponse, { status: 'details' }> | null>(null);
+  const [chat, setChat] = useState<AssistantChatState | null>(null);
+  const [chatError, setChatError] = useState('');
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [pendingText, setPendingText] = useState('');
+  const [cardUpdates, setCardUpdates] = useState<Record<string, LedgerResponse[]>>({});
   const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState<ExpenseDraft | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState<AssistantMode>('search');
-  const [showExamples, setShowExamples] = useState(false);
+  const [mode, setMode] = useState<AssistantMode>('ask');
   const [adminShortcutKey, setAdminShortcutKey] = useState<string | null>(null);
   const [hits, setHits] = useState<{ pages: AppSearchPage[]; records: AppSearchRecord[] } | null>(null);
   const request = useRef<AbortController | null>(null);
-  const ledgerContext = useRef<string>();
+  const chatWrite = useRef(new WriteSubmission<{ text: string | null; revision: string | null }>());
+  const chatScroll = useRef<ScrollView>(null);
+  const followChat = useRef(true);
   const input = useRef<React.ElementRef<typeof AppTextInput>>(null);
   const speechPrefix = useRef('');
   const speech = useAssistantSpeech(active && mode === 'record', transcript => {
@@ -389,6 +379,7 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
     if (active) return () => request.current?.abort();
     request.current = null;
     setBusy(false);
+    setPendingText('');
   }, [active]);
 
   const usageKey = discoverUsageKey(API_BASE, getCurrentUserId());
@@ -419,26 +410,85 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
     setError('');
   };
 
+  const refreshChat = async (signal: AbortSignal) => {
+    setChatError('');
+    try {
+      const state = await api.getAssistantChat(signal);
+      if (!signal.aborted) {
+        followChat.current = true;
+        setChat(state);
+      }
+    } catch {
+      if (!signal.aborted) setChatError(t('assistantChatLoadFailed'));
+    }
+  };
+
+  useEffect(() => {
+    if (!active || mode !== 'ask' || chat) return;
+    const controller = new AbortController();
+    void refreshChat(controller.signal);
+    return () => controller.abort();
+  }, [active, mode, chat, loadAttempt]);
+
   const switchMode = (next: AssistantMode) => {
     if (next === mode || request.current) return;
+    if (next === 'ask') followChat.current = true;
     setMode(next);
-    setLedger(null);
-    ledgerContext.current = undefined;
-    setSupportingRecords(null);
-    setShowExamples(false);
     changeQuestion('');
   };
 
-  const submit = async (submitMode: AssistantMode = mode, query = question, ledgerRequest?: LedgerRequest) => {
-    const text = query.trim();
-    if ((!text && !ledgerRequest) || request.current || speech.active) return;
+  const submitChat = async (message: string | null) => {
+    if (!chat || request.current || message === '') return;
     const controller = new AbortController();
     request.current = controller;
     setBusy(true);
-    setShowExamples(false);
     setError('');
-    const detailsRequest = ledgerRequest && 'action' in ledgerRequest && ledgerRequest.action === 'details';
-    if (!detailsRequest) setSupportingRecords(null);
+    followChat.current = true;
+    setPendingText(message ?? '');
+    Keyboard.dismiss();
+    try {
+      const next = await chatWrite.current.run(
+        { revision: chat.revision, message },
+        () => ({ revision: chat.revision, text: message }),
+        async (payload, key) => ({
+          status: 'ok',
+          state: await api.updateAssistantChat(payload.revision, key, payload.text, controller.signal),
+        }),
+      );
+      if (next && !controller.signal.aborted) {
+        followChat.current = true;
+        setChat(next.state);
+        setQuestion('');
+        if (message === null) setCardUpdates({});
+      }
+    } catch (failure) {
+      if (controller.signal.aborted) return;
+      if (failure instanceof Error && failure.message === 'assistantChatChanged') {
+        await refreshChat(controller.signal);
+        if (!controller.signal.aborted) setError(t('assistantChatChanged'));
+      } else {
+        setError(t('ledgerAiFailed'));
+      }
+    } finally {
+      if (request.current === controller) {
+        request.current = null;
+        setPendingText('');
+        setBusy(false);
+      }
+    }
+  };
+
+  const submit = async (submitMode: AssistantMode = mode, query = question) => {
+    const text = query.trim();
+    if (!text || request.current || speech.active) return;
+    if (submitMode === 'ask') {
+      await submitChat(text);
+      return;
+    }
+    const controller = new AbortController();
+    request.current = controller;
+    setBusy(true);
+    setError('');
     setDraft(null);
     setHits(null);
     Keyboard.dismiss();
@@ -449,34 +499,6 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
         if (matchedPages.length) setHits({ pages: matchedPages, records: [] });
         const result = await api.searchApp(text, controller.signal);
         if (!controller.signal.aborted) setHits({ pages: matchedPages, records: result.results });
-      } else if (submitMode === 'ask') {
-        const result = await api.askLedger(ledgerRequest ?? { question: text, context: ledgerContext.current }, controller.signal);
-        if (controller.signal.aborted) return;
-        if (result.status === 'details') {
-          setSupportingRecords(previous => ({
-            ...result,
-            records: [...(previous?.records ?? []), ...result.records.filter(record =>
-              !previous?.records.some(item => item.id === record.id))],
-          }));
-        } else {
-          ledgerContext.current = result.context ?? undefined;
-          if (ledgerRequest && 'action' in ledgerRequest && ledgerRequest.action === 'registration_details'
-            && ledgerRequest.offset && result.status === 'ok' && result.answer.metric === 'registered_users'
-            && result.answer.registrations) {
-            const { answer } = result;
-            const page = result.answer.registrations;
-            setLedger(previous => {
-              if (previous?.status !== 'ok' || previous.answer.metric !== 'registered_users' || !previous.answer.registrations) return result;
-              const loaded = previous.answer.registrations.users;
-              const ids = new Set(loaded.map(user => user.id));
-              return { ...result, answer: { ...answer, registrations: {
-                ...page, users: [...loaded, ...page.users.filter(user => !ids.has(user.id))],
-              } } };
-            });
-          } else {
-            setLedger(result);
-          }
-        }
       } else {
         const result = await api.generateExpenseDraft(text, controller.signal);
         if (!controller.signal.aborted) setDraft(result.draft);
@@ -484,8 +506,7 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
     } catch (failure) {
       if (controller.signal.aborted) return;
       const message = failure instanceof Error ? failure.message : '';
-      const fallback = submitMode === 'ask' ? 'ledgerAiFailed' : 'expenseAiFailed';
-      setError(t(submitMode === 'search' ? 'appSearchFailed' : modelErrors.includes(message) ? message : fallback));
+      setError(t(submitMode === 'search' ? 'appSearchFailed' : modelErrors.includes(message) ? message : 'expenseAiFailed'));
     } finally {
       if (request.current === controller) {
         request.current = null;
@@ -525,9 +546,6 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
 
   const searchSupplier = (name: string) => {
     setMode('search');
-    setLedger(null);
-    ledgerContext.current = undefined;
-    setSupportingRecords(null);
     setQuestion(name);
     void submit('search', name);
   };
@@ -535,10 +553,125 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
   const activeMode = modes[mode];
   const isSearch = mode === 'search';
   const controlsDisabled = busy || speech.active;
-  const disabled = !question.trim() || controlsDisabled;
-  const runAction = (action: LedgerAction | 'registration_details', offset?: number) => {
-    if (ledger?.context) void submit('ask', question, { action, context: ledger.context, offset });
+  const disabled = !question.trim() || controlsDisabled || (mode === 'ask' && !chat);
+
+  const runCardAction = async (card: string, entry: LedgerResponse, query: LedgerRequest) => {
+    if (request.current) return;
+    const controller = new AbortController();
+    request.current = controller;
+    setBusy(true);
+    setError('');
+    try {
+      const result = await api.askLedger(query, controller.signal);
+      if (controller.signal.aborted) return;
+      setCardUpdates(previous => {
+        const updates = previous[card] ?? [];
+        if (result.status === 'details') {
+          const previousPage = updates.find(item => item.status === 'details');
+          const records = previousPage?.status === 'details' ? previousPage.records : [];
+          const ids = new Set(records.map(record => record.id));
+          return { ...previous, [card]: [entry, {
+            ...result, records: [...records, ...result.records.filter(record => !ids.has(record.id))],
+          }] };
+        }
+        if ('action' in query && query.action === 'registration_details' && query.offset && entry.status === 'ok'
+          && 'registrations' in entry.answer && entry.answer.registrations && result.status === 'ok'
+          && 'registrations' in result.answer && result.answer.registrations) {
+          const users = entry.answer.registrations.users;
+          const ids = new Set(users.map(user => user.id));
+          const page = result.answer.registrations;
+          return { ...previous, [card]: [{ ...result, answer: { ...result.answer, registrations: {
+            ...page, users: [...users, ...page.users.filter(user => !ids.has(user.id))],
+          } } }] };
+        }
+        return { ...previous, [card]: [result] };
+      });
+    } catch (failure) {
+      if (controller.signal.aborted) return;
+      const message = failure instanceof Error ? failure.message : '';
+      setError(t(modelErrors.includes(message) ? message : 'ledgerAiFailed'));
+    } finally {
+      if (request.current === controller) {
+        request.current = null;
+        setBusy(false);
+      }
+    }
   };
+
+  const renderTurn = (turn: AssistantChatTurn) => (
+    <View key={turn.id} style={styles.chatTurn}>
+      <Text style={[styles.userMessage, { backgroundColor: colors.primary, color: colors.surface }]}>{turn.text}</Text>
+      {!!turn.message && <Text style={[styles.assistantMessage, { color: colors.textMain }]}>{turn.message}</Text>}
+      {!!turn.notice && <Text style={[styles.assistantMessage, { color: colors.textSub }]}>{t(turn.notice)}</Text>}
+      {!!turn.destinations.length && !turn.message && !turn.answers.length && (
+        <Text style={[styles.assistantMessage, { color: colors.textMain }]}>{t('assistantChatDestination')}</Text>
+      )}
+      {turn.answers.map((answer, index) => {
+        const key = `${turn.id}-${index}`;
+        const updates = cardUpdates[key];
+        const entry = updates?.[0] ?? answer;
+        if (entry.status === 'details') return null;
+        const details = updates?.[1];
+        const act = (action: LedgerAction | 'registration_details', offset?: number) => {
+          if (entry.context) void runCardAction(key, entry, { action, context: entry.context, offset });
+        };
+        return (
+          <View key={key} style={styles.chatTurn}>
+            {entry.status === 'ok' ? (
+              <LedgerResult answer={entry.answer} onOpenResult={openResult} onSearchSupplier={searchSupplier}
+                onShowRegistrations={offset => act('registration_details', offset)} disabled={busy}
+                hideUserManagement={turn.destinations.includes('userManagement')} />
+            ) : (
+              <Text style={{ color: colors.textMain }}>
+                {t(entry.reason === 'period' ? 'ledgerAiChoosePeriod' : 'ledgerAiChooseBasis')}
+              </Text>
+            )}
+            {!!entry.actions?.length && (
+              <View style={styles.shortcuts}>
+                {entry.actions.filter(action => action !== 'details' || !details).map(action => (
+                  <TouchableOpacity key={action} accessibilityRole="button" disabled={busy} onPress={() => act(action)}
+                    style={[styles.shortcut, { backgroundColor: colors.bg }]}>
+                    <Text style={{ color: colors.primary }}>{t(actionLabels[action])}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+            {details?.status === 'details' && (
+              <>
+                {details.records.map(record => (
+                  <TouchableOpacity key={record.id} accessibilityRole="button" disabled={busy} onPress={() => void openResult(record)}
+                    style={styles.hit}>
+                    <View style={styles.hitTitle}>
+                      <Text style={{ color: colors.textMain }}>{t('procNowBatch').replace('{n}', record.title ?? '')}</Text>
+                      <Text style={[styles.caption, { color: colors.textSub }]}>
+                        {formatDate(record.date)} · {t(record.settled ? 'procSettled' : 'procUnsettled')}
+                      </Text>
+                    </View>
+                    {record.amount !== null && <Text style={{ color: colors.textMain }}>{fmtAmtFull(record.amount)}</Text>}
+                  </TouchableOpacity>
+                ))}
+                {!details.records.length && <Text style={{ color: colors.textSub }}>{t('ledgerAiNoRecords')}</Text>}
+                {details.next_offset !== null && (
+                  <TouchableOpacity accessibilityRole="button" disabled={busy} style={styles.shortcut}
+                    onPress={() => act('details', details.next_offset ?? undefined)}>
+                    <Text style={{ color: colors.primary }}>{t('ledgerAiMoreDetails')}</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+          </View>
+        );
+      })}
+      {turn.destinations.filter((route): route is Exclude<AppSearchPage, 'expenseAi' | 'askLedger'> =>
+        route !== 'expenseAi' && route !== 'askLedger' && Object.prototype.hasOwnProperty.call(pages, route),
+      ).map(route => (
+        <TouchableOpacity key={route} accessibilityRole="button" disabled={busy} onPress={() => void openResult(route)}
+          style={[styles.chatRoute, { backgroundColor: colors.bg }]}>
+          <Text style={{ color: colors.primary }}>{t('assistantChatOpen').replace('{page}', t(pages[route][0]))} ›</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
 
   const listening = speech.status === 'listening';
   const speechPending = speech.active && !listening;
@@ -559,7 +692,7 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
       placeholderTextColor={colors.textSub}
       value={question}
       onChangeText={changeQuestion}
-      editable={!controlsDisabled}
+      editable={!controlsDisabled && (mode !== 'ask' || !!chat)}
       multiline={!isSearch}
       returnKeyType={isSearch ? 'search' : 'default'}
       onSubmitEditing={isSearch ? () => void submit() : undefined}
@@ -643,6 +776,16 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
         inline
         safeTop={insets.top}
         title={t('assistantTitle')}
+        rightAction={mode === 'ask' && !!chat?.turns.length ? (
+          <TouchableOpacity accessibilityRole="button" onPress={() => {
+            Alert.alert(t('assistantChatNew'), t('assistantChatResetConfirm'), [
+              { text: t('cancel'), style: 'cancel' },
+              { text: t('assistantChatNew'), style: 'destructive', onPress: () => void submitChat(null) },
+            ]);
+          }} disabled={busy} style={styles.shortcut}>
+            <Text style={{ color: colors.textMain }}>{t('assistantChatNew')}</Text>
+          </TouchableOpacity>
+        ) : undefined}
         onBack={() => {
           Keyboard.dismiss();
           onBack();
@@ -670,6 +813,13 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
           {isSearch && <View style={styles.searchBar}>{textInput}{submitButton}</View>}
         </View>
         <ScrollView
+          ref={chatScroll}
+          onContentSizeChange={() => {
+            if (mode === 'ask' && followChat.current) {
+              followChat.current = false;
+              chatScroll.current?.scrollToEnd({ animated: true });
+            }
+          }}
           style={styles.screen}
           contentContainerStyle={[styles.bodyContent, styles.contentWidth, { paddingBottom: isSearch ? insets.bottom + 12 : 12 }]}
           keyboardDismissMode="on-drag"
@@ -685,71 +835,45 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
               ))}
             </View>
           )}
-          {mode === 'ask' && !busy && (
-            <View>
-              <TouchableOpacity accessibilityRole="button" accessibilityState={{ expanded: showExamples }}
-                onPress={() => { Keyboard.dismiss(); setShowExamples(!showExamples); }} style={styles.examplesTrigger}>
-                <Text style={{ color: colors.primary }}>{t('ledgerAiExampleList')}</Text>
-                <DropdownArrow color={colors.primary} expanded={showExamples} />
-              </TouchableOpacity>
-              {showExamples && (
-                <ScrollView style={[styles.examplesList, { backgroundColor: colors.bg }]} nestedScrollEnabled
-                  keyboardShouldPersistTaps="always" persistentScrollbar>
-                  {askExamples.map(([example, key]) => (
-                    <TouchableOpacity key={key} accessibilityRole="button" style={styles.exampleRow} onPress={() => {
-                      const text = t(key);
-                      changeQuestion(text);
-                      void submit('ask', text, { example, question: text });
-                    }}>
-                      <Text style={{ color: colors.textMain }}>{t(key)}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              )}
-            </View>
-          )}
-          {!!error && <Text accessibilityLiveRegion="polite" style={{ color: colors.danger }}>{error}</Text>}
-          {hits && <SearchResults hits={hits} onOpen={openResult} disabled={busy} />}
-          {mode === 'ask' && ledger?.status === 'ok' && (
-            <LedgerResult answer={ledger.answer} onSearchSupplier={searchSupplier} onOpenResult={openResult}
-              onShowRegistrations={offset => runAction('registration_details', offset)} disabled={busy} />
-          )}
-          {mode === 'ask' && ledger?.status === 'clarify' && (
-            <Text style={{ color: colors.textMain }}>{t(ledger.reason === 'period' ? 'ledgerAiChoosePeriod' : 'ledgerAiChooseBasis')}</Text>
-          )}
-          {mode === 'ask' && !!ledger?.actions?.length && (
-            <View style={styles.shortcuts}>
-              {ledger.actions.filter(action => action !== 'details' || !supportingRecords).map(action => (
-                <TouchableOpacity key={action} accessibilityRole="button" disabled={busy} onPress={() => runAction(action)}
-                  style={[styles.shortcut, { backgroundColor: colors.bg }]}>
-                  <Text style={{ color: colors.primary }}>{t(actionLabels[action])}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-          {!!supportingRecords && (
+          {mode === 'ask' && (
             <>
-              {supportingRecords.records.map(record => (
-                <TouchableOpacity key={record.id} accessibilityRole="button" disabled={busy}
-                  onPress={() => void openResult(record)} style={styles.hit}>
-                  <View style={styles.hitTitle}>
-                    <Text style={{ color: colors.textMain }}>{t('procNowBatch').replace('{n}', record.title ?? '')}</Text>
-                    <Text style={[styles.caption, { color: colors.textSub }]}>
-                      {formatDate(record.date)} · {t(record.settled ? 'procSettled' : 'procUnsettled')}
-                    </Text>
+              {!chat && !chatError && <ActivityIndicator size="small" color={colors.primary} />}
+              {!!chatError && (
+                <View style={styles.chatTurn}>
+                  <Text style={{ color: colors.danger }}>{chatError}</Text>
+                  <TouchableOpacity accessibilityRole="button" style={styles.shortcut} onPress={() => {
+                    setChat(null);
+                    setLoadAttempt(attempt => attempt + 1);
+                  }}>
+                    <Text style={{ color: colors.primary }}>{t('retry')}</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              {chat?.turns.map(renderTurn)}
+              {chat && !chat.turns.length && !pendingText && (
+                <View style={styles.chatTurn}>
+                  <Text style={[styles.chatWelcome, { color: colors.textMain }]}>{t('assistantChatWelcome')}</Text>
+                  <View style={styles.shortcuts}>
+                    {chatExamples.map(key => (
+                      <TouchableOpacity key={key} accessibilityRole="button" disabled={busy}
+                        onPress={() => { setQuestion(t(key)); void submitChat(t(key)); }}
+                        style={[styles.shortcut, { backgroundColor: colors.bg }]}>
+                        <Text style={{ color: colors.textMain }}>{t(key)}</Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
-                  {record.amount !== null && <Text style={{ color: colors.textMain }}>{fmtAmtFull(record.amount)}</Text>}
-                </TouchableOpacity>
-              ))}
-              {!supportingRecords.records.length && <Text style={{ color: colors.textSub }}>{t('ledgerAiNoRecords')}</Text>}
-              {supportingRecords.next_offset !== null && (
-                <TouchableOpacity accessibilityRole="button" disabled={busy} style={styles.example}
-                  onPress={() => runAction('details', supportingRecords.next_offset ?? undefined)}>
-                  <Text style={{ color: colors.primary }}>{t('ledgerAiMoreDetails')}</Text>
-                </TouchableOpacity>
+                </View>
+              )}
+              {!!pendingText && (
+                <View style={styles.chatTurn}>
+                  <Text style={[styles.userMessage, { backgroundColor: colors.primary, color: colors.surface }]}>{pendingText}</Text>
+                  <ActivityIndicator size="small" color={colors.primary} style={styles.chatLoading} />
+                </View>
               )}
             </>
           )}
+          {!!error && <Text accessibilityLiveRegion="polite" style={{ color: colors.danger }}>{error}</Text>}
+          {hits && <SearchResults hits={hits} onOpen={openResult} disabled={busy} />}
           {draft && <DraftResult draft={draft} />}
         </ScrollView>
         {!isSearch && (
@@ -800,10 +924,12 @@ const styles = StyleSheet.create({
   hitTitle: { flex: 1 },
   result: { borderRadius: 12, padding: 12, gap: 5 },
   resultLink: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
-  example: { minHeight: 44, justifyContent: 'center' },
-  examplesTrigger: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 2 },
-  examplesList: { maxHeight: 140, borderRadius: 10 },
-  exampleRow: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 12 },
+  chatTurn: { gap: 9, paddingBottom: 6 },
+  userMessage: { alignSelf: 'flex-end', maxWidth: '88%', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 15 },
+  assistantMessage: { lineHeight: 21 },
+  chatWelcome: { fontSize: FONTS.h2.size, fontWeight: '600', marginVertical: 8 },
+  chatLoading: { alignSelf: 'flex-start', margin: 8 },
+  chatRoute: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center', borderRadius: 10, paddingHorizontal: 13 },
   shortcuts: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   shortcut: { minHeight: 44, paddingHorizontal: 10, justifyContent: 'center', borderRadius: 8 },
   totalRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
