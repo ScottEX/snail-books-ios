@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Linking, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
 import { api, API_BASE, type AppSearchRecord, type AssistantChatState, type AssistantChatTurn, type AssistantPreference, type AssistantPreferences, type ExpenseDraft, type LedgerAction, type LedgerAnswer, type LedgerRequest, type LedgerResponse, type LedgerTotal } from '../api/client';
@@ -653,6 +653,31 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
       <Text style={[styles.userMessage, { backgroundColor: colors.primary, color: colors.surface }]}>{turn.text}</Text>
       {!!turn.message && <Text style={[styles.assistantMessage, { color: colors.textMain }]}>{turn.message}</Text>}
       {!!turn.notice && <Text style={[styles.assistantMessage, { color: colors.textSub }]}>{t(turn.notice)}</Text>}
+      {!!turn.sources?.length && (
+        <View style={[styles.result, { backgroundColor: colors.bg }]}>
+          <Text accessibilityRole="header" style={[styles.title, { color: colors.textMain }]}>{t('assistantWebSources')}</Text>
+          {turn.sources.map((source, index) => (
+            <TouchableOpacity key={source.url} accessibilityRole="link" style={styles.hit} onPress={async () => {
+              try {
+                if (!/^https?:\/\/[^\s/@\\?#]+(?:[/?#][^\s\\]*)?$/i.test(source.url)) {
+                  throw new Error('Unsupported link');
+                }
+                await Linking.openURL(source.url);
+              } catch {
+                Alert.alert(t('assistantWebOpenFailed'));
+              }
+            }}>
+              <View style={styles.hitTitle}>
+                <Text style={{ color: colors.primary }}>[{index + 1}] {source.title}</Text>
+                <Text style={[styles.caption, { color: colors.textSub }]}>
+                  {source.publisher} · {source.published_date ? formatDate(source.published_date) : t('assistantWebDateUnknown')}
+                </Text>
+              </View>
+              <Text style={{ color: colors.textSub }}>↗</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
       {!!turn.destinations.length && !turn.message && !turn.answers.length && (
         <Text style={[styles.assistantMessage, { color: colors.textMain }]}>{t('assistantChatDestination')}</Text>
       )}

@@ -387,6 +387,16 @@ const I18N: Record<string, Record<string, string>> = {
     assistantChat: '对话',
     assistantChatPlaceholder: '输入你想查的账目或功能',
     assistantChatSend: '发送',
+    assistantModelTimeout: 'AI 回复超时了，请再试一次。',
+    assistantModelUnavailable: 'AI 服务暂时不可用，请稍后再试。',
+    assistantModelInvalid: 'AI 返回的回复不完整，请再试一次。',
+    assistantWebUnavailable: '联网搜索暂时不可用，无法核实最新资料。',
+    assistantWebNoResults: '暂未找到相关公开资料，可以试试更具体的关键词。',
+    assistantWebSummaryUnavailable: '已找到下方资料，暂时无法整理成摘要。',
+    assistantWebPublicOnly: '联网搜索只用于公开资料。请提供可以公开搜索的主题。',
+    assistantWebSources: '公开资料来源',
+    assistantWebDateUnknown: '发布日期未注明',
+    assistantWebOpenFailed: '暂时无法打开此来源。',
     assistantChatOlder: '查看更早的消息',
     assistantMemory: '记忆',
     assistantMemoryClose: '关闭记忆设置',
@@ -1178,6 +1188,16 @@ const I18N: Record<string, Record<string, string>> = {
     assistantChat: '對話',
     assistantChatPlaceholder: '輸入你想查的帳目或功能',
     assistantChatSend: '傳送',
+    assistantModelTimeout: 'AI 回覆逾時了，請再試一次。',
+    assistantModelUnavailable: 'AI 服務暫時無法使用，請稍後再試。',
+    assistantModelInvalid: 'AI 回傳的內容不完整，請再試一次。',
+    assistantWebUnavailable: '網路搜尋暫時無法使用，無法核實最新資訊。',
+    assistantWebNoResults: '暫時找不到相關公開資料，可以試試更具體的關鍵字。',
+    assistantWebSummaryUnavailable: '已找到下方資料，暫時無法整理成摘要。',
+    assistantWebPublicOnly: '網路搜尋僅用於公開資料。請提供可以公開搜尋的主題。',
+    assistantWebSources: '公開資料來源',
+    assistantWebDateUnknown: '未標註發布日期',
+    assistantWebOpenFailed: '暫時無法開啟此來源。',
     assistantChatOlder: '查看更早的訊息',
     assistantMemory: '記憶',
     assistantMemoryClose: '關閉記憶設定',
@@ -1978,6 +1998,16 @@ const I18N: Record<string, Record<string, string>> = {
     assistantChat: 'Chat',
     assistantChatPlaceholder: 'Ask about your books or find a feature',
     assistantChatSend: 'Send',
+    assistantModelTimeout: 'The AI reply timed out. Please try again.',
+    assistantModelUnavailable: 'The AI provider is temporarily unavailable. Please try again shortly.',
+    assistantModelInvalid: 'The AI reply was incomplete. Please try again.',
+    assistantWebUnavailable: 'Web search is temporarily unavailable. Current information could not be verified.',
+    assistantWebNoResults: 'No relevant public sources were found. Try a more specific query.',
+    assistantWebSummaryUnavailable: 'I found the sources below but could not summarize them.',
+    assistantWebPublicOnly: 'Web search is for public information. Provide a public topic to look up.',
+    assistantWebSources: 'Public sources',
+    assistantWebDateUnknown: 'Publication date unavailable',
+    assistantWebOpenFailed: 'This source could not be opened.',
     assistantChatOlder: 'View older messages',
     assistantMemory: 'Memory',
     assistantMemoryClose: 'Close memory settings',
@@ -2771,6 +2801,16 @@ export type I18nKey =
   | 'assistantChat'
   | 'assistantChatPlaceholder'
   | 'assistantChatSend'
+  | 'assistantModelTimeout'
+  | 'assistantModelUnavailable'
+  | 'assistantModelInvalid'
+  | 'assistantWebUnavailable'
+  | 'assistantWebNoResults'
+  | 'assistantWebSummaryUnavailable'
+  | 'assistantWebPublicOnly'
+  | 'assistantWebSources'
+  | 'assistantWebDateUnknown'
+  | 'assistantWebOpenFailed'
   | 'assistantChatOlder'
   | 'assistantMemory'
   | 'assistantMemoryClose'

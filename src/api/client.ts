@@ -81,6 +81,7 @@ export interface AssistantChatTurn {
   notice: string | null;
   draft?: ExpenseDraft | null;
   searches?: { keyword: string; records: AppSearchRecord[] }[];
+  sources?: { title: string; url: string; publisher: string; published_date: string | null }[];
   saved_preference?: AssistantPreference;
   suggestion?: AssistantPreference;
 }
