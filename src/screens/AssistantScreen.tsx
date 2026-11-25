@@ -2,12 +2,13 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path, Rect } from 'react-native-svg';
-import { api, API_BASE, type AppSearchRecord, type AssistantChatState, type AssistantChatTurn, type ExpenseDraft, type LedgerAction, type LedgerAnswer, type LedgerRequest, type LedgerResponse, type LedgerTotal } from '../api/client';
+import { api, API_BASE, type AppSearchRecord, type AssistantChatState, type AssistantChatTurn, type AssistantPreference, type AssistantPreferences, type ExpenseDraft, type LedgerAction, type LedgerAnswer, type LedgerRequest, type LedgerResponse, type LedgerTotal } from '../api/client';
 import { getLang, t } from '../i18n';
 import { FONTS, useTheme, withAlpha } from '../theme';
 import { fmtAmtFull, formatDate } from '../utils/format';
 import { translateDividendNote, translateName } from './partner/usePartnerData';
 import AppTextInput from '../components/AppTextInput';
+import AssistantMemoryPanel, { preferenceLabel, preferenceValueLabel } from '../components/AssistantMemoryPanel';
 import HistoryHeader from '../components/HistoryHeader';
 import HomeBackground from '../components/HomeBackground';
 import SubmitButton from '../components/SubmitButton';
@@ -25,7 +26,7 @@ type AssistantMode = keyof typeof modes;
 const modelErrors = [
   'ledgerAiUnavailable', 'ledgerAiUnclear', 'ledgerAiAdminOnly', 'ledgerAiContextRequired', 'ledgerAiContextExpired', 'expenseAiRateLimit', 'expenseAiUnavailable', 'expenseAiUnclear',
 ];
-const chatExamples = ['assistantChatProfileExample', 'ledgerAiLatestProcurementExample', 'ledgerAiProfitExample'];
+const chatExamples = ['assistantChatProfileExample', 'assistantChatSearchExample', 'assistantChatDraftExample'];
 const actionLabels: Record<LedgerAction, string> = {
   this_month: 'ledgerAiThisMonth', last_month: 'ledgerAiLastMonth', compare_last_month: 'ledgerAiCompareLastMonth',
   details: 'ledgerAiDetails', order_value: 'ledgerAiOrderValue', posted_expense: 'ledgerAiPostedExpense',
@@ -355,6 +356,11 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
   const [chat, setChat] = useState<AssistantChatState | null>(null);
   const [chatError, setChatError] = useState('');
   const [loadAttempt, setLoadAttempt] = useState(0);
+  const [memoryVisible, setMemoryVisible] = useState(false);
+  const [preferences, setPreferences] = useState<AssistantPreferences | null>(null);
+  const [memoryBusy, setMemoryBusy] = useState(false);
+  const [memoryError, setMemoryError] = useState('');
+  const memoryRequest = useRef<AbortController | null>(null);
   const [pendingText, setPendingText] = useState('');
   const [cardUpdates, setCardUpdates] = useState<Record<string, LedgerResponse[]>>({});
   const insets = useSafeAreaInsets();
@@ -430,6 +436,67 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
     return () => controller.abort();
   }, [active, mode, chat, loadAttempt]);
 
+  useEffect(() => () => memoryRequest.current?.abort(), []);
+
+  const refreshPreferences = async () => {
+    if (memoryRequest.current) return;
+    const controller = new AbortController();
+    memoryRequest.current = controller;
+    setMemoryBusy(true);
+    setMemoryError('');
+    try {
+      const values = await api.getAssistantPreferences(controller.signal);
+      if (!controller.signal.aborted) setPreferences(values);
+    } catch {
+      if (!controller.signal.aborted) setMemoryError(t('assistantMemoryFailed'));
+    } finally {
+      if (memoryRequest.current === controller) memoryRequest.current = null;
+      if (!controller.signal.aborted) setMemoryBusy(false);
+    }
+  };
+
+  const editPreference = async (key: AssistantPreference['key'], value: AssistantPreference['value'] | null) => {
+    if (memoryRequest.current) return;
+    const controller = new AbortController();
+    memoryRequest.current = controller;
+    setMemoryBusy(true);
+    setMemoryError('');
+    try {
+      const values = await api.setAssistantPreference(key, value, controller.signal);
+      if (!controller.signal.aborted) setPreferences(values);
+    } catch {
+      if (!controller.signal.aborted) setMemoryError(t('assistantMemoryFailed'));
+    } finally {
+      if (memoryRequest.current === controller) memoryRequest.current = null;
+      if (!controller.signal.aborted) setMemoryBusy(false);
+    }
+  };
+
+  const loadOlder = async () => {
+    if (!chat?.older_before || request.current) return;
+    const controller = new AbortController();
+    request.current = controller;
+    setBusy(true);
+    setError('');
+    try {
+      const older = await api.getAssistantChat(controller.signal, chat.older_before);
+      if (controller.signal.aborted) return;
+      if (older.revision !== chat.revision) {
+        await refreshChat(controller.signal);
+        if (!controller.signal.aborted) setError(t('assistantChatChanged'));
+      } else {
+        setChat({ ...chat, older_before: older.older_before, turns: [...older.turns, ...chat.turns] });
+      }
+    } catch {
+      if (!controller.signal.aborted) setError(t('assistantChatLoadFailed'));
+    } finally {
+      if (request.current === controller) {
+        request.current = null;
+        setBusy(false);
+      }
+    }
+  };
+
   const switchMode = (next: AssistantMode) => {
     if (next === mode || request.current) return;
     if (next === 'ask') followChat.current = true;
@@ -457,7 +524,14 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
       );
       if (next && !controller.signal.aborted) {
         followChat.current = true;
-        setChat(next.state);
+        setChat(current => {
+          const first = next.state.turns[0]?.position;
+          if (!current || !first || message === null) return next.state;
+          const older = current.turns.filter(turn => turn.position !== undefined && turn.position < first);
+          return older.length ? { ...next.state, older_before: current.older_before,
+            turns: [...older, ...next.state.turns] } : next.state;
+        });
+        if (next.state.turns.at(-1)?.saved_preference) void refreshPreferences();
         setQuestion('');
         if (message === null) setCardUpdates({});
       }
@@ -605,6 +679,47 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
       {!!turn.notice && <Text style={[styles.assistantMessage, { color: colors.textSub }]}>{t(turn.notice)}</Text>}
       {!!turn.destinations.length && !turn.message && !turn.answers.length && (
         <Text style={[styles.assistantMessage, { color: colors.textMain }]}>{t('assistantChatDestination')}</Text>
+      )}
+      {turn.saved_preference && (
+        <Text style={[styles.assistantMessage, { color: colors.textMain }]}>
+          {t('assistantMemorySaved').replace('{name}', t(preferenceLabel[turn.saved_preference.key]))
+            .replace('{value}', t(preferenceValueLabel[turn.saved_preference.value]))}
+        </Text>
+      )}
+      {turn.suggestion && (
+        <View style={[styles.result, { backgroundColor: colors.bg }]}>
+          <Text style={{ color: colors.textMain }}>
+            {t('assistantMemorySuggestion').replace('{value}', t(preferenceValueLabel[turn.suggestion.value]))}
+          </Text>
+          <TouchableOpacity accessibilityRole="button" disabled={memoryBusy || busy
+            || preferences?.[turn.suggestion.key] === turn.suggestion.value}
+            onPress={() => turn.suggestion && void editPreference(turn.suggestion.key, turn.suggestion.value)}
+            style={styles.resultLink}>
+            <Text style={{ color: colors.primary }}>
+              {t(preferences?.[turn.suggestion.key] === turn.suggestion.value ? 'assistantMemoryConfirmed' : 'assistantMemoryRemember')}
+            </Text>
+          </TouchableOpacity>
+          {!!memoryError && <Text style={{ color: colors.danger }}>{memoryError}</Text>}
+        </View>
+      )}
+      {turn.searches?.map((search, index) => (
+        <View key={index} style={[styles.result, { backgroundColor: colors.bg }]}>
+          <Text style={[styles.title, { color: colors.textMain }]}>{search.keyword}</Text>
+          <SearchResults hits={{ pages: [], records: search.records }} onOpen={openResult} disabled={busy} />
+        </View>
+      ))}
+      {turn.draft && (
+        <View style={styles.chatTurn}>
+          <DraftResult draft={turn.draft} />
+          <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={() => {
+            if (turn.draft) {
+              Keyboard.dismiss();
+              onReviewDraft(turn.draft);
+            }
+          }} style={[styles.chatRoute, { backgroundColor: colors.bg }]}>
+            <Text style={{ color: colors.primary }}>{t('assistantReviewDraft')} ›</Text>
+          </TouchableOpacity>
+        </View>
       )}
       {turn.answers.map((answer, index) => {
         const key = `${turn.id}-${index}`;
@@ -776,15 +891,26 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
         inline
         safeTop={insets.top}
         title={t('assistantTitle')}
-        rightAction={mode === 'ask' && !!chat?.turns.length ? (
-          <TouchableOpacity accessibilityRole="button" onPress={() => {
-            Alert.alert(t('assistantChatNew'), t('assistantChatResetConfirm'), [
-              { text: t('cancel'), style: 'cancel' },
-              { text: t('assistantChatNew'), style: 'destructive', onPress: () => void submitChat(null) },
-            ]);
-          }} disabled={busy} style={styles.shortcut}>
-            <Text style={{ color: colors.textMain }}>{t('assistantChatNew')}</Text>
-          </TouchableOpacity>
+        rightAction={mode === 'ask' ? (
+          <View style={styles.chatHeaderActions}>
+            <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={() => {
+              Keyboard.dismiss();
+              setMemoryVisible(true);
+              void refreshPreferences();
+            }} style={styles.shortcut}>
+              <Text style={{ color: colors.textMain }}>{t('assistantMemory')}</Text>
+            </TouchableOpacity>
+            {!!chat?.turns.length && (
+              <TouchableOpacity accessibilityRole="button" onPress={() => {
+                Alert.alert(t('assistantChatNew'), t('assistantChatResetConfirm'), [
+                  { text: t('cancel'), style: 'cancel' },
+                  { text: t('assistantChatNew'), style: 'destructive', onPress: () => void submitChat(null) },
+                ]);
+              }} disabled={busy} style={styles.shortcut}>
+                <Text style={{ color: colors.textMain }}>{t('assistantChatNew')}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         ) : undefined}
         onBack={() => {
           Keyboard.dismiss();
@@ -849,6 +975,12 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
                   </TouchableOpacity>
                 </View>
               )}
+              {!!chat?.older_before && (
+                <TouchableOpacity accessibilityRole="button" disabled={busy} onPress={() => void loadOlder()}
+                  style={[styles.chatRoute, { backgroundColor: colors.bg }]}>
+                  <Text style={{ color: colors.primary }}>{t('assistantChatOlder')}</Text>
+                </TouchableOpacity>
+              )}
               {chat?.turns.map(renderTurn)}
               {chat && !chat.turns.length && !pendingText && (
                 <View style={styles.chatTurn}>
@@ -892,6 +1024,9 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
           </View>
         )}
       </View>
+      <AssistantMemoryPanel visible={memoryVisible} onClose={() => setMemoryVisible(false)} values={preferences}
+        busy={memoryBusy} error={memoryError} onEdit={(key, value) => void editPreference(key, value)}
+        onRetry={() => void refreshPreferences()} />
     </KeyboardAvoidingView>
   );
 }
@@ -924,6 +1059,7 @@ const styles = StyleSheet.create({
   hitTitle: { flex: 1 },
   result: { borderRadius: 12, padding: 12, gap: 5 },
   resultLink: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
+  chatHeaderActions: { flexDirection: 'row', alignItems: 'center' },
   chatTurn: { gap: 9, paddingBottom: 6 },
   userMessage: { alignSelf: 'flex-end', maxWidth: '88%', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 15 },
   assistantMessage: { lineHeight: 21 },

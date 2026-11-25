@@ -388,6 +388,25 @@ const I18N: Record<string, Record<string, string>> = {
     assistantChat: '对话',
     assistantChatPlaceholder: '输入你想查的账目或功能',
     assistantChatSend: '发送',
+    assistantChatOlder: '查看更早的消息',
+    assistantChatSearchExample: '帮我找 A-01 发票',
+    assistantChatDraftExample: '今天微信付了 86 元买菜',
+    assistantMemory: '记忆',
+    assistantMemoryClose: '关闭记忆设置',
+    assistantMemoryDescription: '这些偏好按账号保存，新对话也会使用。',
+    assistantMemoryProfit: '默认利润口径',
+    assistantMemoryPeriod: '默认查询时间',
+    assistantMemoryAfterFees: '扣除平台手续费后',
+    assistantMemoryBeforeFees: '扣除平台手续费前',
+    assistantMemoryToday: '今天',
+    assistantMemoryUnset: '未设置',
+    assistantMemoryRemove: '删除',
+    assistantMemoryFailed: '记忆操作失败，请重试。',
+    assistantMemorySaved: '已记住：{name} · {value}',
+    assistantMemorySpecify: '你可以明确告诉我希望默认用哪个口径或时间。',
+    assistantMemorySuggestion: '你最近常用「{value}」，要把它设为默认利润口径吗？',
+    assistantMemoryRemember: '记住这个偏好',
+    assistantMemoryConfirmed: '已设为默认',
     assistantChatNew: '新对话',
     assistantChatResetConfirm: '清空当前对话并重新开始？',
     assistantChatWelcome: '今天想查什么？',
@@ -1169,6 +1188,25 @@ const I18N: Record<string, Record<string, string>> = {
     assistantChat: '對話',
     assistantChatPlaceholder: '輸入你想查的帳目或功能',
     assistantChatSend: '傳送',
+    assistantChatOlder: '查看更早的訊息',
+    assistantChatSearchExample: '幫我找 A-01 發票',
+    assistantChatDraftExample: '今天微信付了 86 元買菜',
+    assistantMemory: '記憶',
+    assistantMemoryClose: '關閉記憶設定',
+    assistantMemoryDescription: '這些偏好按帳號儲存，新對話也會使用。',
+    assistantMemoryProfit: '預設利潤口徑',
+    assistantMemoryPeriod: '預設查詢時間',
+    assistantMemoryAfterFees: '扣除平台手續費後',
+    assistantMemoryBeforeFees: '扣除平台手續費前',
+    assistantMemoryToday: '今天',
+    assistantMemoryUnset: '未設定',
+    assistantMemoryRemove: '刪除',
+    assistantMemoryFailed: '記憶操作失敗，請重試。',
+    assistantMemorySaved: '已記住：{name} · {value}',
+    assistantMemorySpecify: '你可以明確告訴我希望預設使用哪個口徑或時間。',
+    assistantMemorySuggestion: '你最近常用「{value}」，要把它設為預設利潤口徑嗎？',
+    assistantMemoryRemember: '記住這個偏好',
+    assistantMemoryConfirmed: '已設為預設',
     assistantChatNew: '新對話',
     assistantChatResetConfirm: '清除目前的對話並重新開始？',
     assistantChatWelcome: '今天想查什麼？',
@@ -1959,6 +1997,25 @@ const I18N: Record<string, Record<string, string>> = {
     assistantChat: 'Chat',
     assistantChatPlaceholder: 'Ask about your books or find a feature',
     assistantChatSend: 'Send',
+    assistantChatOlder: 'View older messages',
+    assistantChatSearchExample: 'Find invoice A-01',
+    assistantChatDraftExample: 'I paid CNY 86 for groceries today with WeChat',
+    assistantMemory: 'Memory',
+    assistantMemoryClose: 'Close memory settings',
+    assistantMemoryDescription: 'These preferences are saved to your account and apply in new chats.',
+    assistantMemoryProfit: 'Default profit basis',
+    assistantMemoryPeriod: 'Default date range',
+    assistantMemoryAfterFees: 'After platform fees',
+    assistantMemoryBeforeFees: 'Before platform fees',
+    assistantMemoryToday: 'Today',
+    assistantMemoryUnset: 'Not set',
+    assistantMemoryRemove: 'Delete',
+    assistantMemoryFailed: 'Could not update memory. Please try again.',
+    assistantMemorySaved: 'Remembered {name} · {value}',
+    assistantMemorySpecify: 'Tell me which reporting basis or date range to use by default.',
+    assistantMemorySuggestion: 'You often use “{value}”. Make it your default profit basis?',
+    assistantMemoryRemember: 'Remember this preference',
+    assistantMemoryConfirmed: 'Set as default',
     assistantChatNew: 'New chat',
     assistantChatResetConfirm: 'Clear this conversation and start over?',
     assistantChatWelcome: 'What would you like to look up?',
@@ -2742,6 +2799,25 @@ export type I18nKey =
   | 'assistantChat'
   | 'assistantChatPlaceholder'
   | 'assistantChatSend'
+  | 'assistantChatOlder'
+  | 'assistantChatSearchExample'
+  | 'assistantChatDraftExample'
+  | 'assistantMemory'
+  | 'assistantMemoryClose'
+  | 'assistantMemoryDescription'
+  | 'assistantMemoryProfit'
+  | 'assistantMemoryPeriod'
+  | 'assistantMemoryAfterFees'
+  | 'assistantMemoryBeforeFees'
+  | 'assistantMemoryToday'
+  | 'assistantMemoryUnset'
+  | 'assistantMemoryRemove'
+  | 'assistantMemoryFailed'
+  | 'assistantMemorySaved'
+  | 'assistantMemorySpecify'
+  | 'assistantMemorySuggestion'
+  | 'assistantMemoryRemember'
+  | 'assistantMemoryConfirmed'
   | 'assistantChatNew'
   | 'assistantChatResetConfirm'
   | 'assistantChatWelcome'

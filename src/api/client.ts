@@ -73,16 +73,33 @@ export type LedgerResponse =
 
 export interface AssistantChatTurn {
   id: string;
+  position?: number;
   text: string;
   message: string | null;
   answers: Exclude<LedgerResponse, { status: 'details' }>[];
   destinations: string[];
   notice: string | null;
+  draft?: ExpenseDraft | null;
+  searches?: { keyword: string; records: AppSearchRecord[] }[];
+  saved_preference?: AssistantPreference;
+  suggestion?: AssistantPreference;
 }
+
+export interface AssistantPreferenceValues {
+  profit_basis: 'after_fees' | 'before_fees';
+  default_period: 'today' | 'this_month' | 'last_month';
+}
+
+export type AssistantPreference = {
+  [Key in keyof AssistantPreferenceValues]: { key: Key; value: AssistantPreferenceValues[Key] };
+}[keyof AssistantPreferenceValues];
+
+export type AssistantPreferences = Partial<AssistantPreferenceValues>;
 
 export interface AssistantChatState {
   revision: string | null;
   turns: AssistantChatTurn[];
+  older_before?: number;
 }
 
 export interface DividendPreview {
@@ -391,8 +408,16 @@ export const api = {
       body: JSON.stringify({ ...query, record_queries: true, assistant_v2: true, operating_metrics: true }),
       signal,
     }),
-  getAssistantChat: (signal: AbortSignal) =>
-    authFetch<AssistantChatState>('/api/assistant/chat', { signal }),
+  getAssistantChat: (signal: AbortSignal, before?: number) =>
+    authFetch<AssistantChatState>(`/api/assistant/chat${before ? `?before=${before}` : ''}`, { signal }),
+  getAssistantPreferences: (signal: AbortSignal) =>
+    authFetch<AssistantPreferences>('/api/assistant/preferences', { signal }),
+  setAssistantPreference: (key: AssistantPreference['key'], value: AssistantPreference['value'] | null, signal: AbortSignal) =>
+    authFetch<AssistantPreferences>('/api/assistant/preferences', {
+      method: value === null ? 'DELETE' : 'PUT',
+      body: JSON.stringify({ key, value }),
+      signal,
+    }),
   updateAssistantChat: (revision: string | null, requestId: string, text: string | null, signal: AbortSignal) =>
     authFetch<AssistantChatState>('/api/assistant/chat', {
       method: text === null ? 'DELETE' : 'POST',
