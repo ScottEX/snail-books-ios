@@ -208,10 +208,11 @@ function countLabel(count: number, unit: 'ledgerAiPeopleUnit' | 'ledgerAiRoundsU
   return t(key).replace('{n}', count.toLocaleString(getLang()));
 }
 
-function LedgerResult({ answer, onOpenResult, onSearchSupplier, disabled }: {
+function LedgerResult({ answer, onOpenResult, onSearchSupplier, onShowRegistrations, disabled }: {
   answer: LedgerAnswer;
   onOpenResult: (target: SearchResult) => void;
   onSearchSupplier: (name: string) => void;
+  onShowRegistrations: (offset?: number) => void;
   disabled: boolean;
 }) {
   const { colors } = useTheme();
@@ -272,7 +273,7 @@ function LedgerResult({ answer, onOpenResult, onSearchSupplier, disabled }: {
   }
 
   const [defaultLabel, defaultBasis, page] = aggregateLabels[answer.metric];
-  const { supplier, category, current, comparison, difference } = answer;
+  const { supplier, category, current, comparison, difference, registrations } = answer;
   const range = current.start_date ? { from: current.start_date, to: current.end_date } : null;
   const revenueMetric = ['turnover', 'received', 'net_received', 'operating_profit', 'profit'].includes(answer.metric);
   const label = category ?? defaultLabel;
@@ -303,6 +304,18 @@ function LedgerResult({ answer, onOpenResult, onSearchSupplier, disabled }: {
         </Text>
       )}
       <Text style={[styles.caption, { color: colors.textSub }]}>{t(basis)}</Text>
+      {answer.metric === 'registered_users' && (
+        registrations ? (
+          <>
+            <Text style={[styles.title, { color: colors.textMain }]}>{t('ledgerAiRegistrationDetails')}</Text>
+            {registrations.users.map(({ id, username, created_at }) =>
+              row(username, created_at.slice(0, 16).replace('T', ' ') || '—', id))}
+            {!registrations.users.length && <Text style={{ color: colors.textSub }}>{t('ledgerAiNoRecords')}</Text>}
+            {registrations.next_offset !== null &&
+              link(t('loadMore'), () => onShowRegistrations(registrations.next_offset ?? undefined))}
+          </>
+        ) : current.records > 0 && link(t('ledgerAiRegistrationDetails'), () => onShowRegistrations())
+      )}
       {current.fees_complete === false && (
         <Text style={[styles.caption, { color: colors.warning }]}>{t('operatingFeeGap')}</Text>
       )}
@@ -426,7 +439,6 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
     setError('');
     const detailsRequest = ledgerRequest && 'action' in ledgerRequest && ledgerRequest.action === 'details';
     if (!detailsRequest) setSupportingRecords(null);
-    if (submitMode === 'ask' && (!ledgerRequest || 'example' in ledgerRequest)) setLedger(null);
     setDraft(null);
     setHits(null);
     Keyboard.dismiss();
@@ -448,7 +460,22 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
           }));
         } else {
           ledgerContext.current = result.context ?? undefined;
-          setLedger(result);
+          if (ledgerRequest && 'action' in ledgerRequest && ledgerRequest.action === 'registration_details'
+            && ledgerRequest.offset && result.status === 'ok' && result.answer.metric === 'registered_users'
+            && result.answer.registrations) {
+            const { answer } = result;
+            const page = result.answer.registrations;
+            setLedger(previous => {
+              if (previous?.status !== 'ok' || previous.answer.metric !== 'registered_users' || !previous.answer.registrations) return result;
+              const loaded = previous.answer.registrations.users;
+              const ids = new Set(loaded.map(user => user.id));
+              return { ...result, answer: { ...answer, registrations: {
+                ...page, users: [...loaded, ...page.users.filter(user => !ids.has(user.id))],
+              } } };
+            });
+          } else {
+            setLedger(result);
+          }
         }
       } else {
         const result = await api.generateExpenseDraft(text, controller.signal);
@@ -509,7 +536,7 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
   const isSearch = mode === 'search';
   const controlsDisabled = busy || speech.active;
   const disabled = !question.trim() || controlsDisabled;
-  const runAction = (action: LedgerAction, offset?: number) => {
+  const runAction = (action: LedgerAction | 'registration_details', offset?: number) => {
     if (ledger?.context) void submit('ask', question, { action, context: ledger.context, offset });
   };
 
@@ -684,7 +711,8 @@ export default function AssistantScreen({ active, onBack, onOpen, onReviewDraft 
           {!!error && <Text accessibilityLiveRegion="polite" style={{ color: colors.danger }}>{error}</Text>}
           {hits && <SearchResults hits={hits} onOpen={openResult} disabled={busy} />}
           {mode === 'ask' && ledger?.status === 'ok' && (
-            <LedgerResult answer={ledger.answer} onSearchSupplier={searchSupplier} onOpenResult={openResult} disabled={busy} />
+            <LedgerResult answer={ledger.answer} onSearchSupplier={searchSupplier} onOpenResult={openResult}
+              onShowRegistrations={offset => runAction('registration_details', offset)} disabled={busy} />
           )}
           {mode === 'ask' && ledger?.status === 'clarify' && (
             <Text style={{ color: colors.textMain }}>{t(ledger.reason === 'period' ? 'ledgerAiChoosePeriod' : 'ledgerAiChooseBasis')}</Text>

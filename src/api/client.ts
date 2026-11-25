@@ -32,6 +32,10 @@ interface LedgerAggregateAnswer {
   current: LedgerTotal;
   comparison: LedgerTotal | null;
   difference: number | null;
+  registrations?: {
+    users: { id: number; username: string; created_at: string }[];
+    next_offset: number | null;
+  };
 }
 
 export type LedgerAnswer = LedgerAggregateAnswer | {
@@ -61,7 +65,7 @@ export type LedgerAction = 'this_month' | 'last_month' | 'compare_last_month' | 
 export type LedgerRequest =
   | { question: string; context?: string }
   | { example: string; question: string }
-  | { action: LedgerAction; context: string; offset?: number };
+  | { action: LedgerAction | 'registration_details'; context: string; offset?: number };
 export type LedgerResponse =
   | { status: 'ok'; answer: LedgerAnswer; context?: string | null; actions?: LedgerAction[] }
   | { status: 'clarify'; reason: 'procurement_basis' | 'period'; context: string; actions: LedgerAction[] }

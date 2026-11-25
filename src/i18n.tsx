@@ -487,6 +487,7 @@ const I18N: Record<string, Record<string, string>> = {
     invResumeUpload: '已保存这张发票及已上传的附件。再次提交会继续处理这张发票。',
     ledgerAiUsers: '已验证注册用户',
     ledgerAiUsersBasis: '按注册日期统计已验证邮箱的用户，审核和停用人数按当前状态显示。',
+    ledgerAiRegistrationDetails: '用户名和注册时间',
     ledgerAiAwaitingReview: '待审核',
     ledgerAiDisabled: '审核后停用',
     ledgerAiShareholders: '股东及持股比例',
@@ -1256,6 +1257,7 @@ const I18N: Record<string, Record<string, string>> = {
     invResumeUpload: '已儲存這張發票及已上傳的附件。再次提交會繼續處理這張發票。',
     ledgerAiUsers: '已驗證註冊使用者',
     ledgerAiUsersBasis: '按註冊日期統計已驗證電子郵件的使用者，審核和停用人數按目前狀態顯示。',
+    ledgerAiRegistrationDetails: '使用者名稱和註冊時間',
     ledgerAiAwaitingReview: '待審核',
     ledgerAiDisabled: '審核後停用',
     ledgerAiShareholders: '股東及持股比例',
@@ -2034,6 +2036,7 @@ const I18N: Record<string, Record<string, string>> = {
     invResumeUpload: 'The invoice and uploaded files are saved. Submit again to continue on this invoice.',
     ledgerAiUsers: 'Verified registrations',
     ledgerAiUsersBasis: 'Counts email-verified users by registration date. Statuses reflect the current state.',
+    ledgerAiRegistrationDetails: 'Usernames and registration times',
     ledgerAiAwaitingReview: 'Awaiting review',
     ledgerAiDisabled: 'Reviewed and disabled',
     ledgerAiShareholders: 'Shareholders and ownership',
@@ -2805,6 +2808,7 @@ export type I18nKey =
   | 'invResumeUpload'
   | 'ledgerAiUsers'
   | 'ledgerAiUsersBasis'
+  | 'ledgerAiRegistrationDetails'
   | 'ledgerAiAwaitingReview'
   | 'ledgerAiDisabled'
   | 'ledgerAiShareholders'
